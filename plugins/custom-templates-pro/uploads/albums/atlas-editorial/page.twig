@@ -1,0 +1,88 @@
+<div class="atlas-page">
+  <header class="atlas-header">
+    <div class="atlas-container">
+      {% if album.categories|length > 0 %}
+        <div class="atlas-kicker">
+          {% for cat in album.categories %}
+            {% set cat_url = '/category/' ~ cat.slug %}
+            <a href="{% if cat_url starts with '/' %}{{ base_path }}{{ cat_url }}{% else %}{{ cat_url }}{% endif %}">{{ cat.name|e }}</a>{% if not loop.last %} / {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+      <h1 class="atlas-title">{{ album.title|e }}</h1>
+      {% if album.shoot_date or (album.equipment.locations|length > 0) %}
+        <div class="atlas-meta">
+          {% if album.shoot_date %}
+            <span>{{ album.shoot_date|date_format }}</span>
+          {% endif %}
+          {% if album.equipment.locations|length > 0 %}
+            <span>
+              {% for location in album.equipment.locations %}
+                {{ location|e }}{% if not loop.last %}, {% endif %}
+              {% endfor %}
+            </span>
+          {% endif %}
+        </div>
+      {% endif %}
+      {% if album.excerpt %}
+        <div class="atlas-excerpt">{{ album.excerpt|e }}</div>
+      {% endif %}
+      {% if album.cover %}
+        <div class="atlas-cover">
+          {{ include('frontend/_picture.twig', { img: album.cover, variants: album.cover.variants }) }}
+        </div>
+      {% endif %}
+    </div>
+  </header>
+
+  <section class="atlas-container">
+    <div class="atlas-grid">
+      <div class="atlas-body">
+        {% if album.body %}
+          {{ album.body|safe_html }}
+        {% endif %}
+      </div>
+      <aside class="atlas-equipment">
+        <h3>{{ trans('album.equipment')|default('Equipment') }}</h3>
+        {% if album.equipment.cameras|length > 0 %}
+          <div class="atlas-eq-block">
+            <div>{{ trans('album.camera')|default('Camera') }}</div>
+          {% for camera in album.equipment.cameras %}<div>{{ camera|e }}</div>{% endfor %}
+          </div>
+        {% endif %}
+        {% if album.equipment.lenses|length > 0 %}
+          <div class="atlas-eq-block">
+            <div>{{ trans('album.lens')|default('Lens') }}</div>
+          {% for lens in album.equipment.lenses %}<div>{{ lens|e }}</div>{% endfor %}
+          </div>
+        {% endif %}
+        {% if album.equipment.film|length > 0 %}
+          <div class="atlas-eq-block">
+            <div>{{ trans('album.film')|default('Film') }}</div>
+            {% for film in album.equipment.film %}
+              <div>
+                {% if film.name is defined %}
+                  {{ film.name|e }}{% if film.iso %} (ISO {{ film.iso|e }}){% endif %}
+                {% else %}
+                  {{ film|e }}
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+        {% if album.tags|length > 0 %}
+          <div class="atlas-tags">
+            {% for tag in album.tags %}
+              {% set tag_url = '/tag/' ~ (tag.slug|e('url')) %}
+              <a class="atlas-tag" href="{% if tag_url starts with '/' %}{{ base_path }}{{ tag_url }}{% else %}{{ tag_url }}{% endif %}">#{{ tag.name|e }}</a>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </aside>
+    </div>
+  </section>
+
+  <section class="atlas-container">
+    {% include 'frontend/_album_gallery.twig' %}
+  </section>
+</div>

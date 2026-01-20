@@ -1,0 +1,66 @@
+<div class="cover-rail">
+  <section class="cr-hero">
+    {% if album.cover %}
+      <div class="cr-hero-media">
+        {{ include('frontend/_picture.twig', { img: album.cover, variants: album.cover.variants }) }}
+      </div>
+    {% endif %}
+    <h1 class="cr-title">{{ album.title|e }}</h1>
+    {% if album.excerpt %}
+      <div class="cr-body">{{ album.excerpt|e }}</div>
+    {% endif %}
+    {% if album.shoot_date or (album.equipment.locations|length > 0) %}
+      <div class="cr-meta">
+        {% if album.shoot_date %}<span>{{ album.shoot_date|date_format }}</span>{% endif %}
+        {% if album.equipment.locations|length > 0 %}
+          <span>
+            {% for location in album.equipment.locations %}
+              {{ location|e }}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+          </span>
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+
+  {% if album.equipment.cameras|length > 0 or album.equipment.lenses|length > 0 or album.equipment.film|length > 0 %}
+    <section class="cr-rail">
+      {% if album.equipment.cameras|length > 0 %}
+        <div class="cr-card">
+          <strong>{{ trans('album.camera')|default('Camera') }}</strong>
+          {% for camera in album.equipment.cameras %}<div>{{ camera|e }}</div>{% endfor %}
+        </div>
+      {% endif %}
+      {% if album.equipment.lenses|length > 0 %}
+        <div class="cr-card">
+          <strong>{{ trans('album.lens')|default('Lens') }}</strong>
+          {% for lens in album.equipment.lenses %}<div>{{ lens|e }}</div>{% endfor %}
+        </div>
+      {% endif %}
+      {% if album.equipment.film|length > 0 %}
+        <div class="cr-card">
+          <strong>{{ trans('album.film')|default('Film') }}</strong>
+          {% for film in album.equipment.film %}
+            <div>
+              {% if film.name is defined %}
+                {{ film.name|e }}{% if film.iso %} (ISO {{ film.iso|e }}){% endif %}
+              {% else %}
+                {{ film|e }}
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  {% if album.body %}
+    <section class="cr-body">
+      {{ album.body|safe_html }}
+    </section>
+  {% endif %}
+
+  <section class="cr-body">
+    {% include 'frontend/_album_gallery.twig' %}
+  </section>
+</div>

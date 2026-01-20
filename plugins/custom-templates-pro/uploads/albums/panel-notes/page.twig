@@ -1,0 +1,57 @@
+<div class="panel-notes">
+  <div class="pn-wrap">
+    <h1 class="pn-title">{{ album.title|e }}</h1>
+    {% if album.excerpt %}
+      <div class="pn-body">{{ album.excerpt|e }}</div>
+    {% endif %}
+    {% if album.shoot_date or (album.equipment.locations|length > 0) %}
+      <div class="pn-meta">
+        {% if album.shoot_date %}<span>{{ album.shoot_date|date_format }}</span>{% endif %}
+        {% if album.equipment.locations|length > 0 %}
+          <span>
+            {% for location in album.equipment.locations %}
+              {{ location|e }}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+          </span>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <div class="pn-grid">
+      {% if album.equipment.cameras|length > 0 %}
+        <div class="pn-card">
+          <h3>{{ trans('album.camera')|default('Camera') }}</h3>
+          {% for camera in album.equipment.cameras %}<div>{{ camera|e }}</div>{% endfor %}
+        </div>
+      {% endif %}
+      {% if album.equipment.lenses|length > 0 %}
+        <div class="pn-card">
+          <h3>{{ trans('album.lens')|default('Lens') }}</h3>
+          {% for lens in album.equipment.lenses %}<div>{{ lens|e }}</div>{% endfor %}
+        </div>
+      {% endif %}
+      {% if album.equipment.film|length > 0 %}
+        <div class="pn-card">
+          <h3>{{ trans('album.film')|default('Film') }}</h3>
+          {% for film in album.equipment.film %}
+            <div>
+              {% if film.name is defined %}
+                {{ film.name|e }}{% if film.iso %} (ISO {{ film.iso|e }}){% endif %}
+              {% else %}
+                {{ film|e }}
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    {% if album.body %}
+      <div class="pn-body">{{ album.body|safe_html }}</div>
+    {% endif %}
+
+    <div class="pn-gallery">
+      {% include 'frontend/_album_gallery.twig' %}
+    </div>
+  </div>
+</div>

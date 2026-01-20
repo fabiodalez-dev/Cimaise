@@ -1,0 +1,149 @@
+:root {
+  --dl-ink: #0e0f12;
+  --dl-muted: #5b5f69;
+  --dl-paper: #f8f7f5;
+  --dl-glow: rgba(14, 15, 18, 0.08);
+}
+
+.dl-home {
+  background: var(--dl-paper);
+  color: var(--dl-ink);
+  padding-bottom: 4rem;
+}
+
+.dl-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 4.5rem 1.5rem 5rem;
+}
+
+.dl-hero-content {
+  max-width: 860px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.dl-eyebrow {
+  font-family: "Avenir Next", "Gill Sans", "Trebuchet MS", sans-serif;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  color: var(--dl-muted);
+  margin-bottom: 1rem;
+}
+
+.dl-headline {
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  font-size: clamp(2.8rem, 5vw, 4rem);
+  margin-bottom: 1rem;
+}
+
+.dl-subhead {
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: var(--dl-muted);
+}
+
+.dl-orbit {
+  position: absolute;
+  inset: 20% auto auto 50%;
+  width: 380px;
+  height: 380px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(232, 124, 91, 0.35), rgba(232, 124, 91, 0));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.dl-mosaic {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 0 1.5rem 3rem;
+  max-width: 1200px;
+  margin: -2rem auto 0;
+}
+
+@media (min-width: 768px) {
+  .dl-mosaic {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.dl-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.dl-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.dl-chip {
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 10px 22px var(--dl-glow);
+}
+
+.dl-chip img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.dl-albums {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.dl-albums-head {
+  text-align: left;
+  margin-bottom: 1.5rem;
+}
+
+.dl-albums-head h2 {
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  font-size: 2rem;
+  margin-bottom: 0.4rem;
+}
+
+.dl-albums-head p {
+  color: var(--dl-muted);
+}
+
+.dl-albums-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.dl-card {
+  background: #fff;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 12px 26px var(--dl-glow);
+}
+
+.dl-card img {
+  width: 100%;
+  display: block;
+}
+
+.dl-card-body {
+  padding: 1rem 1.2rem 1.3rem;
+}
+
+.dl-card-body h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.45rem;
+}
+
+.dl-card-body p {
+  color: var(--dl-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}

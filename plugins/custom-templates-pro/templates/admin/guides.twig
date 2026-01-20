@@ -1,0 +1,104 @@
+{% extends "admin/_layout.twig" %}
+
+{% block title %}{{ plugin_trans('ctp.guides.title') }} - {{ plugin_trans('ctp.title') }}{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <div class="flex items-center space-x-4 mb-4">
+    <a href="{{ base_path }}/admin/custom-templates" class="text-gray-600 hover:text-gray-900">
+      <i class="fas fa-arrow-left"></i>
+    </a>
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">{{ plugin_trans('ctp.guides.title') }}</h1>
+      <p class="text-gray-600 mt-1">{{ plugin_trans('ctp.guides.subtitle') }}</p>
+    </div>
+  </div>
+</div>
+
+<!-- Introduction -->
+<div class="card mb-6">
+  <div class="p-6">
+    <h2 class="text-xl font-semibold text-gray-900 mb-4">{{ plugin_trans('ctp.guides.how_to') }}</h2>
+    <div class="prose max-w-none text-gray-600">
+      <p class="mb-4">{{ plugin_trans('ctp.guides.intro')|raw }}</p>
+      <ol class="list-decimal list-inside space-y-2">
+        <li>{{ plugin_trans('ctp.guides.step1') }}</li>
+        <li>{{ plugin_trans('ctp.guides.step2') }}</li>
+        <li>{{ plugin_trans('ctp.guides.step3') }}</li>
+        <li>{{ plugin_trans('ctp.guides.step4') }}</li>
+        <li>{{ plugin_trans('ctp.guides.step5') }}</li>
+        <li>{{ plugin_trans('ctp.guides.step6') }}</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<!-- Guide Download Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+  <!-- Gallery Guide -->
+  <div class="card">
+    <div class="p-6">
+      <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ plugin_trans('ctp.guides.gallery.title') }}</h3>
+      <p class="text-gray-600 mb-4 text-sm">
+        {{ plugin_trans('ctp.guides.gallery.desc') }}
+      </p>
+
+      <div class="space-y-2 mb-4 text-sm">
+        <div>{{ plugin_trans('ctp.guides.gallery.feature1') }}</div>
+        <div>{{ plugin_trans('ctp.guides.gallery.feature2') }}</div>
+        <div>{{ plugin_trans('ctp.guides.gallery.feature3') }}</div>
+        <div>{{ plugin_trans('ctp.guides.gallery.feature4') }}</div>
+      </div>
+
+      <a href="{{ base_path }}/admin/custom-templates/guides/gallery/download"
+         class="btn btn-primary w-full justify-center">
+        {{ plugin_trans('ctp.guides.download') }}
+      </a>
+    </div>
+  </div>
+
+  <!-- Album Page Guide -->
+  <div class="card">
+    <div class="p-6">
+      <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ plugin_trans('ctp.guides.album_page.title') }}</h3>
+      <p class="text-gray-600 mb-4 text-sm">
+        {{ plugin_trans('ctp.guides.album_page.desc') }}
+      </p>
+
+      <div class="space-y-2 mb-4 text-sm">
+        <div>{{ plugin_trans('ctp.guides.album_page.feature1') }}</div>
+        <div>{{ plugin_trans('ctp.guides.album_page.feature2') }}</div>
+        <div>{{ plugin_trans('ctp.guides.album_page.feature3') }}</div>
+        <div>{{ plugin_trans('ctp.guides.album_page.feature4') }}</div>
+      </div>
+
+      <a href="{{ base_path }}/admin/custom-templates/guides/album_page/download"
+         class="btn btn-primary w-full justify-center">
+        {{ plugin_trans('ctp.guides.download') }}
+      </a>
+    </div>
+  </div>
+
+  <!-- Homepage Guide -->
+  <div class="card">
+    <div class="p-6">
+      <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ plugin_trans('ctp.guides.homepage.title') }}</h3>
+      <p class="text-gray-600 mb-4 text-sm">
+        {{ plugin_trans('ctp.guides.homepage.desc') }}
+      </p>
+
+      <div class="space-y-2 mb-4 text-sm">
+        <div>{{ plugin_trans('ctp.guides.homepage.feature1') }}</div>
+        <div>{{ plugin_trans('ctp.guides.homepage.feature2') }}</div>
+        <div>{{ plugin_trans('ctp.guides.homepage.feature3') }}</div>
+        <div>{{ plugin_trans('ctp.guides.homepage.feature4') }}</div>
+      </div>
+
+      <a href="{{ base_path }}/admin/custom-templates/guides/homepage/download"
+         class="btn btn-primary w-full justify-center">
+        {{ plugin_trans('ctp.guides.download') }}
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

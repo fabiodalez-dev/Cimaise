@@ -1,0 +1,35 @@
+{
+  "type": "gallery",
+  "name": "Prism Weave",
+  "slug": "prism-weave",
+  "description": "Gallery moderna a colonne fluide con reveal animato e hover luminoso",
+  "version": "1.0.0",
+  "author": "Cimaise Team",
+  "requires": {
+    "cimaise": ">=1.0.0"
+  },
+  "settings": {
+    "layout": "sparse",
+    "columns": {
+      "desktop": 4,
+      "tablet": 3,
+      "mobile": 1
+    },
+    "gap": {
+      "horizontal": 18,
+      "vertical": 18
+    },
+    "style": {
+      "rounded": false,
+      "hover_scale": true
+    }
+  },
+  "libraries": {
+    "photoswipe": true,
+    "masonry": false
+  },
+  "assets": {
+    "css": ["styles.css"],
+    "js": ["script.js"]
+  }
+}

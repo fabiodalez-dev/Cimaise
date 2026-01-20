@@ -1,0 +1,69 @@
+<div class="strip-sparse">
+  {% for image in images %}
+    {% set href = image.lightbox_url|default(image.url) %}
+    {% set img_src = image.fallback_src|default(image.url) %}
+    {% set resolved_src = img_src starts with '/' ? base_path ~ img_src : img_src %}
+    {% set resolved_href = href starts with '/' ? base_path ~ href : href %}
+    <article class="strip-sparse-item" style="--sg-w: {{ image.width|default(3)|e('html_attr') }}; --sg-h: {{ image.height|default(2)|e('html_attr') }};" data-shift>
+      <a href="{{ resolved_href|e('html_attr') }}"
+         class="pswp-link strip-sparse-link"
+         aria-label="{{ image.alt_text|default(image.alt)|default('Open image in lightbox')|e('html_attr') }}"
+         data-image-id="{{ image.id|e('html_attr') }}"
+         data-pswp-width="{{ image.width|default(1600)|e('html_attr') }}"
+         data-pswp-height="{{ image.height|default(1067)|e('html_attr') }}"
+         data-pswp-caption="{{ image.caption|default('')|e('html_attr') }}">
+        <img src="{{ resolved_src|e('html_attr') }}"
+             alt="{{ image.alt_text|default(image.alt)|default('')|e('html_attr') }}"
+             width="{{ image.width|default(1600) }}"
+             height="{{ image.height|default(1067) }}"
+             loading="lazy"
+             decoding="async">
+      </a>
+    </article>
+  {% endfor %}
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+const sparseItems = Array.from(document.querySelectorAll('.strip-sparse-item[data-shift]'));
+if (sparseItems.length) {
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const desktopQuery = window.matchMedia('(min-width: 1024px)');
+  const seededRand = (seed) => {
+    const x = Math.sin(seed * 931.7) * 10000;
+    return x - Math.floor(x);
+  };
+  const baseOffsets = sparseItems.map((_, index) => {
+    const r = seededRand(index + 1);
+    const dir = index % 2 === 0 ? 1 : -1;
+    return dir * (70 + r * 90);
+  });
+  const applyShift = () => {
+    const isDesktop = desktopQuery.matches;
+    if (!isDesktop || prefersReduced) {
+      sparseItems.forEach((item) => item.style.transform = 'translateX(0px)');
+      return;
+    }
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    sparseItems.forEach((item, index) => {
+      const base = baseOffsets[index] || 0;
+      const drift = Math.sin((scrollY + index * 140) / 420) * 40;
+      item.style.transform = `translateX(${base + drift}px)`;
+    });
+  };
+  let scrollHandler = null;
+  const updateListeners = () => {
+    const shouldListen = desktopQuery.matches && !prefersReduced;
+    if (shouldListen && !scrollHandler) {
+      scrollHandler = () => window.requestAnimationFrame(applyShift);
+      window.addEventListener('scroll', scrollHandler, { passive: true });
+    } else if (!shouldListen && scrollHandler) {
+      window.removeEventListener('scroll', scrollHandler);
+      scrollHandler = null;
+    }
+    applyShift();
+  };
+  updateListeners();
+  desktopQuery.addEventListener('change', updateListeners);
+  window.addEventListener('resize', updateListeners);
+}
+</script>
