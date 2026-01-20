@@ -1147,7 +1147,7 @@ class Updater
                     $columns = array_keys($row);
                     $values = array_map(function ($val) use ($pdo) {
                         if ($val === null) return 'NULL';
-                        return $pdo->quote($val);
+                        return $pdo->quote((string)$val);
                     }, array_values($row));
 
                     fwrite($handle, "INSERT INTO `{$table}` (`" . implode('`, `', $columns) . "`) VALUES (" . implode(', ', $values) . ");\n");
@@ -1213,7 +1213,7 @@ class Updater
                 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                     $values = array_map(function ($val) use ($pdo) {
                         if ($val === null) return 'NULL';
-                        return $pdo->quote($val);
+                        return $pdo->quote((string)$val);
                     }, $row);
 
                     fwrite($handle, "INSERT INTO `{$table}` VALUES (" . implode(', ', $values) . ");\n");
