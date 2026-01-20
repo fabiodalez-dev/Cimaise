@@ -141,10 +141,19 @@ class InstallerController
         if (!isset($_SESSION['install_db_config'])) {
             return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
         }
-        
+
+        // Get validation errors and data from session (set by processAdminConfig on validation failure)
+        $errors = $_SESSION['install_admin_errors'] ?? [];
+        $data = $_SESSION['install_admin_data'] ?? [];
+
+        // Clear session data after retrieving (flash-style)
+        unset($_SESSION['install_admin_errors'], $_SESSION['install_admin_data']);
+
         return $this->view->render($response, 'installer/admin.twig', [
             'base_path' => $this->basePath,
-            'csrf' => $_SESSION['csrf'] ?? ''
+            'csrf' => $_SESSION['csrf'] ?? '',
+            'install_admin_errors' => $errors,
+            'install_admin_data' => $data
         ]);
     }
     
