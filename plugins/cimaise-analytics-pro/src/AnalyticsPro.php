@@ -417,12 +417,18 @@ class AnalyticsPro
         $dateFormat = match ($period) {
             'hour' => '%Y-%m-%d %H:00:00',
             'day' => '%Y-%m-%d',
-            'week' => '%Y-W%W',
             'month' => '%Y-%m',
             default => '%Y-%m-%d',
         };
 
-        $dateFormatExpr = $this->db->dateFormatExpression('created_at', $dateFormat);
+        // Week period needs special handling for consistent ISO week numbering
+        if ($period === 'week') {
+            $dateFormatExpr = $this->db->isSqlite()
+                ? "strftime('%Y-W%W', created_at)"
+                : "DATE_FORMAT(created_at, '%x-W%v')";
+        } else {
+            $dateFormatExpr = $this->db->dateFormatExpression('created_at', $dateFormat);
+        }
         $intervalExpr = match ($period) {
             'hour' => $this->db->dateSubExpression('hours', 24),
             'day' => $this->db->dateSubExpression('days', $limit),
@@ -663,18 +669,13 @@ class AnalyticsPro
         try {
             $dateThreshold = $this->db->dateSubExpression('days', $days);
 
-            $stmt = $this->db->pdo()->query("
-                DELETE FROM analytics_pro_events
-                WHERE created_at < {$dateThreshold}
-            ");
-            $deleted = $stmt->rowCount();
+            $deleted = $this->db->execute(
+                "DELETE FROM analytics_pro_events WHERE created_at < {$dateThreshold}"
+            );
 
-            // Also cleanup old sessions
-            $stmt = $this->db->pdo()->query("
-                DELETE FROM analytics_pro_sessions
-                WHERE started_at < {$dateThreshold}
-            ");
-            $deleted += $stmt->rowCount();
+            $deleted += $this->db->execute(
+                "DELETE FROM analytics_pro_sessions WHERE started_at < {$dateThreshold}"
+            );
 
             return $deleted;
 

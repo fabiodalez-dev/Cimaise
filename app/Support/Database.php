@@ -216,7 +216,12 @@ class Database
         return $this->isSqlite ? "DATE('now')" : 'CURDATE()';
     }
 
-    // Helper for portable date formatting
+    /**
+     * Portable date formatting.
+     * Supported portable specifiers: %Y, %m, %d, %H, %M (minutes), %S.
+     * %W (week number) is translated to MySQL %u (Monday-based, 00-53).
+     * For ISO week numbering, use db-specific expressions directly.
+     */
     public function dateFormatExpression(string $column, string $format): string
     {
         if (preg_match('/[\'";]/', $format)) {

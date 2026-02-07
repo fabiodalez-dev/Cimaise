@@ -353,7 +353,7 @@ class CacheMiddleware implements MiddlewareInterface
         ];
 
         foreach ($dynamicRoutes as $route) {
-            if ($path === $route) {
+            if ($path === $route || str_ends_with($path, $route)) {
                 return true;
             }
         }

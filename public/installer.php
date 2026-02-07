@@ -467,7 +467,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($dbConfig['type'] === 'sqlite') {
                         $stmt = $pdo->prepare('INSERT OR REPLACE INTO settings (`key`, value, updated_at) VALUES (?, ?, ?)');
                     } else {
-                        $stmt = $pdo->prepare('INSERT INTO settings (`key`, value, updated_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = VALUES(updated_at)');
+                        $stmt = $pdo->prepare('INSERT INTO settings (`key`, value, updated_at) VALUES (?, ?, ?) AS new ON DUPLICATE KEY UPDATE value = new.value, updated_at = new.updated_at');
                     }
                     $stmt->execute([$key, $value, date('Y-m-d H:i:s')]);
                 }

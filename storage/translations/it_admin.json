@@ -1094,6 +1094,7 @@
     "admin.flash.name_slug_required": "Nome e slug sono obbligatori",
     "admin.flash.one_admin_required": "Deve rimanere almeno un amministratore attivo",
     "admin.flash.operation_not_allowed": "Operazione non consentita",
+    "admin.flash.password_change_blocked": "La modifica della password non è consentita",
     "admin.flash.password_changed": "Password cambiata con successo",
     "admin.flash.password_incorrect": "La password attuale non è corretta",
     "admin.flash.password_min_length": "La nuova password deve essere di almeno 8 caratteri",

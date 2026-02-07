@@ -383,6 +383,9 @@ class AuthController extends BaseController
         // Filter: auth_can_change_password - Plugins can return false and set a flash message to block
         $canChange = Hooks::applyFilter('auth_can_change_password', true, $_SESSION['admin_id']);
         if ($canChange === false) {
+            if (empty($_SESSION['flash'])) {
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.password_change_blocked')];
+            }
             return $response->withHeader('Location', $this->safeReferer('/admin'))->withStatus(302);
         }
 
