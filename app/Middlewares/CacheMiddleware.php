@@ -45,14 +45,14 @@ class CacheMiddleware implements MiddlewareInterface
             return $this->addNoCacheHeaders($response);
         }
 
-        // Frontend API GET routes: short cache for infinite scroll, template switching, EXIF
-        if (str_starts_with($path, '/api/') && !str_contains($path, '/admin/')) {
-            return $this->addApiCache($response);
-        }
-
-        // Admin API routes: no cache
+        // API routes
         if (str_starts_with($path, '/api/')) {
-            return $this->addNoCacheHeaders($response);
+            // Admin API: no cache
+            if (str_contains($path, '/admin/')) {
+                return $this->addNoCacheHeaders($response);
+            }
+            // Frontend API: short private cache for infinite scroll, template switching, EXIF
+            return $this->addApiCache($response);
         }
 
         // Dynamic routes that look like static assets (e.g., /fonts/typography.css)
@@ -376,7 +376,6 @@ class CacheMiddleware implements MiddlewareInterface
         $maxAge = $this->settings->get('performance.api_cache_max_age', 60); // 1 minute default
 
         return $response
-            ->withHeader('Cache-Control', "public, max-age={$maxAge}, stale-while-revalidate=30")
-            ->withHeader('Pragma', 'public');
+            ->withHeader('Cache-Control', "private, max-age={$maxAge}, stale-while-revalidate=30");
     }
 }

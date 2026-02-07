@@ -9,10 +9,10 @@
     "postinstall": "node scripts/copy-vendor.js"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
+    "@eslint/js": "^9.19.0",
     "@tailwindcss/forms": "^0.5.10",
     "autoprefixer": "^10.4.21",
-    "eslint": "^10.0.0",
+    "eslint": "^9.19.0",
     "tailwindcss": "^3.4.17",
     "terser": "^5.44.1",
     "vite": "^5.4.0"

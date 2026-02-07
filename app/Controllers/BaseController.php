@@ -349,7 +349,7 @@ abstract class BaseController
         $serverHost = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
         // Strip port from server host for comparison
         $serverHost = preg_replace('/:\d+$/', '', $serverHost);
-        if ($refererHost !== null && strcasecmp($refererHost, $serverHost) === 0) {
+        if (is_string($refererHost) && $serverHost !== '' && strcasecmp($refererHost, $serverHost) === 0) {
             return $referer;
         }
         return $this->redirect($fallbackPath);

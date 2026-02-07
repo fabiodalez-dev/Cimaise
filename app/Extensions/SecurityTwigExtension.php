@@ -99,6 +99,7 @@ class SecurityTwigExtension extends AbstractExtension
                         if ($tag === 'a' && $name === 'href') {
                             if ($this->hasDangerousProtocol((string)$attr->nodeValue)) {
                                 $node->removeAttribute('href');
+                                continue;
                             }
                         }
                         if ($tag === 'a' && $name === 'target') {

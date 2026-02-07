@@ -12,7 +12,7 @@ function cleanStaleBuilds() {
       // Clean hashed files in root of outDir (e.g., admin-XXXX.js, app-XXXX.css)
       if (fs.existsSync(outDir)) {
         for (const file of fs.readdirSync(outDir)) {
-          if (/^(admin|app)-[A-Za-z0-9_-]+\.(js|css)$/.test(file)) {
+          if (/^(admin|app|frontend)-[A-Za-z0-9_-]+\.(js|css)$/.test(file)) {
             fs.unlinkSync(path.join(outDir, file))
           }
         }

@@ -308,7 +308,7 @@ class MediaController extends BaseController
 
         if (!$realPath || !is_file($realPath)) {
             // Last resort: try blur fallback for NSFW albums
-            $blurResponse = $this->tryServeBlurFallback($request, $response, $imageId, $isNsfw, $variant);
+            $blurResponse = $this->tryServeBlurFallback($request, $response, $imageId, $isPasswordProtected || $isNsfw, $variant);
             if ($blurResponse !== null) {
                 return $blurResponse;
             }

@@ -274,10 +274,14 @@ class AnalyticsPro
      */
     private function updateSession(string $sessionId): void
     {
+        $durationExpr = $this->db->isSqlite()
+            ? "(julianday(CURRENT_TIMESTAMP) - julianday(started_at)) * 86400"
+            : "TIMESTAMPDIFF(SECOND, started_at, CURRENT_TIMESTAMP)";
+
         $stmt = $this->db->pdo()->prepare("
             UPDATE analytics_pro_sessions
             SET last_activity = CURRENT_TIMESTAMP,
-                duration = (julianday(CURRENT_TIMESTAMP) - julianday(started_at)) * 86400,
+                duration = {$durationExpr},
                 events_count = events_count + 1
             WHERE session_id = ?
         ");
@@ -512,7 +516,7 @@ class AnalyticsPro
 
         try {
             $thirtyDaysAgo = $this->db->dateSubExpression('days', 30);
-            foreach ($steps as $index => $step) {
+            foreach ($steps as $step) {
                 $stmt = $this->db->pdo()->prepare("
                     SELECT COUNT(DISTINCT session_id) as count
                     FROM analytics_pro_events

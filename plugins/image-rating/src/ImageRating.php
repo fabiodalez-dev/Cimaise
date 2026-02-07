@@ -7,10 +7,12 @@
 class ImageRating
 {
     private PDO $db;
+    private bool $isSqlite;
 
     public function __construct(PDO $db)
     {
         $this->db = $db;
+        $this->isSqlite = $db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite';
     }
 
     /**
@@ -61,8 +63,7 @@ class ImageRating
         }
 
         try {
-            $isSqlite = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite';
-            if ($isSqlite) {
+            if ($this->isSqlite) {
                 $sql = "INSERT OR REPLACE INTO plugin_image_ratings (image_id, rating, rated_by, rated_at)
                     VALUES (?, ?, ?, datetime('now'))";
             } else {

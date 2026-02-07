@@ -679,11 +679,11 @@ html.dark .pswp__custom-caption {
 
 /* Variazioni dinamiche per gli elementi mosaic */
 .mosaic-item[data-index="1"], .mosaic-item[data-index="7"], .mosaic-item[data-index="13"] {
-    grid-row: span 1.5;
+    grid-row: span 2;
 }
 
 .mosaic-item[data-index="4"], .mosaic-item[data-index="10"], .mosaic-item[data-index="16"] {
-    grid-column: span 1.5;
+    grid-column: span 2;
 }
 
 @media (max-width: 1024px) {

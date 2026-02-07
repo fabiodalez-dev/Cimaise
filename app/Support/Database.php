@@ -219,6 +219,9 @@ class Database
     // Helper for portable date formatting
     public function dateFormatExpression(string $column, string $format): string
     {
+        if (preg_match('/[\'";]/', $format)) {
+            throw new \InvalidArgumentException('Invalid characters in date format');
+        }
         if ($this->isSqlite) {
             return "strftime('{$format}', {$column})";
         }
