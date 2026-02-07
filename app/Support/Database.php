@@ -231,7 +231,8 @@ class Database
             return "strftime('{$format}', {$column})";
         }
         // Translate SQLite format specifiers to MySQL equivalents
-        $mysqlFormat = str_replace('%W', '%u', $format);
+        // %W (week number) → %u, %M (minutes) → %i (MySQL %M = month name)
+        $mysqlFormat = str_replace(['%W', '%M'], ['%u', '%i'], $format);
         return "DATE_FORMAT({$column}, '{$mysqlFormat}')";
     }
 }

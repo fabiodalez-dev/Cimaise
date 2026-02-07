@@ -184,11 +184,23 @@ class InstallCommand extends Command
         $data['admin_name'] = $helper->ask($input, $output, $question);
         
         $question = new Question('Admin email: ');
+        $question->setValidator(function ($value) {
+            if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+                throw new \RuntimeException('Please enter a valid email address');
+            }
+            return $value;
+        });
         $data['admin_email'] = $helper->ask($input, $output, $question);
         
         $question = new Question('Admin password (min 8 characters): ');
         $question->setHidden(true);
         $question->setHiddenFallback(false);
+        $question->setValidator(function ($value) {
+            if ($value === null || strlen($value) < 8) {
+                throw new \RuntimeException('Password must be at least 8 characters');
+            }
+            return $value;
+        });
         $data['admin_password'] = $helper->ask($input, $output, $question);
         
         // Site settings

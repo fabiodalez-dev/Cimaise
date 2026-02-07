@@ -35,13 +35,19 @@ class CacheMiddleware implements MiddlewareInterface
         $path = $request->getUri()->getPath();
         $method = $request->getMethod();
 
+        // Normalize path: strip basePath for subdirectory installations
+        $basePath = rtrim($this->settings->get('site.base_path', ''), '/');
+        if ($basePath !== '' && str_starts_with($path, $basePath)) {
+            $path = substr($path, strlen($basePath)) ?: '/';
+        }
+
         // Only cache GET and HEAD requests
         if (!in_array($method, ['GET', 'HEAD'])) {
             return $response;
         }
 
         // Don't cache admin routes
-        if (str_starts_with($path, '/admin') || str_starts_with($path, '/cimaise/admin')) {
+        if (str_starts_with($path, '/admin')) {
             return $this->addNoCacheHeaders($response);
         }
 
@@ -353,7 +359,7 @@ class CacheMiddleware implements MiddlewareInterface
         ];
 
         foreach ($dynamicRoutes as $route) {
-            if ($path === $route || str_ends_with($path, $route)) {
+            if ($path === $route) {
                 return true;
             }
         }
