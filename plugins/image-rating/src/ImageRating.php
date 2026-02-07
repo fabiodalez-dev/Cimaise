@@ -61,10 +61,14 @@ class ImageRating
         }
 
         try {
-            $sql = "
-                INSERT OR REPLACE INTO plugin_image_ratings (image_id, rating, rated_by, rated_at)
-                VALUES (?, ?, ?, datetime('now'))
-            ";
+            $isSqlite = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite';
+            if ($isSqlite) {
+                $sql = "INSERT OR REPLACE INTO plugin_image_ratings (image_id, rating, rated_by, rated_at)
+                    VALUES (?, ?, ?, datetime('now'))";
+            } else {
+                $sql = "INSERT INTO plugin_image_ratings (image_id, rating, rated_by, rated_at)
+                    VALUES (?, ?, ?, NOW()) ON DUPLICATE KEY UPDATE rating = VALUES(rating), rated_by = VALUES(rated_by), rated_at = NOW()";
+            }
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$imageId, $rating, $userId]);

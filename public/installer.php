@@ -418,7 +418,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pdo = $testResult['pdo'];
                 
                 // Run complete MySQL schema with data
-                $schemaFile = $rootPath . '/database/complete_mysql_schema.sql';
+                $schemaFile = $rootPath . '/database/schema.mysql.sql';
                 if (file_exists($schemaFile)) {
                     $sql = file_get_contents($schemaFile);
                     if ($sql) {
@@ -464,7 +464,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             foreach ($settingsToUpdate as $key => $value) {
                 if (!empty($value)) {
-                    $stmt = $pdo->prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)');
+                    if ($dbConfig['type'] === 'sqlite') {
+                        $stmt = $pdo->prepare('INSERT OR REPLACE INTO settings (`key`, value, updated_at) VALUES (?, ?, ?)');
+                    } else {
+                        $stmt = $pdo->prepare('INSERT INTO settings (`key`, value, updated_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = VALUES(updated_at)');
+                    }
                     $stmt->execute([$key, $value, date('Y-m-d H:i:s')]);
                 }
             }

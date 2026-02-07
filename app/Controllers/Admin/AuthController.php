@@ -306,28 +306,28 @@ class AuthController extends BaseController
 
         if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
+            return $response->withHeader('Location', $this->safeReferer('/admin'))->withStatus(302);
         }
 
         if ($firstName === '' || $lastName === '' || $email === '') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.all_fields_required')];
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
+            return $response->withHeader('Location', $this->safeReferer('/admin'))->withStatus(302);
         }
 
         // SECURITY: Validate names to prevent XSS
         if (strlen($firstName) > 50 || strlen($lastName) > 50) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.name_max_length')];
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
+            return $response->withHeader('Location', $this->safeReferer('/admin'))->withStatus(302);
         }
 
         if (!preg_match('/^[a-zA-Z\s\-\'\.À-ſ]+$/u', $firstName) || !preg_match('/^[a-zA-Z\s\-\'\.À-ſ]+$/u', $lastName)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.name_invalid_chars')];
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
+            return $response->withHeader('Location', $this->safeReferer('/admin'))->withStatus(302);
         }
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.email_invalid')];
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
+            return $response->withHeader('Location', $this->safeReferer('/admin'))->withStatus(302);
         }
 
         // Check if email is already taken by another user
@@ -335,7 +335,7 @@ class AuthController extends BaseController
         $stmt->execute([':email' => $email, ':id' => $_SESSION['admin_id']]);
         if ($stmt->fetch()) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.email_already_used')];
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
+            return $response->withHeader('Location', $this->safeReferer('/admin'))->withStatus(302);
         }
 
         try {
@@ -360,7 +360,7 @@ class AuthController extends BaseController
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic')];
         }
 
-        return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
+        return $response->withHeader('Location', $this->safeReferer('/admin'))->withStatus(302);
     }
 
     public function changePassword(Request $request, Response $response): Response
@@ -377,28 +377,28 @@ class AuthController extends BaseController
 
         if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
+            return $response->withHeader('Location', $this->safeReferer('/admin'))->withStatus(302);
         }
 
         // Filter: auth_can_change_password - Plugins can return false and set a flash message to block
         $canChange = Hooks::applyFilter('auth_can_change_password', true, $_SESSION['admin_id']);
         if ($canChange === false) {
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
+            return $response->withHeader('Location', $this->safeReferer('/admin'))->withStatus(302);
         }
 
         if ($currentPassword === '' || $newPassword === '' || $confirmPassword === '') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.all_fields_required')];
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
+            return $response->withHeader('Location', $this->safeReferer('/admin'))->withStatus(302);
         }
 
         if (strlen($newPassword) < 8) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.password_min_length')];
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
+            return $response->withHeader('Location', $this->safeReferer('/admin'))->withStatus(302);
         }
 
         if ($newPassword !== $confirmPassword) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.passwords_not_match')];
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
+            return $response->withHeader('Location', $this->safeReferer('/admin'))->withStatus(302);
         }
 
         // Verify current password
@@ -408,7 +408,7 @@ class AuthController extends BaseController
 
         if (!$user || !password_verify($currentPassword, $user['password_hash'])) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.current_password_incorrect')];
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
+            return $response->withHeader('Location', $this->safeReferer('/admin'))->withStatus(302);
         }
 
         try {
@@ -429,7 +429,7 @@ class AuthController extends BaseController
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic')];
         }
 
-        return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
+        return $response->withHeader('Location', $this->safeReferer('/admin'))->withStatus(302);
     }
 
     private function getAdminLocale(): string

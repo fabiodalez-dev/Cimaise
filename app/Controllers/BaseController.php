@@ -215,9 +215,9 @@ abstract class BaseController
      * Centralized access validation for protected albums (password/NSFW).
      *
      * For media serving (individual images):
-     * - Blur variants are always allowed (for preview purposes)
-     * - Password-protected albums: Full images allowed (password protects album page, not images)
-     * - NSFW albums: Full images require consent
+     * - Blur variants are always allowed (for preview/cover purposes)
+     * - Password-protected albums: non-blur variants require session access
+     * - NSFW albums: non-blur variants require consent
      */
     protected function validateAlbumAccess(
         int $albumId,
@@ -237,9 +237,13 @@ abstract class BaseController
             return true;
         }
 
-        // Password-protected albums: images are allowed (password protects page view, not images)
-        // This allows cover images to show in album listings
-        // The album page itself will still require password entry
+        // Password-protected albums: require session access for non-blur variants
+        if ($isPasswordProtected && !$this->hasAlbumPasswordAccess($albumId)) {
+            if ($log) {
+                error_log("[MediaAccess] DENY password album={$albumId} variant={$variant}");
+            }
+            return 'password';
+        }
 
         // NSFW albums require consent for non-blur variants
         if ($isNsfw && !$this->hasNsfwAlbumConsent($albumId)) {
@@ -329,6 +333,26 @@ abstract class BaseController
 
         $album['cover_image'] = $coverImage;
         return $album;
+    }
+
+    /**
+     * Get a safe redirect URL from HTTP_REFERER, validating it belongs to the same host.
+     * Falls back to the provided default path if REFERER is missing or external.
+     */
+    protected function safeReferer(string $fallbackPath): string
+    {
+        $referer = $_SERVER['HTTP_REFERER'] ?? '';
+        if ($referer === '') {
+            return $this->redirect($fallbackPath);
+        }
+        $refererHost = parse_url($referer, PHP_URL_HOST);
+        $serverHost = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
+        // Strip port from server host for comparison
+        $serverHost = preg_replace('/:\d+$/', '', $serverHost);
+        if ($refererHost !== null && strcasecmp($refererHost, $serverHost) === 0) {
+            return $referer;
+        }
+        return $this->redirect($fallbackPath);
     }
 
     /**

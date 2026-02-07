@@ -209,4 +209,21 @@ class Database
     {
         return $this->isSqlite ? 'INSERT OR REPLACE' : 'REPLACE';
     }
+
+    // Helper for portable current date (without time)
+    public function currentDateExpression(): string
+    {
+        return $this->isSqlite ? "DATE('now')" : 'CURDATE()';
+    }
+
+    // Helper for portable date formatting
+    public function dateFormatExpression(string $column, string $format): string
+    {
+        if ($this->isSqlite) {
+            return "strftime('{$format}', {$column})";
+        }
+        // Translate SQLite format specifiers to MySQL equivalents
+        $mysqlFormat = str_replace('%W', '%u', $format);
+        return "DATE_FORMAT({$column}, '{$mysqlFormat}')";
+    }
 }

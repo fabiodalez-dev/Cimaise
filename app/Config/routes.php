@@ -279,7 +279,7 @@ return function (App $app, array $container) {
     $app->get('/download/image/{id}', function (Request $request, Response $response, array $args) use ($container) {
         $controller = new \App\Controllers\Frontend\DownloadController($container['db']);
         return $controller->downloadImage($request, $response, $args);
-    });
+    })->add(new RateLimitMiddleware(30, 60)); // 30 downloads per minute
 
     // Gallery preview page
     $app->get('/gallery', function (Request $request, Response $response) use ($container) {

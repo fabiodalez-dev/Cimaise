@@ -28,8 +28,13 @@
     ]
   },
   "resources/app.css": {
-    "file": "app-BG_6bH0g.css",
+    "file": "app-CN1l53Sc.css",
     "src": "resources/app.css",
+    "isEntry": true
+  },
+  "resources/frontend.css": {
+    "file": "frontend-Dtll810p.css",
+    "src": "resources/frontend.css",
     "isEntry": true
   },
   "resources/js/hero.js": {

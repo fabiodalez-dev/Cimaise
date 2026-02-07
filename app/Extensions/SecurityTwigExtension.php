@@ -46,9 +46,6 @@ class SecurityTwigExtension extends AbstractExtension
             'span' => ['class'],
         ];
 
-        // Strip dangerous protocols
-        $html = preg_replace('#(?i)javascript:\s*#', '', $html ?? '');
-
         $doc = new \DOMDocument();
         $doc->strictErrorChecking = false;
         libxml_use_internal_errors(true);
@@ -58,6 +55,17 @@ class SecurityTwigExtension extends AbstractExtension
         $this->sanitizeNode($doc, $allowedTags, $allowedAttrs);
         $out = $doc->saveHTML();
         return $out ?: '';
+    }
+
+    /**
+     * Check if an attribute value contains a dangerous URI protocol.
+     * Operates on DOM-decoded values (after HTML entity resolution).
+     */
+    private function hasDangerousProtocol(string $value): bool
+    {
+        // Strip whitespace and control characters, then check protocol
+        $normalized = preg_replace('/[\x00-\x20]+/', '', $value);
+        return (bool) preg_match('#^(javascript|data|vbscript):#i', $normalized);
     }
 
     private function sanitizeNode(\DOMNode $node, array $allowedTags, array $allowedAttrs): void
@@ -74,10 +82,10 @@ class SecurityTwigExtension extends AbstractExtension
                     $parent->removeChild($node);
                     return; // children already reparented
                 }
-            } else {
+            } elseif ($node instanceof \DOMElement) {
                 // Filter attributes
                 if ($node->hasAttributes()) {
-                    /** @var \DOMNamedNodeMap $attrs */
+                    /** @var \DOMNamedNodeMap<\DOMAttr> $attrs */
                     $attrs = $node->attributes;
                     for ($i = $attrs->length - 1; $i >= 0; $i--) {
                         $attr = $attrs->item($i);
@@ -87,9 +95,9 @@ class SecurityTwigExtension extends AbstractExtension
                             $node->removeAttributeNode($attr);
                             continue;
                         }
+                        // Check for dangerous protocols on DOM-decoded values
                         if ($tag === 'a' && $name === 'href') {
-                            $val = (string)$attr->nodeValue;
-                            if (preg_match('#^\s*(javascript:|data:)#i', $val)) {
+                            if ($this->hasDangerousProtocol((string)$attr->nodeValue)) {
                                 $node->removeAttribute('href');
                             }
                         }

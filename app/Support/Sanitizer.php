@@ -59,7 +59,7 @@ final class Sanitizer
                 return;
             }
 
-            if ($node->hasAttributes()) {
+            if ($node instanceof \DOMElement && $node->hasAttributes()) {
                 foreach (iterator_to_array($node->attributes) as $attr) {
                     $attrName = strtolower($attr->name);
                     $allowed = $allowedAttributes[strtolower($node->nodeName)] ?? [];

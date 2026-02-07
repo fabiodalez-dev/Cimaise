@@ -132,6 +132,7 @@ ini_set('session.cookie_path', '/');
 if (CookieHelper::isHttps()) {
     ini_set('session.cookie_secure', '1');
 }
+session_cache_limiter('');
 session_start();
 
 // Calculate base path once for subdirectory installations
@@ -496,13 +497,11 @@ $twig->getEnvironment()->addExtension(new \App\Extensions\DateTwigExtension());
 $twig->getEnvironment()->addGlobal('is_admin', isset($_SESSION['admin_id']) && $_SESSION['admin_id'] > 0);
 
 // Compatibility shim: if a proxy rewrites POST -> GET on /admin/updates/perform, convert back to POST.
+// SECURITY: CSRF token must be explicitly provided in the request (no auto-injection).
 $app->add(function ($request, $handler) {
     $path = $request->getUri()->getPath();
     if ($request->getMethod() === 'GET' && $path === '/admin/updates/perform') {
         $params = $request->getQueryParams();
-        if (!isset($params['csrf']) && isset($_SESSION['csrf'])) {
-            $params['csrf'] = $_SESSION['csrf'];
-        }
 
         $body = http_build_query($params);
         $stream = fopen('php://temp', 'r+');

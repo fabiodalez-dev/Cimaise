@@ -45,9 +45,20 @@ class CacheMiddleware implements MiddlewareInterface
             return $this->addNoCacheHeaders($response);
         }
 
-        // Don't cache API routes (except specific ones)
+        // Frontend API GET routes: short cache for infinite scroll, template switching, EXIF
+        if (str_starts_with($path, '/api/') && !str_contains($path, '/admin/')) {
+            return $this->addApiCache($response);
+        }
+
+        // Admin API routes: no cache
         if (str_starts_with($path, '/api/')) {
             return $this->addNoCacheHeaders($response);
+        }
+
+        // Dynamic routes that look like static assets (e.g., /fonts/typography.css)
+        // These are PHP-generated and should NOT get 1-year immutable cache
+        if ($this->isDynamicRoute($path)) {
+            return $this->addDynamicAssetCache($response);
         }
 
         // Check if it's a static asset
@@ -63,13 +74,14 @@ class CacheMiddleware implements MiddlewareInterface
             return $this->addMediaCache($response);
         }
 
-        // For HTML pages, use short cache with validation and ETag
+        // For non-HTML content types that we don't explicitly handle, pass through
         $contentType = $response->getHeaderLine('Content-Type');
-        if (str_contains($contentType, 'text/html')) {
-            return $this->addHtmlCache($response, $request);
+        if ($contentType !== '' && !str_contains($contentType, 'text/html')) {
+            return $response;
         }
 
-        return $response;
+        // HTML pages (or responses without explicit Content-Type, which default to HTML)
+        return $this->addHtmlCache($response, $request);
     }
 
     private function isStaticAsset(string $path): bool
@@ -133,7 +145,7 @@ class CacheMiddleware implements MiddlewareInterface
 
     private function addHtmlCache(Response $response, Request $request): Response
     {
-        $maxAge = $this->settings->get('performance.html_cache_max_age', 300); // 5 minutes default
+        $maxAge = $this->settings->get('performance.html_cache_max_age', 3600); // 1 hour default
 
         // Try to generate ETag from page cache (database or file) if available
         $path = $request->getUri()->getPath();
@@ -171,7 +183,11 @@ class CacheMiddleware implements MiddlewareInterface
 
                 // Double-check size after reading (Content-Length may be missing)
                 if ($body !== '' && strlen($body) <= $maxHashSize) {
-                    $etag = '"' . sha1($body) . '"';
+                    // Strip per-request tokens (CSP nonce, CSRF) before hashing
+                    // so the ETag is stable for identical page content
+                    $hashBody = preg_replace('/\s*nonce="[^"]*"/', '', $body);
+                    $hashBody = preg_replace('/name="csrf"\s+value="[^"]*"/', 'name="csrf" value=""', $hashBody);
+                    $etag = '"' . sha1($hashBody) . '"';
                 }
             }
         }
@@ -186,7 +202,7 @@ class CacheMiddleware implements MiddlewareInterface
                     ->withStatus(304)
                     ->withBody($emptyBody)
                     ->withHeader('ETag', $etag)
-                    ->withHeader('Cache-Control', "public, max-age={$maxAge}, must-revalidate");
+                    ->withHeader('Cache-Control', "public, max-age={$maxAge}, must-revalidate, stale-while-revalidate=60");
                 return $this->addVaryHeader($notModifiedResponse, 'Cookie, Accept-Encoding');
             }
         }
@@ -194,7 +210,7 @@ class CacheMiddleware implements MiddlewareInterface
         // For HTML, use shorter cache with must-revalidate
         // SECURITY: Vary header prevents cache poisoning by ensuring caches consider these headers
         $result = $response
-            ->withHeader('Cache-Control', "public, max-age={$maxAge}, must-revalidate")
+            ->withHeader('Cache-Control', "public, max-age={$maxAge}, must-revalidate, stale-while-revalidate=60")
             ->withHeader('Expires', gmdate('D, d M Y H:i:s', time() + $maxAge) . ' GMT');
 
         if ($etag) {
@@ -323,5 +339,44 @@ class CacheMiddleware implements MiddlewareInterface
         $newValues = array_filter(array_map('trim', explode(',', $newVary)));
         $merged = array_unique(array_merge($existingValues, $newValues), SORT_STRING);
         return $response->withHeader('Vary', implode(', ', $merged));
+    }
+
+    /**
+     * Check if a path is a PHP-generated route that looks like a static asset.
+     * These should NOT get 1-year immutable cache since their content can change.
+     */
+    private function isDynamicRoute(string $path): bool
+    {
+        $dynamicRoutes = [
+            '/fonts/typography.css',
+            '/site.webmanifest',
+        ];
+
+        foreach ($dynamicRoutes as $route) {
+            if ($path === $route) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function addDynamicAssetCache(Response $response): Response
+    {
+        $maxAge = $this->settings->get('performance.dynamic_asset_max_age', 86400); // 1 day default
+
+        return $response
+            ->withHeader('Cache-Control', "public, max-age={$maxAge}, stale-while-revalidate=60")
+            ->withHeader('Expires', gmdate('D, d M Y H:i:s', time() + $maxAge) . ' GMT')
+            ->withHeader('Pragma', 'public');
+    }
+
+    private function addApiCache(Response $response): Response
+    {
+        $maxAge = $this->settings->get('performance.api_cache_max_age', 60); // 1 minute default
+
+        return $response
+            ->withHeader('Cache-Control', "public, max-age={$maxAge}, stale-while-revalidate=30")
+            ->withHeader('Pragma', 'public');
     }
 }

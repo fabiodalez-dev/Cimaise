@@ -29,7 +29,10 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
 
         $nonce = self::$nonce ?? '';
 
-        // Admin routes: allow unsafe-inline for scripts (needed for SPA navigation)
+        // Admin routes: unsafe-inline for scripts because TinyMCE/SortableJS inject inline scripts dynamically.
+        // Nonce-based CSP can't work here: CSP2+ ignores 'unsafe-inline' when a nonce is present,
+        // but dynamically-created scripts by libraries don't carry the nonce.
+        // Admin is behind authentication, so the XSS risk from unsafe-inline is acceptable.
         // Frontend routes: strict nonce-based CSP with external image sources for galleries
         if ($isAdminRoute) {
             $csp = "upgrade-insecure-requests; default-src 'self'; "
@@ -65,8 +68,13 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
             ->withHeader('Referrer-Policy','strict-origin-when-cross-origin')
             ->withHeader('Permissions-Policy','geolocation=(), microphone=(), camera=(), payment=(), usb=(), accelerometer=(), gyroscope=(), magnetometer=(), midi=(), fullscreen=(self)')
             ->withHeader('Cross-Origin-Opener-Policy', 'same-origin')
-            ->withHeader('X-Permitted-Cross-Domain-Policies', 'none')
-            ->withHeader('Content-Security-Policy', $csp);
+            ->withHeader('X-Permitted-Cross-Domain-Policies', 'none');
+
+        // Skip CSP on 304 responses: the browser keeps the cached body (with the original nonce)
+        // but would update headers. A new CSP nonce would mismatch the cached body's nonce.
+        if ($response->getStatusCode() !== 304) {
+            $response = $response->withHeader('Content-Security-Policy', $csp);
+        }
 
         // Add HSTS only on HTTPS connections
         if ($isHttps) {
