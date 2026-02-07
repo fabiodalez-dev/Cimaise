@@ -68,6 +68,7 @@ class InstallCommand extends Command
         $io->section('Installation Summary');
         $this->showInstallationSummary($io, $data);
         
+        /** @var \Symfony\Component\Console\Helper\QuestionHelper $helper */
         $helper = $this->getHelper('question');
         $question = new ConfirmationQuestion('Do you want to proceed with the installation? (y/N) ', false);
         
@@ -139,6 +140,7 @@ class InstallCommand extends Command
     
     private function collectInstallationData(InputInterface $input, OutputInterface $output, SymfonyStyle $io): array
     {
+        /** @var \Symfony\Component\Console\Helper\QuestionHelper $helper */
         $helper = $this->getHelper('question');
         $data = [];
         

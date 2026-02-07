@@ -229,7 +229,7 @@ class AnalyticsPro
 
             // Track custom dimensions if present
             if (!empty($data['dimensions'])) {
-                $this->trackDimensions($this->db->pdo()->lastInsertId(), $data['dimensions']);
+                $this->trackDimensions((int) $this->db->pdo()->lastInsertId(), $data['dimensions']);
             }
 
             return true;

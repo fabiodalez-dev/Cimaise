@@ -181,7 +181,7 @@ class UploadController extends BaseController
                 $stream->rewind();
             }
             $contents = (string) $stream->getContents();
-            if ($contents === '' || strlen($contents) === 0) {
+            if ($contents === '') {
                 throw new \RuntimeException('Empty upload');
             }
             // Validate using finfo + whitelist
@@ -198,7 +198,7 @@ class UploadController extends BaseController
             if ($w <= 0 || $h <= 0 || $w > 10000 || $h > 10000)
                 throw new \RuntimeException('Invalid image dimensions');
 
-            $hash = sha1($contents) ?: bin2hex(random_bytes(20));
+            $hash = sha1($contents);
             $ext = $allowed[$mime];
             // Project root/public/media
             $destDir = dirname(__DIR__, 3) . '/public/media';

@@ -26,52 +26,52 @@ return function (App $app, array $container) {
 
     // Installer routes (only register when not installed)
     if (!$container['db'] || !isAppInstalled($container['db'])) {
-        $app->get('/install', function (Request $request, Response $response) use ($container) {
+        $app->get('/install', function (Request $request, Response $response) {
             $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
             return $controller->index($request, $response);
         });
 
-        $app->get('/install/database', function (Request $request, Response $response) use ($container) {
+        $app->get('/install/database', function (Request $request, Response $response) {
             $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
             return $controller->showDatabaseConfig($request, $response);
         });
 
-        $app->post('/install/database', function (Request $request, Response $response) use ($container) {
+        $app->post('/install/database', function (Request $request, Response $response) {
             $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
             return $controller->processDatabaseConfig($request, $response);
         });
 
-        $app->get('/install/admin', function (Request $request, Response $response) use ($container) {
+        $app->get('/install/admin', function (Request $request, Response $response) {
             $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
             return $controller->showAdminConfig($request, $response);
         });
 
-        $app->post('/install/admin', function (Request $request, Response $response) use ($container) {
+        $app->post('/install/admin', function (Request $request, Response $response) {
             $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
             return $controller->processAdminConfig($request, $response);
         });
 
-        $app->get('/install/settings', function (Request $request, Response $response) use ($container) {
+        $app->get('/install/settings', function (Request $request, Response $response) {
             $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
             return $controller->showSettingsConfig($request, $response);
         });
 
-        $app->post('/install/settings', function (Request $request, Response $response) use ($container) {
+        $app->post('/install/settings', function (Request $request, Response $response) {
             $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
             return $controller->processSettingsConfig($request, $response);
         });
 
-        $app->get('/install/confirm', function (Request $request, Response $response) use ($container) {
+        $app->get('/install/confirm', function (Request $request, Response $response) {
             $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
             return $controller->showConfirm($request, $response);
         });
 
-        $app->post('/install/run', function (Request $request, Response $response) use ($container) {
+        $app->post('/install/run', function (Request $request, Response $response) {
             $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
             return $controller->runInstall($request, $response);
         });
 
-        $app->post('/install/test-mysql', function (Request $request, Response $response) use ($container) {
+        $app->post('/install/test-mysql', function (Request $request, Response $response) {
             $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
             return $controller->testMySQLConnection($request, $response);
         })->add(new \App\Middlewares\FileBasedRateLimitMiddleware(dirname(__DIR__, 2) . '/storage/tmp', 10, 300, 'mysql_test'));
@@ -517,7 +517,7 @@ return function (App $app, array $container) {
             return $handler->handle($request); });
 
     // Lensfun API - Camera/Lens search for EXIF autocomplete
-    $app->get('/admin/api/lensfun/makers', function (Request $request, Response $response) use ($container) {
+    $app->get('/admin/api/lensfun/makers', function (Request $request, Response $response) {
         $query = $request->getQueryParams()['q'] ?? '';
         $limit = (int) ($request->getQueryParams()['limit'] ?? 20);
 
@@ -533,7 +533,7 @@ return function (App $app, array $container) {
     })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
         return $handler->handle($request); });
 
-    $app->get('/admin/api/lensfun/cameras', function (Request $request, Response $response) use ($container) {
+    $app->get('/admin/api/lensfun/cameras', function (Request $request, Response $response) {
         $query = $request->getQueryParams()['q'] ?? '';
         $limit = (int) ($request->getQueryParams()['limit'] ?? 20);
         $maker = $request->getQueryParams()['maker'] ?? null;
@@ -550,7 +550,7 @@ return function (App $app, array $container) {
     })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
         return $handler->handle($request); });
 
-    $app->get('/admin/api/lensfun/lens-makers', function (Request $request, Response $response) use ($container) {
+    $app->get('/admin/api/lensfun/lens-makers', function (Request $request, Response $response) {
         $query = $request->getQueryParams()['q'] ?? '';
         $limit = (int) ($request->getQueryParams()['limit'] ?? 20);
 
@@ -566,7 +566,7 @@ return function (App $app, array $container) {
     })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
         return $handler->handle($request); });
 
-    $app->get('/admin/api/lensfun/lenses', function (Request $request, Response $response) use ($container) {
+    $app->get('/admin/api/lensfun/lenses', function (Request $request, Response $response) {
         $query = $request->getQueryParams()['q'] ?? '';
         $limit = (int) ($request->getQueryParams()['limit'] ?? 20);
         $maker = $request->getQueryParams()['maker'] ?? null;
