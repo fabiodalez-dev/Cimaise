@@ -5,6 +5,9 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Services\UploadService;
 use App\Services\ImagesService;
+use App\Services\CacheTags;
+use App\Services\PageCacheService;
+use App\Services\SettingsService;
 use App\Support\Database;
 use App\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -103,6 +106,15 @@ class UploadController extends BaseController
         try {
             $svc = new UploadService($this->db);
             $meta = $svc->ingestAlbumUpload($albumId, $fArr);
+
+            // Invalidate page caches — new image uploaded to album
+            try {
+                $settings = new SettingsService($this->db);
+                $pcs = new PageCacheService($settings, $this->db);
+                $pcs->invalidateByTags(CacheTags::albumRelated($albumId));
+            } catch (\Throwable) {
+                // Cache invalidation failure should not break uploads
+            }
 
             // Also expose id at top-level for existing frontend logic
             $payload = [

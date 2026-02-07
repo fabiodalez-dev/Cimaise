@@ -81,6 +81,13 @@ class AlbumsController extends BaseController
         }
     }
 
+    private function getAlbumSlug(int $albumId): ?string
+    {
+        $stmt = $this->db->pdo()->prepare('SELECT slug FROM albums WHERE id = ?');
+        $stmt->execute([$albumId]);
+        return $stmt->fetchColumn() ?: null;
+    }
+
     public function index(Request $request, Response $response): Response
     {
         $page = max(1, (int)($request->getQueryParams()['page'] ?? 1));
@@ -621,6 +628,7 @@ class AlbumsController extends BaseController
         $params[':album'] = $albumId;
         $sql = 'UPDATE images SET ' . implode(', ', $setParts) . ' WHERE id = :id AND album_id = :album';
         $pdo->prepare($sql)->execute($params);
+        $this->invalidatePageCaches($this->getAlbumSlug($albumId));
 
         $accept = $request->getHeaderLine('Accept');
         if (str_contains($accept, 'application/json')) {
@@ -1048,6 +1056,7 @@ class AlbumsController extends BaseController
         }
         $stmt = $this->db->pdo()->prepare('UPDATE albums SET cover_image_id=:img WHERE id=:id');
         $stmt->execute([':img'=>$imageId, ':id'=>$albumId]);
+        $this->invalidatePageCaches($this->getAlbumSlug($albumId));
         $accept = $request->getHeaderLine('Accept');
         if (str_contains($accept, 'application/json')) {
             $response->getBody()->write(json_encode(['ok'=>true]));
@@ -1076,6 +1085,7 @@ class AlbumsController extends BaseController
                 $stmt->execute([':s'=>$sort++, ':id'=>(int)$imageId, ':a'=>$albumId]);
             }
             $pdo->commit();
+            $this->invalidatePageCaches($this->getAlbumSlug($albumId));
             $payload = json_encode(['ok'=>true]);
             $response->getBody()->write($payload);
             return $response->withHeader('Content-Type','application/json');
@@ -1106,6 +1116,7 @@ class AlbumsController extends BaseController
             $stmt = $pdo->prepare('UPDATE albums SET sort_order=:s WHERE id=:id');
             foreach ($ids as $id) { $stmt->execute([':s'=>$sort++, ':id'=>$id]); }
             $pdo->commit();
+            $this->invalidatePageCaches();
             $response->getBody()->write(json_encode(['ok'=>true]));
             return $response->withHeader('Content-Type','application/json');
         } catch (\Throwable $e) {
@@ -1139,6 +1150,7 @@ class AlbumsController extends BaseController
                 }
             }
             $pdo->commit();
+            $this->invalidatePageCaches($this->getAlbumSlug($albumId));
             $response->getBody()->write(json_encode(['ok'=>true]));
             return $response->withHeader('Content-Type','application/json');
         } catch (\Throwable $e) {
@@ -1179,6 +1191,7 @@ class AlbumsController extends BaseController
             $pdo->rollBack();
             return $response->withStatus(500);
         }
+        $this->invalidatePageCaches($this->getAlbumSlug($albumId));
         // try unlink files (best-effort)
         $root = dirname(__DIR__, 2);
         @unlink($root . $row['original_path']);
@@ -1225,6 +1238,7 @@ class AlbumsController extends BaseController
             $pdo->rollBack();
             return $response->withStatus(500);
         }
+        $this->invalidatePageCaches($this->getAlbumSlug($albumId));
         $root = dirname(__DIR__, 2);
         foreach ($files as $p) {
             $abs = str_starts_with((string)$p, '/media/') ? ($root . '/public' . $p) : ($root . $p);
@@ -1318,6 +1332,9 @@ class AlbumsController extends BaseController
                 ]);
             }
         }
+
+        // Invalidate page caches — new image added to album
+        $this->invalidatePageCaches($this->getAlbumSlug($albumId), null, $albumId);
 
         $response->getBody()->write(json_encode(['ok'=>true,'id'=>$newId]));
         return $response->withHeader('Content-Type','application/json');

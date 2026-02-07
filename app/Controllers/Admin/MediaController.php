@@ -4,6 +4,9 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Services\CacheTags;
+use App\Services\PageCacheService;
+use App\Services\SettingsService;
 use App\Support\Database;
 use App\Services\ExifService;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -21,6 +24,17 @@ class MediaController extends BaseController
     }
 
     private const PER_PAGE = 60;
+
+    private function invalidateAlbumCaches(int $albumId): void
+    {
+        try {
+            $settings = new SettingsService($this->db);
+            $pcs = new PageCacheService($settings, $this->db);
+            $pcs->invalidateByTags(CacheTags::albumRelated($albumId));
+        } catch (\Throwable) {
+            // Cache invalidation failure should not break admin operations
+        }
+    }
 
     public function index(Request $request, Response $response): Response
     {
@@ -116,11 +130,12 @@ class MediaController extends BaseController
         $id = (int)($args['id'] ?? 0);
         if ($id <= 0) return $response->withStatus(400);
         $pdo = $this->db->pdo();
-        // Collect paths
-        $stmt = $pdo->prepare('SELECT id, original_path FROM images WHERE id = :id');
+        // Collect paths and album_id (needed for cache invalidation after delete)
+        $stmt = $pdo->prepare('SELECT id, original_path, album_id FROM images WHERE id = :id');
         $stmt->execute([':id'=>$id]);
         $row = $stmt->fetch();
         if (!$row) return $response->withStatus(404);
+        $albumId = (int)($row['album_id'] ?? 0);
         $varStmt = $pdo->prepare('SELECT path FROM image_variants WHERE image_id = :id');
         $varStmt->execute([':id'=>$id]);
         $files = [$row['original_path']];
@@ -134,6 +149,10 @@ class MediaController extends BaseController
         } catch (\Throwable $e) {
             $pdo->rollBack();
             return $response->withStatus(500);
+        }
+        // Invalidate page caches — image deleted, cover may have changed
+        if ($albumId > 0) {
+            $this->invalidateAlbumCaches($albumId);
         }
         $root = dirname(__DIR__, 2);
         foreach ($files as $p) {
@@ -156,6 +175,11 @@ class MediaController extends BaseController
 
         $d = (array)$request->getParsedBody();
         $pdo = $this->db->pdo();
+
+        // Get album_id for cache invalidation
+        $albumStmt = $pdo->prepare('SELECT album_id FROM images WHERE id = ?');
+        $albumStmt->execute([$id]);
+        $albumId = (int)($albumStmt->fetchColumn() ?: 0);
 
         $fields = [
             'alt_text' => $d['alt_text'] ?? null,
@@ -185,6 +209,11 @@ class MediaController extends BaseController
             $sql = 'UPDATE images SET ' . implode(', ', $setParts) . ' WHERE id = :id';
             $stmt = $pdo->prepare($sql);
             $stmt->execute($params);
+
+            // Invalidate page caches — image metadata changed
+            if ($albumId > 0) {
+                $this->invalidateAlbumCaches($albumId);
+            }
         }
 
         // Handle EXIF write to files if requested
@@ -251,6 +280,11 @@ class MediaController extends BaseController
         $d = (array)$request->getParsedBody();
         $pdo = $this->db->pdo();
 
+        // Get album_id for cache invalidation
+        $albumStmt = $pdo->prepare('SELECT album_id FROM images WHERE id = ?');
+        $albumStmt->execute([$id]);
+        $albumId = (int)($albumStmt->fetchColumn() ?: 0);
+
         // Build EXIF fields array
         $exifFields = [
             'exif_make' => $d['exif_make'] ?? null,
@@ -289,6 +323,11 @@ class MediaController extends BaseController
         $sql = 'UPDATE images SET ' . implode(', ', $setParts) . ' WHERE id = :id';
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
+
+        // Invalidate page caches — EXIF metadata changed
+        if ($albumId > 0) {
+            $this->invalidateAlbumCaches($albumId);
+        }
 
         // Handle EXIF write to files if requested
         $writeResult = null;
