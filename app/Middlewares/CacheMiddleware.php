@@ -156,6 +156,13 @@ class CacheMiddleware implements MiddlewareInterface
     {
         $maxAge = $this->settings->get('performance.html_cache_max_age', 3600); // 1 hour default
 
+        // Determine cache visibility: use 'private' when the session contains user-specific
+        // access control data (password-protected albums, NSFW consent, admin login).
+        // This prevents CDN/proxies from serving session-dependent content to other users.
+        $isSessionDependent = session_status() === PHP_SESSION_ACTIVE
+            && (!empty($_SESSION['album_access']) || !empty($_SESSION['nsfw_confirmed']) || !empty($_SESSION['admin_id']));
+        $visibility = $isSessionDependent ? 'private' : 'public';
+
         // Try to generate ETag from page cache (database or file) if available
         $etag = $this->generateHtmlEtag($normalizedPath);
         if (!$etag) {
@@ -211,22 +218,21 @@ class CacheMiddleware implements MiddlewareInterface
                     ->withStatus(304)
                     ->withBody($emptyBody)
                     ->withHeader('ETag', $etag)
-                    ->withHeader('Cache-Control', "public, max-age={$maxAge}, must-revalidate, stale-while-revalidate=60");
-                return $this->addVaryHeader($notModifiedResponse, 'Cookie, Accept-Encoding');
+                    ->withHeader('Cache-Control', "{$visibility}, max-age={$maxAge}, must-revalidate, stale-while-revalidate=60");
+                return $this->addVaryHeader($notModifiedResponse, 'Accept-Encoding');
             }
         }
 
         // For HTML, use shorter cache with must-revalidate
-        // SECURITY: Vary header prevents cache poisoning by ensuring caches consider these headers
         $result = $response
-            ->withHeader('Cache-Control', "public, max-age={$maxAge}, must-revalidate, stale-while-revalidate=60")
+            ->withHeader('Cache-Control', "{$visibility}, max-age={$maxAge}, must-revalidate, stale-while-revalidate=60")
             ->withHeader('Expires', gmdate('D, d M Y H:i:s', time() + $maxAge) . ' GMT');
 
         if ($etag) {
             $result = $result->withHeader('ETag', $etag);
         }
 
-        return $this->addVaryHeader($result, 'Cookie, Accept-Encoding');
+        return $this->addVaryHeader($result, 'Accept-Encoding');
     }
 
     /**
