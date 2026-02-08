@@ -148,6 +148,12 @@ class InstallCommand extends Command
         $io->section('Database Configuration');
         
         $question = new Question('Database type (sqlite/mysql) [sqlite]: ', 'sqlite');
+        $question->setValidator(function ($value) {
+            if (!in_array($value, ['sqlite', 'mysql'], true)) {
+                throw new \RuntimeException('Database type must be "sqlite" or "mysql"');
+            }
+            return $value;
+        });
         $data['db_connection'] = $helper->ask($input, $output, $question);
         
         if ($data['db_connection'] === 'mysql') {
@@ -181,6 +187,12 @@ class InstallCommand extends Command
         $io->section('Admin User');
         
         $question = new Question('Admin name: ');
+        $question->setValidator(function ($value) {
+            if ($value === null || trim($value) === '') {
+                throw new \RuntimeException('Admin name cannot be empty');
+            }
+            return $value;
+        });
         $data['admin_name'] = $helper->ask($input, $output, $question);
         
         $question = new Question('Admin email: ');

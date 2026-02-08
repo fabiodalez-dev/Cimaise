@@ -36,8 +36,9 @@ class CacheMiddleware implements MiddlewareInterface
         $method = $request->getMethod();
 
         // Normalize path: strip basePath for subdirectory installations
+        // Boundary check: ensure basePath matches a full segment (e.g. /foo must not match /foobar)
         $basePath = rtrim($this->settings->get('site.base_path', ''), '/');
-        if ($basePath !== '' && str_starts_with($path, $basePath)) {
+        if ($basePath !== '' && str_starts_with($path, $basePath) && (strlen($path) === strlen($basePath) || $path[strlen($basePath)] === '/')) {
             $path = substr($path, strlen($basePath)) ?: '/';
         }
 
@@ -87,7 +88,7 @@ class CacheMiddleware implements MiddlewareInterface
         }
 
         // HTML pages (or responses without explicit Content-Type, which default to HTML)
-        return $this->addHtmlCache($response, $request);
+        return $this->addHtmlCache($response, $request, $path);
     }
 
     private function isStaticAsset(string $path): bool
@@ -149,13 +150,12 @@ class CacheMiddleware implements MiddlewareInterface
             ->withHeader('Pragma', 'no-cache');
     }
 
-    private function addHtmlCache(Response $response, Request $request): Response
+    private function addHtmlCache(Response $response, Request $request, string $normalizedPath): Response
     {
         $maxAge = $this->settings->get('performance.html_cache_max_age', 3600); // 1 hour default
 
         // Try to generate ETag from page cache (database or file) if available
-        $path = $request->getUri()->getPath();
-        $etag = $this->generateHtmlEtag($path);
+        $etag = $this->generateHtmlEtag($normalizedPath);
         if (!$etag) {
             // Only hash body for small responses to avoid O(size) CPU/memory overhead
             // For large pages without cache ETags, skip hashing entirely
@@ -191,8 +191,9 @@ class CacheMiddleware implements MiddlewareInterface
                 if ($body !== '' && strlen($body) <= $maxHashSize) {
                     // Strip per-request tokens (CSP nonce, CSRF) before hashing
                     // so the ETag is stable for identical page content
-                    $hashBody = preg_replace('/\s*nonce="[^"]*"/', '', $body);
-                    $hashBody = preg_replace('/name="csrf"\s+value="[^"]*"/', 'name="csrf" value=""', $hashBody);
+                    // preg_replace can return null on error (e.g. backtrack limit)
+                    $hashBody = preg_replace('/\s*nonce="[^"]*"/', '', $body) ?? $body;
+                    $hashBody = preg_replace('/name="csrf"\s+value="[^"]*"/', 'name="csrf" value=""', $hashBody) ?? $hashBody;
                     $etag = '"' . sha1($hashBody) . '"';
                 }
             }
@@ -235,9 +236,7 @@ class CacheMiddleware implements MiddlewareInterface
             return null;
         }
 
-        // Map URL path to cache type
-        $basePath = rtrim($this->settings->get('site.base_path', ''), '/');
-        $path = preg_replace('#^' . preg_quote($basePath, '#') . '#', '', $path);
+        // Path is already normalized (basePath stripped) by process()
 
         // Get configurable galleries slug (default: /galleries)
         $galleriesPath = '/' . trim($this->settings->get('galleries.slug', 'galleries'), '/');
