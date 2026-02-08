@@ -271,6 +271,9 @@ class CacheMiddleware implements MiddlewareInterface
         if ($cacheFile && file_exists($cacheFile)) {
             $mtime = filemtime($cacheFile);
             $size = filesize($cacheFile);
+            if ($mtime === false || $size === false) {
+                return null;
+            }
             return '"' . md5($mtime . '-' . $size) . '"';
         }
 
