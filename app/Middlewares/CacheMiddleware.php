@@ -48,7 +48,7 @@ class CacheMiddleware implements MiddlewareInterface
         }
 
         // Don't cache admin routes
-        if (str_starts_with($path, '/admin')) {
+        if ($path === '/admin' || str_starts_with($path, '/admin/')) {
             return $this->addNoCacheHeaders($response);
         }
 
@@ -81,13 +81,15 @@ class CacheMiddleware implements MiddlewareInterface
             return $this->addMediaCache($response);
         }
 
-        // For non-HTML content types that we don't explicitly handle, pass through
+        // Pass through non-HTML content types (JSON, binary, etc.)
+        // Empty Content-Type is treated as HTML: at this point admin, API, static, and media
+        // routes are already filtered above, so remaining responses are Twig-rendered pages
+        // which don't always set Content-Type explicitly
         $contentType = $response->getHeaderLine('Content-Type');
         if ($contentType !== '' && !str_contains($contentType, 'text/html')) {
             return $response;
         }
 
-        // HTML pages (or responses without explicit Content-Type, which default to HTML)
         return $this->addHtmlCache($response, $request, $path);
     }
 

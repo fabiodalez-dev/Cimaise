@@ -913,7 +913,7 @@ class AlbumsController extends BaseController
             }
 
             // Invalidate page caches (pass old slug if renamed to prevent orphaned cache)
-            $this->invalidatePageCaches($slug, $oldAlbumSlug);
+            $this->invalidatePageCaches($slug, $oldAlbumSlug, $id);
 
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_updated')];
         } catch (\Throwable $e) {
@@ -963,7 +963,7 @@ class AlbumsController extends BaseController
             $stmt->execute([':id'=>$id]);
 
             // Invalidate page caches
-            $this->invalidatePageCaches($albumSlug);
+            $this->invalidatePageCaches($albumSlug, null, $id);
 
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_deleted')];
 
@@ -1001,7 +1001,7 @@ class AlbumsController extends BaseController
         $stmt->execute([':id'=>$id]);
 
         // Invalidate page caches
-        $this->invalidatePageCaches($albumSlug);
+        $this->invalidatePageCaches($albumSlug, null, $id);
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_published')];
         return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
@@ -1027,7 +1027,7 @@ class AlbumsController extends BaseController
         $stmt->execute([':id'=>$id]);
 
         // Invalidate page caches
-        $this->invalidatePageCaches($albumSlug);
+        $this->invalidatePageCaches($albumSlug, null, $id);
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_unpublished')];
         return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
@@ -1116,9 +1116,20 @@ class AlbumsController extends BaseController
             $stmt = $pdo->prepare('UPDATE albums SET sort_order=:s WHERE id=:id');
             foreach ($ids as $id) { $stmt->execute([':s'=>$sort++, ':id'=>$id]); }
             $pdo->commit();
-            // Invalidate home + galleries + each reordered album's cache
-            foreach ($ids as $id) {
-                $this->invalidatePageCaches($this->getAlbumSlug($id), null, $id);
+            // Batch invalidate: collect all tags once, then invalidate in a single pass
+            // Avoids N redundant HOME+GALLERIES invalidations
+            try {
+                $settings = new SettingsService($this->db);
+                if ($this->pageCacheService === null) {
+                    $this->pageCacheService = new PageCacheService($settings, $this->db);
+                }
+                $allTags = [];
+                foreach ($ids as $id) {
+                    $allTags = array_merge($allTags, CacheTags::albumRelated($id));
+                }
+                $this->pageCacheService->invalidateByTags(array_unique($allTags));
+            } catch (\Throwable) {
+                // Cache invalidation failure should not break admin operations
             }
             $response->getBody()->write(json_encode(['ok'=>true]));
             return $response->withHeader('Content-Type','application/json');
