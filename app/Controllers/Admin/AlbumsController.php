@@ -400,7 +400,7 @@ class AlbumsController extends BaseController
             }
 
             // Invalidate page caches
-            $this->invalidatePageCaches($slug);
+            $this->invalidatePageCaches($slug, null, $albumId);
 
             // If client expects JSON, return album id for AJAX flows (e.g., upload on create)
             $accept = $request->getHeaderLine('Accept');
