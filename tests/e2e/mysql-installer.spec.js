@@ -12,7 +12,7 @@ const MYSQL_CONFIG = {
 const ADMIN_CONFIG = {
   name: process.env.TEST_ADMIN_NAME || 'Test Admin',
   email: process.env.TEST_ADMIN_EMAIL || 'admin@test.com',
-  password: process.env.TEST_ADMIN_PASSWORD || 'TestPass123!',
+  password: process.env.TEST_ADMIN_PASSWORD || 'TestPass123secure',
 };
 
 // Fail fast in CI if required env vars are missing

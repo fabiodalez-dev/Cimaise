@@ -212,7 +212,7 @@ class AnalyticsSummarizeCommand extends Command
             $stats['total_pageviews'] ?: 0,
             $stats['unique_visitors'] ?: 0,
             round($bounceRate, 2),
-            round((float)($stats['avg_session_duration'] ?: 0)),
+            round((float)($stats['avg_session_duration'] ?: 0), 2),
             json_encode($topPages),
             json_encode($topCountries),
             json_encode($topBrowsers),

@@ -30,8 +30,12 @@
     will-change: transform;
 }
 
-/* Reduce paint complexity during scroll */
-img {
+/* Reduce paint complexity during scroll — scoped to gallery images */
+#images-gallery img,
+.masonry-item img,
+.mosaic-item img,
+.polaroid-item img,
+.grid-minimal-item img {
     content-visibility: auto;
     contain-intrinsic-size: auto 300px;
 }
@@ -239,8 +243,8 @@ html.no-js main .album-card {
     font-size: 14px;
     line-height: 1.3;
     z-index: 28;
-    background: transparent;
-    padding: 12px 20px;
+    background: none;
+    padding: 16px;
     border-radius: 6px;
     transition: opacity 0.3s ease, transform 0.3s ease;
     /* Hidden by default, shown via toggle button or when content exists */
@@ -902,13 +906,6 @@ body.pswp-open .lenis {
         align-items: center !important;
         justify-content: center !important;
     }
-}
-
-/* Caption styling - inherit colors from parent for dark/light mode */
-.pswp__custom-caption {
-    background: none;
-    padding: 16px;
-    text-align: center;
 }
 
 .pswp__custom-caption .cc-item i {

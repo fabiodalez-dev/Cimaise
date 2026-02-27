@@ -149,10 +149,11 @@ class InstallCommand extends Command
         
         $question = new Question('Database type (sqlite/mysql) [sqlite]: ', 'sqlite');
         $question->setValidator(function ($value) {
-            if (!in_array($value, ['sqlite', 'mysql'], true)) {
+            $normalized = strtolower(trim((string) $value));
+            if (!in_array($normalized, ['sqlite', 'mysql'], true)) {
                 throw new \RuntimeException('Database type must be "sqlite" or "mysql"');
             }
-            return $value;
+            return $normalized;
         });
         $data['db_connection'] = $helper->ask($input, $output, $question);
         

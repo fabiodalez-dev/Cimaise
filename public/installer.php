@@ -422,33 +422,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (file_exists($schemaFile)) {
                     $sql = file_get_contents($schemaFile);
                     if ($sql) {
-                        // Strip SQL line comments (-- ...) before parsing
-                        $cleanLines = [];
-                        foreach (explode("\n", $sql) as $line) {
-                            $stripped = ltrim($line);
-                            if (!str_starts_with($stripped, '--')) {
-                                $cleanLines[] = $line;
-                            }
-                        }
-                        $sql = implode("\n", $cleanLines);
-
-                        // Split SQL into statements respecting quoted strings
-                        // and block comments (/* ... */)
+                        // Split SQL into statements respecting quoted strings,
+                        // block comments (/* ... */), and line comments (-- ...)
                         $statements = [];
                         $current = '';
                         $inSingleQuote = false;
                         $inDoubleQuote = false;
                         $inBlockComment = false;
+                        $inLineComment = false;
                         $escaped = false;
                         for ($i = 0, $len = strlen($sql); $i < $len; $i++) {
                             $ch = $sql[$i];
                             $next = $i + 1 < $len ? $sql[$i + 1] : '';
 
+                            // Line comment: skip until newline
+                            if ($inLineComment) {
+                                if ($ch === "\n") {
+                                    $inLineComment = false;
+                                    $current .= $ch;
+                                }
+                                continue;
+                            }
+
                             // Block comment handling
                             if ($inBlockComment) {
-                                $current .= $ch;
                                 if ($ch === '*' && $next === '/') {
-                                    $current .= '/';
                                     $i++;
                                     $inBlockComment = false;
                                 }
@@ -466,9 +464,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 continue;
                             }
 
+                            // Enter line comment (-- followed by space/tab/newline/EOF)
+                            if (!$inSingleQuote && !$inDoubleQuote && $ch === '-' && $next === '-') {
+                                $after = $i + 2 < $len ? $sql[$i + 2] : '';
+                                if ($after === ' ' || $after === "\t" || $after === "\r" || $after === "\n" || $after === '') {
+                                    $inLineComment = true;
+                                    $i++;
+                                    continue;
+                                }
+                            }
+
                             // Enter block comment
                             if ($ch === '/' && $next === '*' && !$inSingleQuote && !$inDoubleQuote) {
-                                $current .= '/*';
                                 $i++;
                                 $inBlockComment = true;
                                 continue;

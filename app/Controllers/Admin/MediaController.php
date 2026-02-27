@@ -28,9 +28,13 @@ class MediaController extends BaseController
     private function invalidateAlbumCaches(int $albumId): void
     {
         try {
+            $stmt = $this->db->pdo()->prepare('SELECT category_id FROM albums WHERE id = ?');
+            $stmt->execute([$albumId]);
+            $categoryId = (int)($stmt->fetchColumn() ?: 0) ?: null;
+
             $settings = new SettingsService($this->db);
             $pcs = new PageCacheService($settings, $this->db);
-            $pcs->invalidateByTags(CacheTags::albumRelated($albumId));
+            $pcs->invalidateByTags(CacheTags::albumRelated($albumId, $categoryId));
         } catch (\Throwable $e) {
             // Cache invalidation failure should not break admin operations
             \App\Support\Logger::warning('Cache invalidation failed', [

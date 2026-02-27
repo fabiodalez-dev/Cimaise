@@ -423,9 +423,15 @@ class AnalyticsPro
 
         // Week period needs special handling — both DBs use ISO week/year for consistency
         if ($period === 'week') {
-            $dateFormatExpr = $this->db->isSqlite()
-                ? "strftime('%G-W%V', created_at)"
-                : "DATE_FORMAT(created_at, '%x-W%v')";
+            if ($this->db->isSqlite()) {
+                // %G/%V (ISO week) require SQLite >= 3.46.0; fall back to %Y-%W for older versions
+                $sqliteVersion = $this->db->pdo()->query('SELECT sqlite_version()')->fetchColumn();
+                $dateFormatExpr = version_compare($sqliteVersion, '3.46.0', '>=')
+                    ? "strftime('%G-W%V', created_at)"
+                    : "strftime('%Y-W%W', created_at)";
+            } else {
+                $dateFormatExpr = "DATE_FORMAT(created_at, '%x-W%v')";
+            }
         } else {
             $dateFormatExpr = $this->db->dateFormatExpression('created_at', $dateFormat);
         }
