@@ -11,6 +11,7 @@ class Database
 {
     private PDO $pdo;
     private bool $isSqlite = false;
+    private ?string $sqliteVersionCache = null;
 
     public function __construct(
         private ?string $host = null,
@@ -142,6 +143,14 @@ class Database
     public function isSqlite(): bool
     {
         return $this->isSqlite;
+    }
+
+    public function sqliteVersion(): string
+    {
+        if ($this->sqliteVersionCache === null) {
+            $this->sqliteVersionCache = $this->pdo->query('SELECT sqlite_version()')->fetchColumn();
+        }
+        return $this->sqliteVersionCache;
     }
 
     public function isMySQL(): bool

@@ -425,8 +425,7 @@ class AnalyticsPro
         if ($period === 'week') {
             if ($this->db->isSqlite()) {
                 // %G/%V (ISO week) require SQLite >= 3.46.0; fall back to %Y-%W for older versions
-                $sqliteVersion = $this->db->pdo()->query('SELECT sqlite_version()')->fetchColumn();
-                $dateFormatExpr = version_compare($sqliteVersion, '3.46.0', '>=')
+                $dateFormatExpr = version_compare($this->db->sqliteVersion(), '3.46.0', '>=')
                     ? "strftime('%G-W%V', created_at)"
                     : "strftime('%Y-W%W', created_at)";
             } else {
