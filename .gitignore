@@ -9,6 +9,9 @@ database/database.sqlite
 # Dependencies
 node_modules/
 !public/assets/vendor/
+vendor/phpstan/
+vendor/bin/phpstan
+vendor/bin/phpstan.phar
 
 # Build artifacts (source maps only, keep chunks)
 public/assets/*.js.map

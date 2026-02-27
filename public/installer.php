@@ -422,12 +422,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (file_exists($schemaFile)) {
                     $sql = file_get_contents($schemaFile);
                     if ($sql) {
-                        // Execute each statement separately
-                        $statements = array_filter(array_map('trim', explode(';', $sql)));
-                        foreach ($statements as $statement) {
-                            if (!empty($statement) && !str_starts_with($statement, '--')) {
-                                $pdo->exec($statement . ';');
+                        // Strip SQL line comments (-- ...) before parsing,
+                        // but only outside quoted strings
+                        $cleanLines = [];
+                        foreach (explode("\n", $sql) as $line) {
+                            $stripped = ltrim($line);
+                            if (!str_starts_with($stripped, '--')) {
+                                $cleanLines[] = $line;
                             }
+                        }
+                        $sql = implode("\n", $cleanLines);
+
+                        // Split SQL into statements respecting quoted strings
+                        // (naive explode on ';' breaks when ';' appears inside VALUES)
+                        $statements = [];
+                        $current = '';
+                        $inSingleQuote = false;
+                        $escaped = false;
+                        for ($i = 0, $len = strlen($sql); $i < $len; $i++) {
+                            $ch = $sql[$i];
+                            if ($escaped) {
+                                $current .= $ch;
+                                $escaped = false;
+                                continue;
+                            }
+                            if ($ch === '\\') {
+                                $current .= $ch;
+                                $escaped = true;
+                                continue;
+                            }
+                            if ($ch === "'") {
+                                $inSingleQuote = !$inSingleQuote;
+                                $current .= $ch;
+                                continue;
+                            }
+                            if ($ch === ';' && !$inSingleQuote) {
+                                $trimmed = trim($current);
+                                if ($trimmed !== '') {
+                                    $statements[] = $trimmed;
+                                }
+                                $current = '';
+                                continue;
+                            }
+                            $current .= $ch;
+                        }
+                        $trimmed = trim($current);
+                        if ($trimmed !== '') {
+                            $statements[] = $trimmed;
+                        }
+
+                        foreach ($statements as $statement) {
+                            $pdo->exec($statement . ';');
                         }
                     }
                 } else {
