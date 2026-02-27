@@ -421,10 +421,10 @@ class AnalyticsPro
             default => '%Y-%m-%d',
         };
 
-        // Week period needs special handling for consistent ISO week numbering
+        // Week period needs special handling — both DBs use ISO week/year for consistency
         if ($period === 'week') {
             $dateFormatExpr = $this->db->isSqlite()
-                ? "strftime('%Y-W%W', created_at)"
+                ? "strftime('%G-W%V', created_at)"
                 : "DATE_FORMAT(created_at, '%x-W%v')";
         } else {
             $dateFormatExpr = $this->db->dateFormatExpression('created_at', $dateFormat);

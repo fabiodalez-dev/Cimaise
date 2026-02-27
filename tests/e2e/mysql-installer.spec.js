@@ -15,6 +15,15 @@ const ADMIN_CONFIG = {
   password: process.env.TEST_ADMIN_PASSWORD || 'TestPass123!',
 };
 
+// Fail fast in CI if required env vars are missing
+if (process.env.CI) {
+  for (const key of ['TEST_MYSQL_HOST', 'TEST_MYSQL_DATABASE', 'TEST_MYSQL_USERNAME', 'TEST_MYSQL_PASSWORD']) {
+    if (!process.env[key]) {
+      throw new Error(`Missing required env var in CI: ${key}`);
+    }
+  }
+}
+
 test.describe('MySQL/MariaDB Installer', () => {
   test('should complete full MySQL installation flow', async ({ page }) => {
     // Step 1: Requirements
@@ -77,6 +86,7 @@ test.describe('MySQL/MariaDB Installer', () => {
     // Verify we can load the homepage after install
     await page.click('a:has-text("Visit Your Site")');
     await page.waitForLoadState('networkidle');
+    expect(page.url()).not.toContain('installer.php');
     await page.screenshot({ path: 'tests/e2e/screenshots/post-install-home.png' });
   });
 });

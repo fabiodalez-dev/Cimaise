@@ -402,7 +402,7 @@ html.dark .pswp__custom-caption {
     animation: spin 1s linear infinite;
 }
 @keyframes spin {
-    from { transform: rotate(0deg); }
+    0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
 .pswp__exif-empty {

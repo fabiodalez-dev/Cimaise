@@ -31,8 +31,12 @@ class MediaController extends BaseController
             $settings = new SettingsService($this->db);
             $pcs = new PageCacheService($settings, $this->db);
             $pcs->invalidateByTags(CacheTags::albumRelated($albumId));
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
             // Cache invalidation failure should not break admin operations
+            \App\Support\Logger::warning('Cache invalidation failed', [
+                'album_id' => $albumId,
+                'error' => $e->getMessage()
+            ], 'cache');
         }
     }
 

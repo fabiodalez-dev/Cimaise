@@ -72,7 +72,9 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
 
         // Skip CSP on 304 responses: the browser keeps the cached body (with the original nonce)
         // but would update headers. A new CSP nonce would mismatch the cached body's nonce.
-        if ($response->getStatusCode() !== 304) {
+        if ($response->getStatusCode() === 304) {
+            $response = $response->withoutHeader('Content-Security-Policy');
+        } else {
             $response = $response->withHeader('Content-Security-Policy', $csp);
         }
 

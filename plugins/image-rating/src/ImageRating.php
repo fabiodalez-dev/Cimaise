@@ -129,7 +129,7 @@ class ImageRating
 
         return [
             'average' => round((float)($stats['avg'] ?? 0), 2),
-            'total_rated' => $stats['total'] ?? 0,
+            'total_rated' => (int)($stats['total'] ?? 0),
             'distribution' => $distribution
         ];
     }
