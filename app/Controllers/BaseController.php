@@ -345,11 +345,13 @@ abstract class BaseController
         if ($referer === '') {
             return $this->redirect($fallbackPath);
         }
+        $refererScheme = parse_url($referer, PHP_URL_SCHEME);
         $refererHost = parse_url($referer, PHP_URL_HOST);
         $serverHost = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
         // Strip port from server host for comparison
         $serverHost = preg_replace('/:\d+$/', '', $serverHost);
-        if (is_string($refererHost) && $serverHost !== '' && strcasecmp($refererHost, $serverHost) === 0) {
+        $schemeOk = is_string($refererScheme) && in_array(strtolower($refererScheme), ['http', 'https'], true);
+        if ($schemeOk && is_string($refererHost) && $serverHost !== '' && strcasecmp($refererHost, $serverHost) === 0) {
             return $referer;
         }
         return $this->redirect($fallbackPath);

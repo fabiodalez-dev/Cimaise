@@ -49,7 +49,10 @@ class AlbumsController extends BaseController
 
             // Use tag-based invalidation for efficient bulk clearing
             if ($albumId !== null) {
-                $this->pageCacheService->invalidateByTags(CacheTags::albumRelated($albumId));
+                $catStmt = $this->db->pdo()->prepare('SELECT category_id FROM albums WHERE id = ?');
+                $catStmt->execute([$albumId]);
+                $categoryId = (int)($catStmt->fetchColumn() ?: 0) ?: null;
+                $this->pageCacheService->invalidateByTags(CacheTags::albumRelated($albumId, $categoryId));
             } else {
                 // Fallback to direct invalidation if no album ID
                 $this->pageCacheService->invalidate('home');
@@ -1125,7 +1128,10 @@ class AlbumsController extends BaseController
                 }
                 $allTags = [];
                 foreach ($ids as $id) {
-                    $allTags = array_merge($allTags, CacheTags::albumRelated($id));
+                    $catStmt = $this->db->pdo()->prepare('SELECT category_id FROM albums WHERE id = ?');
+                    $catStmt->execute([$id]);
+                    $catId = (int)($catStmt->fetchColumn() ?: 0) ?: null;
+                    $allTags = array_merge($allTags, CacheTags::albumRelated($id, $catId));
                 }
                 $this->pageCacheService->invalidateByTags(array_unique($allTags));
             } catch (\Throwable) {

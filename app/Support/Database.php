@@ -185,6 +185,7 @@ class Database
             if ($inLineComment) {
                 if ($char === "\n") {
                     $inLineComment = false;
+                    $current .= "\n";
                 }
                 continue;
             }

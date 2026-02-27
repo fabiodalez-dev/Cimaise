@@ -109,9 +109,12 @@ class UploadController extends BaseController
 
             // Invalidate page caches — new image uploaded to album
             try {
+                $catStmt = $this->db->pdo()->prepare('SELECT category_id FROM albums WHERE id = ?');
+                $catStmt->execute([$albumId]);
+                $categoryId = (int)($catStmt->fetchColumn() ?: 0) ?: null;
                 $settings = new SettingsService($this->db);
                 $pcs = new PageCacheService($settings, $this->db);
-                $pcs->invalidateByTags(CacheTags::albumRelated($albumId));
+                $pcs->invalidateByTags(CacheTags::albumRelated($albumId, $categoryId));
             } catch (\Throwable $e) {
                 Logger::warning('UploadController: cache invalidation failed for album ' . $albumId . ': ' . $e->getMessage(), [], 'upload');
             }

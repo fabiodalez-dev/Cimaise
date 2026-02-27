@@ -189,19 +189,21 @@ class InstallCommand extends Command
         
         $question = new Question('Admin name: ');
         $question->setValidator(function ($value) {
-            if ($value === null || trim($value) === '') {
+            $normalized = trim((string) $value);
+            if ($normalized === '') {
                 throw new \RuntimeException('Admin name cannot be empty');
             }
-            return $value;
+            return $normalized;
         });
         $data['admin_name'] = $helper->ask($input, $output, $question);
         
         $question = new Question('Admin email: ');
         $question->setValidator(function ($value) {
-            if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+            $normalized = strtolower(trim((string) $value));
+            if (!filter_var($normalized, FILTER_VALIDATE_EMAIL)) {
                 throw new \RuntimeException('Please enter a valid email address');
             }
-            return $value;
+            return $normalized;
         });
         $data['admin_email'] = $helper->ask($input, $output, $question);
         

@@ -288,15 +288,18 @@ class RateLimitMiddleware implements MiddlewareInterface
             }
         }
 
+        // Download endpoints: always count each request as an attempt
+        $isDownloadEndpoint = $keyIdentifier === 'download_image';
+
         // Only write to filesystem when there's an actual change to avoid unnecessary I/O
         // Old attempts are pruned via maybeCleanup() probabilistically
-        if ($isFailedAttempt || $isSuccessfulAuth) {
-            $this->updateAttemptsAtomic($key, function (array $currentAttempts) use ($now, $isSuccessfulAuth): array {
-                if ($isSuccessfulAuth) {
+        if ($isFailedAttempt || $isSuccessfulAuth || $isDownloadEndpoint) {
+            $this->updateAttemptsAtomic($key, function (array $currentAttempts) use ($now, $isSuccessfulAuth, $isDownloadEndpoint): array {
+                if ($isSuccessfulAuth && !$isDownloadEndpoint) {
                     return [];
                 }
 
-                // If we're here, it's a failed attempt - purge old and add new
+                // Failed attempt or download request - purge old and add new
                 $filtered = array_filter($currentAttempts, fn($ts) => $now - (int)$ts < $this->windowSec);
                 $filtered[] = $now;
 
