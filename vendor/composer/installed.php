@@ -3,7 +3,7 @@
         'name' => 'fabiodalez-dev/cimaise',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '496f3f893283474b2da16526e5e52d7fe1baf15e',
+        'reference' => 'd30d44fe1369e99f883994850a5685ebafdecb9f',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -22,7 +22,7 @@
         'fabiodalez-dev/cimaise' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '496f3f893283474b2da16526e5e52d7fe1baf15e',
+            'reference' => 'd30d44fe1369e99f883994850a5685ebafdecb9f',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
