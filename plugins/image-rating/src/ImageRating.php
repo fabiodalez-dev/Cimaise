@@ -68,20 +68,6 @@ class ImageRating
                     VALUES (?, ?, ?, datetime('now'))";
                 $stmt = $this->db->prepare($sql);
                 $stmt->execute([$imageId, $rating, $userId]);
-            } elseif ($userId === null) {
-                // MySQL: NULL is not comparable in UNIQUE index, handle upsert manually
-                $update = $this->db->prepare(
-                    "UPDATE plugin_image_ratings SET rating = ?, rated_at = NOW()
-                     WHERE image_id = ? AND rated_by IS NULL"
-                );
-                $update->execute([$rating, $imageId]);
-                if ($update->rowCount() === 0) {
-                    $insert = $this->db->prepare(
-                        "INSERT INTO plugin_image_ratings (image_id, rating, rated_by, rated_at)
-                         VALUES (?, ?, NULL, NOW())"
-                    );
-                    $insert->execute([$imageId, $rating]);
-                }
             } else {
                 $sql = "INSERT INTO plugin_image_ratings (image_id, rating, rated_by, rated_at)
                     VALUES (?, ?, ?, NOW())
@@ -142,7 +128,7 @@ class ImageRating
         $distribution = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return [
-            'average' => round($stats['avg'] ?? 0, 2),
+            'average' => round((float)($stats['avg'] ?? 0), 2),
             'total_rated' => $stats['total'] ?? 0,
             'distribution' => $distribution
         ];
