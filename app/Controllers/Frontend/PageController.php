@@ -2768,7 +2768,7 @@ class PageController extends BaseController
 
         // Exposure
         if ($image['aperture']) {
-            $display['aperture'] = 'f/' . number_format($image['aperture'], 1);
+            $display['aperture'] = 'f/' . number_format((float)$image['aperture'], 1);
         }
 
         if ($image['shutter_speed']) {
