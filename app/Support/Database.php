@@ -129,20 +129,12 @@ class Database
         if ($this->isSqlite) {
             $this->pdo->exec($sql);
         } else {
-            // MySQL: execute statements one by one
-            // Remove comments and split by semicolons
-            $sql = preg_replace('/--.*$/m', '', $sql);
-            $sql = preg_replace('/\/\*.*?\*\//s', '', $sql);
-
-            $statements = array_filter(
-                array_map('trim', explode(';', $sql)),
-                fn($s) => !empty($s) && $s !== ''
-            );
+            // MySQL: split into individual statements respecting string literals
+            // (naive explode on ';' breaks when values contain semicolons)
+            $statements = $this->splitSqlStatements($sql);
 
             foreach ($statements as $statement) {
-                if (!empty(trim($statement))) {
-                    $this->pdo->exec($statement);
-                }
+                $this->pdo->exec($statement);
             }
         }
     }
@@ -155,6 +147,90 @@ class Database
     public function isMySQL(): bool
     {
         return !$this->isSqlite;
+    }
+
+    /**
+     * Split SQL file content into individual statements, respecting string literals.
+     * Unlike explode(';'), this won't break on semicolons inside quoted values.
+     *
+     * @return string[]
+     */
+    private function splitSqlStatements(string $sql): array
+    {
+        $statements = [];
+        $current = '';
+        $inSingleQuote = false;
+        $inLineComment = false;
+        $inBlockComment = false;
+        $len = strlen($sql);
+
+        for ($i = 0; $i < $len; $i++) {
+            $char = $sql[$i];
+            $next = $i + 1 < $len ? $sql[$i + 1] : '';
+
+            // Handle line comments
+            if (!$inSingleQuote && !$inBlockComment && $char === '-' && $next === '-') {
+                $inLineComment = true;
+                continue;
+            }
+            if ($inLineComment) {
+                if ($char === "\n") {
+                    $inLineComment = false;
+                }
+                continue;
+            }
+
+            // Handle block comments
+            if (!$inSingleQuote && !$inBlockComment && $char === '/' && $next === '*') {
+                $inBlockComment = true;
+                $i++; // skip *
+                continue;
+            }
+            if ($inBlockComment) {
+                if ($char === '*' && $next === '/') {
+                    $inBlockComment = false;
+                    $i++; // skip /
+                }
+                continue;
+            }
+
+            // Handle single-quoted strings (with escaped quotes)
+            if ($char === "'" && !$inBlockComment && !$inLineComment) {
+                if ($inSingleQuote) {
+                    // Check for escaped quote ('')
+                    if ($next === "'") {
+                        $current .= "''";
+                        $i++;
+                        continue;
+                    }
+                    $inSingleQuote = false;
+                } else {
+                    $inSingleQuote = true;
+                }
+                $current .= $char;
+                continue;
+            }
+
+            // Semicolon outside of quotes = statement delimiter
+            if ($char === ';' && !$inSingleQuote) {
+                $trimmed = trim($current);
+                if ($trimmed !== '') {
+                    $statements[] = $trimmed;
+                }
+                $current = '';
+                continue;
+            }
+
+            $current .= $char;
+        }
+
+        // Last statement (may not end with ;)
+        $trimmed = trim($current);
+        if ($trimmed !== '') {
+            $statements[] = $trimmed;
+        }
+
+        return $statements;
     }
 
     // Helper for cross-database ORDER BY with NULL handling
