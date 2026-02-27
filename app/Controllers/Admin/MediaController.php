@@ -36,6 +36,13 @@ class MediaController extends BaseController
         }
     }
 
+    private function getAlbumIdForImage(int $imageId): int
+    {
+        $stmt = $this->db->pdo()->prepare('SELECT album_id FROM images WHERE id = ?');
+        $stmt->execute([$imageId]);
+        return (int)($stmt->fetchColumn() ?: 0);
+    }
+
     public function index(Request $request, Response $response): Response
     {
         $pdo = $this->db->pdo();
@@ -176,10 +183,7 @@ class MediaController extends BaseController
         $d = (array)$request->getParsedBody();
         $pdo = $this->db->pdo();
 
-        // Get album_id for cache invalidation
-        $albumStmt = $pdo->prepare('SELECT album_id FROM images WHERE id = ?');
-        $albumStmt->execute([$id]);
-        $albumId = (int)($albumStmt->fetchColumn() ?: 0);
+        $albumId = $this->getAlbumIdForImage($id);
 
         $fields = [
             'alt_text' => $d['alt_text'] ?? null,
@@ -280,10 +284,7 @@ class MediaController extends BaseController
         $d = (array)$request->getParsedBody();
         $pdo = $this->db->pdo();
 
-        // Get album_id for cache invalidation
-        $albumStmt = $pdo->prepare('SELECT album_id FROM images WHERE id = ?');
-        $albumStmt->execute([$id]);
-        $albumId = (int)($albumStmt->fetchColumn() ?: 0);
+        $albumId = $this->getAlbumIdForImage($id);
 
         // Build EXIF fields array
         $exifFields = [

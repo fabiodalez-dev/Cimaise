@@ -19,9 +19,15 @@
 .image-item,
 .album-card,
 #images-gallery {
-    will-change: transform;
     transform: translateZ(0);
     backface-visibility: hidden;
+}
+
+/* Promote will-change only on interaction to save GPU memory */
+.masonry-item:hover,
+.image-item:hover,
+.album-card:hover {
+    will-change: transform;
 }
 
 /* Reduce paint complexity during scroll */
@@ -397,7 +403,7 @@ html.dark .pswp__custom-caption {
 }
 @keyframes spin {
     from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    100% { transform: rotate(360deg); }
 }
 .pswp__exif-empty {
     text-align: center;

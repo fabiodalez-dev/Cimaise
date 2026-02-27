@@ -669,9 +669,8 @@ class UploadService
 
             // Reduce quality and colors to make it harder to reverse
             $im->setImageCompressionQuality(60);
-            // No dithering: use constant if available (Imagick 7), bool false as fallback (Imagick 6)
-            $dither = defined('Imagick::DITHERMETHOD_NO') ? \Imagick::DITHERMETHOD_NO : false;
-            $im->posterizeImage(64, $dither);
+            // Disable dithering (posterizeImage expects bool, not DitherMethod constant)
+            $im->posterizeImage(64, false);
 
             // Apply slight pixelation for extra obscuring
             $origW = $im->getImageWidth();

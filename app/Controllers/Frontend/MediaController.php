@@ -251,7 +251,7 @@ class MediaController extends BaseController
         $accessResult = $this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant, true);
         if ($accessResult !== true) {
             // Try blur fallback for protected albums (password or NSFW)
-            $blurResponse = $this->tryServeBlurFallback($request, $response, $imageId, true, $variant);
+            $blurResponse = $this->tryServeBlurFallback($request, $response, $imageId, $isPasswordProtected || $isNsfw, $variant);
             if ($blurResponse !== null) {
                 return $blurResponse;
             }
@@ -528,7 +528,7 @@ class MediaController extends BaseController
         $accessResult = $this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant, true);
         if ($accessResult !== true) {
             // Try blur fallback for protected albums
-            $blurResponse = $this->tryServeBlurFallback($request, $response, $imageId, true, $variant);
+            $blurResponse = $this->tryServeBlurFallback($request, $response, $imageId, $isPasswordProtected || $isNsfw, $variant);
             if ($blurResponse !== null) {
                 return $blurResponse;
             }

@@ -1970,7 +1970,7 @@
     "admin.settings.cache_media_max_age": "Media Files Cache (seconds)",
     "admin.settings.cache_media_max_age_hint": "Default: 86400 (1 day) - Photography images",
     "admin.settings.cache_html_max_age": "HTML Pages Cache (seconds)",
-    "admin.settings.cache_html_max_age_hint": "Default: 300 (5 minutes) - Dynamic HTML pages",
+    "admin.settings.cache_html_max_age_hint": "Default: 3600 (1 hour) - Dynamic HTML pages",
     "admin.settings.performance_how_it_works": "How it works:",
     "admin.settings.performance_auto_mode": "Auto mode (recommended): System automatically selects the best compression available (Brotli → Gzip → Deflate → None)",
     "admin.settings.performance_fallback": "Fallback: If Brotli is not available, Gzip is used automatically. If neither is available, content is served uncompressed.",

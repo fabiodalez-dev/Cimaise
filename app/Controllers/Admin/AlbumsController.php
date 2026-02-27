@@ -39,7 +39,7 @@ class AlbumsController extends BaseController
      * @param string|null $oldAlbumSlug Previous slug (for rename cases) to also invalidate
      * @param int|null $albumId Album ID for tag-based invalidation
      */
-    private function invalidatePageCaches(?string $albumSlug = null, ?string $oldAlbumSlug = null, ?int $albumId = null): void
+    private function invalidatePageCaches(?string $albumSlug = null, ?string $oldAlbumSlug = null, ?int $albumId = null, bool $warmAlbum = true): void
     {
         try {
             $settings = new SettingsService($this->db);
@@ -72,7 +72,7 @@ class AlbumsController extends BaseController
                 $warmService = new CacheWarmService($this->db);
                 $warmService->warmHome();
                 $warmService->warmGalleries();
-                if ($albumSlug !== null) {
+                if ($warmAlbum && $albumSlug !== null) {
                     $warmService->warmAlbum($albumSlug);
                 }
             }
@@ -962,8 +962,8 @@ class AlbumsController extends BaseController
         try {
             $stmt->execute([':id'=>$id]);
 
-            // Invalidate page caches
-            $this->invalidatePageCaches($albumSlug, null, $id);
+            // Invalidate page caches (no warm — album is deleted)
+            $this->invalidatePageCaches($albumSlug, null, $id, false);
 
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_deleted')];
 
@@ -1026,8 +1026,8 @@ class AlbumsController extends BaseController
         $stmt = $pdo->prepare('UPDATE albums SET is_published=0, published_at=NULL WHERE id=:id');
         $stmt->execute([':id'=>$id]);
 
-        // Invalidate page caches
-        $this->invalidatePageCaches($albumSlug, null, $id);
+        // Invalidate page caches (no warm — album is unpublished)
+        $this->invalidatePageCaches($albumSlug, null, $id, false);
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_unpublished')];
         return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);

@@ -429,7 +429,7 @@ class ApiController extends BaseController
 
         // Location section
         $location = [];
-        if (!empty($row['gps_lat']) && !empty($row['gps_lng'])) {
+        if ($row['gps_lat'] !== null && $row['gps_lng'] !== null) {
             $location[] = ['label' => 'GPS', 'value' => round((float)$row['gps_lat'], 6) . ', ' . round((float)$row['gps_lng'], 6), 'icon' => 'fa-map-marker-alt'];
         }
         if (!empty($location)) {

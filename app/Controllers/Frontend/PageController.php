@@ -2767,7 +2767,7 @@ class PageController extends BaseController
         }
 
         // Exposure
-        if (!empty($image['aperture']) && is_numeric($image['aperture'])) {
+        if (!empty($image['aperture']) && is_numeric($image['aperture']) && (float)$image['aperture'] > 0.0) {
             $display['aperture'] = 'f/' . number_format((float)$image['aperture'], 1);
         }
 

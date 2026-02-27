@@ -194,6 +194,13 @@ class Database
                 continue;
             }
 
+            // Handle backslash escapes inside single-quoted strings
+            if ($inSingleQuote && $char === '\\') {
+                $current .= $char . $next;
+                $i++;
+                continue;
+            }
+
             // Handle single-quoted strings (with escaped quotes)
             if ($char === "'" && !$inBlockComment && !$inLineComment) {
                 if ($inSingleQuote) {

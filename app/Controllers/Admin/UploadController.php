@@ -113,7 +113,7 @@ class UploadController extends BaseController
                 $pcs = new PageCacheService($settings, $this->db);
                 $pcs->invalidateByTags(CacheTags::albumRelated($albumId));
             } catch (\Throwable $e) {
-                error_log('UploadController: cache invalidation failed for album ' . $albumId . ': ' . $e->getMessage());
+                Logger::warning('UploadController: cache invalidation failed for album ' . $albumId . ': ' . $e->getMessage(), [], 'upload');
             }
 
             // Also expose id at top-level for existing frontend logic

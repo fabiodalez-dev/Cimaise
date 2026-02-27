@@ -95,6 +95,9 @@ class RateLimitMiddleware implements MiddlewareInterface
         if ($path === '/login' || $path === '/admin/login') {
             return 'login';
         }
+        if (preg_match('#^/download/image/\d+$#', $path)) {
+            return 'download_image';
+        }
         return 'generic';
     }
 
