@@ -87,33 +87,13 @@ Options -Indexes
 AddDefaultCharset UTF-8
 
 
-# Protect sensitive files
-<Files ".env">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-<Files ".env.*">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-<Files "composer.json">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-<Files "composer.lock">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-<Files "package.json">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-<Files "package-lock.json">
-    Order Allow,Deny
-    Deny from all
-</Files>
+# Protect sensitive manifest files (Apache 2.2/2.4 compatible)
+<FilesMatch "^(composer\.(json|lock)|package(-lock)?\.json)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>

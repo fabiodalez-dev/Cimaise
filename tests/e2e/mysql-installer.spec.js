@@ -1,18 +1,18 @@
 import { test, expect } from '@playwright/test';
 
-// MySQL credentials from .env.backup
+// MySQL credentials from environment variables (set via CI secrets or local .env)
 const MYSQL_CONFIG = {
-  host: '127.0.0.1',
-  port: '3306',
-  database: 'cimaise',
-  username: 'fabiodal_biblioteca_user',
-  password: 'Zd10)uwziWlK',
+  host: process.env.TEST_MYSQL_HOST || '127.0.0.1',
+  port: process.env.TEST_MYSQL_PORT || '3306',
+  database: process.env.TEST_MYSQL_DATABASE || 'cimaise',
+  username: process.env.TEST_MYSQL_USERNAME || 'root',
+  password: process.env.TEST_MYSQL_PASSWORD || '',
 };
 
 const ADMIN_CONFIG = {
-  name: 'Test Admin',
-  email: 'admin@test.com',
-  password: 'TestPass123!',
+  name: process.env.TEST_ADMIN_NAME || 'Test Admin',
+  email: process.env.TEST_ADMIN_EMAIL || 'admin@test.com',
+  password: process.env.TEST_ADMIN_PASSWORD || 'TestPass123!',
 };
 
 test.describe('MySQL/MariaDB Installer', () => {

@@ -372,7 +372,8 @@ html.dark .pswp__custom-caption {
     font-size: 13px;
     color: #1a1a1a;
     font-weight: 500;
-    word-break: break-word;
+    overflow-wrap: anywhere;
+    word-break: normal;
 }
 .pswp__exif-value a {
     color: #2563eb;
@@ -736,10 +737,10 @@ html.dark .pswp__custom-caption {
     min-height: 70vh;
     background: radial-gradient(circle at 30% 70%, #8b4513, #a0522d, #cd853f);
     background-size: 200% 200%;
-    animation: polaroidBg 20s ease infinite;
+    animation: polaroid-bg 20s ease infinite;
 }
 
-@keyframes polaroidBg {
+@keyframes polaroid-bg {
     0%, 100% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
 }

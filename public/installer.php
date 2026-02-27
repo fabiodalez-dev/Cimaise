@@ -422,8 +422,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (file_exists($schemaFile)) {
                     $sql = file_get_contents($schemaFile);
                     if ($sql) {
-                        // Strip SQL line comments (-- ...) before parsing,
-                        // but only outside quoted strings
+                        // Strip SQL line comments (-- ...) before parsing
                         $cleanLines = [];
                         foreach (explode("\n", $sql) as $line) {
                             $stripped = ltrim($line);
@@ -434,13 +433,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $sql = implode("\n", $cleanLines);
 
                         // Split SQL into statements respecting quoted strings
-                        // (naive explode on ';' breaks when ';' appears inside VALUES)
+                        // and block comments (/* ... */)
                         $statements = [];
                         $current = '';
                         $inSingleQuote = false;
+                        $inDoubleQuote = false;
+                        $inBlockComment = false;
                         $escaped = false;
                         for ($i = 0, $len = strlen($sql); $i < $len; $i++) {
                             $ch = $sql[$i];
+                            $next = $i + 1 < $len ? $sql[$i + 1] : '';
+
+                            // Block comment handling
+                            if ($inBlockComment) {
+                                $current .= $ch;
+                                if ($ch === '*' && $next === '/') {
+                                    $current .= '/';
+                                    $i++;
+                                    $inBlockComment = false;
+                                }
+                                continue;
+                            }
+
                             if ($escaped) {
                                 $current .= $ch;
                                 $escaped = false;
@@ -451,12 +465,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 $escaped = true;
                                 continue;
                             }
-                            if ($ch === "'") {
+
+                            // Enter block comment
+                            if ($ch === '/' && $next === '*' && !$inSingleQuote && !$inDoubleQuote) {
+                                $current .= '/*';
+                                $i++;
+                                $inBlockComment = true;
+                                continue;
+                            }
+
+                            if ($ch === "'" && !$inDoubleQuote) {
                                 $inSingleQuote = !$inSingleQuote;
                                 $current .= $ch;
                                 continue;
                             }
-                            if ($ch === ';' && !$inSingleQuote) {
+                            if ($ch === '"' && !$inSingleQuote) {
+                                $inDoubleQuote = !$inDoubleQuote;
+                                $current .= $ch;
+                                continue;
+                            }
+                            if ($ch === ';' && !$inSingleQuote && !$inDoubleQuote) {
                                 $trimmed = trim($current);
                                 if ($trimmed !== '') {
                                     $statements[] = $trimmed;
