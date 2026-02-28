@@ -674,7 +674,7 @@ class GalleriesController extends BaseController
         }
 
         // 1. Batch fetch cover images (explicit cover_image_id)
-        $coverImageIds = array_filter(array_column($albums, 'cover_image_id'));
+        $coverImageIds = array_values(array_filter(array_column($albums, 'cover_image_id')));
         $coverImagesById = [];
         if (!empty($coverImageIds)) {
             $coverPlaceholders = implode(',', array_fill(0, count($coverImageIds), '?'));

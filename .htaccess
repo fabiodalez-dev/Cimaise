@@ -99,32 +99,12 @@ AddDefaultCharset UTF-8
 </FilesMatch>
 
 # Protect sensitive files
-<Files ".env">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-<Files ".env.*">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-<Files "composer.json">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-<Files "composer.lock">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-<Files "package.json">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-<Files "package-lock.json">
-    Order Allow,Deny
-    Deny from all
-</Files>
+<FilesMatch "^(\.env|\.env\..+|composer\.(json|lock)|package(-lock)?\.json)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Deny from all
+    </IfModule>
+</FilesMatch>

@@ -514,7 +514,7 @@ $app->add(function ($request, $handler) {
             ->withBody(new Stream($stream));
 
         $redactedParams = $params;
-        foreach (['_csrf', 'csrf_token', 'token', 'auth_token'] as $sensitiveKey) {
+        foreach (['_csrf', 'csrf_name', 'csrf_value', 'csrf_token', 'token', 'auth_token'] as $sensitiveKey) {
             if (array_key_exists($sensitiveKey, $redactedParams)) {
                 $redactedParams[$sensitiveKey] = '[REDACTED]';
             }

@@ -26,16 +26,13 @@ return function (App $app, array $container) {
 
     // Installer routes — redirect all /install/* to standalone installer.php
     if (!$container['db'] || !isAppInstalled($container['db'])) {
-        $app->get('/install[/{path:.*}]', function (Request $request, Response $response) {
+        $redirectToInstaller = function (Request $request, Response $response): Response {
             $basePath = dirname($_SERVER['SCRIPT_NAME']);
             $basePath = $basePath === '/' ? '' : $basePath;
             return $response->withHeader('Location', $basePath . '/installer.php')->withStatus(302);
-        });
-        $app->post('/install[/{path:.*}]', function (Request $request, Response $response) {
-            $basePath = dirname($_SERVER['SCRIPT_NAME']);
-            $basePath = $basePath === '/' ? '' : $basePath;
-            return $response->withHeader('Location', $basePath . '/installer.php')->withStatus(302);
-        });
+        };
+        $app->get('/install[/{path:.*}]', $redirectToInstaller);
+        $app->post('/install[/{path:.*}]', $redirectToInstaller);
 
         // Post-install setup (site settings)
     }

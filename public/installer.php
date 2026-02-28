@@ -397,8 +397,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Validate allowed values
         $validLangCodes = array_keys(getAvailableLanguages());
+        $validTimezones = \DateTimeZone::listIdentifiers();
         if (!in_array($settingsData['site_language'], $validLangCodes, true)) $settingsData['site_language'] = 'en';
         if (!in_array($settingsData['admin_language'], $validLangCodes, true)) $settingsData['admin_language'] = 'en';
+        if (!in_array($settingsData['timezone'], $validTimezones, true)) $settingsData['timezone'] = 'UTC';
         if (!in_array($settingsData['date_format'], ['Y-m-d', 'd-m-Y', 'm/d/Y'], true)) $settingsData['date_format'] = 'Y-m-d';
         if (!in_array($settingsData['home_template'], ['classic', 'masonry', 'hero', 'gallery'], true)) $settingsData['home_template'] = 'classic';
         if (!in_array($settingsData['gallery_template_id'], ['1','2','3','4','5','6','7'], true)) $settingsData['gallery_template_id'] = '4';
@@ -432,6 +434,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (empty($settingsData['site_title'])) $errors['site_title'] = 'Site title is required';
+        if (empty($settingsData['site_email']) || !filter_var($settingsData['site_email'], FILTER_VALIDATE_EMAIL)) {
+            $errors['site_email'] = 'Valid contact email is required';
+        }
 
         if (empty($errors)) {
             $_SESSION['settings_data'] = $settingsData;
@@ -677,9 +682,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
+            // Mark installation as completed
+            $markerDir = $rootPath . '/storage/tmp';
+            if (!is_dir($markerDir)) {
+                mkdir($markerDir, 0755, true);
+            }
+            file_put_contents($markerDir . '/.installed', date('Y-m-d H:i:s'), LOCK_EX);
+
             // Clear session data
             session_destroy();
-            
+
             $success = true;
             $step = 'complete';
             
