@@ -97,3 +97,34 @@ AddDefaultCharset UTF-8
         Deny from all
     </IfModule>
 </FilesMatch>
+
+# Protect sensitive files
+<Files ".env">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files ".env.*">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files "composer.json">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files "composer.lock">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files "package.json">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files "package-lock.json">
+    Order Allow,Deny
+    Deny from all
+</Files>

@@ -106,7 +106,7 @@ if (!$isInstallerRoute) {
             $scriptDir = dirname($scriptPath);
             $basePath = $scriptDir === '/' ? '' : $scriptDir;
             http_response_code(302);
-            header('Location: ' . $basePath . '/install');
+            header('Location: ' . $basePath . '/installer.php');
             exit;
         }
     }

@@ -24,57 +24,18 @@ function isAppInstalled($db): bool
 
 return function (App $app, array $container) {
 
-    // Installer routes (only register when not installed)
+    // Installer routes — redirect all /install/* to standalone installer.php
     if (!$container['db'] || !isAppInstalled($container['db'])) {
-        $app->get('/install', function (Request $request, Response $response) {
-            $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
-            return $controller->index($request, $response);
+        $app->get('/install[/{path:.*}]', function (Request $request, Response $response) {
+            $basePath = dirname($_SERVER['SCRIPT_NAME']);
+            $basePath = $basePath === '/' ? '' : $basePath;
+            return $response->withHeader('Location', $basePath . '/installer.php')->withStatus(302);
         });
-
-        $app->get('/install/database', function (Request $request, Response $response) {
-            $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
-            return $controller->showDatabaseConfig($request, $response);
+        $app->post('/install[/{path:.*}]', function (Request $request, Response $response) {
+            $basePath = dirname($_SERVER['SCRIPT_NAME']);
+            $basePath = $basePath === '/' ? '' : $basePath;
+            return $response->withHeader('Location', $basePath . '/installer.php')->withStatus(302);
         });
-
-        $app->post('/install/database', function (Request $request, Response $response) {
-            $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
-            return $controller->processDatabaseConfig($request, $response);
-        });
-
-        $app->get('/install/admin', function (Request $request, Response $response) {
-            $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
-            return $controller->showAdminConfig($request, $response);
-        });
-
-        $app->post('/install/admin', function (Request $request, Response $response) {
-            $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
-            return $controller->processAdminConfig($request, $response);
-        });
-
-        $app->get('/install/settings', function (Request $request, Response $response) {
-            $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
-            return $controller->showSettingsConfig($request, $response);
-        });
-
-        $app->post('/install/settings', function (Request $request, Response $response) {
-            $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
-            return $controller->processSettingsConfig($request, $response);
-        });
-
-        $app->get('/install/confirm', function (Request $request, Response $response) {
-            $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
-            return $controller->showConfirm($request, $response);
-        });
-
-        $app->post('/install/run', function (Request $request, Response $response) {
-            $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
-            return $controller->runInstall($request, $response);
-        });
-
-        $app->post('/install/test-mysql', function (Request $request, Response $response) {
-            $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
-            return $controller->testMySQLConnection($request, $response);
-        })->add(new \App\Middlewares\FileBasedRateLimitMiddleware(dirname(__DIR__, 2) . '/storage/tmp', 10, 300, 'mysql_test'));
 
         // Post-install setup (site settings)
     }

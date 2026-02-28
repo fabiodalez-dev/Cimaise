@@ -12,6 +12,11 @@ error_reporting(E_ALL);
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 
+// Prevent browser caching of installer pages
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
+
 $rootPath = dirname(__DIR__);
 $dbPath = $rootPath . '/database/database.sqlite';
 $envPath = $rootPath . '/.env';
@@ -19,7 +24,10 @@ $templateDbPath = $rootPath . '/database/template.sqlite';
 
 // Check if already installed
 $installed = false;
-if (file_exists($envPath) && file_exists($dbPath) && filesize($dbPath) > 0) {
+$markerPath = $rootPath . '/storage/tmp/.installed';
+if (file_exists($markerPath) && file_exists($envPath)) {
+    $installed = true;
+} elseif (file_exists($envPath) && file_exists($dbPath) && filesize($dbPath) > 0) {
     try {
         $pdo = new PDO('sqlite:' . $dbPath);
         $stmt = $pdo->query('SELECT COUNT(*) as count FROM users WHERE role = "admin"');
@@ -47,6 +55,33 @@ if ($installed) {
 $step = $_GET['step'] ?? 'requirements';
 $errors = [];
 $success = false;
+
+// Load available frontend languages from translation JSON files
+function getAvailableLanguages(): array {
+    $translationsDir = dirname(__DIR__) . '/storage/translations';
+    $languages = [];
+    $files = glob($translationsDir . '/*.json');
+    if ($files) {
+        foreach ($files as $file) {
+            $basename = basename($file, '.json');
+            // Skip admin translation files
+            if (str_contains($basename, '_admin')) continue;
+            $data = json_decode(file_get_contents($file), true);
+            if (!$data || !isset($data['_meta']['code'], $data['_meta']['language'])) continue;
+            $languages[$data['_meta']['code']] = [
+                'label' => $data['_meta']['language'],
+                'seeds' => $data['_seeds'] ?? [],
+            ];
+        }
+    }
+    // Fallback if no files found
+    if (empty($languages)) {
+        $languages['en'] = ['label' => 'English', 'seeds' => []];
+    }
+    return $languages;
+}
+
+$availableLanguages = getAvailableLanguages();
 
 // Helper functions
 function checkRequirements() {
@@ -291,7 +326,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($step === 'database') {
         $dbConfig = [
             'type' => $_POST['db_type'] ?? 'sqlite',
-            'host' => trim($_POST['db_host'] ?? 'localhost'),
+            'host' => trim($_POST['db_host'] ?? '127.0.0.1'),
             'port' => (int)($_POST['db_port'] ?? 3306),
             'database' => ($_POST['db_type'] ?? 'sqlite') === 'sqlite' ? 'database.sqlite' : (trim($_POST['db_database'] ?? 'cimaise')),
             'username' => trim($_POST['db_username'] ?? ''),
@@ -350,11 +385,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'site_description' => trim($_POST['site_description'] ?? 'A beautiful photography portfolio'),
             'site_copyright' => trim($_POST['site_copyright'] ?? '© {year} My Photography'),
             'site_email' => trim($_POST['site_email'] ?? ''),
-            'timezone' => $_POST['timezone'] ?? 'Europe/Rome'
+            'timezone' => $_POST['timezone'] ?? 'Europe/Rome',
+            'site_language' => $_POST['site_language'] ?? 'en',
+            'admin_language' => $_POST['admin_language'] ?? 'en',
+            'date_format' => $_POST['date_format'] ?? 'Y-m-d',
+            'home_template' => $_POST['home_template'] ?? 'classic',
+            'gallery_template_id' => $_POST['gallery_template_id'] ?? '4',
+            'cache_enabled' => isset($_POST['cache_enabled']) ? '1' : '0',
+            'compression_enabled' => isset($_POST['compression_enabled']) ? '1' : '0',
         ];
-        
+
+        // Validate allowed values
+        $validLangCodes = array_keys(getAvailableLanguages());
+        if (!in_array($settingsData['site_language'], $validLangCodes, true)) $settingsData['site_language'] = 'en';
+        if (!in_array($settingsData['admin_language'], $validLangCodes, true)) $settingsData['admin_language'] = 'en';
+        if (!in_array($settingsData['date_format'], ['Y-m-d', 'd-m-Y', 'm/d/Y'], true)) $settingsData['date_format'] = 'Y-m-d';
+        if (!in_array($settingsData['home_template'], ['classic', 'masonry', 'hero', 'gallery'], true)) $settingsData['home_template'] = 'classic';
+        if (!in_array($settingsData['gallery_template_id'], ['1','2','3','4','5','6','7'], true)) $settingsData['gallery_template_id'] = '4';
+
+        // Handle logo upload
+        $settingsData['site_logo'] = null;
+        $settingsData['site_logo_type'] = 'text';
+        if (!empty($_FILES['site_logo']['tmp_name']) && $_FILES['site_logo']['error'] === UPLOAD_ERR_OK) {
+            $allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $mimeType = $finfo->file($_FILES['site_logo']['tmp_name']);
+            if (in_array($mimeType, $allowedTypes, true)) {
+                $ext = match($mimeType) {
+                    'image/png' => 'png',
+                    'image/jpeg' => 'jpg',
+                    'image/webp' => 'webp',
+                    default => 'png',
+                };
+                $logoFilename = 'logo_' . time() . '.' . $ext;
+                $logoDir = $rootPath . '/public/media';
+                if (!is_dir($logoDir)) {
+                    mkdir($logoDir, 0755, true);
+                }
+                if (move_uploaded_file($_FILES['site_logo']['tmp_name'], $logoDir . '/' . $logoFilename)) {
+                    $settingsData['site_logo'] = '/media/' . $logoFilename;
+                    $settingsData['site_logo_type'] = 'image';
+                }
+            } else {
+                $errors['site_logo'] = 'Invalid image format. Please use PNG, JPEG, or WebP.';
+            }
+        }
+
         if (empty($settingsData['site_title'])) $errors['site_title'] = 'Site title is required';
-        
+
         if (empty($errors)) {
             $_SESSION['settings_data'] = $settingsData;
             header('Location: installer.php?step=install');
@@ -535,30 +613,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
             
             // Update settings
+            $cacheVal = $settingsData['cache_enabled'] === '1' ? 'true' : 'false';
+            $compressionVal = $settingsData['compression_enabled'] === '1' ? 'true' : 'false';
+
             $settingsToUpdate = [
                 'site.title' => $settingsData['site_title'],
                 'site.description' => $settingsData['site_description'],
                 'site.copyright' => $settingsData['site_copyright'],
                 'site.email' => $settingsData['site_email'],
+                'site.language' => $settingsData['site_language'],
+                'admin.language' => $settingsData['admin_language'],
+                'date.format' => $settingsData['date_format'],
+                'home.template' => $settingsData['home_template'],
+                'gallery.default_template_id' => $settingsData['gallery_template_id'],
+                'performance.cache_enabled' => $cacheVal,
+                'performance.compression_enabled' => $compressionVal,
+                'cache.pages_enabled' => $cacheVal,
+                'cache.compression_enabled' => $compressionVal,
             ];
-            
+
+            // Handle logo
+            if (!empty($settingsData['site_logo'])) {
+                $settingsToUpdate['site.logo'] = $settingsData['site_logo'];
+                $settingsToUpdate['site.logo_type'] = $settingsData['site_logo_type'];
+            }
+
             foreach ($settingsToUpdate as $key => $value) {
-                if (!empty($value)) {
-                    if ($dbConfig['type'] === 'sqlite') {
-                        $stmt = $pdo->prepare('INSERT OR REPLACE INTO settings (`key`, value, updated_at) VALUES (?, ?, ?)');
-                    } else {
-                        $stmt = $pdo->prepare('INSERT INTO settings (`key`, value, updated_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = VALUES(updated_at)');
-                    }
-                    $stmt->execute([$key, $value, date('Y-m-d H:i:s')]);
+                if ($dbConfig['type'] === 'sqlite') {
+                    $stmt = $pdo->prepare('INSERT OR REPLACE INTO settings (`key`, value, updated_at) VALUES (?, ?, ?)');
+                } else {
+                    $stmt = $pdo->prepare('INSERT INTO settings (`key`, value, updated_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = VALUES(updated_at)');
                 }
+                $stmt->execute([$key, $value, date('Y-m-d H:i:s')]);
             }
             
+            // Localize home page texts based on site language (read from JSON _seeds)
+            $langs = getAvailableLanguages();
+            $langCode = $settingsData['site_language'];
+            $localizedSeeds = $langs[$langCode]['seeds'] ?? [];
+            foreach ($localizedSeeds as $key => $value) {
+                if ($dbConfig['type'] === 'sqlite') {
+                    $stmt = $pdo->prepare('INSERT OR REPLACE INTO settings (`key`, value, updated_at) VALUES (?, ?, ?)');
+                } else {
+                    $stmt = $pdo->prepare('INSERT INTO settings (`key`, value, updated_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = VALUES(updated_at)');
+                }
+                $stmt->execute([$key, $value, date('Y-m-d H:i:s')]);
+            }
+
             // Create required directories
             createStorageDirectories($rootPath);
-            
+
             // Create security files
             createSecurityFiles($rootPath);
-            
+
+            // Clear query cache so fresh settings are loaded
+            $cacheDir = $rootPath . '/storage/tmp/query_cache';
+            if (is_dir($cacheDir)) {
+                $files = glob($cacheDir . '/*');
+                if ($files) {
+                    foreach ($files as $file) {
+                        if (is_file($file)) unlink($file);
+                    }
+                }
+            }
+
             // Clear session data
             session_destroy();
             
@@ -980,7 +1098,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Host</label>
                                         <input type="text" name="db_host" class="form-input w-full <?= isset($dbErrors['db_host']) ? 'error' : '' ?>" 
-                                               value="<?= htmlspecialchars($dbFormData['host'] ?? 'localhost') ?>" placeholder="localhost">
+                                               value="<?= htmlspecialchars($dbFormData['host'] ?? '127.0.0.1') ?>" placeholder="127.0.0.1">
                                         <?php if (isset($dbErrors['db_host'])): ?>
                                             <div class="text-red-600 text-sm mt-1"><?= $dbErrors['db_host'] ?></div>
                                         <?php endif; ?>
@@ -988,8 +1106,8 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                                     
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Port</label>
-                                        <input type="number" name="db_port" class="form-input w-full" 
-                                               value="<?= htmlspecialchars($dbFormData['port'] ?? '3306') ?>" placeholder="3306">
+                                        <input type="text" name="db_port" class="form-input w-full"
+                                               value="<?= htmlspecialchars((string)($dbFormData['port'] ?? '3306')) ?>" placeholder="3306">
                                     </div>
                                 </div>
                                 
@@ -1099,67 +1217,152 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                 <?php elseif ($step === 'settings'): ?>
                     <div class="card p-8">
                         <h2 class="text-2xl font-light text-black mb-6">Site Settings</h2>
-                        <p class="text-gray-600 mb-8">Configure your site's basic information and preferences.</p>
-                        
-                        <form method="post" action="installer.php?step=settings">
+                        <p class="text-gray-600 mb-8">Configure your site's information and preferences.</p>
+
+                        <form method="post" action="installer.php?step=settings" enctype="multipart/form-data">
+                            <!-- Site Identity -->
+                            <h3 class="text-lg font-medium text-gray-900 mb-4"><i class="fas fa-globe mr-2"></i>Site Identity</h3>
+
                             <div class="mb-6">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Site Title</label>
-                                <input type="text" name="site_title" class="form-input w-full <?= isset($settingsErrors['site_title']) ? 'error' : '' ?>" 
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Site Title <span class="text-red-500">*</span></label>
+                                <input type="text" name="site_title" class="form-input w-full <?= isset($settingsErrors['site_title']) ? 'error' : '' ?>"
                                        value="<?= htmlspecialchars($settingsFormData['site_title'] ?? 'My Photography') ?>" placeholder="My Photography" required>
                                 <?php if (isset($settingsErrors['site_title'])): ?>
                                     <div class="text-red-600 text-sm mt-1"><?= $settingsErrors['site_title'] ?></div>
                                 <?php endif; ?>
-                                <div class="text-sm text-gray-500 mt-1">This will appear in the browser title and header</div>
+                                <div class="text-sm text-gray-500 mt-1">Appears in browser title and site header</div>
                             </div>
-                            
+
                             <div class="mb-6">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Site Description</label>
-                                <textarea name="site_description" class="form-input w-full" rows="3" 
+                                <textarea name="site_description" class="form-input w-full" rows="3"
                                           placeholder="A beautiful photography portfolio"><?= htmlspecialchars($settingsFormData['site_description'] ?? 'A beautiful photography portfolio') ?></textarea>
-                                <div class="text-sm text-gray-500 mt-1">A short description for SEO and social media</div>
+                                <div class="text-sm text-gray-500 mt-1">Used for SEO and social media sharing</div>
                             </div>
-                            
+
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Site Logo <span class="text-gray-400">(Optional)</span></label>
+                                <input type="file" name="site_logo" class="form-input w-full" accept="image/png,image/jpeg,image/webp">
+                                <div class="text-sm text-gray-500 mt-1">Upload a logo (PNG, JPEG, or WebP). Leave empty to use site title as text.</div>
+                            </div>
+
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
-                                    <input type="email" name="site_email" class="form-input w-full" 
-                                           value="<?= htmlspecialchars($settingsFormData['site_email'] ?? ($_SESSION['admin_data']['email'] ?? '')) ?>" placeholder="contact@example.com">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Contact Email <span class="text-red-500">*</span></label>
+                                    <input type="email" name="site_email" class="form-input w-full"
+                                           value="<?= htmlspecialchars($settingsFormData['site_email'] ?? ($_SESSION['admin_data']['email'] ?? '')) ?>" placeholder="contact@example.com" required>
                                     <div class="text-sm text-gray-500 mt-1">For contact form submissions</div>
                                 </div>
-                                
+
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
-                                    <select name="timezone" class="form-input w-full">
-                                        <option value="Europe/Rome" <?= ($settingsFormData['timezone'] ?? 'Europe/Rome') === 'Europe/Rome' ? 'selected' : '' ?>>Europe/Rome</option>
-                                        <option value="UTC" <?= ($settingsFormData['timezone'] ?? '') === 'UTC' ? 'selected' : '' ?>>UTC</option>
-                                        <option value="America/New_York" <?= ($settingsFormData['timezone'] ?? '') === 'America/New_York' ? 'selected' : '' ?>>America/New_York</option>
-                                        <option value="America/Los_Angeles" <?= ($settingsFormData['timezone'] ?? '') === 'America/Los_Angeles' ? 'selected' : '' ?>>America/Los_Angeles</option>
-                                        <option value="Europe/London" <?= ($settingsFormData['timezone'] ?? '') === 'Europe/London' ? 'selected' : '' ?>>Europe/London</option>
-                                        <option value="Europe/Paris" <?= ($settingsFormData['timezone'] ?? '') === 'Europe/Paris' ? 'selected' : '' ?>>Europe/Paris</option>
-                                        <option value="Europe/Berlin" <?= ($settingsFormData['timezone'] ?? '') === 'Europe/Berlin' ? 'selected' : '' ?>>Europe/Berlin</option>
-                                        <option value="Asia/Tokyo" <?= ($settingsFormData['timezone'] ?? '') === 'Asia/Tokyo' ? 'selected' : '' ?>>Asia/Tokyo</option>
-                                        <option value="Australia/Sydney" <?= ($settingsFormData['timezone'] ?? '') === 'Australia/Sydney' ? 'selected' : '' ?>>Australia/Sydney</option>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Copyright Notice</label>
+                                    <input type="text" name="site_copyright" class="form-input w-full"
+                                           value="<?= htmlspecialchars($settingsFormData['site_copyright'] ?? '© {year} My Photography') ?>" placeholder="© {year} My Photography">
+                                    <div class="text-sm text-gray-500 mt-1">Use <code class="bg-gray-100 px-1 rounded">{year}</code> for current year</div>
+                                </div>
+                            </div>
+
+                            <!-- Language & Format -->
+                            <h3 class="text-lg font-medium text-gray-900 mb-4 mt-8"><i class="fas fa-language mr-2"></i>Language &amp; Format</h3>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Site Language</label>
+                                    <select name="site_language" class="form-input w-full">
+                                        <?php foreach ($availableLanguages as $code => $lang): ?>
+                                            <option value="<?= htmlspecialchars($code) ?>" <?= ($settingsFormData['site_language'] ?? 'en') === $code ? 'selected' : '' ?>><?= htmlspecialchars($lang['label']) ?></option>
+                                        <?php endforeach; ?>
                                     </select>
+                                    <div class="text-sm text-gray-500 mt-1">Frontend language</div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Admin Language</label>
+                                    <select name="admin_language" class="form-input w-full">
+                                        <?php foreach ($availableLanguages as $code => $lang): ?>
+                                            <option value="<?= htmlspecialchars($code) ?>" <?= ($settingsFormData['admin_language'] ?? 'en') === $code ? 'selected' : '' ?>><?= htmlspecialchars($lang['label']) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <div class="text-sm text-gray-500 mt-1">Admin panel language</div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Date Format</label>
+                                    <select name="date_format" class="form-input w-full">
+                                        <option value="Y-m-d" <?= ($settingsFormData['date_format'] ?? 'Y-m-d') === 'Y-m-d' ? 'selected' : '' ?>><?= date('Y-m-d') ?> (ISO)</option>
+                                        <option value="d-m-Y" <?= ($settingsFormData['date_format'] ?? '') === 'd-m-Y' ? 'selected' : '' ?>><?= date('d-m-Y') ?> (European)</option>
+                                        <option value="m/d/Y" <?= ($settingsFormData['date_format'] ?? '') === 'm/d/Y' ? 'selected' : '' ?>><?= date('m/d/Y') ?> (US)</option>
+                                    </select>
+                                    <div class="text-sm text-gray-500 mt-1">How dates are displayed</div>
                                 </div>
                             </div>
-                            
+
                             <div class="mb-6">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Copyright Notice</label>
-                                <input type="text" name="site_copyright" class="form-input w-full"
-                                       value="<?= htmlspecialchars($settingsFormData['site_copyright'] ?? '© {year} My Photography') ?>" placeholder="© {year} My Photography">
-                                <div class="text-sm text-gray-500 mt-1">Will appear in the site footer. Use <code>{year}</code> for current year.</div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
+                                <select name="timezone" class="form-input w-full">
+                                    <option value="Europe/Rome" <?= ($settingsFormData['timezone'] ?? 'Europe/Rome') === 'Europe/Rome' ? 'selected' : '' ?>>Europe/Rome</option>
+                                    <option value="UTC" <?= ($settingsFormData['timezone'] ?? '') === 'UTC' ? 'selected' : '' ?>>UTC</option>
+                                    <option value="America/New_York" <?= ($settingsFormData['timezone'] ?? '') === 'America/New_York' ? 'selected' : '' ?>>America/New York</option>
+                                    <option value="America/Los_Angeles" <?= ($settingsFormData['timezone'] ?? '') === 'America/Los_Angeles' ? 'selected' : '' ?>>America/Los Angeles</option>
+                                    <option value="Europe/London" <?= ($settingsFormData['timezone'] ?? '') === 'Europe/London' ? 'selected' : '' ?>>Europe/London</option>
+                                    <option value="Europe/Paris" <?= ($settingsFormData['timezone'] ?? '') === 'Europe/Paris' ? 'selected' : '' ?>>Europe/Paris</option>
+                                    <option value="Europe/Berlin" <?= ($settingsFormData['timezone'] ?? '') === 'Europe/Berlin' ? 'selected' : '' ?>>Europe/Berlin</option>
+                                    <option value="Asia/Tokyo" <?= ($settingsFormData['timezone'] ?? '') === 'Asia/Tokyo' ? 'selected' : '' ?>>Asia/Tokyo</option>
+                                    <option value="Australia/Sydney" <?= ($settingsFormData['timezone'] ?? '') === 'Australia/Sydney' ? 'selected' : '' ?>>Australia/Sydney</option>
+                                </select>
                             </div>
-                            
-                            <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6">
-                                <div class="flex items-start">
-                                    <i class="fas fa-lightbulb mr-2 mt-0.5"></i>
-                                    <div>
-                                        <div class="font-medium">Ready to Go</div>
-                                        <div class="text-sm">The installer will use the pre-configured template database with default categories, templates, and settings to get you started quickly.</div>
-                                    </div>
+
+                            <!-- Templates -->
+                            <h3 class="text-lg font-medium text-gray-900 mb-4 mt-8"><i class="fas fa-palette mr-2"></i>Default Templates</h3>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Homepage Template</label>
+                                    <select name="home_template" class="form-input w-full">
+                                        <option value="classic" <?= ($settingsFormData['home_template'] ?? 'classic') === 'classic' ? 'selected' : '' ?>>Classic (Albums grid)</option>
+                                        <option value="masonry" <?= ($settingsFormData['home_template'] ?? '') === 'masonry' ? 'selected' : '' ?>>Masonry (Photo wall)</option>
+                                        <option value="hero" <?= ($settingsFormData['home_template'] ?? '') === 'hero' ? 'selected' : '' ?>>Hero (Full-screen hero + albums)</option>
+                                        <option value="gallery" <?= ($settingsFormData['home_template'] ?? '') === 'gallery' ? 'selected' : '' ?>>Gallery (Scrollable photo gallery)</option>
+                                    </select>
+                                    <div class="text-sm text-gray-500 mt-1">Layout for the homepage</div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Default Gallery Template</label>
+                                    <select name="gallery_template_id" class="form-input w-full">
+                                        <option value="1" <?= ($settingsFormData['gallery_template_id'] ?? '4') === '1' ? 'selected' : '' ?>>Grid Classica</option>
+                                        <option value="2" <?= ($settingsFormData['gallery_template_id'] ?? '4') === '2' ? 'selected' : '' ?>>Masonry Portfolio</option>
+                                        <option value="3" <?= ($settingsFormData['gallery_template_id'] ?? '4') === '3' ? 'selected' : '' ?>>Magazine Split</option>
+                                        <option value="4" <?= ($settingsFormData['gallery_template_id'] ?? '4') === '4' ? 'selected' : '' ?>>Masonry Full</option>
+                                        <option value="5" <?= ($settingsFormData['gallery_template_id'] ?? '4') === '5' ? 'selected' : '' ?>>Grid Compatta</option>
+                                        <option value="6" <?= ($settingsFormData['gallery_template_id'] ?? '4') === '6' ? 'selected' : '' ?>>Grid Ampia</option>
+                                        <option value="7" <?= ($settingsFormData['gallery_template_id'] ?? '4') === '7' ? 'selected' : '' ?>>Gallery Wall Scroll</option>
+                                    </select>
+                                    <div class="text-sm text-gray-500 mt-1">Default template for new album galleries</div>
                                 </div>
                             </div>
-                            
+
+                            <!-- Performance -->
+                            <h3 class="text-lg font-medium text-gray-900 mb-4 mt-8"><i class="fas fa-tachometer-alt mr-2"></i>Performance</h3>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <label class="flex items-start gap-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                                    <input type="checkbox" name="cache_enabled" value="1" class="mt-0.5" <?= ($settingsFormData['cache_enabled'] ?? '1') ? 'checked' : '' ?>>
+                                    <div>
+                                        <div class="font-medium text-gray-900">Enable Caching</div>
+                                        <div class="text-sm text-gray-500">Cache pages for better performance (recommended)</div>
+                                    </div>
+                                </label>
+
+                                <label class="flex items-start gap-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                                    <input type="checkbox" name="compression_enabled" value="1" class="mt-0.5" <?= ($settingsFormData['compression_enabled'] ?? '1') ? 'checked' : '' ?>>
+                                    <div>
+                                        <div class="font-medium text-gray-900">Enable Compression</div>
+                                        <div class="text-sm text-gray-500">Compress responses for faster loading (recommended)</div>
+                                    </div>
+                                </label>
+                            </div>
+
                             <div class="flex justify-between pt-6">
                                 <a href="installer.php?step=admin" class="btn-secondary px-6 py-3 rounded-lg font-medium inline-flex items-center">
                                     <i class="fas fa-arrow-left mr-2"></i>Back
