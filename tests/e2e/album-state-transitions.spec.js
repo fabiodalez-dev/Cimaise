@@ -4,8 +4,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const BASE = 'http://localhost:8000';
-const SCREENSHOTS = 'test-results/screenshots-transitions';
+const BASE = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8000';
+const SCREENSHOTS = path.join('test-results', 'screenshots-transitions');
+const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@test.com';
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'TestPass123!';
 const ts = Date.now();
 const ALBUM_NAME = `StateTransition ${ts}`;
 const ALBUM_PASSWORD = 'secret123';
@@ -65,7 +67,7 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     await page.goto(`${BASE}/admin/cache`);
     const clearForm = page.locator('form[action$="/admin/cache/clear-everything"]');
     await clearForm.locator('button[type="submit"]').click();
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('networkidle');
   }
 
   /** Toggle NSFW flag on an album via the edit form */
@@ -222,50 +224,52 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
    */
   async function verifyAlbumGate(brs, slug, expectedGate, label) {
     const ctx = await brs.newContext({ viewport: { width: 1280, height: 900 } });
-    const pg = await ctx.newPage();
-    await pg.goto(`${BASE}/album/${slug}`);
-    await pg.waitForTimeout(1500);
-    await pg.screenshot({ path: `${SCREENSHOTS}/${label}-gate-${expectedGate}.png`, fullPage: true });
+    try {
+      const pg = await ctx.newPage();
+      await pg.goto(`${BASE}/album/${slug}`);
+      await pg.waitForLoadState('load');
+      await pg.screenshot({ path: path.join(SCREENSHOTS, `${label}-gate-${expectedGate}.png`), fullPage: true });
 
-    switch (expectedGate) {
-      case 'none':
-        expect(await pg.locator('#nsfw-confirm-form').count()).toBe(0);
-        expect(await pg.locator('#album-password-form').count()).toBe(0);
-        // Content visible
-        const content = pg.locator('#album-main-content img, .gallery-item img, picture img');
-        expect(await content.count()).toBeGreaterThan(0);
-        break;
+      switch (expectedGate) {
+        case 'none':
+          expect(await pg.locator('#nsfw-confirm-form').count()).toBe(0);
+          expect(await pg.locator('#album-password-form').count()).toBe(0);
+          // Content visible
+          const content = pg.locator('#album-main-content img, .gallery-item img, picture img');
+          expect(await content.count()).toBeGreaterThan(0);
+          break;
 
-      case 'nsfw':
-        await expect(pg.locator('#nsfw-confirm-form')).toBeVisible({ timeout: 5000 });
-        expect(await pg.locator('#album-password-form').count()).toBe(0);
-        // Album content not rendered (gate is a separate page)
-        expect(await pg.locator('#album-main-content').count()).toBe(0);
-        break;
+        case 'nsfw':
+          await expect(pg.locator('#nsfw-confirm-form')).toBeVisible({ timeout: 5000 });
+          expect(await pg.locator('#album-password-form').count()).toBe(0);
+          // Album content not rendered (gate is a separate page)
+          expect(await pg.locator('#album-main-content').count()).toBe(0);
+          break;
 
-      case 'password':
-        await expect(pg.locator('#album-password-form')).toBeVisible({ timeout: 5000 });
-        // No NSFW checkbox (album is not NSFW)
-        expect(await pg.locator('#album-password-form input[name="nsfw_confirmed"]').count()).toBe(0);
-        expect(await pg.locator('#nsfw-confirm-form').count()).toBe(0);
-        break;
+        case 'password':
+          await expect(pg.locator('#album-password-form')).toBeVisible({ timeout: 5000 });
+          // No NSFW checkbox (album is not NSFW)
+          expect(await pg.locator('#album-password-form input[name="nsfw_confirmed"]').count()).toBe(0);
+          expect(await pg.locator('#nsfw-confirm-form').count()).toBe(0);
+          break;
 
-      case 'password+nsfw':
-        await expect(pg.locator('#album-password-form')).toBeVisible({ timeout: 5000 });
-        // NSFW checkbox also present in the password form
-        expect(await pg.locator('#album-password-form input[name="nsfw_confirmed"]').count()).toBeGreaterThan(0);
-        // No separate NSFW gate (password gate takes precedence)
-        expect(await pg.locator('#nsfw-confirm-form').count()).toBe(0);
-        break;
+        case 'password+nsfw':
+          await expect(pg.locator('#album-password-form')).toBeVisible({ timeout: 5000 });
+          // NSFW checkbox also present in the password form
+          expect(await pg.locator('#album-password-form input[name="nsfw_confirmed"]').count()).toBeGreaterThan(0);
+          // No separate NSFW gate (password gate takes precedence)
+          expect(await pg.locator('#nsfw-confirm-form').count()).toBe(0);
+          break;
+      }
+    } finally {
+      await ctx.close();
     }
-
-    await ctx.close();
   }
 
   /** Verify admin sees album directly — no gates, content visible */
   async function verifyAdminNoGate(page, slug) {
     await page.goto(`${BASE}/album/${slug}`);
-    await page.waitForTimeout(1500);
+    await page.waitForLoadState('load');
     expect(await page.locator('#nsfw-confirm-form').count()).toBe(0);
     expect(await page.locator('#album-password-form').count()).toBe(0);
     const images = page.locator('#album-main-content img, .gallery-item img, picture img');
@@ -274,8 +278,10 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
 
   // ─── setup & teardown ─────────────────────────────────────────────
 
+  // .serial() is required because all 7 transitions share and mutate a single album's state
   test.beforeAll(async () => {
-    browser = await chromium.launch({ headless: false, slowMo: 150 });
+    const isCI = !!process.env.CI;
+    browser = await chromium.launch({ headless: isCI, slowMo: isCI ? 0 : 150 });
     adminCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     admin = await adminCtx.newPage();
   });
@@ -292,11 +298,11 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
 
     // Login
     await admin.goto(`${BASE}/admin/login`);
-    await admin.fill('input[name="email"]', 'admin@test.com');
-    await admin.fill('input[name="password"]', 'TestPass123!');
+    await admin.fill('input[name="email"]', ADMIN_EMAIL);
+    await admin.fill('input[name="password"]', ADMIN_PASSWORD);
     await admin.click('button[type="submit"]');
     await admin.waitForURL(/\/admin/, { timeout: 10000 });
-    await admin.screenshot({ path: `${SCREENSHOTS}/00-login.png`, fullPage: true });
+    await admin.screenshot({ path: path.join(SCREENSHOTS, '00-login.png'), fullPage: true });
 
     // Create album (regular, published, no NSFW, no password)
     await admin.goto(`${BASE}/admin/albums/create`);
@@ -329,7 +335,7 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     // Clear caches
     await clearCaches(admin);
 
-    await admin.screenshot({ path: `${SCREENSHOTS}/01-setup-complete.png`, fullPage: true });
+    await admin.screenshot({ path: path.join(SCREENSHOTS, '01-setup-complete.png'), fullPage: true });
   });
 
   // ═══════════════════════════════════════════════════════════════════
@@ -347,8 +353,8 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     const anonCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const anonPage = await anonCtx.newPage();
     await anonPage.goto(`${BASE}/?template=classic`);
-    await anonPage.waitForTimeout(2000);
-    await anonPage.screenshot({ path: `${SCREENSHOTS}/T1-home-classic-anon.png`, fullPage: true });
+    await anonPage.waitForLoadState('load');
+    await anonPage.screenshot({ path: path.join(SCREENSHOTS, 'T1-home-classic-anon.png'), fullPage: true });
 
     await verifyCardState(anonPage, 'article.album-card', albumId, {
       blur: true, overlay: true, lock: false, dataNsfw: '1'
@@ -360,8 +366,8 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     const gallCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const gallPage = await gallCtx.newPage();
     await gallPage.goto(`${BASE}/galleries`);
-    await gallPage.waitForTimeout(2000);
-    await gallPage.screenshot({ path: `${SCREENSHOTS}/T1-galleries-anon.png`, fullPage: true });
+    await gallPage.waitForLoadState('load');
+    await gallPage.screenshot({ path: path.join(SCREENSHOTS, 'T1-galleries-anon.png'), fullPage: true });
 
     await verifyCardState(gallPage, 'article', albumId, {
       blur: true, overlay: true, lock: false, dataNsfw: '1', dataPasswordProtected: '0'
@@ -375,12 +381,12 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
 
     // ── Admin: Single album — no gate ──
     await verifyAdminNoGate(admin, albumSlug);
-    await admin.screenshot({ path: `${SCREENSHOTS}/T1-admin-album.png`, fullPage: true });
+    await admin.screenshot({ path: path.join(SCREENSHOTS, 'T1-admin-album.png'), fullPage: true });
     console.log('T1: Admin album — no gate ✓');
 
     // ── Admin: Home classic — no blur ──
     await admin.goto(`${BASE}/?template=classic`);
-    await admin.waitForTimeout(1500);
+    await admin.waitForLoadState('load');
     await verifyCardState(admin, 'article.album-card', albumId, {
       blur: false, overlay: false, lock: false, dataNsfw: null
     });
@@ -402,8 +408,8 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     const anonCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const anonPage = await anonCtx.newPage();
     await anonPage.goto(`${BASE}/?template=classic`);
-    await anonPage.waitForTimeout(2000);
-    await anonPage.screenshot({ path: `${SCREENSHOTS}/T2-home-classic-anon.png`, fullPage: true });
+    await anonPage.waitForLoadState('load');
+    await anonPage.screenshot({ path: path.join(SCREENSHOTS, 'T2-home-classic-anon.png'), fullPage: true });
 
     await verifyCardState(anonPage, 'article.album-card', albumId, {
       blur: false, overlay: false, lock: false, dataNsfw: null
@@ -415,8 +421,8 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     const gallCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const gallPage = await gallCtx.newPage();
     await gallPage.goto(`${BASE}/galleries`);
-    await gallPage.waitForTimeout(2000);
-    await gallPage.screenshot({ path: `${SCREENSHOTS}/T2-galleries-anon.png`, fullPage: true });
+    await gallPage.waitForLoadState('load');
+    await gallPage.screenshot({ path: path.join(SCREENSHOTS, 'T2-galleries-anon.png'), fullPage: true });
 
     await verifyCardState(gallPage, 'article', albumId, {
       blur: false, overlay: false, lock: false, dataNsfw: '0', dataPasswordProtected: '0'
@@ -444,8 +450,8 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     const anonCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const anonPage = await anonCtx.newPage();
     await anonPage.goto(`${BASE}/?template=classic`);
-    await anonPage.waitForTimeout(2000);
-    await anonPage.screenshot({ path: `${SCREENSHOTS}/T3-home-classic-anon.png`, fullPage: true });
+    await anonPage.waitForLoadState('load');
+    await anonPage.screenshot({ path: path.join(SCREENSHOTS, 'T3-home-classic-anon.png'), fullPage: true });
 
     await verifyCardState(anonPage, 'article.album-card', albumId, {
       blur: true, overlay: false, lock: true, dataNsfw: null
@@ -457,8 +463,8 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     const gallCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const gallPage = await gallCtx.newPage();
     await gallPage.goto(`${BASE}/galleries`);
-    await gallPage.waitForTimeout(2000);
-    await gallPage.screenshot({ path: `${SCREENSHOTS}/T3-galleries-anon.png`, fullPage: true });
+    await gallPage.waitForLoadState('load');
+    await gallPage.screenshot({ path: path.join(SCREENSHOTS, 'T3-galleries-anon.png'), fullPage: true });
 
     await verifyCardState(gallPage, 'article', albumId, {
       blur: true, overlay: true, lock: true, dataNsfw: '0', dataPasswordProtected: '1'
@@ -472,7 +478,7 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
 
     // ── Admin: no gate ──
     await verifyAdminNoGate(admin, albumSlug);
-    await admin.screenshot({ path: `${SCREENSHOTS}/T3-admin-album.png`, fullPage: true });
+    await admin.screenshot({ path: path.join(SCREENSHOTS, 'T3-admin-album.png'), fullPage: true });
     console.log('T3: Admin album — no gate ✓');
   });
 
@@ -491,8 +497,8 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     const anonCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const anonPage = await anonCtx.newPage();
     await anonPage.goto(`${BASE}/?template=classic`);
-    await anonPage.waitForTimeout(2000);
-    await anonPage.screenshot({ path: `${SCREENSHOTS}/T4-home-classic-anon.png`, fullPage: true });
+    await anonPage.waitForLoadState('load');
+    await anonPage.screenshot({ path: path.join(SCREENSHOTS, 'T4-home-classic-anon.png'), fullPage: true });
 
     await verifyCardState(anonPage, 'article.album-card', albumId, {
       blur: false, overlay: false, lock: false, dataNsfw: null
@@ -504,8 +510,8 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     const gallCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const gallPage = await gallCtx.newPage();
     await gallPage.goto(`${BASE}/galleries`);
-    await gallPage.waitForTimeout(2000);
-    await gallPage.screenshot({ path: `${SCREENSHOTS}/T4-galleries-anon.png`, fullPage: true });
+    await gallPage.waitForLoadState('load');
+    await gallPage.screenshot({ path: path.join(SCREENSHOTS, 'T4-galleries-anon.png'), fullPage: true });
 
     await verifyCardState(gallPage, 'article', albumId, {
       blur: false, overlay: false, lock: false, dataNsfw: '0', dataPasswordProtected: '0'
@@ -533,8 +539,8 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     const anonCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const anonPage = await anonCtx.newPage();
     await anonPage.goto(`${BASE}/?template=classic`);
-    await anonPage.waitForTimeout(2000);
-    await anonPage.screenshot({ path: `${SCREENSHOTS}/T5-home-classic-anon.png`, fullPage: true });
+    await anonPage.waitForLoadState('load');
+    await anonPage.screenshot({ path: path.join(SCREENSHOTS, 'T5-home-classic-anon.png'), fullPage: true });
 
     await verifyCardState(anonPage, 'article.album-card', albumId, {
       blur: true, overlay: true, lock: true, dataNsfw: '1'
@@ -546,8 +552,8 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     const gallCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const gallPage = await gallCtx.newPage();
     await gallPage.goto(`${BASE}/galleries`);
-    await gallPage.waitForTimeout(2000);
-    await gallPage.screenshot({ path: `${SCREENSHOTS}/T5-galleries-anon.png`, fullPage: true });
+    await gallPage.waitForLoadState('load');
+    await gallPage.screenshot({ path: path.join(SCREENSHOTS, 'T5-galleries-anon.png'), fullPage: true });
 
     await verifyCardState(gallPage, 'article', albumId, {
       blur: true, overlay: true, lock: true, dataNsfw: '1', dataPasswordProtected: '1'
@@ -561,7 +567,7 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
 
     // ── Admin: no gate ──
     await verifyAdminNoGate(admin, albumSlug);
-    await admin.screenshot({ path: `${SCREENSHOTS}/T5-admin-album.png`, fullPage: true });
+    await admin.screenshot({ path: path.join(SCREENSHOTS, 'T5-admin-album.png'), fullPage: true });
     console.log('T5: Admin album — no gate ✓');
   });
 
@@ -580,8 +586,8 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     const anonCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const anonPage = await anonCtx.newPage();
     await anonPage.goto(`${BASE}/?template=classic`);
-    await anonPage.waitForTimeout(2000);
-    await anonPage.screenshot({ path: `${SCREENSHOTS}/T6-home-classic-anon.png`, fullPage: true });
+    await anonPage.waitForLoadState('load');
+    await anonPage.screenshot({ path: path.join(SCREENSHOTS, 'T6-home-classic-anon.png'), fullPage: true });
 
     await verifyCardState(anonPage, 'article.album-card', albumId, {
       blur: true, overlay: true, lock: false, dataNsfw: '1'
@@ -593,8 +599,8 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     const gallCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const gallPage = await gallCtx.newPage();
     await gallPage.goto(`${BASE}/galleries`);
-    await gallPage.waitForTimeout(2000);
-    await gallPage.screenshot({ path: `${SCREENSHOTS}/T6-galleries-anon.png`, fullPage: true });
+    await gallPage.waitForLoadState('load');
+    await gallPage.screenshot({ path: path.join(SCREENSHOTS, 'T6-galleries-anon.png'), fullPage: true });
 
     await verifyCardState(gallPage, 'article', albumId, {
       blur: true, overlay: true, lock: false, dataNsfw: '1', dataPasswordProtected: '0'
@@ -608,7 +614,7 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
 
     // ── Admin: no gate ──
     await verifyAdminNoGate(admin, albumSlug);
-    await admin.screenshot({ path: `${SCREENSHOTS}/T6-admin-album.png`, fullPage: true });
+    await admin.screenshot({ path: path.join(SCREENSHOTS, 'T6-admin-album.png'), fullPage: true });
     console.log('T6: Admin album — no gate ✓');
   });
 
@@ -627,8 +633,8 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     const anonCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const anonPage = await anonCtx.newPage();
     await anonPage.goto(`${BASE}/?template=classic`);
-    await anonPage.waitForTimeout(2000);
-    await anonPage.screenshot({ path: `${SCREENSHOTS}/T7-home-classic-anon.png`, fullPage: true });
+    await anonPage.waitForLoadState('load');
+    await anonPage.screenshot({ path: path.join(SCREENSHOTS, 'T7-home-classic-anon.png'), fullPage: true });
 
     await verifyCardState(anonPage, 'article.album-card', albumId, {
       blur: false, overlay: false, lock: false, dataNsfw: null
@@ -640,8 +646,8 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     const gallCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const gallPage = await gallCtx.newPage();
     await gallPage.goto(`${BASE}/galleries`);
-    await gallPage.waitForTimeout(2000);
-    await gallPage.screenshot({ path: `${SCREENSHOTS}/T7-galleries-anon.png`, fullPage: true });
+    await gallPage.waitForLoadState('load');
+    await gallPage.screenshot({ path: path.join(SCREENSHOTS, 'T7-galleries-anon.png'), fullPage: true });
 
     await verifyCardState(gallPage, 'article', albumId, {
       blur: false, overlay: false, lock: false, dataNsfw: '0', dataPasswordProtected: '0'
