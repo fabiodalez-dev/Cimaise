@@ -28,13 +28,24 @@ class MediaController extends BaseController
     private function invalidateAlbumCaches(int $albumId): void
     {
         try {
-            $stmt = $this->db->pdo()->prepare('SELECT category_id FROM albums WHERE id = ?');
-            $stmt->execute([$albumId]);
-            $categoryId = (int)($stmt->fetchColumn() ?: 0) ?: null;
+            // Collect all categories from pivot table (multi-category support)
+            $pivotStmt = $this->db->pdo()->prepare('SELECT category_id FROM album_category WHERE album_id = ?');
+            $pivotStmt->execute([$albumId]);
+            $categoryIds = array_map('intval', $pivotStmt->fetchAll(\PDO::FETCH_COLUMN) ?: []);
+            if ($categoryIds === []) {
+                $fallbackStmt = $this->db->pdo()->prepare('SELECT category_id FROM albums WHERE id = ?');
+                $fallbackStmt->execute([$albumId]);
+                $fbId = (int)($fallbackStmt->fetchColumn() ?: 0);
+                if ($fbId > 0) { $categoryIds[] = $fbId; }
+            }
+            $tags = CacheTags::albumRelated($albumId);
+            foreach ($categoryIds as $cid) {
+                if ($cid > 0) { $tags[] = CacheTags::category($cid); }
+            }
 
             $settings = new SettingsService($this->db);
             $pcs = new PageCacheService($settings, $this->db);
-            $pcs->invalidateByTags(CacheTags::albumRelated($albumId, $categoryId));
+            $pcs->invalidateByTags(array_unique($tags));
         } catch (\Throwable $e) {
             // Cache invalidation failure should not break admin operations
             \App\Support\Logger::warning('Cache invalidation failed', [
@@ -192,6 +203,9 @@ class MediaController extends BaseController
         $pdo = $this->db->pdo();
 
         $albumId = $this->getAlbumIdForImage($id);
+        if ($albumId <= 0) {
+            return $this->jsonResponse($response, ['ok' => false, 'error' => 'Image not found'], 404);
+        }
 
         $fields = [
             'alt_text' => $d['alt_text'] ?? null,
@@ -293,6 +307,9 @@ class MediaController extends BaseController
         $pdo = $this->db->pdo();
 
         $albumId = $this->getAlbumIdForImage($id);
+        if ($albumId <= 0) {
+            return $this->jsonResponse($response, ['ok' => false, 'error' => 'Image not found'], 404);
+        }
 
         // Build EXIF fields array
         $exifFields = [

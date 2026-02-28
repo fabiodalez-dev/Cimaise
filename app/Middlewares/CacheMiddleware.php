@@ -55,7 +55,7 @@ class CacheMiddleware implements MiddlewareInterface
         // API routes
         if (str_starts_with($path, '/api/')) {
             // Admin API: no cache
-            if (str_contains($path, '/admin/')) {
+            if ($path === '/api/admin' || str_starts_with($path, '/api/admin/')) {
                 return $this->addNoCacheHeaders($response);
             }
             // Frontend API: short private cache for infinite scroll, template switching, EXIF

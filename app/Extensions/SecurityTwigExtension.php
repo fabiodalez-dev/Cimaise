@@ -58,14 +58,15 @@ class SecurityTwigExtension extends AbstractExtension
     }
 
     /**
-     * Check if an attribute value contains a dangerous URI protocol.
+     * Check if an href value uses an allowed URI protocol.
+     * Uses allowlist (consistent with Sanitizer::html) instead of denylist.
      * Operates on DOM-decoded values (after HTML entity resolution).
      */
-    private function hasDangerousProtocol(string $value): bool
+    private function isAllowedHref(string $value): bool
     {
         // Strip whitespace and control characters, then check protocol
         $normalized = preg_replace('/[\x00-\x20]+/', '', $value);
-        return (bool) preg_match('#^(javascript|data|vbscript):#i', $normalized);
+        return (bool) preg_match('#^(https?://|mailto:|tel:|/|#)#i', (string) $normalized);
     }
 
     private function sanitizeNode(\DOMNode $node, array $allowedTags, array $allowedAttrs): void
@@ -97,7 +98,7 @@ class SecurityTwigExtension extends AbstractExtension
                         }
                         // Check for dangerous protocols on DOM-decoded values
                         if ($tag === 'a' && $name === 'href') {
-                            if ($this->hasDangerousProtocol((string)$attr->nodeValue)) {
+                            if (!$this->isAllowedHref((string)$attr->nodeValue)) {
                                 $node->removeAttribute('href');
                                 continue;
                             }

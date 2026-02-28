@@ -276,7 +276,13 @@ class Database
     public function dateSubExpression(string $interval, int $value): string
     {
         if ($this->isSqlite) {
-            return "datetime('now', '-{$value} {$interval}')";
+            // SQLite doesn't support 'weeks' modifier — convert to days
+            $sqliteInterval = strtolower($interval);
+            if ($sqliteInterval === 'weeks' || $sqliteInterval === 'week') {
+                $value = $value * 7;
+                $sqliteInterval = 'days';
+            }
+            return "datetime('now', '-{$value} {$sqliteInterval}')";
         }
         $mysqlInterval = match (strtolower($interval)) {
             'hours', 'hour' => 'HOUR',

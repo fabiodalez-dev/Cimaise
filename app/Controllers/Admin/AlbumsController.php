@@ -49,10 +49,22 @@ class AlbumsController extends BaseController
 
             // Use tag-based invalidation for efficient bulk clearing
             if ($albumId !== null) {
-                $catStmt = $this->db->pdo()->prepare('SELECT category_id FROM albums WHERE id = ?');
-                $catStmt->execute([$albumId]);
-                $categoryId = (int)($catStmt->fetchColumn() ?: 0) ?: null;
-                $this->pageCacheService->invalidateByTags(CacheTags::albumRelated($albumId, $categoryId));
+                // Collect all categories from pivot table (multi-category support)
+                $pivotStmt = $this->db->pdo()->prepare('SELECT category_id FROM album_category WHERE album_id = ?');
+                $pivotStmt->execute([$albumId]);
+                $categoryIds = array_map('intval', $pivotStmt->fetchAll(\PDO::FETCH_COLUMN) ?: []);
+                // Fallback to legacy albums.category_id if pivot is empty
+                if ($categoryIds === []) {
+                    $fallbackStmt = $this->db->pdo()->prepare('SELECT category_id FROM albums WHERE id = ?');
+                    $fallbackStmt->execute([$albumId]);
+                    $fbId = (int)($fallbackStmt->fetchColumn() ?: 0);
+                    if ($fbId > 0) { $categoryIds[] = $fbId; }
+                }
+                $tags = CacheTags::albumRelated($albumId);
+                foreach ($categoryIds as $cid) {
+                    if ($cid > 0) { $tags[] = CacheTags::category($cid); }
+                }
+                $this->pageCacheService->invalidateByTags(array_unique($tags));
             } else {
                 // Fallback to direct invalidation if no album ID
                 $this->pageCacheService->invalidate('home');
@@ -1127,11 +1139,14 @@ class AlbumsController extends BaseController
                     $this->pageCacheService = new PageCacheService($settings, $this->db);
                 }
                 $allTags = [];
+                $pivotStmt = $this->db->pdo()->prepare('SELECT category_id FROM album_category WHERE album_id = ?');
                 foreach ($ids as $id) {
-                    $catStmt = $this->db->pdo()->prepare('SELECT category_id FROM albums WHERE id = ?');
-                    $catStmt->execute([$id]);
-                    $catId = (int)($catStmt->fetchColumn() ?: 0) ?: null;
-                    $allTags = array_merge($allTags, CacheTags::albumRelated($id, $catId));
+                    $allTags = array_merge($allTags, CacheTags::albumRelated($id));
+                    $pivotStmt->execute([$id]);
+                    $catIds = array_map('intval', $pivotStmt->fetchAll(\PDO::FETCH_COLUMN) ?: []);
+                    foreach ($catIds as $cid) {
+                        if ($cid > 0) { $allTags[] = CacheTags::category($cid); }
+                    }
                 }
                 $this->pageCacheService->invalidateByTags(array_unique($allTags));
             } catch (\Throwable) {

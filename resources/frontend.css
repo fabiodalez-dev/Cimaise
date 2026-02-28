@@ -177,14 +177,16 @@ html.no-js main .album-card {
 
 /* Simple tooltip for template buttons */
 .tpl-switch { position: relative; }
-.tpl-switch[data-tooltip]:hover::after {
+.tpl-switch[data-tooltip]:hover::after,
+.tpl-switch[data-tooltip]:focus-visible::after {
     content: attr(data-tooltip);
     position: absolute; bottom: 125%; left: 50%; transform: translateX(-50%);
     background: rgba(17,17,17,.95); color: #fff; padding: 6px 8px; border-radius: 4px; white-space: nowrap;
     font-size: 12px; line-height: 1; z-index: 50;
     box-shadow: 0 6px 12px rgba(0,0,0,.2);
 }
-.tpl-switch[data-tooltip]:hover::before {
+.tpl-switch[data-tooltip]:hover::before,
+.tpl-switch[data-tooltip]:focus-visible::before {
     content: ''; position: absolute; bottom: 115%; left: 50%; transform: translateX(-50%);
     width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid rgba(17,17,17,.95);
     z-index: 51;
