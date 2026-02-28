@@ -169,6 +169,7 @@ class Database
         $statements = [];
         $current = '';
         $inSingleQuote = false;
+        $inDoubleQuote = false;
         $inLineComment = false;
         $inBlockComment = false;
         $len = strlen($sql);
@@ -177,10 +178,13 @@ class Database
             $char = $sql[$i];
             $next = $i + 1 < $len ? $sql[$i + 1] : '';
 
-            // Handle line comments
-            if (!$inSingleQuote && !$inBlockComment && $char === '-' && $next === '-') {
-                $inLineComment = true;
-                continue;
+            // Handle line comments (-- must be followed by space, control char, or EOF per MySQL rules)
+            if (!$inSingleQuote && !$inDoubleQuote && !$inBlockComment && $char === '-' && $next === '-') {
+                $after = $i + 2 < $len ? $sql[$i + 2] : '';
+                if ($after === ' ' || $after === "\t" || $after === "\r" || $after === "\n" || $after === '') {
+                    $inLineComment = true;
+                    continue;
+                }
             }
             if ($inLineComment) {
                 if ($char === "\n") {
@@ -191,7 +195,7 @@ class Database
             }
 
             // Handle block comments
-            if (!$inSingleQuote && !$inBlockComment && $char === '/' && $next === '*') {
+            if (!$inSingleQuote && !$inDoubleQuote && !$inBlockComment && $char === '/' && $next === '*') {
                 $inBlockComment = true;
                 $i++; // skip *
                 continue;
@@ -204,15 +208,15 @@ class Database
                 continue;
             }
 
-            // Handle backslash escapes inside single-quoted strings
-            if ($inSingleQuote && $char === '\\') {
+            // Handle backslash escapes inside quoted strings
+            if (($inSingleQuote || $inDoubleQuote) && $char === '\\') {
                 $current .= $char . $next;
                 $i++;
                 continue;
             }
 
             // Handle single-quoted strings (with escaped quotes)
-            if ($char === "'" && !$inBlockComment && !$inLineComment) {
+            if ($char === "'" && !$inDoubleQuote && !$inBlockComment && !$inLineComment) {
                 if ($inSingleQuote) {
                     // Check for escaped quote ('')
                     if ($next === "'") {
@@ -228,8 +232,15 @@ class Database
                 continue;
             }
 
+            // Handle double-quoted strings
+            if ($char === '"' && !$inSingleQuote && !$inBlockComment && !$inLineComment) {
+                $inDoubleQuote = !$inDoubleQuote;
+                $current .= $char;
+                continue;
+            }
+
             // Semicolon outside of quotes = statement delimiter
-            if ($char === ';' && !$inSingleQuote) {
+            if ($char === ';' && !$inSingleQuote && !$inDoubleQuote) {
                 $trimmed = trim($current);
                 if ($trimmed !== '') {
                     $statements[] = $trimmed;

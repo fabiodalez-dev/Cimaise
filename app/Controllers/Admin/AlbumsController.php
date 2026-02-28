@@ -1140,10 +1140,16 @@ class AlbumsController extends BaseController
                 }
                 $allTags = [];
                 $pivotStmt = $this->db->pdo()->prepare('SELECT category_id FROM album_category WHERE album_id = ?');
+                $fallbackStmt = $this->db->pdo()->prepare('SELECT category_id FROM albums WHERE id = ?');
                 foreach ($ids as $id) {
                     $allTags = array_merge($allTags, CacheTags::albumRelated($id));
                     $pivotStmt->execute([$id]);
                     $catIds = array_map('intval', $pivotStmt->fetchAll(\PDO::FETCH_COLUMN) ?: []);
+                    if ($catIds === []) {
+                        $fallbackStmt->execute([$id]);
+                        $fbId = (int) ($fallbackStmt->fetchColumn() ?: 0);
+                        if ($fbId > 0) { $catIds[] = $fbId; }
+                    }
                     foreach ($catIds as $cid) {
                         if ($cid > 0) { $allTags[] = CacheTags::category($cid); }
                     }

@@ -245,27 +245,31 @@ class RateLimitMiddleware implements MiddlewareInterface
         $isFailedAttempt = false;
         $isSuccessfulAuth = false;
         $statusCode = $response->getStatusCode();
+        $isDownloadEndpoint = $keyIdentifier === 'download_image';
 
         // For login pages: check response body for error message (supports multiple languages)
-        $body = (string)$response->getBody();
-        // Rewind stream so downstream can read body (if seekable)
-        if ($response->getBody()->isSeekable()) {
-            $response->getBody()->rewind();
-        } else {
-            // Recreate body for non-seekable streams
-            $stream = fopen('php://temp', 'r+');
-            fwrite($stream, $body);
-            rewind($stream);
-            $response = $response->withBody(new \Slim\Psr7\Stream($stream));
-        }
-        if ($statusCode === 200 && (
-            str_contains($body, 'Credenziali non valide') ||
-            str_contains($body, 'Invalid credentials') ||
-            str_contains($body, 'Login failed') ||
-            str_contains($body, 'Account disattivato') ||
-            str_contains($body, 'Account disabled')
-        )) {
-            $isFailedAttempt = true;
+        // Skip body reading for download endpoints to avoid buffering large files in memory
+        if (!$isDownloadEndpoint) {
+            $body = (string)$response->getBody();
+            // Rewind stream so downstream can read body (if seekable)
+            if ($response->getBody()->isSeekable()) {
+                $response->getBody()->rewind();
+            } else {
+                // Recreate body for non-seekable streams
+                $stream = fopen('php://temp', 'r+');
+                fwrite($stream, $body);
+                rewind($stream);
+                $response = $response->withBody(new \Slim\Psr7\Stream($stream));
+            }
+            if ($statusCode === 200 && (
+                str_contains($body, 'Credenziali non valide') ||
+                str_contains($body, 'Invalid credentials') ||
+                str_contains($body, 'Login failed') ||
+                str_contains($body, 'Account disattivato') ||
+                str_contains($body, 'Account disabled')
+            )) {
+                $isFailedAttempt = true;
+            }
         }
 
         // For album unlock: check for redirect with error parameter
@@ -287,9 +291,6 @@ class RateLimitMiddleware implements MiddlewareInterface
                 $isSuccessfulAuth = true;
             }
         }
-
-        // Download endpoints: always count each request as an attempt
-        $isDownloadEndpoint = $keyIdentifier === 'download_image';
 
         // Only write to filesystem when there's an actual change to avoid unnecessary I/O
         // Old attempts are pruned via maybeCleanup() probabilistically

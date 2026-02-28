@@ -513,8 +513,14 @@ $app->add(function ($request, $handler) {
             ->withHeader('Content-Type', 'application/x-www-form-urlencoded')
             ->withBody(new Stream($stream));
 
+        $redactedParams = $params;
+        foreach (['_csrf', 'csrf_token', 'token', 'auth_token'] as $sensitiveKey) {
+            if (array_key_exists($sensitiveKey, $redactedParams)) {
+                $redactedParams[$sensitiveKey] = '[REDACTED]';
+            }
+        }
         Logger::warning('[RouteDebug] Rewriting GET->POST for updates/perform', [
-            'query_params' => $params
+            'query_params' => $redactedParams
         ], 'updater');
     }
     return $handler->handle($request);

@@ -48,7 +48,7 @@
 document.getElementById('nsfw-confirm-form')?.addEventListener('submit', function() {
     var checkbox = document.getElementById('nsfw_confirmed');
     if (checkbox && checkbox.checked) {
-        localStorage.setItem('nsfw_confirmed', 'true');
+        try { localStorage.setItem('nsfw_confirmed', 'true'); } catch (e) {}
     }
 });
 </script>

@@ -400,7 +400,7 @@ class AnalyticsPro
                 WHERE DATE(started_at) = {$curDate} AND duration > 0
             ");
             $result = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $stats['avg_session_duration'] = round($result['avg_duration'] ?? 0, 2);
+            $stats['avg_session_duration'] = round((float) ($result['avg_duration'] ?? 0), 2);
 
         } catch (\Throwable $e) {
             error_log("Analytics Pro: Error getting realtime stats: " . $e->getMessage());
@@ -414,6 +414,9 @@ class AnalyticsPro
      */
     public function getEventStats(string $period = 'day', int $limit = 30): array
     {
+        $limit = max(1, min($limit, 365));
+        $rowLimit = $limit * 100;
+
         $dateFormat = match ($period) {
             'hour' => '%Y-%m-%d %H:00:00',
             'day' => '%Y-%m-%d',
@@ -457,7 +460,7 @@ class AnalyticsPro
                 LIMIT ?
             ");
 
-            $stmt->execute([$limit * 100]);
+            $stmt->execute([$rowLimit]);
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         } catch (\Throwable $e) {
