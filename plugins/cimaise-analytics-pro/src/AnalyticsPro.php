@@ -624,6 +624,7 @@ class AnalyticsPro
     public function getDeviceStats(int $days = 30): array
     {
         try {
+            $days = max(1, $days);
             $dateThreshold = $this->db->dateSubExpression('days', $days);
             $stmt = $this->db->pdo()->query("
                 SELECT
@@ -650,6 +651,7 @@ class AnalyticsPro
     public function getBrowserStats(int $days = 30): array
     {
         try {
+            $days = max(1, $days);
             $dateThreshold = $this->db->dateSubExpression('days', $days);
             $stmt = $this->db->pdo()->query("
                 SELECT
@@ -675,6 +677,7 @@ class AnalyticsPro
     public function cleanup(int $days = 90): int
     {
         try {
+            $days = max(1, $days);
             $dateThreshold = $this->db->dateSubExpression('days', $days);
 
             $deleted = $this->db->execute(

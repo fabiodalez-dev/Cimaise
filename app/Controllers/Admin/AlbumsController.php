@@ -50,9 +50,14 @@ class AlbumsController extends BaseController
             // Use tag-based invalidation for efficient bulk clearing
             if ($albumId !== null) {
                 // Collect all categories from pivot table (multi-category support)
-                $pivotStmt = $this->db->pdo()->prepare('SELECT category_id FROM album_category WHERE album_id = ?');
-                $pivotStmt->execute([$albumId]);
-                $categoryIds = array_map('intval', $pivotStmt->fetchAll(\PDO::FETCH_COLUMN) ?: []);
+                $categoryIds = [];
+                try {
+                    $pivotStmt = $this->db->pdo()->prepare('SELECT category_id FROM album_category WHERE album_id = ?');
+                    $pivotStmt->execute([$albumId]);
+                    $categoryIds = array_map('intval', $pivotStmt->fetchAll(\PDO::FETCH_COLUMN) ?: []);
+                } catch (\Throwable) {
+                    // Schema legacy: pivot table may not exist yet
+                }
                 // Fallback to legacy albums.category_id if pivot is empty
                 if ($categoryIds === []) {
                     $fallbackStmt = $this->db->pdo()->prepare('SELECT category_id FROM albums WHERE id = ?');
@@ -975,10 +980,10 @@ class AlbumsController extends BaseController
         // Delete album (CASCADE will handle images and image_variants records)
         $stmt = $pdo->prepare('DELETE FROM albums WHERE id=:id');
         try {
-            $stmt->execute([':id'=>$id]);
-
-            // Invalidate page caches (no warm — album is deleted)
+            // Invalidate before DELETE so category pivot data is still readable
             $this->invalidatePageCaches($albumSlug, null, $id, false);
+
+            $stmt->execute([':id'=>$id]);
 
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_deleted')];
 
@@ -1155,8 +1160,8 @@ class AlbumsController extends BaseController
                     }
                 }
                 $this->pageCacheService->invalidateByTags(array_unique($allTags));
-            } catch (\Throwable) {
-                // Cache invalidation failure should not break admin operations
+            } catch (\Throwable $e) {
+                error_log('Cache invalidation failed in reorderList: ' . $e->getMessage());
             }
             $response->getBody()->write(json_encode(['ok'=>true]));
             return $response->withHeader('Content-Type','application/json');

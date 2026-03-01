@@ -532,10 +532,16 @@ $app->add(function ($request, $handler) {
     if (str_starts_with($path, '/admin/updates')) {
         $headers = $request->getHeaders();
         unset($headers['Cookie'], $headers['cookie']);
+        // Redact sensitive query params before logging
+        $rawQuery = $request->getUri()->getQuery();
+        parse_str($rawQuery, $qp);
+        foreach (['_csrf', 'csrf_name', 'csrf_value', 'csrf_token', 'token', 'auth_token'] as $sk) {
+            if (array_key_exists($sk, $qp)) { $qp[$sk] = '[REDACTED]'; }
+        }
         Logger::info('[RouteDebug] incoming', [
             'method' => $request->getMethod(),
             'path' => $path,
-            'query' => $request->getUri()->getQuery(),
+            'query' => http_build_query($qp),
             'content_type' => $request->getHeaderLine('Content-Type'),
             'accept' => $request->getHeaderLine('Accept'),
             'xhr' => $request->getHeaderLine('X-Requested-With'),

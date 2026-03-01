@@ -66,7 +66,7 @@ class SecurityTwigExtension extends AbstractExtension
     {
         // Strip whitespace and control characters, then check protocol
         $normalized = preg_replace('/[\x00-\x20]+/', '', $value);
-        return (bool) preg_match('#^(https?://|mailto:|tel:|/|#)#i', (string) $normalized);
+        return (bool) preg_match('~^(https?://|mailto:|tel:|/|#)~i', (string) $normalized);
     }
 
     private function sanitizeNode(\DOMNode $node, array $allowedTags, array $allowedAttrs): void

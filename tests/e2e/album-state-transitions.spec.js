@@ -11,6 +11,9 @@ const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'TestPass123!';
 const ts = Date.now();
 const ALBUM_NAME = `StateTransition ${ts}`;
 const ALBUM_PASSWORD = 'secret123';
+// Anchored URL patterns to avoid false positives (e.g. /admin/login matching /admin/)
+const ADMIN_DASHBOARD_RE = /\/admin\/?(\?.*)?$/;
+const ADMIN_ALBUMS_LIST_RE = /\/admin\/albums\/?(\?.*)?$/;
 
 test.describe.serial('Album state transitions — NSFW & Password on same album', () => {
   /** @type {import('@playwright/test').Browser} */
@@ -84,7 +87,7 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     }
 
     await page.click('button[type="submit"][form="album-form"]');
-    await page.waitForURL(/\/admin\/albums/, { timeout: 15000 });
+    await page.waitForURL(ADMIN_ALBUMS_LIST_RE, { timeout: 15000 });
   }
 
   /** Add a password to an album via the edit form (album must have no password) */
@@ -104,7 +107,7 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
 
     // Click save — triggers handleSavePassword() which calls form.submit()
     await page.click('#save-add-btn');
-    await page.waitForURL(/\/admin\/albums/, { timeout: 15000 });
+    await page.waitForURL(ADMIN_ALBUMS_LIST_RE, { timeout: 15000 });
   }
 
   /** Remove password from an album via the edit form (album must have a password) */
@@ -121,7 +124,7 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     await removeBtn.scrollIntoViewIfNeeded();
     await removeBtn.click();
 
-    await page.waitForURL(/\/admin\/albums/, { timeout: 15000 });
+    await page.waitForURL(ADMIN_ALBUMS_LIST_RE, { timeout: 15000 });
   }
 
   /** Set NSFW + add password in a single form submission */
@@ -146,7 +149,7 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     await passwordInput.fill(password);
 
     await page.click('#save-add-btn');
-    await page.waitForURL(/\/admin\/albums/, { timeout: 15000 });
+    await page.waitForURL(ADMIN_ALBUMS_LIST_RE, { timeout: 15000 });
   }
 
   /** Remove password while keeping NSFW (remove-password auto-submits entire form) */
@@ -167,7 +170,7 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     await removeBtn.scrollIntoViewIfNeeded();
     await removeBtn.click();
 
-    await page.waitForURL(/\/admin\/albums/, { timeout: 15000 });
+    await page.waitForURL(ADMIN_ALBUMS_LIST_RE, { timeout: 15000 });
   }
 
   /**
@@ -301,7 +304,7 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     await admin.fill('input[name="email"]', ADMIN_EMAIL);
     await admin.fill('input[name="password"]', ADMIN_PASSWORD);
     await admin.click('button[type="submit"]');
-    await admin.waitForURL(/\/admin/, { timeout: 10000 });
+    await admin.waitForURL(ADMIN_DASHBOARD_RE, { timeout: 10000 });
     await admin.screenshot({ path: path.join(SCREENSHOTS, '00-login.png'), fullPage: true });
 
     // Create album (regular, published, no NSFW, no password)
@@ -315,7 +318,7 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     if (await nsfwBox.isChecked()) await nsfwBox.uncheck({ force: true });
 
     await admin.click('button[type="submit"][form="album-form"]');
-    await admin.waitForURL(/\/admin\/albums/, { timeout: 15000 });
+    await admin.waitForURL(ADMIN_ALBUMS_LIST_RE, { timeout: 15000 });
 
     // Get album ID from list
     await admin.goto(`${BASE}/admin/albums`);

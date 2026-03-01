@@ -27,16 +27,48 @@ $installed = false;
 $markerPath = $rootPath . '/storage/tmp/.installed';
 if (file_exists($markerPath) && file_exists($envPath)) {
     $installed = true;
-} elseif (file_exists($envPath) && file_exists($dbPath) && filesize($dbPath) > 0) {
+} elseif (file_exists($envPath)) {
+    // DB-agnostic: detect both SQLite and MySQL prior installs
     try {
-        $pdo = new PDO('sqlite:' . $dbPath);
-        $stmt = $pdo->query('SELECT COUNT(*) as count FROM users WHERE role = "admin"');
-        $result = $stmt->fetch();
-        if ($result['count'] > 0) {
-            $installed = true;
+        $pdo = null;
+        if (file_exists($dbPath) && filesize($dbPath) > 0) {
+            $pdo = new PDO('sqlite:' . $dbPath);
+        } else {
+            // Try MySQL: parse .env for DB credentials
+            $envContent = @file_get_contents($envPath);
+            if ($envContent !== false) {
+                $envVars = [];
+                foreach (explode("\n", $envContent) as $line) {
+                    $line = trim($line);
+                    if ($line === '' || str_starts_with($line, '#')) continue;
+                    if (str_contains($line, '=')) {
+                        [$key, $val] = explode('=', $line, 2);
+                        $envVars[trim($key)] = trim($val, " \t\n\r\0\x0B\"'");
+                    }
+                }
+                $dbConn = $envVars['DB_CONNECTION'] ?? '';
+                if ($dbConn === 'mysql') {
+                    $host = $envVars['DB_HOST'] ?? '127.0.0.1';
+                    $port = $envVars['DB_PORT'] ?? '3306';
+                    $dbName = $envVars['DB_DATABASE'] ?? '';
+                    $user = $envVars['DB_USERNAME'] ?? '';
+                    $pass = $envVars['DB_PASSWORD'] ?? '';
+                    if ($dbName && $user) {
+                        $pdo = new PDO("mysql:host={$host};port={$port};dbname={$dbName};charset=utf8mb4", $user, $pass);
+                        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                    }
+                }
+            }
+        }
+        if ($pdo) {
+            $stmt = $pdo->query('SELECT COUNT(*) as count FROM users WHERE role = "admin"');
+            $result = $stmt->fetch();
+            if ($result && $result['count'] > 0) {
+                $installed = true;
+            }
         }
     } catch (Exception $e) {
-        // Not installed
+        // Not installed or DB unreachable
     }
 }
 
@@ -532,6 +564,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 if ($ch === '*' && $next === '/') {
                                     $i++;
                                     $inBlockComment = false;
+                                    // Preserve token separation after block comment
+                                    if ($current !== '' && !str_ends_with($current, ' ')) {
+                                        $current .= ' ';
+                                    }
                                 }
                                 continue;
                             }

@@ -20,15 +20,29 @@ class ImageRating
      */
     public function createTable(): void
     {
-        $sql = "
-            CREATE TABLE IF NOT EXISTS plugin_image_ratings (
-                image_id INTEGER PRIMARY KEY,
-                rating INTEGER NOT NULL CHECK(rating >= 0 AND rating <= 5),
-                rated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                rated_by INTEGER NULL,
-                FOREIGN KEY (image_id) REFERENCES images(id) ON DELETE CASCADE
-            )
-        ";
+        if ($this->isSqlite) {
+            $sql = "
+                CREATE TABLE IF NOT EXISTS plugin_image_ratings (
+                    image_id INTEGER NOT NULL,
+                    rating INTEGER NOT NULL CHECK(rating >= 0 AND rating <= 5),
+                    rated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    rated_by INTEGER NULL,
+                    UNIQUE(image_id, rated_by),
+                    FOREIGN KEY (image_id) REFERENCES images(id) ON DELETE CASCADE
+                )
+            ";
+        } else {
+            $sql = "
+                CREATE TABLE IF NOT EXISTS plugin_image_ratings (
+                    image_id INT NOT NULL,
+                    rating INT NOT NULL,
+                    rated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    rated_by INT NULL,
+                    UNIQUE KEY uniq_image_rated_by (image_id, rated_by),
+                    FOREIGN KEY (image_id) REFERENCES images(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            ";
+        }
 
         try {
             $this->db->exec($sql);
