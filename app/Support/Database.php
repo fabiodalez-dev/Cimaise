@@ -337,6 +337,10 @@ class Database
         if (preg_match('/[\'";]/', $format)) {
             throw new \InvalidArgumentException('Invalid characters in date format');
         }
+        // M14: Validate column name to prevent SQL injection
+        if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_.]*$/', $column)) {
+            throw new \InvalidArgumentException('Invalid column name');
+        }
         if ($this->isSqlite) {
             return "strftime('{$format}', {$column})";
         }

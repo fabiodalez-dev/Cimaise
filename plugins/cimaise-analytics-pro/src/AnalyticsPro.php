@@ -11,16 +11,20 @@ class AnalyticsPro
     private Database $db;
     private SettingsService $settings;
     private ?string $ipSalt = null;
+    private static bool $tablesEnsured = false;
 
     public function __construct(Database $db, ?SettingsService $settings = null)
     {
         $this->db = $db;
         $this->settings = $settings ?? new SettingsService($db);
-        $this->ensureTables();
+        if (!self::$tablesEnsured) {
+            $this->ensureTables();
+            self::$tablesEnsured = true;
+        }
     }
 
     /**
-     * Ensure analytics tables exist
+     * Ensure analytics tables exist (runs once per request via static flag)
      */
     private function ensureTables(): void
     {
@@ -375,30 +379,37 @@ class AnalyticsPro
             $result = $stmt->fetch(\PDO::FETCH_ASSOC);
             $stats['active_users'] = $result['active_users'] ?? 0;
 
+            // H8: Use range predicates instead of DATE() to allow index usage
+            $todayStart = date('Y-m-d 00:00:00');
+            $tomorrowStart = date('Y-m-d 00:00:00', strtotime('+1 day'));
+
             // Events today
-            $stmt = $this->db->pdo()->query("
+            $stmt = $this->db->pdo()->prepare("
                 SELECT COUNT(*) as events_today
                 FROM analytics_pro_events
-                WHERE DATE(created_at) = {$curDate}
+                WHERE created_at >= ? AND created_at < ?
             ");
+            $stmt->execute([$todayStart, $tomorrowStart]);
             $result = $stmt->fetch(\PDO::FETCH_ASSOC);
             $stats['events_today'] = $result['events_today'] ?? 0;
 
             // Pageviews today
-            $stmt = $this->db->pdo()->query("
+            $stmt = $this->db->pdo()->prepare("
                 SELECT COUNT(*) as pageviews_today
                 FROM analytics_pro_events
-                WHERE event_name = 'page_view' AND DATE(created_at) = {$curDate}
+                WHERE event_name = 'page_view' AND created_at >= ? AND created_at < ?
             ");
+            $stmt->execute([$todayStart, $tomorrowStart]);
             $result = $stmt->fetch(\PDO::FETCH_ASSOC);
             $stats['pageviews_today'] = $result['pageviews_today'] ?? 0;
 
             // Average session duration today
-            $stmt = $this->db->pdo()->query("
+            $stmt = $this->db->pdo()->prepare("
                 SELECT AVG(duration) as avg_duration
                 FROM analytics_pro_sessions
-                WHERE DATE(started_at) = {$curDate} AND duration > 0
+                WHERE started_at >= ? AND started_at < ? AND duration > 0
             ");
+            $stmt->execute([$todayStart, $tomorrowStart]);
             $result = $stmt->fetch(\PDO::FETCH_ASSOC);
             $stats['avg_session_duration'] = round((float) ($result['avg_duration'] ?? 0), 2);
 
@@ -591,19 +602,17 @@ class AnalyticsPro
         try {
             $stmt = $this->db->pdo()->prepare($query);
             $stmt->execute($params);
-            $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-            // Generate CSV
+            // M10: Cursor-based export — stream rows instead of fetchAll()
             $csv = fopen('php://temp', 'r+');
+            $headerWritten = false;
 
-            // Header
-            if (!empty($results)) {
-                fputcsv($csv, array_keys($results[0]));
-
-                // Data
-                foreach ($results as $row) {
-                    fputcsv($csv, $row);
+            while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                if (!$headerWritten) {
+                    fputcsv($csv, array_keys($row));
+                    $headerWritten = true;
                 }
+                fputcsv($csv, $row);
             }
 
             rewind($csv);

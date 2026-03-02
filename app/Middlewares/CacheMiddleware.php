@@ -232,7 +232,13 @@ class CacheMiddleware implements MiddlewareInterface
             $result = $result->withHeader('ETag', $etag);
         }
 
-        return $this->addVaryHeader($result, 'Accept-Encoding');
+        // M1: Include Vary: Cookie for session-dependent responses
+        $varyValues = 'Accept-Encoding';
+        if ($isSessionDependent) {
+            $varyValues .= ', Cookie';
+        }
+
+        return $this->addVaryHeader($result, $varyValues);
     }
 
     /**

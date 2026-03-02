@@ -376,41 +376,45 @@ class AnalyticsService
             $stmt->execute();
             $realtime = $stmt->fetch(PDO::FETCH_ASSOC);
 
+            // H8: Use range predicates instead of DATE() for index usage
+            $todayStart = date('Y-m-d 00:00:00');
+            $tomorrowStart = date('Y-m-d 00:00:00', strtotime('+1 day'));
+
             // Today's stats
             $stmt = $this->db->prepare('
-                SELECT 
+                SELECT
                     COUNT(DISTINCT s.session_id) as sessions_today,
                     COUNT(p.id) as pageviews_today,
                     AVG(s.duration) as avg_duration
                 FROM analytics_sessions s
                 LEFT JOIN analytics_pageviews p ON s.session_id = p.session_id
-                WHERE DATE(s.started_at) = ' . $this->todayExpr() . '
+                WHERE s.started_at >= ? AND s.started_at < ?
             ');
-            $stmt->execute();
+            $stmt->execute([$todayStart, $tomorrowStart]);
             $today = $stmt->fetch(PDO::FETCH_ASSOC);
 
             // Top pages today
             $stmt = $this->db->prepare('
                 SELECT page_url, page_title, COUNT(*) as views
-                FROM analytics_pageviews 
-                WHERE DATE(viewed_at) = ' . $this->todayExpr() . '
-                GROUP BY page_url 
-                ORDER BY views DESC 
+                FROM analytics_pageviews
+                WHERE viewed_at >= ? AND viewed_at < ?
+                GROUP BY page_url
+                ORDER BY views DESC
                 LIMIT 5
             ');
-            $stmt->execute();
+            $stmt->execute([$todayStart, $tomorrowStart]);
             $topPages = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Top countries today
             $stmt = $this->db->prepare('
                 SELECT country_code, COUNT(*) as sessions
-                FROM analytics_sessions 
-                WHERE DATE(started_at) = ' . $this->todayExpr() . ' AND country_code IS NOT NULL
-                GROUP BY country_code 
-                ORDER BY sessions DESC 
+                FROM analytics_sessions
+                WHERE started_at >= ? AND started_at < ? AND country_code IS NOT NULL
+                GROUP BY country_code
+                ORDER BY sessions DESC
                 LIMIT 5
             ');
-            $stmt->execute();
+            $stmt->execute([$todayStart, $tomorrowStart]);
             $topCountries = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             return [

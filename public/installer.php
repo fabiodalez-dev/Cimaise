@@ -83,8 +83,18 @@ if ($installed) {
     exit;
 }
 
-// Get current step
+// CSRF token management
+if (empty($_SESSION['installer_csrf'])) {
+    $_SESSION['installer_csrf'] = bin2hex(random_bytes(32));
+}
+$csrfToken = $_SESSION['installer_csrf'];
+
+// Get current step (M7: validate against allowlist)
+$allowedSteps = ['requirements', 'database', 'admin', 'settings', 'install', 'complete'];
 $step = $_GET['step'] ?? 'requirements';
+if (!in_array($step, $allowedSteps, true)) {
+    $step = 'requirements';
+}
 $errors = [];
 $success = false;
 
@@ -163,7 +173,9 @@ function testDatabaseConnection($config) {
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         return ['success' => true, 'pdo' => $pdo];
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        // H2: Don't leak DSN/credentials in error messages
+        error_log('Installer DB test error: ' . $e->getMessage());
+        return ['success' => false, 'error' => 'Connection failed. Please verify your database credentials and host.'];
     }
 }
 
@@ -258,73 +270,45 @@ HTACCESS;
         file_put_contents($publicHtaccess, $publicHtaccessContent);
     }
     
+    // M6: Apache 2.2 + 2.4 compatible deny-all blocks
+    $denyAllContent = <<<'HTACCESS'
+# Deny all access (Apache 2.4+)
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+# Deny all access (Apache 2.2)
+<IfModule !mod_authz_core.c>
+    Order Allow,Deny
+    Deny from all
+</IfModule>
+HTACCESS;
+
     // 3. Protect database directory
-    $databaseHtaccess = $rootPath . '/database/.htaccess';
-    $databaseHtaccessContent = <<<'HTACCESS'
-# Deny all access to database files
-<Files "*">
-    Order Allow,Deny
-    Deny from all
-</Files>
-HTACCESS;
-    file_put_contents($databaseHtaccess, $databaseHtaccessContent);
-    
+    file_put_contents($rootPath . '/database/.htaccess', $denyAllContent);
+
     // 4. Protect app directory
-    $appHtaccess = $rootPath . '/app/.htaccess';
-    $appHtaccessContent = <<<'HTACCESS'
-# Deny all access to application files
-<Files "*">
-    Order Allow,Deny
-    Deny from all
-</Files>
-HTACCESS;
-    file_put_contents($appHtaccess, $appHtaccessContent);
-    
+    file_put_contents($rootPath . '/app/.htaccess', $denyAllContent);
+
     // 5. Protect vendor directory
-    $vendorHtaccess = $rootPath . '/vendor/.htaccess';
-    $vendorHtaccessContent = <<<'HTACCESS'
-# Deny all access to vendor files
-<Files "*">
-    Order Allow,Deny
-    Deny from all
-</Files>
-HTACCESS;
-    file_put_contents($vendorHtaccess, $vendorHtaccessContent);
+    file_put_contents($rootPath . '/vendor/.htaccess', $denyAllContent);
     
     // 6. Protect .env file specifically
     $envHtaccess = $rootPath . '/.htaccess';
-    $envProtection = "
+    $envProtection = '
 
-# Protect sensitive files
-<Files \".env\">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-<Files \".env.*\">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-<Files \"composer.json\">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-<Files \"composer.lock\">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-<Files \"package.json\">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-<Files \"package-lock.json\">
-    Order Allow,Deny
-    Deny from all
-</Files>";
+# Protect sensitive files (Apache 2.4+)
+<IfModule mod_authz_core.c>
+    <FilesMatch "^(\\.env|composer\\.(json|lock)|package(-lock)?\\.json)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+# Protect sensitive files (Apache 2.2)
+<IfModule !mod_authz_core.c>
+    <FilesMatch "^(\\.env|composer\\.(json|lock)|package(-lock)?\\.json)$">
+        Order Allow,Deny
+        Deny from all
+    </FilesMatch>
+</IfModule>';
     
     // Add protection to existing root .htaccess
     if (file_exists($rootHtaccess)) {
@@ -355,54 +339,96 @@ ROBOTS;
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if ($step === 'database') {
+    // C1: CSRF validation on every POST
+    $postedCsrf = $_POST['_csrf'] ?? '';
+    if (!is_string($postedCsrf) || !hash_equals($csrfToken, $postedCsrf)) {
+        $errors['csrf'] = 'Invalid or missing CSRF token. Please reload the page.';
+    }
+
+    if (empty($errors) && $step === 'database') {
+        // C2: Validate db_type against allowlist
+        $dbType = $_POST['db_type'] ?? 'sqlite';
+        if (!in_array($dbType, ['sqlite', 'mysql'], true)) {
+            $dbType = 'sqlite';
+        }
+
         $dbConfig = [
-            'type' => $_POST['db_type'] ?? 'sqlite',
+            'type' => $dbType,
             'host' => trim($_POST['db_host'] ?? '127.0.0.1'),
             'port' => (int)($_POST['db_port'] ?? 3306),
-            'database' => ($_POST['db_type'] ?? 'sqlite') === 'sqlite' ? 'database.sqlite' : (trim($_POST['db_database'] ?? 'cimaise')),
+            'database' => $dbType === 'sqlite' ? 'database.sqlite' : (trim($_POST['db_database'] ?? 'cimaise')),
             'username' => trim($_POST['db_username'] ?? ''),
             'password' => $_POST['db_password'] ?? ''
         ];
-        
+
         // Validate
         if ($dbConfig['type'] === 'mysql') {
             if (empty($dbConfig['host'])) $errors['db_host'] = 'Host is required for MySQL';
             if (empty($dbConfig['database'])) $errors['db_database'] = 'Database name is required';
             if (empty($dbConfig['username'])) $errors['db_username'] = 'Username is required for MySQL';
+
+            // C2: SSRF prevention — validate MySQL host
+            if (!empty($dbConfig['host'])) {
+                $host = $dbConfig['host'];
+                // Block cloud metadata endpoints and link-local addresses
+                $blockedPatterns = ['169.254.169.254', 'metadata.google', 'metadata.azure', '100.100.100.200'];
+                foreach ($blockedPatterns as $blocked) {
+                    if (stripos($host, $blocked) !== false) {
+                        $errors['db_host'] = 'This host address is not allowed.';
+                        break;
+                    }
+                }
+                // Validate as IP or hostname
+                if (empty($errors)) {
+                    $isValidIp = filter_var($host, FILTER_VALIDATE_IP);
+                    $isValidHostname = preg_match('/^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$/', $host);
+                    if (!$isValidIp && !$isValidHostname) {
+                        $errors['db_host'] = 'Invalid host address.';
+                    }
+                }
+            }
+
+            // Validate port range
+            if ($dbConfig['port'] < 1 || $dbConfig['port'] > 65535) {
+                $errors['db_port'] = 'Port must be between 1 and 65535.';
+            }
         }
         // SQLite validation removed - we use fixed database name
-        
+
         // Test connection
         if (empty($errors)) {
             $testResult = testDatabaseConnection($dbConfig);
             if (!$testResult['success']) {
-                $errors['connection'] = 'Database connection failed: ' . $testResult['error'];
+                $errors['connection'] = 'Database connection failed. Please check your credentials and try again.';
+                error_log('Installer DB connection error: ' . $testResult['error']);
             } else {
                 $_SESSION['db_config'] = $dbConfig;
                 header('Location: installer.php?step=admin');
                 exit;
             }
         }
-        
+
         $_SESSION['db_errors'] = $errors;
         $_SESSION['db_form_data'] = $dbConfig;
     }
     
-    if ($step === 'admin') {
+    if (empty($errors) && $step === 'admin') {
+        $adminPassword = $_POST['admin_password'] ?? '';
+        $adminPasswordConfirm = $_POST['admin_password_confirm'] ?? '';
         $adminData = [
             'name' => trim($_POST['admin_name'] ?? ''),
             'email' => trim($_POST['admin_email'] ?? ''),
-            'password' => $_POST['admin_password'] ?? '',
-            'password_confirm' => $_POST['admin_password_confirm'] ?? '',
         ];
-        
+
         if (empty($adminData['name'])) $errors['admin_name'] = 'Full name is required';
         if (empty($adminData['email']) || !filter_var($adminData['email'], FILTER_VALIDATE_EMAIL)) $errors['admin_email'] = 'Valid email is required';
-        if (strlen($adminData['password']) < 8) $errors['admin_password'] = 'Password must be at least 8 characters';
-        if ($adminData['password'] !== $adminData['password_confirm']) $errors['admin_password'] = 'Passwords do not match';
-        
+        if (strlen($adminPassword) < 8) $errors['admin_password'] = 'Password must be at least 8 characters';
+        if ($adminPassword !== $adminPasswordConfirm) $errors['admin_password'] = 'Passwords do not match';
+
         if (empty($errors)) {
+            // H4: Hash password immediately, never store plaintext in session
+            $adminData['password_hash'] = password_hash($adminPassword, PASSWORD_ARGON2ID);
+            unset($adminPassword, $adminPasswordConfirm);
             $_SESSION['admin_data'] = $adminData;
             header('Location: installer.php?step=settings');
             exit;
@@ -411,7 +437,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['admin_form_data'] = $adminData;
     }
     
-    if ($step === 'settings') {
+    if (empty($errors) && $step === 'settings') {
         $settingsData = [
             'site_title' => trim($_POST['site_title'] ?? 'My Photography'),
             'site_description' => trim($_POST['site_description'] ?? 'A beautiful photography portfolio'),
@@ -441,27 +467,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $settingsData['site_logo'] = null;
         $settingsData['site_logo_type'] = 'text';
         if (!empty($_FILES['site_logo']['tmp_name']) && $_FILES['site_logo']['error'] === UPLOAD_ERR_OK) {
-            $allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
-            $finfo = new finfo(FILEINFO_MIME_TYPE);
-            $mimeType = $finfo->file($_FILES['site_logo']['tmp_name']);
-            if (in_array($mimeType, $allowedTypes, true)) {
-                $ext = match($mimeType) {
-                    'image/png' => 'png',
-                    'image/jpeg' => 'jpg',
-                    'image/webp' => 'webp',
-                    default => 'png',
-                };
-                $logoFilename = 'logo_' . time() . '.' . $ext;
-                $logoDir = $rootPath . '/public/media';
-                if (!is_dir($logoDir)) {
-                    mkdir($logoDir, 0755, true);
-                }
-                if (move_uploaded_file($_FILES['site_logo']['tmp_name'], $logoDir . '/' . $logoFilename)) {
-                    $settingsData['site_logo'] = '/media/' . $logoFilename;
-                    $settingsData['site_logo_type'] = 'image';
-                }
+            // M13: File size limit (2 MB)
+            if ($_FILES['site_logo']['size'] > 2 * 1024 * 1024) {
+                $errors['site_logo'] = 'Logo file must be under 2 MB.';
             } else {
-                $errors['site_logo'] = 'Invalid image format. Please use PNG, JPEG, or WebP.';
+                $allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+                $finfo = new finfo(FILEINFO_MIME_TYPE);
+                $mimeType = $finfo->file($_FILES['site_logo']['tmp_name']);
+                if (in_array($mimeType, $allowedTypes, true)) {
+                    // H3: Re-encode via GD to strip embedded payloads + random filename
+                    $srcImage = match($mimeType) {
+                        'image/png' => @imagecreatefrompng($_FILES['site_logo']['tmp_name']),
+                        'image/jpeg' => @imagecreatefromjpeg($_FILES['site_logo']['tmp_name']),
+                        'image/webp' => @imagecreatefromwebp($_FILES['site_logo']['tmp_name']),
+                        default => false,
+                    };
+                    if ($srcImage) {
+                        $logoFilename = 'logo_' . bin2hex(random_bytes(8)) . '.png';
+                        $logoDir = $rootPath . '/public/media';
+                        if (!is_dir($logoDir)) {
+                            mkdir($logoDir, 0755, true);
+                        }
+                        if (imagepng($srcImage, $logoDir . '/' . $logoFilename)) {
+                            $settingsData['site_logo'] = '/media/' . $logoFilename;
+                            $settingsData['site_logo_type'] = 'image';
+                        }
+                        imagedestroy($srcImage);
+                    } else {
+                        $errors['site_logo'] = 'Could not process image file.';
+                    }
+                } else {
+                    $errors['site_logo'] = 'Invalid image format. Please use PNG, JPEG, or WebP.';
+                }
             }
         }
 
@@ -479,7 +516,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['settings_form_data'] = $settingsData;
     }
     
-    if ($step === 'install') {
+    if (empty($errors) && $step === 'install') {
         try {
             $dbConfig = $_SESSION['db_config'] ?? [];
             $adminData = $_SESSION['admin_data'] ?? [];
@@ -515,6 +552,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!file_put_contents($envPath, $envContent)) {
                 throw new Exception('Could not create .env file. Check file permissions.');
             }
+            // H5: Restrict .env file permissions
+            @chmod($envPath, 0600);
             
             // Set up database
             if ($dbConfig['type'] === 'sqlite') {
@@ -636,16 +675,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             
-            // Create admin user
+            // Create admin user (H4: password already hashed in session)
             $nameParts = explode(' ', $adminData['name'], 2);
             $firstName = $nameParts[0];
             $lastName = $nameParts[1] ?? '';
-            
-            $hashedPassword = password_hash($adminData['password'], PASSWORD_ARGON2ID);
+
             $stmt = $pdo->prepare('INSERT INTO users (email, password_hash, role, is_active, first_name, last_name, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)');
             $stmt->execute([
                 $adminData['email'],
-                $hashedPassword,
+                $adminData['password_hash'],
                 'admin',
                 1,
                 $firstName,
@@ -1104,6 +1142,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                         <?php endif; ?>
                         
                         <form method="post" action="installer.php?step=database">
+                            <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrfToken) ?>">
                             <div class="mb-6">
                                 <label class="block text-sm font-medium text-gray-700 mb-3">Database Type</label>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1204,6 +1243,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                         <p class="text-gray-600 mb-8">Create your first admin user account to manage Cimaise.</p>
                         
                         <form method="post" action="installer.php?step=admin">
+                            <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrfToken) ?>">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
@@ -1268,6 +1308,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                         <p class="text-gray-600 mb-8">Configure your site's information and preferences.</p>
 
                         <form method="post" action="installer.php?step=settings" enctype="multipart/form-data">
+                            <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrfToken) ?>">
                             <!-- Site Identity -->
                             <h3 class="text-lg font-medium text-gray-900 mb-4"><i class="fas fa-globe mr-2"></i>Site Identity</h3>
 
@@ -1501,6 +1542,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                             </div>
                             
                             <form method="post" action="installer.php?step=install">
+                                <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrfToken) ?>">
                                 <div class="flex justify-between">
                                     <a href="installer.php?step=settings" class="btn-secondary px-6 py-3 rounded-lg font-medium inline-flex items-center">
                                         <i class="fas fa-arrow-left mr-2"></i>Back

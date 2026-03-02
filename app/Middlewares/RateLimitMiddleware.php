@@ -292,15 +292,18 @@ class RateLimitMiddleware implements MiddlewareInterface
             }
         }
 
+        // M9: For downloads, only count failed attempts (4xx status), not every request
+        $isDownloadFailure = $isDownloadEndpoint && $statusCode >= 400 && $statusCode < 500;
+
         // Only write to filesystem when there's an actual change to avoid unnecessary I/O
         // Old attempts are pruned via maybeCleanup() probabilistically
-        if ($isFailedAttempt || $isSuccessfulAuth || $isDownloadEndpoint) {
-            $this->updateAttemptsAtomic($key, function (array $currentAttempts) use ($now, $isSuccessfulAuth, $isDownloadEndpoint): array {
-                if ($isSuccessfulAuth && !$isDownloadEndpoint) {
+        if ($isFailedAttempt || $isSuccessfulAuth || $isDownloadFailure) {
+            $this->updateAttemptsAtomic($key, function (array $currentAttempts) use ($now, $isSuccessfulAuth): array {
+                if ($isSuccessfulAuth) {
                     return [];
                 }
 
-                // Failed attempt or download request - purge old and add new
+                // Failed attempt - purge old and add new
                 $filtered = array_filter($currentAttempts, fn($ts) => $now - (int)$ts < $this->windowSec);
                 $filtered[] = $now;
 

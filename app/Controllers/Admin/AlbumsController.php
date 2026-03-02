@@ -310,6 +310,8 @@ class AlbumsController extends BaseController
             $checkStmt->execute([':s' => $slug]);
         }
 
+        // H7: Wrap album creation + pivot inserts in transaction
+        $pdo->beginTransaction();
         // Try with template_id/custom_template_id, custom equipment fields, and SEO fields
         try {
             $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, body, shoot_date, show_date, is_published, published_at, sort_order, template_id, custom_template_id, album_page_template, custom_cameras, custom_lenses, custom_films, custom_developers, custom_labs, allow_downloads, is_nsfw, allow_template_switch, password_hash, seo_title, seo_description, seo_keywords, og_title, og_description, og_image_path, schema_type, schema_data, canonical_url, robots_index, robots_follow) VALUES(:t,:s,:c,:e,:b,:sd,:sh,:p,:pa,:o,:ti,:cti,:apt,:cc,:cl,:cf,:cd,:clab,:dl,:nsfw,:ats,:ph,:seo_title,:seo_desc,:seo_kw,:og_title,:og_desc,:og_img,:schema_type,:schema_data,:canonical_url,:robots_index,:robots_follow)');
@@ -419,6 +421,8 @@ class AlbumsController extends BaseController
                 }
             }
 
+            $pdo->commit();
+
             // Invalidate page caches
             $this->invalidatePageCaches($slug, null, $albumId);
 
@@ -432,6 +436,7 @@ class AlbumsController extends BaseController
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_created')];
             return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
         } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
             $accept = $request->getHeaderLine('Accept');
             if (str_contains($accept, 'application/json')) {
                 $response->getBody()->write(json_encode(['ok'=>false,'error'=>$e->getMessage()]));
@@ -750,6 +755,8 @@ class AlbumsController extends BaseController
             $checkStmt->execute([':s' => $slug, ':id' => $id]);
         }
 
+        // H7: Wrap album update + pivot sync in transaction
+        $pdo->beginTransaction();
         // Try with template_id/custom_template_id, custom equipment fields, and SEO fields
         try {
             $stmt = $pdo->prepare('UPDATE albums SET title=:t, slug=:s, category_id=:c, excerpt=:e, body=:b, shoot_date=:sd, show_date=:sh, is_published=:p, published_at=:pa, sort_order=:o, template_id=:ti, custom_template_id=:cti, album_page_template=:apt, allow_template_switch=:ats, custom_cameras=:cc, custom_lenses=:cl, custom_films=:cf, custom_developers=:cd, custom_labs=:clab, seo_title=:seo_title, seo_description=:seo_desc, seo_keywords=:seo_kw, og_title=:og_title, og_description=:og_desc, og_image_path=:og_img, schema_type=:schema_type, schema_data=:schema_data, canonical_url=:canonical_url, robots_index=:robots_index, robots_follow=:robots_follow WHERE id=:id');
@@ -906,6 +913,8 @@ class AlbumsController extends BaseController
                 }
             }
 
+            $pdo->commit();
+
             // Handle blur variant generation when protection status changes (NSFW or password)
             // Logic: clearPassword takes precedence - if set, password is cleared regardless of passwordRaw
             $newHasPassword = !$clearPassword && ($passwordRaw !== '' || $oldHasPassword);
@@ -937,6 +946,7 @@ class AlbumsController extends BaseController
 
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_updated')];
         } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
         }
         return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
@@ -967,11 +977,17 @@ class AlbumsController extends BaseController
         $stmt->execute([$id]);
         $images = $stmt->fetchAll();
 
+        $imageIds = [];
         foreach ($images as $img) {
             $files[] = $img['original_path'];
-            // Get variant paths for this image
-            $vstmt = $pdo->prepare('SELECT path FROM image_variants WHERE image_id = ?');
-            $vstmt->execute([(int)$img['id']]);
+            $imageIds[] = (int)$img['id'];
+        }
+
+        // H6: Batch variant query instead of N+1
+        if (!empty($imageIds)) {
+            $placeholders = implode(',', array_fill(0, count($imageIds), '?'));
+            $vstmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id IN ({$placeholders})");
+            $vstmt->execute($imageIds);
             foreach ($vstmt->fetchAll() as $v) {
                 $files[] = $v['path'];
             }
