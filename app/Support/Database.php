@@ -264,6 +264,9 @@ class Database
     // Helper for cross-database ORDER BY with NULL handling
     public function orderByNullsLast(string $column): string
     {
+        if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_.]*$/', $column)) {
+            throw new \InvalidArgumentException('Invalid column name');
+        }
         if ($this->isSqlite) {
             return "CASE WHEN {$column} IS NULL THEN 1 ELSE 0 END, {$column}";
         } else {
@@ -311,6 +314,9 @@ class Database
     // Helper for portable year extraction from date column
     public function yearExpression(string $column): string
     {
+        if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_.]*$/', $column)) {
+            throw new \InvalidArgumentException('Invalid column name');
+        }
         return $this->isSqlite ? "strftime('%Y', {$column})" : "YEAR({$column})";
     }
 

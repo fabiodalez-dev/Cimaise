@@ -57,7 +57,7 @@ class RateLimitMiddleware implements MiddlewareInterface
             }
 
             // Check if remote address is in trusted proxies list
-            if (\in_array($remoteAddr, $trustedList, true) || $isWildcard && $allowWildcard) {
+            if (\in_array($remoteAddr, $trustedList, true) || ($isWildcard && $allowWildcard)) {
                 // Check X-Forwarded-For header
                 $forwardedFor = $request->getHeaderLine('X-Forwarded-For');
                 if ($forwardedFor !== '') {

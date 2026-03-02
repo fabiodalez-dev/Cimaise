@@ -219,7 +219,11 @@ class CacheMiddleware implements MiddlewareInterface
                     ->withBody($emptyBody)
                     ->withHeader('ETag', $etag)
                     ->withHeader('Cache-Control', "{$visibility}, max-age={$maxAge}, must-revalidate, stale-while-revalidate=60");
-                return $this->addVaryHeader($notModifiedResponse, 'Accept-Encoding');
+                $vary304 = 'Accept-Encoding';
+                if ($isSessionDependent) {
+                    $vary304 .= ', Cookie';
+                }
+                return $this->addVaryHeader($notModifiedResponse, $vary304);
             }
         }
 

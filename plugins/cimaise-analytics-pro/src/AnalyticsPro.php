@@ -367,7 +367,6 @@ class AnalyticsPro
     {
         $stats = [];
         $fiveMinAgo = $this->db->dateSubExpression('minutes', 5);
-        $curDate = $this->db->currentDateExpression();
 
         try {
             // Active users (last 5 minutes)

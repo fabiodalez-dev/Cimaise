@@ -371,7 +371,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!empty($dbConfig['host'])) {
                 $host = $dbConfig['host'];
                 // Block cloud metadata endpoints and link-local addresses
-                $blockedPatterns = ['169.254.169.254', 'metadata.google', 'metadata.azure', '100.100.100.200'];
+                $blockedPatterns = ['169.254.169.254', 'metadata.google', 'metadata.azure', '100.100.100.200',
+                    'fd00:ec2::254', '::ffff:169.254.169.254', 'fe80::'];
                 foreach ($blockedPatterns as $blocked) {
                     if (stripos($host, $blocked) !== false) {
                         $errors['db_host'] = 'This host address is not allowed.';
@@ -384,6 +385,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $isValidHostname = preg_match('/^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$/', $host);
                     if (!$isValidIp && !$isValidHostname) {
                         $errors['db_host'] = 'Invalid host address.';
+                    }
+                }
+                // Block private/reserved IPs (SSRF defense-in-depth)
+                if (empty($errors) && $isValidIp) {
+                    if (!filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                        $errors['db_host'] = 'Private or reserved IP addresses are not allowed.';
+                    }
+                }
+                // DNS resolution check for hostnames
+                if (empty($errors) && !$isValidIp && $isValidHostname) {
+                    $resolvedIp = gethostbyname($host);
+                    if ($resolvedIp !== $host && !filter_var($resolvedIp, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                        $errors['db_host'] = 'This host resolves to a restricted IP address.';
                     }
                 }
             }

@@ -451,28 +451,28 @@ return function (App $app, array $container) {
         return $controller->generateFavicons($request, $response);
     })->add(new RateLimitMiddleware(5, 600))
         ->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
-            return $handler->handle($request); });
+        $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
 
     $app->post('/admin/settings/favicon-source-upload', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Admin\SettingsController($container['db'], Twig::fromRequest($request));
         return $controller->uploadFaviconSource($request, $response);
     })->add(new RateLimitMiddleware(10, 60))
         ->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
-            return $handler->handle($request); });
+        $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
 
     $app->post('/admin/settings/generate-favicons-from-source', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Admin\SettingsController($container['db'], Twig::fromRequest($request));
         return $controller->generateFaviconsFromSource($request, $response);
     })->add(new RateLimitMiddleware(5, 600))
         ->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
-            return $handler->handle($request); });
+        $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
 
     $app->post('/admin/settings/update-lensfun', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Admin\SettingsController($container['db'], Twig::fromRequest($request));
         return $controller->updateLensfun($request, $response);
     })->add(new RateLimitMiddleware(2, 600))
         ->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
-            return $handler->handle($request); });
+        $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
 
     // Lensfun API - Camera/Lens search for EXIF autocomplete
     $app->get('/admin/api/lensfun/makers', function (Request $request, Response $response) {
@@ -608,7 +608,7 @@ return function (App $app, array $container) {
         return $controller->preview($request, $response);
     })->add(new RateLimitMiddleware(30, 60)) // 30 preview requests per minute
         ->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
-            return $handler->handle($request); });
+        $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
     $app->get('/admin/typography/font/{slug}', function (Request $request, Response $response, array $args) use ($container) {
         $controller = new \App\Controllers\Admin\TypographyController($container['db'], Twig::fromRequest($request));
         return $controller->fontInfo($request, $response, $args);
@@ -891,50 +891,50 @@ return function (App $app, array $container) {
             $controller = new \CustomTemplatesPro\Controllers\CustomTemplatesController($container['db'], Twig::fromRequest($request));
             return $controller->dashboard($request, $response);
         })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
-            return $handler->handle($request); });
+            $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
 
         $app->get('/admin/custom-templates/list', function (Request $request, Response $response) use ($container) {
             $controller = new \CustomTemplatesPro\Controllers\CustomTemplatesController($container['db'], Twig::fromRequest($request));
             return $controller->list($request, $response);
         })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
-            return $handler->handle($request); });
+            $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
 
         $app->get('/admin/custom-templates/upload', function (Request $request, Response $response) use ($container) {
             $controller = new \CustomTemplatesPro\Controllers\CustomTemplatesController($container['db'], Twig::fromRequest($request));
             return $controller->uploadForm($request, $response);
         })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
-            return $handler->handle($request); });
+            $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
 
         $app->post('/admin/custom-templates/upload', function (Request $request, Response $response) use ($container) {
             $controller = new \CustomTemplatesPro\Controllers\CustomTemplatesController($container['db'], Twig::fromRequest($request));
             return $controller->upload($request, $response);
         })->add(new RateLimitMiddleware(10, 600)) // 10 uploads per 10 minutes
             ->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
-                return $handler->handle($request); });
+                $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
 
         $app->post('/admin/custom-templates/{id}/toggle', function (Request $request, Response $response, array $args) use ($container) {
             $controller = new \CustomTemplatesPro\Controllers\CustomTemplatesController($container['db'], Twig::fromRequest($request));
             return $controller->toggle($request, $response, $args);
         })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
-            return $handler->handle($request); });
+            $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
 
         $app->post('/admin/custom-templates/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
             $controller = new \CustomTemplatesPro\Controllers\CustomTemplatesController($container['db'], Twig::fromRequest($request));
             return $controller->delete($request, $response, $args);
         })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
-            return $handler->handle($request); });
+            $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
 
         $app->get('/admin/custom-templates/guides', function (Request $request, Response $response) use ($container) {
             $controller = new \CustomTemplatesPro\Controllers\CustomTemplatesController($container['db'], Twig::fromRequest($request));
             return $controller->guides($request, $response);
         })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
-            return $handler->handle($request); });
+            $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
 
         $app->get('/admin/custom-templates/guides/{type}/download', function (Request $request, Response $response, array $args) use ($container) {
             $controller = new \CustomTemplatesPro\Controllers\CustomTemplatesController($container['db'], Twig::fromRequest($request));
             return $controller->downloadGuide($request, $response, $args);
         })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
-            return $handler->handle($request); });
+            $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
     }
 
     // Albums CRUD
@@ -1450,14 +1450,14 @@ return function (App $app, array $container) {
         return $controller->performUpdate($request, $response);
     })->add(new RateLimitMiddleware(3, 600)) // 3 attempts per 10 minutes (sensitive operation)
         ->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
-            return $handler->handle($request); });
+            $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
 
     $app->post('/admin/updates/backup', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
         return $controller->createBackup($request, $response);
     })->add(new RateLimitMiddleware(5, 600)) // 5 attempts per 10 minutes (resource-intensive operation)
         ->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
-            return $handler->handle($request); });
+            $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
 
     $app->get('/admin/updates/backup/download', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
