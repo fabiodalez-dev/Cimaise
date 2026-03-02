@@ -101,6 +101,7 @@ class AnalyticsPro
                 $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_created_at ON analytics_pro_events(created_at)");
                 $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_user_id ON analytics_pro_events(user_id)");
                 $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_session_id ON analytics_pro_events(session_id)");
+                $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_events_cat_created ON analytics_pro_events(category, created_at)");
                 $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_sessions_user_id ON analytics_pro_sessions(user_id)");
                 $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_sessions_started_at ON analytics_pro_sessions(started_at)");
                 $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_dimensions_event_id ON analytics_pro_dimensions(event_id)");
@@ -155,6 +156,7 @@ class AnalyticsPro
                         KEY idx_analytics_pro_created_at (created_at),
                         KEY idx_analytics_pro_user_id (user_id),
                         KEY idx_analytics_pro_session_id (session_id),
+                        KEY idx_analytics_pro_events_cat_created (category, created_at),
                         CONSTRAINT fk_analytics_pro_events_user
                             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
                         CONSTRAINT fk_analytics_pro_events_session

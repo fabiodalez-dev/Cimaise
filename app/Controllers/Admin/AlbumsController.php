@@ -300,6 +300,9 @@ class AlbumsController extends BaseController
         $published_at = $is_published ? date('Y-m-d H:i:s') : null;
         $pdo = $this->db->pdo();
 
+        // H7: Wrap slug check + album creation + pivot inserts in transaction
+        $pdo->beginTransaction();
+
         // Ensure unique slug by appending numeric suffix if needed
         $baseSlug = $slug;
         $counter = 2;
@@ -310,8 +313,6 @@ class AlbumsController extends BaseController
             $checkStmt->execute([':s' => $slug]);
         }
 
-        // H7: Wrap album creation + pivot inserts in transaction
-        $pdo->beginTransaction();
         // Try with template_id/custom_template_id, custom equipment fields, and SEO fields
         try {
             $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, body, shoot_date, show_date, is_published, published_at, sort_order, template_id, custom_template_id, album_page_template, custom_cameras, custom_lenses, custom_films, custom_developers, custom_labs, allow_downloads, is_nsfw, allow_template_switch, password_hash, seo_title, seo_description, seo_keywords, og_title, og_description, og_image_path, schema_type, schema_data, canonical_url, robots_index, robots_follow) VALUES(:t,:s,:c,:e,:b,:sd,:sh,:p,:pa,:o,:ti,:cti,:apt,:cc,:cl,:cf,:cd,:clab,:dl,:nsfw,:ats,:ph,:seo_title,:seo_desc,:seo_kw,:og_title,:og_desc,:og_img,:schema_type,:schema_data,:canonical_url,:robots_index,:robots_follow)');
@@ -674,8 +675,11 @@ class AlbumsController extends BaseController
             return $response->withHeader('Location', $this->redirect('/admin/albums/'.$id.'/edit'))->withStatus(302);
         }
 
-        // Get old album data to detect protection status changes (NSFW or password) and slug changes
+        // H7: Wrap old album read + slug check + update + pivot sync in transaction
         $pdo = $this->db->pdo();
+        $pdo->beginTransaction();
+
+        // Get old album data to detect protection status changes (NSFW or password) and slug changes
         $oldAlbum = $pdo->prepare('SELECT slug, is_nsfw, password_hash FROM albums WHERE id = ?');
         $oldAlbum->execute([$id]);
         $oldAlbumData = $oldAlbum->fetch(\PDO::FETCH_ASSOC) ?: [];
@@ -738,12 +742,12 @@ class AlbumsController extends BaseController
         }
         
         if ($title === '' || $category_id <= 0) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.title_category_required')];
             return $response->withHeader('Location', $this->redirect('/admin/albums/'.$id.'/edit'))->withStatus(302);
         }
         $slug = $slug !== '' ? \App\Support\Str::slug($slug) : \App\Support\Str::slug($title);
         $published_at = $is_published ? (date('Y-m-d H:i:s')) : null;
-        $pdo = $this->db->pdo();
 
         // Ensure unique slug by appending numeric suffix if needed (exclude current album)
         $baseSlug = $slug;
@@ -755,8 +759,6 @@ class AlbumsController extends BaseController
             $checkStmt->execute([':s' => $slug, ':id' => $id]);
         }
 
-        // H7: Wrap album update + pivot sync in transaction
-        $pdo->beginTransaction();
         // Try with template_id/custom_template_id, custom equipment fields, and SEO fields
         try {
             $stmt = $pdo->prepare('UPDATE albums SET title=:t, slug=:s, category_id=:c, excerpt=:e, body=:b, shoot_date=:sd, show_date=:sh, is_published=:p, published_at=:pa, sort_order=:o, template_id=:ti, custom_template_id=:cti, album_page_template=:apt, allow_template_switch=:ats, custom_cameras=:cc, custom_lenses=:cl, custom_films=:cf, custom_developers=:cd, custom_labs=:clab, seo_title=:seo_title, seo_description=:seo_desc, seo_keywords=:seo_kw, og_title=:og_title, og_description=:og_desc, og_image_path=:og_img, schema_type=:schema_type, schema_data=:schema_data, canonical_url=:canonical_url, robots_index=:robots_index, robots_follow=:robots_follow WHERE id=:id');

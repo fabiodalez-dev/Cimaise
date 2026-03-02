@@ -98,3 +98,17 @@ AddDefaultCharset UTF-8
         Deny from all
     </IfModule>
 </FilesMatch>
+
+# Protect sensitive files (Apache 2.4+)
+<IfModule mod_authz_core.c>
+    <FilesMatch "^(\.env|composer\.(json|lock)|package(-lock)?\.json)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+# Protect sensitive files (Apache 2.2)
+<IfModule !mod_authz_core.c>
+    <FilesMatch "^(\.env|composer\.(json|lock)|package(-lock)?\.json)$">
+        Order Allow,Deny
+        Deny from all
+    </FilesMatch>
+</IfModule>

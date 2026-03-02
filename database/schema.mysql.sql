@@ -620,6 +620,7 @@ CREATE TABLE IF NOT EXISTS `analytics_pageviews` (
   KEY `idx_analytics_pageviews_viewed_at` (`viewed_at`),
   KEY `idx_analytics_pageviews_page_type` (`page_type`),
   KEY `idx_analytics_pageviews_album_id` (`album_id`),
+  KEY `idx_analytics_pageviews_type_viewed` (`page_type`, `viewed_at`),
   CONSTRAINT `fk_analytics_pageviews_session` FOREIGN KEY (`session_id`) REFERENCES `analytics_sessions`(`session_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -640,6 +641,7 @@ CREATE TABLE IF NOT EXISTS `analytics_events` (
   KEY `idx_analytics_events_type` (`event_type`),
   KEY `idx_analytics_events_occurred_at` (`occurred_at`),
   KEY `idx_analytics_events_album_id` (`album_id`),
+  KEY `idx_analytics_events_type_occurred` (`event_type`, `occurred_at`),
   CONSTRAINT `fk_analytics_events_session` FOREIGN KEY (`session_id`) REFERENCES `analytics_sessions`(`session_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

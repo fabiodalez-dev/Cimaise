@@ -394,22 +394,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $errors['db_host'] = 'Invalid host address.';
                     }
                 }
-                // Block private/reserved IPs (SSRF defense-in-depth)
+                // Note: private/reserved IPs are legitimate for database hosts
+                // (127.0.0.1, 10.x, 192.168.x, etc. are standard DB setups).
+                // Cloud metadata endpoints are already blocked above.
                 $isValidIp = $isValidIp ?? false;
                 $isValidHostname = $isValidHostname ?? false;
-                if (empty($errors) && $isValidIp) {
-                    if (!filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-                        $errors['db_host'] = 'Private or reserved IP addresses are not allowed.';
-                    }
-                }
                 // DNS resolution check for hostnames — use resolved IP in DSN to prevent TOCTOU
                 if (empty($errors) && !$isValidIp && $isValidHostname) {
                     $resolvedIp = gethostbyname($host);
-                    if ($resolvedIp !== $host && !filter_var($resolvedIp, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-                        $errors['db_host'] = 'This host resolves to a restricted IP address.';
-                    } elseif ($resolvedIp !== $host) {
-                        // Store resolved IP to use in DSN (prevents DNS rebinding TOCTOU)
-                        $dbConfig['resolved_host'] = $resolvedIp;
+                    if ($resolvedIp !== $host) {
+                        // Block hostnames that resolve to cloud metadata endpoints
+                        foreach ($blockedPatterns as $blocked) {
+                            if (stripos($resolvedIp, $blocked) !== false) {
+                                $errors['db_host'] = 'This host resolves to a restricted IP address.';
+                                break;
+                            }
+                        }
+                        if (empty($errors)) {
+                            // Store resolved IP to use in DSN (prevents DNS rebinding TOCTOU)
+                            $dbConfig['resolved_host'] = $resolvedIp;
+                        }
                     }
                 }
             }
