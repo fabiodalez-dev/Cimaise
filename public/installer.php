@@ -7,6 +7,12 @@ declare(strict_types=1);
  * with the app's minimal black/white/silver design
  */
 
+ini_set('session.use_strict_mode', '1');
+ini_set('session.cookie_httponly', '1');
+ini_set('session.cookie_samesite', 'Lax');
+if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
+    ini_set('session.cookie_secure', '1');
+}
 session_start();
 error_reporting(E_ALL);
 ini_set('display_errors', '0');
@@ -162,7 +168,8 @@ function testDatabaseConnection($config) {
                 throw new InvalidArgumentException('Invalid MySQL database name. Use only letters, numbers and underscores.');
             }
 
-            $dsn = "mysql:host={$config['host']};port={$config['port']};charset=utf8mb4";
+            $connectHost = $config['resolved_host'] ?? $config['host'];
+            $dsn = "mysql:host={$connectHost};port={$config['port']};charset=utf8mb4";
             $pdo = new PDO($dsn, $config['username'], $config['password']);
 
             // Try to create database if it doesn't exist
@@ -388,16 +395,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 // Block private/reserved IPs (SSRF defense-in-depth)
+                $isValidIp = $isValidIp ?? false;
+                $isValidHostname = $isValidHostname ?? false;
                 if (empty($errors) && $isValidIp) {
                     if (!filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
                         $errors['db_host'] = 'Private or reserved IP addresses are not allowed.';
                     }
                 }
-                // DNS resolution check for hostnames
+                // DNS resolution check for hostnames — use resolved IP in DSN to prevent TOCTOU
                 if (empty($errors) && !$isValidIp && $isValidHostname) {
                     $resolvedIp = gethostbyname($host);
                     if ($resolvedIp !== $host && !filter_var($resolvedIp, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
                         $errors['db_host'] = 'This host resolves to a restricted IP address.';
+                    } elseif ($resolvedIp !== $host) {
+                        // Store resolved IP to use in DSN (prevents DNS rebinding TOCTOU)
+                        $dbConfig['resolved_host'] = $resolvedIp;
                     }
                 }
             }
@@ -1124,7 +1136,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                         <div class="mt-8 pt-6 border-t border-gray-100">
                             <div class="text-center">
                                 <p class="text-sm text-gray-600 mb-4">
-                                    Detected Installation URL: <strong><?= getCurrentUrl() ?></strong>
+                                    Detected Installation URL: <strong><?= htmlspecialchars(getCurrentUrl()) ?></strong>
                                 </p>
                                 
                                 <?php if ($requirementsPassed): ?>
@@ -1524,7 +1536,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                                     <div class="bg-gray-50 p-4 rounded-lg">
                                         <div class="text-sm">
                                             <div><strong>Title:</strong> <?= htmlspecialchars($_SESSION['settings_data']['site_title'] ?? '') ?></div>
-                                            <div><strong>URL:</strong> <?= getCurrentUrl() ?></div>
+                                            <div><strong>URL:</strong> <?= htmlspecialchars(getCurrentUrl()) ?></div>
                                             <div><strong>Timezone:</strong> <?= htmlspecialchars($_SESSION['settings_data']['timezone'] ?? 'Europe/Rome') ?></div>
                                         </div>
                                     </div>
@@ -1602,11 +1614,11 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                         </div>
                         
                         <div class="space-y-4">
-                            <a href="<?= getCurrentUrl() ?>" class="btn-primary px-8 py-4 rounded-lg font-medium inline-flex items-center text-lg">
+                            <a href="<?= htmlspecialchars(getCurrentUrl()) ?>" class="btn-primary px-8 py-4 rounded-lg font-medium inline-flex items-center text-lg">
                                 <i class="fas fa-home mr-2"></i>Visit Your Site
                             </a>
                             <div>
-                                <a href="<?= getCurrentUrl() ?>/admin/login" class="btn-secondary px-6 py-3 rounded-lg font-medium inline-flex items-center">
+                                <a href="<?= htmlspecialchars(getCurrentUrl()) ?>/admin/login" class="btn-secondary px-6 py-3 rounded-lg font-medium inline-flex items-center">
                                     <i class="fas fa-sign-in-alt mr-2"></i>Admin Login
                                 </a>
                             </div>

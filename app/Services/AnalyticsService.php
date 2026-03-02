@@ -142,7 +142,8 @@ class AnalyticsService
             }
         }
         
-        return hash('sha256', $ip . 'cimaise_salt');
+        $salt = $_ENV['SESSION_SECRET'] ?? $_SERVER['SESSION_SECRET'] ?? 'cimaise_salt';
+        return hash('sha256', $ip . $salt);
     }
 
     /**

@@ -306,7 +306,7 @@ class Database
             'weeks', 'week' => 'WEEK',
             'months', 'month' => 'MONTH',
             'years', 'year' => 'YEAR',
-            default => strtoupper($interval),
+            default => throw new \InvalidArgumentException("Unsupported interval: {$interval}"),
         };
         return "DATE_SUB(NOW(), INTERVAL {$value} {$mysqlInterval})";
     }

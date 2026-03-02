@@ -22,6 +22,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         'Invalid credentials',       // English
         'Login failed',              // Generic English
         'Account disattivato',       // Italian - account disabled
+        'Account disabled',          // English - account disabled
     ];
 
     private string $storageDir;

@@ -108,7 +108,6 @@ class CommandsController extends BaseController
         $startTime = microtime(true);
         
         // Execute command
-        ob_start();
         $exitCode = 0;
         $output = [];
         
