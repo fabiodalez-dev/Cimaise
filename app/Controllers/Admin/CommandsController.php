@@ -80,8 +80,8 @@ class CommandsController extends BaseController
             throw new \RuntimeException("Console script not executable: $consolePath");
         }
 
-        // Build command
-        $cmd = "php $consolePath $command";
+        // Build command (M11: escape paths to prevent injection)
+        $cmd = "php " . escapeshellarg($consolePath) . " " . escapeshellarg($command);
         
         // Add arguments safely
         foreach ($args as $key => $value) {
@@ -108,7 +108,6 @@ class CommandsController extends BaseController
         $startTime = microtime(true);
         
         // Execute command
-        ob_start();
         $exitCode = 0;
         $output = [];
         

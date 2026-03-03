@@ -106,7 +106,7 @@ if (!$isInstallerRoute) {
             $scriptDir = dirname($scriptPath);
             $basePath = $scriptDir === '/' ? '' : $scriptDir;
             http_response_code(302);
-            header('Location: ' . $basePath . '/install');
+            header('Location: ' . $basePath . '/installer.php');
             exit;
         }
     }
@@ -132,6 +132,7 @@ ini_set('session.cookie_path', '/');
 if (CookieHelper::isHttps()) {
     ini_set('session.cookie_secure', '1');
 }
+session_cache_limiter('');
 session_start();
 
 // Calculate base path once for subdirectory installations
@@ -496,13 +497,11 @@ $twig->getEnvironment()->addExtension(new \App\Extensions\DateTwigExtension());
 $twig->getEnvironment()->addGlobal('is_admin', isset($_SESSION['admin_id']) && $_SESSION['admin_id'] > 0);
 
 // Compatibility shim: if a proxy rewrites POST -> GET on /admin/updates/perform, convert back to POST.
+// SECURITY: CSRF token must be explicitly provided in the request (no auto-injection).
 $app->add(function ($request, $handler) {
     $path = $request->getUri()->getPath();
     if ($request->getMethod() === 'GET' && $path === '/admin/updates/perform') {
         $params = $request->getQueryParams();
-        if (!isset($params['csrf']) && isset($_SESSION['csrf'])) {
-            $params['csrf'] = $_SESSION['csrf'];
-        }
 
         $body = http_build_query($params);
         $stream = fopen('php://temp', 'r+');
@@ -514,8 +513,14 @@ $app->add(function ($request, $handler) {
             ->withHeader('Content-Type', 'application/x-www-form-urlencoded')
             ->withBody(new Stream($stream));
 
+        $redactedParams = $params;
+        foreach (['_csrf', 'csrf_name', 'csrf_value', 'csrf_token', 'token', 'auth_token'] as $sensitiveKey) {
+            if (array_key_exists($sensitiveKey, $redactedParams)) {
+                $redactedParams[$sensitiveKey] = '[REDACTED]';
+            }
+        }
         Logger::warning('[RouteDebug] Rewriting GET->POST for updates/perform', [
-            'query_params' => $params
+            'query_params' => $redactedParams
         ], 'updater');
     }
     return $handler->handle($request);
@@ -527,10 +532,16 @@ $app->add(function ($request, $handler) {
     if (str_starts_with($path, '/admin/updates')) {
         $headers = $request->getHeaders();
         unset($headers['Cookie'], $headers['cookie']);
+        // Redact sensitive query params before logging
+        $rawQuery = $request->getUri()->getQuery();
+        parse_str($rawQuery, $qp);
+        foreach (['_csrf', 'csrf_name', 'csrf_value', 'csrf_token', 'token', 'auth_token'] as $sk) {
+            if (array_key_exists($sk, $qp)) { $qp[$sk] = '[REDACTED]'; }
+        }
         Logger::info('[RouteDebug] incoming', [
             'method' => $request->getMethod(),
             'path' => $path,
-            'query' => $request->getUri()->getQuery(),
+            'query' => http_build_query($qp),
             'content_type' => $request->getHeaderLine('Content-Type'),
             'accept' => $request->getHeaderLine('Accept'),
             'xhr' => $request->getHeaderLine('X-Requested-With'),

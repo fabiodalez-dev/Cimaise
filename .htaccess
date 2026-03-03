@@ -85,3 +85,30 @@ Options -Indexes
 
 # Set default charset
 AddDefaultCharset UTF-8
+
+
+# Protect sensitive manifest and config files (Apache 2.2/2.4 compatible)
+# Note: .env files already covered by the dotfiles rule above
+<FilesMatch "^(composer\.(json|lock)|package(-lock)?\.json)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Protect sensitive files (Apache 2.4+)
+<IfModule mod_authz_core.c>
+    <FilesMatch "^(\.env|composer\.(json|lock)|package(-lock)?\.json)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+# Protect sensitive files (Apache 2.2)
+<IfModule !mod_authz_core.c>
+    <FilesMatch "^(\.env|composer\.(json|lock)|package(-lock)?\.json)$">
+        Order Allow,Deny
+        Deny from all
+    </FilesMatch>
+</IfModule>

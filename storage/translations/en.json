@@ -5,6 +5,14 @@
     "type": "frontend",
     "version": "1.0.0"
   },
+  "_seeds": {
+    "home.hero_title": "Portfolio",
+    "home.hero_subtitle": "A collection of analog and digital photography exploring light, form, and the beauty of everyday moments.",
+    "home.albums_title": "Latest Albums",
+    "home.albums_subtitle": "Discover my recent photographic work, from analog experiments to digital explorations.",
+    "home.empty_title": "No albums yet",
+    "home.empty_text": "Check back soon for new work."
+  },
   "about": {
     "about.missing_bio": "Add your bio text from admin → Pages.",
     "about.portrait_alt": "Portrait"

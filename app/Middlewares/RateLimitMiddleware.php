@@ -57,7 +57,7 @@ class RateLimitMiddleware implements MiddlewareInterface
             }
 
             // Check if remote address is in trusted proxies list
-            if (\in_array($remoteAddr, $trustedList, true) || $isWildcard && $allowWildcard) {
+            if (\in_array($remoteAddr, $trustedList, true) || ($isWildcard && $allowWildcard)) {
                 // Check X-Forwarded-For header
                 $forwardedFor = $request->getHeaderLine('X-Forwarded-For');
                 if ($forwardedFor !== '') {
@@ -94,6 +94,9 @@ class RateLimitMiddleware implements MiddlewareInterface
         }
         if ($path === '/login' || $path === '/admin/login') {
             return 'login';
+        }
+        if (preg_match('#^/download/image/\d+$#', $path)) {
+            return 'download_image';
         }
         return 'generic';
     }
@@ -242,27 +245,31 @@ class RateLimitMiddleware implements MiddlewareInterface
         $isFailedAttempt = false;
         $isSuccessfulAuth = false;
         $statusCode = $response->getStatusCode();
+        $isDownloadEndpoint = $keyIdentifier === 'download_image';
 
         // For login pages: check response body for error message (supports multiple languages)
-        $body = (string)$response->getBody();
-        // Rewind stream so downstream can read body (if seekable)
-        if ($response->getBody()->isSeekable()) {
-            $response->getBody()->rewind();
-        } else {
-            // Recreate body for non-seekable streams
-            $stream = fopen('php://temp', 'r+');
-            fwrite($stream, $body);
-            rewind($stream);
-            $response = $response->withBody(new \Slim\Psr7\Stream($stream));
-        }
-        if ($statusCode === 200 && (
-            str_contains($body, 'Credenziali non valide') ||
-            str_contains($body, 'Invalid credentials') ||
-            str_contains($body, 'Login failed') ||
-            str_contains($body, 'Account disattivato') ||
-            str_contains($body, 'Account disabled')
-        )) {
-            $isFailedAttempt = true;
+        // Skip body reading for download endpoints to avoid buffering large files in memory
+        if (!$isDownloadEndpoint) {
+            $body = (string)$response->getBody();
+            // Rewind stream so downstream can read body (if seekable)
+            if ($response->getBody()->isSeekable()) {
+                $response->getBody()->rewind();
+            } else {
+                // Recreate body for non-seekable streams
+                $stream = fopen('php://temp', 'r+');
+                fwrite($stream, $body);
+                rewind($stream);
+                $response = $response->withBody(new \Slim\Psr7\Stream($stream));
+            }
+            if ($statusCode === 200 && (
+                str_contains($body, 'Credenziali non valide') ||
+                str_contains($body, 'Invalid credentials') ||
+                str_contains($body, 'Login failed') ||
+                str_contains($body, 'Account disattivato') ||
+                str_contains($body, 'Account disabled')
+            )) {
+                $isFailedAttempt = true;
+            }
         }
 
         // For album unlock: check for redirect with error parameter
@@ -285,15 +292,18 @@ class RateLimitMiddleware implements MiddlewareInterface
             }
         }
 
+        // M9: For downloads, only count failed attempts (4xx status), not every request
+        $isDownloadFailure = $isDownloadEndpoint && $statusCode >= 400 && $statusCode < 500;
+
         // Only write to filesystem when there's an actual change to avoid unnecessary I/O
         // Old attempts are pruned via maybeCleanup() probabilistically
-        if ($isFailedAttempt || $isSuccessfulAuth) {
+        if ($isFailedAttempt || $isSuccessfulAuth || $isDownloadFailure) {
             $this->updateAttemptsAtomic($key, function (array $currentAttempts) use ($now, $isSuccessfulAuth): array {
                 if ($isSuccessfulAuth) {
                     return [];
                 }
 
-                // If we're here, it's a failed attempt - purge old and add new
+                // Failed attempt - purge old and add new
                 $filtered = array_filter($currentAttempts, fn($ts) => $now - (int)$ts < $this->windowSec);
                 $filtered[] = $now;
 

@@ -22,6 +22,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         'Invalid credentials',       // English
         'Login failed',              // Generic English
         'Account disattivato',       // Italian - account disabled
+        'Account disabled',          // English - account disabled
     ];
 
     private string $storageDir;
@@ -81,28 +82,41 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
     private function getClientIp(Request $request): string
     {
         $serverParams = $request->getServerParams();
-        
-        // Check for forwarded IP (behind proxy/load balancer)
-        $forwardedIps = [
-            'HTTP_CF_CONNECTING_IP',     // Cloudflare
-            'HTTP_X_FORWARDED_FOR',      // Standard proxy header
-            'HTTP_X_FORWARDED',
-            'HTTP_X_CLUSTER_CLIENT_IP',
-            'HTTP_FORWARDED_FOR',
-            'HTTP_FORWARDED',
-            'REMOTE_ADDR'                // Direct connection
-        ];
-        
-        foreach ($forwardedIps as $header) {
-            if (!empty($serverParams[$header])) {
-                $ip = trim(explode(',', $serverParams[$header])[0]);
-                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-                    return $ip;
+        $remoteAddr = $serverParams['REMOTE_ADDR'] ?? 'unknown';
+
+        // H1: Only trust forwarded headers when TRUSTED_PROXIES is configured
+        $trustedProxies = getenv('TRUSTED_PROXIES') ?: '';
+        if ($trustedProxies !== '' && $remoteAddr !== 'unknown') {
+            $trustedList = array_map('trim', explode(',', $trustedProxies));
+            $trustedList = array_filter($trustedList, fn($ip) => $ip === '*' || filter_var($ip, FILTER_VALIDATE_IP) !== false);
+
+            $isWildcard = in_array('*', $trustedList, true);
+            $allowWildcard = getenv('APP_ENV') === 'development';
+
+            if ($isWildcard && !$allowWildcard) {
+                return $remoteAddr;
+            }
+
+            if (in_array($remoteAddr, $trustedList, true) || ($isWildcard && $allowWildcard)) {
+                // Check forwarded headers in priority order
+                $forwardedHeaders = [
+                    'HTTP_CF_CONNECTING_IP',
+                    'HTTP_X_FORWARDED_FOR',
+                    'HTTP_X_REAL_IP',
+                ];
+
+                foreach ($forwardedHeaders as $header) {
+                    if (!empty($serverParams[$header])) {
+                        $ip = trim(explode(',', $serverParams[$header])[0]);
+                        if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                            return $ip;
+                        }
+                    }
                 }
             }
         }
-        
-        return $serverParams['REMOTE_ADDR'] ?? 'unknown';
+
+        return $remoteAddr;
     }
 
     private function loadAttempts(string $filePath, int $currentTime): array

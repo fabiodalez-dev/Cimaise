@@ -5,6 +5,9 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Services\UploadService;
 use App\Services\ImagesService;
+use App\Services\CacheTags;
+use App\Services\PageCacheService;
+use App\Services\SettingsService;
 use App\Support\Database;
 use App\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -104,6 +107,29 @@ class UploadController extends BaseController
             $svc = new UploadService($this->db);
             $meta = $svc->ingestAlbumUpload($albumId, $fArr);
 
+            // Invalidate page caches — new image uploaded to album
+            try {
+                // Collect all categories from pivot table (multi-category support)
+                $pivotStmt = $this->db->pdo()->prepare('SELECT category_id FROM album_category WHERE album_id = ?');
+                $pivotStmt->execute([$albumId]);
+                $categoryIds = array_map('intval', $pivotStmt->fetchAll(\PDO::FETCH_COLUMN) ?: []);
+                if ($categoryIds === []) {
+                    $fallbackStmt = $this->db->pdo()->prepare('SELECT category_id FROM albums WHERE id = ?');
+                    $fallbackStmt->execute([$albumId]);
+                    $fbId = (int)($fallbackStmt->fetchColumn() ?: 0);
+                    if ($fbId > 0) { $categoryIds[] = $fbId; }
+                }
+                $tags = CacheTags::albumRelated($albumId);
+                foreach ($categoryIds as $cid) {
+                    if ($cid > 0) { $tags[] = CacheTags::category($cid); }
+                }
+                $settings = new SettingsService($this->db);
+                $pcs = new PageCacheService($settings, $this->db);
+                $pcs->invalidateByTags(array_unique($tags));
+            } catch (\Throwable $e) {
+                Logger::warning('UploadController: cache invalidation failed for album ' . $albumId . ': ' . $e->getMessage(), [], 'upload');
+            }
+
             // Also expose id at top-level for existing frontend logic
             $payload = [
                 'ok' => true,
@@ -181,7 +207,7 @@ class UploadController extends BaseController
                 $stream->rewind();
             }
             $contents = (string) $stream->getContents();
-            if ($contents === '' || strlen($contents) === 0) {
+            if ($contents === '') {
                 throw new \RuntimeException('Empty upload');
             }
             // Validate using finfo + whitelist
@@ -198,7 +224,7 @@ class UploadController extends BaseController
             if ($w <= 0 || $h <= 0 || $w > 10000 || $h > 10000)
                 throw new \RuntimeException('Invalid image dimensions');
 
-            $hash = sha1($contents) ?: bin2hex(random_bytes(20));
+            $hash = sha1($contents);
             $ext = $allowed[$mime];
             // Project root/public/media
             $destDir = dirname(__DIR__, 3) . '/public/media';

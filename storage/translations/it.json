@@ -5,6 +5,14 @@
     "type": "frontend",
     "version": "1.0.0"
   },
+  "_seeds": {
+    "home.hero_title": "Portfolio",
+    "home.hero_subtitle": "Una collezione di fotografia analogica e digitale che esplora luce, forma e la bellezza dei momenti quotidiani.",
+    "home.albums_title": "Ultimi Album",
+    "home.albums_subtitle": "Scopri i miei lavori fotografici più recenti, da esperimenti analogici a esplorazioni digitali.",
+    "home.empty_title": "Nessun album ancora",
+    "home.empty_text": "Torna presto per nuovi contenuti."
+  },
   "about": {
     "about.missing_bio": "Aggiungi il testo della tua bio da Admin → Pagine.",
     "about.portrait_alt": "Ritratto"

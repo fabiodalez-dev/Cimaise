@@ -2492,7 +2492,7 @@ class PageController extends BaseController
 
         $pdo = $this->db->pdo();
         $albumIds = array_column($albums, 'id');
-        $coverImageIds = array_filter(array_column($albums, 'cover_image_id'));
+        $coverImageIds = array_values(array_filter(array_column($albums, 'cover_image_id')));
 
         // Build placeholders
         $albumPlaceholders = implode(',', array_fill(0, count($albumIds), '?'));
@@ -2665,17 +2665,11 @@ class PageController extends BaseController
             $album['is_password_protected'] = !empty($album['password_hash']);
             unset($album['password_hash']);
 
-            // Skip password-protected albums entirely (only accessible via direct link)
-            if (!$isAdmin && !empty($album['is_password_protected'])) {
-                continue;
-            }
+            // Mark password-protected albums as locked (still show in listings with lock icon)
+            $album['is_locked'] = !$isAdmin && !empty($album['is_password_protected']) && !$this->hasAlbumPasswordAccess((int)$album['id']);
 
-            // Skip NSFW albums if user hasn't consented
-            if (!$isAdmin && !empty($album['is_nsfw']) && !$nsfwConsent) {
-                continue;
-            }
-
-            $album['is_locked'] = false; // Password-protected albums are now filtered out
+            // NSFW albums are shown with blurred cover + overlay (not hidden)
+            // The template handles blur via should_blur_cover and nsfw-overlay
             $album = $this->sanitizeAlbumCoverForNsfw($album, $isAdmin, $nsfwConsent);
             $album = $this->ensureAlbumCoverImage($album);
 
@@ -2767,8 +2761,8 @@ class PageController extends BaseController
         }
 
         // Exposure
-        if ($image['aperture']) {
-            $display['aperture'] = 'f/' . number_format($image['aperture'], 1);
+        if (!empty($image['aperture']) && is_numeric($image['aperture']) && (float)$image['aperture'] > 0.0) {
+            $display['aperture'] = 'f/' . number_format((float)$image['aperture'], 1);
         }
 
         if ($image['shutter_speed']) {

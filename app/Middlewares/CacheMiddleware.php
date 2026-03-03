@@ -35,19 +35,37 @@ class CacheMiddleware implements MiddlewareInterface
         $path = $request->getUri()->getPath();
         $method = $request->getMethod();
 
+        // Normalize path: strip basePath for subdirectory installations
+        // Boundary check: ensure basePath matches a full segment (e.g. /foo must not match /foobar)
+        $basePath = rtrim($this->settings->get('site.base_path', ''), '/');
+        if ($basePath !== '' && str_starts_with($path, $basePath) && (strlen($path) === strlen($basePath) || $path[strlen($basePath)] === '/')) {
+            $path = substr($path, strlen($basePath)) ?: '/';
+        }
+
         // Only cache GET and HEAD requests
         if (!in_array($method, ['GET', 'HEAD'])) {
             return $response;
         }
 
         // Don't cache admin routes
-        if (str_starts_with($path, '/admin') || str_starts_with($path, '/cimaise/admin')) {
+        if ($path === '/admin' || str_starts_with($path, '/admin/')) {
             return $this->addNoCacheHeaders($response);
         }
 
-        // Don't cache API routes (except specific ones)
+        // API routes
         if (str_starts_with($path, '/api/')) {
-            return $this->addNoCacheHeaders($response);
+            // Admin API: no cache
+            if ($path === '/api/admin' || str_starts_with($path, '/api/admin/')) {
+                return $this->addNoCacheHeaders($response);
+            }
+            // Frontend API: short private cache for infinite scroll, template switching, EXIF
+            return $this->addApiCache($response);
+        }
+
+        // Dynamic routes that look like static assets (e.g., /fonts/typography.css)
+        // These are PHP-generated and should NOT get 1-year immutable cache
+        if ($this->isDynamicRoute($path)) {
+            return $this->addDynamicAssetCache($response);
         }
 
         // Check if it's a static asset
@@ -63,13 +81,16 @@ class CacheMiddleware implements MiddlewareInterface
             return $this->addMediaCache($response);
         }
 
-        // For HTML pages, use short cache with validation and ETag
+        // Pass through non-HTML content types (JSON, binary, etc.)
+        // Empty Content-Type is treated as HTML: at this point admin, API, static, and media
+        // routes are already filtered above, so remaining responses are Twig-rendered pages
+        // which don't always set Content-Type explicitly
         $contentType = $response->getHeaderLine('Content-Type');
-        if (str_contains($contentType, 'text/html')) {
-            return $this->addHtmlCache($response, $request);
+        if ($contentType !== '' && !str_contains($contentType, 'text/html')) {
+            return $response;
         }
 
-        return $response;
+        return $this->addHtmlCache($response, $request, $path);
     }
 
     private function isStaticAsset(string $path): bool
@@ -131,13 +152,19 @@ class CacheMiddleware implements MiddlewareInterface
             ->withHeader('Pragma', 'no-cache');
     }
 
-    private function addHtmlCache(Response $response, Request $request): Response
+    private function addHtmlCache(Response $response, Request $request, string $normalizedPath): Response
     {
-        $maxAge = $this->settings->get('performance.html_cache_max_age', 300); // 5 minutes default
+        $maxAge = $this->settings->get('performance.html_cache_max_age', 3600); // 1 hour default
+
+        // Determine cache visibility: use 'private' when the session contains user-specific
+        // access control data (password-protected albums, NSFW consent, admin login).
+        // This prevents CDN/proxies from serving session-dependent content to other users.
+        $isSessionDependent = session_status() === PHP_SESSION_ACTIVE
+            && (!empty($_SESSION['album_access']) || !empty($_SESSION['nsfw_confirmed']) || !empty($_SESSION['admin_id']));
+        $visibility = $isSessionDependent ? 'private' : 'public';
 
         // Try to generate ETag from page cache (database or file) if available
-        $path = $request->getUri()->getPath();
-        $etag = $this->generateHtmlEtag($path);
+        $etag = $this->generateHtmlEtag($normalizedPath);
         if (!$etag) {
             // Only hash body for small responses to avoid O(size) CPU/memory overhead
             // For large pages without cache ETags, skip hashing entirely
@@ -171,7 +198,12 @@ class CacheMiddleware implements MiddlewareInterface
 
                 // Double-check size after reading (Content-Length may be missing)
                 if ($body !== '' && strlen($body) <= $maxHashSize) {
-                    $etag = '"' . sha1($body) . '"';
+                    // Strip per-request tokens (CSP nonce, CSRF) before hashing
+                    // so the ETag is stable for identical page content
+                    // preg_replace can return null on error (e.g. backtrack limit)
+                    $hashBody = preg_replace('/\s*nonce="[^"]*"/', '', $body) ?? $body;
+                    $hashBody = preg_replace('/name="csrf"\s+value="[^"]*"/', 'name="csrf" value=""', $hashBody) ?? $hashBody;
+                    $etag = '"' . sha1($hashBody) . '"';
                 }
             }
         }
@@ -186,22 +218,31 @@ class CacheMiddleware implements MiddlewareInterface
                     ->withStatus(304)
                     ->withBody($emptyBody)
                     ->withHeader('ETag', $etag)
-                    ->withHeader('Cache-Control', "public, max-age={$maxAge}, must-revalidate");
-                return $this->addVaryHeader($notModifiedResponse, 'Cookie, Accept-Encoding');
+                    ->withHeader('Cache-Control', "{$visibility}, max-age={$maxAge}, must-revalidate, stale-while-revalidate=60");
+                $vary304 = 'Accept-Encoding';
+                if ($isSessionDependent) {
+                    $vary304 .= ', Cookie';
+                }
+                return $this->addVaryHeader($notModifiedResponse, $vary304);
             }
         }
 
         // For HTML, use shorter cache with must-revalidate
-        // SECURITY: Vary header prevents cache poisoning by ensuring caches consider these headers
         $result = $response
-            ->withHeader('Cache-Control', "public, max-age={$maxAge}, must-revalidate")
+            ->withHeader('Cache-Control', "{$visibility}, max-age={$maxAge}, must-revalidate, stale-while-revalidate=60")
             ->withHeader('Expires', gmdate('D, d M Y H:i:s', time() + $maxAge) . ' GMT');
 
         if ($etag) {
             $result = $result->withHeader('ETag', $etag);
         }
 
-        return $this->addVaryHeader($result, 'Cookie, Accept-Encoding');
+        // M1: Include Vary: Cookie for session-dependent responses
+        $varyValues = 'Accept-Encoding';
+        if ($isSessionDependent) {
+            $varyValues .= ', Cookie';
+        }
+
+        return $this->addVaryHeader($result, $varyValues);
     }
 
     /**
@@ -213,9 +254,7 @@ class CacheMiddleware implements MiddlewareInterface
             return null;
         }
 
-        // Map URL path to cache type
-        $basePath = rtrim($this->settings->get('site.base_path', ''), '/');
-        $path = preg_replace('#^' . preg_quote($basePath, '#') . '#', '', $path);
+        // Path is already normalized (basePath stripped) by process()
 
         // Get configurable galleries slug (default: /galleries)
         $galleriesPath = '/' . trim($this->settings->get('galleries.slug', 'galleries'), '/');
@@ -248,6 +287,9 @@ class CacheMiddleware implements MiddlewareInterface
         if ($cacheFile && file_exists($cacheFile)) {
             $mtime = filemtime($cacheFile);
             $size = filesize($cacheFile);
+            if ($mtime === false || $size === false) {
+                return null;
+            }
             return '"' . md5($mtime . '-' . $size) . '"';
         }
 
@@ -323,5 +365,43 @@ class CacheMiddleware implements MiddlewareInterface
         $newValues = array_filter(array_map('trim', explode(',', $newVary)));
         $merged = array_unique(array_merge($existingValues, $newValues), SORT_STRING);
         return $response->withHeader('Vary', implode(', ', $merged));
+    }
+
+    /**
+     * Check if a path is a PHP-generated route that looks like a static asset.
+     * These should NOT get 1-year immutable cache since their content can change.
+     */
+    private function isDynamicRoute(string $path): bool
+    {
+        $dynamicRoutes = [
+            '/fonts/typography.css',
+            '/site.webmanifest',
+        ];
+
+        foreach ($dynamicRoutes as $route) {
+            if ($path === $route) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function addDynamicAssetCache(Response $response): Response
+    {
+        $maxAge = $this->settings->get('performance.dynamic_asset_max_age', 86400); // 1 day default
+
+        return $response
+            ->withHeader('Cache-Control', "public, max-age={$maxAge}, stale-while-revalidate=60")
+            ->withHeader('Expires', gmdate('D, d M Y H:i:s', time() + $maxAge) . ' GMT')
+            ->withHeader('Pragma', 'public');
+    }
+
+    private function addApiCache(Response $response): Response
+    {
+        $maxAge = $this->settings->get('performance.api_cache_max_age', 60); // 1 minute default
+
+        return $response
+            ->withHeader('Cache-Control', "private, max-age={$maxAge}, stale-while-revalidate=30");
     }
 }

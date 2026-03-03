@@ -35,6 +35,7 @@ class InitCommand extends Command
         $output->writeln('🚀 <info>Initializing Cimaise...</info>');
         $output->writeln('');
         
+        /** @var \Symfony\Component\Console\Helper\QuestionHelper $helper */
         $helper = $this->getHelper('question');
         
         // Step 1: Test database connection

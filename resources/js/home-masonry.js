@@ -25,11 +25,51 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
     return sources.join(', ');
   }
 
+  /**
+   * Calculate and set the optimal grid height so that CSS column-fill: auto
+   * distributes items across ALL columns (prevents empty rightmost columns).
+   */
+  function balanceColumns(grid) {
+    const cols = parseInt(getComputedStyle(grid).columnCount, 10) || 1;
+    const items = grid.querySelectorAll('.masonry-item');
+    if (items.length === 0 || items.length <= cols) return;
+
+    // Reset height so items flow naturally for measurement
+    grid.style.height = '';
+
+    const gap = parseFloat(getComputedStyle(grid).columnGap) || 0;
+    const gridWidth = grid.offsetWidth;
+    const colWidth = (gridWidth - gap * (cols - 1)) / cols;
+
+    // Calculate total visual height from aspect ratios (no layout thrash)
+    let totalHeight = 0;
+    items.forEach(item => {
+      const img = item.querySelector('img');
+      const w = parseFloat(img?.getAttribute('width')) || 1;
+      const h = parseFloat(img?.getAttribute('height')) || 1;
+      const mbStr = getComputedStyle(item).marginBottom;
+      const mb = parseFloat(mbStr) || 0;
+      totalHeight += (colWidth * h / w) + mb;
+    });
+
+    // Optimal height = total / cols, with a small buffer for rounding
+    const optimalHeight = Math.ceil(totalHeight / cols) + 2;
+    grid.style.height = optimalHeight + 'px';
+  }
+
   onReady(() => {
     document.documentElement.classList.add('no-lenis');
 
     const grid = document.querySelector('.masonry-grid');
     if (!grid) return;
+
+    // Balance columns on load and resize
+    balanceColumns(grid);
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => balanceColumns(grid), 150);
+    });
 
     const config = window.homeLoaderConfig || null;
     if (!config || !config.hasMore) {
@@ -142,8 +182,8 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
       try {
         await originalLoadMore();
       } finally {
-        // Always hide loader after batch completes
-        // IntersectionObserver on trigger will fire next load when user scrolls down
+        // Rebalance columns after new images are added
+        balanceColumns(grid);
         setLoading(false);
       }
     };

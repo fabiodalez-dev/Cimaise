@@ -153,7 +153,7 @@ class SettingsService
             'performance.cache_enabled' => true,
             'performance.static_cache_max_age' => 31536000, // 1 year for static assets
             'performance.media_cache_max_age' => 86400, // 1 day for media
-            'performance.html_cache_max_age' => 300, // 5 minutes for HTML pages
+            'performance.html_cache_max_age' => 3600, // 1 hour for HTML pages
         ];
     }
 }

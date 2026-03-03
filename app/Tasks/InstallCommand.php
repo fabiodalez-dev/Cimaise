@@ -68,6 +68,7 @@ class InstallCommand extends Command
         $io->section('Installation Summary');
         $this->showInstallationSummary($io, $data);
         
+        /** @var \Symfony\Component\Console\Helper\QuestionHelper $helper */
         $helper = $this->getHelper('question');
         $question = new ConfirmationQuestion('Do you want to proceed with the installation? (y/N) ', false);
         
@@ -139,6 +140,7 @@ class InstallCommand extends Command
     
     private function collectInstallationData(InputInterface $input, OutputInterface $output, SymfonyStyle $io): array
     {
+        /** @var \Symfony\Component\Console\Helper\QuestionHelper $helper */
         $helper = $this->getHelper('question');
         $data = [];
         
@@ -146,6 +148,13 @@ class InstallCommand extends Command
         $io->section('Database Configuration');
         
         $question = new Question('Database type (sqlite/mysql) [sqlite]: ', 'sqlite');
+        $question->setValidator(function ($value) {
+            $normalized = strtolower(trim((string) $value));
+            if (!in_array($normalized, ['sqlite', 'mysql'], true)) {
+                throw new \RuntimeException('Database type must be "sqlite" or "mysql"');
+            }
+            return $normalized;
+        });
         $data['db_connection'] = $helper->ask($input, $output, $question);
         
         if ($data['db_connection'] === 'mysql') {
@@ -179,14 +188,34 @@ class InstallCommand extends Command
         $io->section('Admin User');
         
         $question = new Question('Admin name: ');
+        $question->setValidator(function ($value) {
+            $normalized = trim((string) $value);
+            if ($normalized === '') {
+                throw new \RuntimeException('Admin name cannot be empty');
+            }
+            return $normalized;
+        });
         $data['admin_name'] = $helper->ask($input, $output, $question);
         
         $question = new Question('Admin email: ');
+        $question->setValidator(function ($value) {
+            $normalized = strtolower(trim((string) $value));
+            if (!filter_var($normalized, FILTER_VALIDATE_EMAIL)) {
+                throw new \RuntimeException('Please enter a valid email address');
+            }
+            return $normalized;
+        });
         $data['admin_email'] = $helper->ask($input, $output, $question);
         
         $question = new Question('Admin password (min 8 characters): ');
         $question->setHidden(true);
         $question->setHiddenFallback(false);
+        $question->setValidator(function ($value) {
+            if ($value === null || strlen($value) < 8) {
+                throw new \RuntimeException('Password must be at least 8 characters');
+            }
+            return $value;
+        });
         $data['admin_password'] = $helper->ask($input, $output, $question);
         
         // Site settings

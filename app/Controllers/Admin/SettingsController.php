@@ -282,7 +282,7 @@ class SettingsController extends BaseController
         $svc->set('performance.static_cache_max_age', $staticCacheMaxAge);
         $mediaCacheMaxAge = max(0, (int)($data['media_cache_max_age'] ?? 86400));
         $svc->set('performance.media_cache_max_age', $mediaCacheMaxAge);
-        $htmlCacheMaxAge = max(0, (int)($data['html_cache_max_age'] ?? 300));
+        $htmlCacheMaxAge = max(0, (int)($data['html_cache_max_age'] ?? 3600));
         $svc->set('performance.html_cache_max_age', $htmlCacheMaxAge);
 
         // Maintenance Mode settings (dot notation for consistency)

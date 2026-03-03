@@ -144,7 +144,7 @@ class AnalyticsSummarizeCommand extends Command
         ');
         $stmt->execute([$date]);
         $bounceCount = (int)$stmt->fetchColumn();
-        $bounceRate = $stats['unique_visitors'] > 0 ? ($bounceCount / $stats['unique_visitors']) * 100 : 0;
+        $bounceRate = (int)$stats['unique_visitors'] > 0 ? ($bounceCount / (int)$stats['unique_visitors']) * 100 : 0;
         
         // Get top pages
         $stmt = $pdo->prepare('
@@ -212,7 +212,7 @@ class AnalyticsSummarizeCommand extends Command
             $stats['total_pageviews'] ?: 0,
             $stats['unique_visitors'] ?: 0,
             round($bounceRate, 2),
-            round($stats['avg_session_duration'] ?: 0),
+            round((float)($stats['avg_session_duration'] ?: 0), 2),
             json_encode($topPages),
             json_encode($topCountries),
             json_encode($topBrowsers),

@@ -648,6 +648,7 @@ CREATE INDEX IF NOT EXISTS idx_analytics_pageviews_session_id ON analytics_pagev
 CREATE INDEX IF NOT EXISTS idx_analytics_pageviews_viewed_at ON analytics_pageviews(viewed_at);
 CREATE INDEX IF NOT EXISTS idx_analytics_pageviews_page_type ON analytics_pageviews(page_type);
 CREATE INDEX IF NOT EXISTS idx_analytics_pageviews_album_id ON analytics_pageviews(album_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_pageviews_type_viewed ON analytics_pageviews(page_type, viewed_at);
 
 CREATE TABLE IF NOT EXISTS analytics_events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -668,6 +669,7 @@ CREATE INDEX IF NOT EXISTS idx_analytics_events_session_id ON analytics_events(s
 CREATE INDEX IF NOT EXISTS idx_analytics_events_type ON analytics_events(event_type);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_occurred_at ON analytics_events(occurred_at);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_album_id ON analytics_events(album_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_type_occurred ON analytics_events(event_type, occurred_at);
 
 CREATE TABLE IF NOT EXISTS analytics_daily_summary (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1049,7 +1051,7 @@ INSERT INTO settings (key, value, type) VALUES
 ('performance.cache_enabled', 'true', 'boolean'),
 ('performance.static_cache_max_age', '31536000', 'integer'),
 ('performance.media_cache_max_age', '86400', 'integer'),
-('performance.html_cache_max_age', '300', 'integer'),
+('performance.html_cache_max_age', '3600', 'integer'),
 -- Page cache settings
 ('cache.pages_enabled', 'true', 'boolean'),
 ('cache.pages_ttl', '86400', 'integer'),

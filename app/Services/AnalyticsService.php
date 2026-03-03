@@ -35,6 +35,18 @@ class AnalyticsService
     }
 
     /**
+     * Compute inclusive start and exclusive end boundaries for a date range.
+     * Converts Y-m-d strings to datetime boundaries for sargable WHERE clauses.
+     */
+    private function dateRangeBounds(string $startDate, string $endDate): array
+    {
+        return [
+            $startDate . ' 00:00:00',
+            date('Y-m-d 00:00:00', strtotime($endDate . ' +1 day')),
+        ];
+    }
+
+    /**
      * Sanitize limit parameter to prevent SQL injection
      */
     private function sanitizeLimit(?string $limit, int $maxRange = 100000): string
@@ -142,7 +154,8 @@ class AnalyticsService
             }
         }
         
-        return hash('sha256', $ip . 'cimaise_salt');
+        $salt = $_ENV['SESSION_SECRET'] ?? $_SERVER['SESSION_SECRET'] ?? 'cimaise_salt';
+        return hash('sha256', $ip . $salt);
     }
 
     /**
@@ -376,41 +389,45 @@ class AnalyticsService
             $stmt->execute();
             $realtime = $stmt->fetch(PDO::FETCH_ASSOC);
 
+            // H8: Use range predicates instead of DATE() for index usage
+            $todayStart = date('Y-m-d 00:00:00');
+            $tomorrowStart = date('Y-m-d 00:00:00', strtotime('+1 day'));
+
             // Today's stats
             $stmt = $this->db->prepare('
-                SELECT 
+                SELECT
                     COUNT(DISTINCT s.session_id) as sessions_today,
                     COUNT(p.id) as pageviews_today,
                     AVG(s.duration) as avg_duration
                 FROM analytics_sessions s
                 LEFT JOIN analytics_pageviews p ON s.session_id = p.session_id
-                WHERE DATE(s.started_at) = ' . $this->todayExpr() . '
+                WHERE s.started_at >= ? AND s.started_at < ?
             ');
-            $stmt->execute();
+            $stmt->execute([$todayStart, $tomorrowStart]);
             $today = $stmt->fetch(PDO::FETCH_ASSOC);
 
             // Top pages today
             $stmt = $this->db->prepare('
                 SELECT page_url, page_title, COUNT(*) as views
-                FROM analytics_pageviews 
-                WHERE DATE(viewed_at) = ' . $this->todayExpr() . '
-                GROUP BY page_url 
-                ORDER BY views DESC 
+                FROM analytics_pageviews
+                WHERE viewed_at >= ? AND viewed_at < ?
+                GROUP BY page_url
+                ORDER BY views DESC
                 LIMIT 5
             ');
-            $stmt->execute();
+            $stmt->execute([$todayStart, $tomorrowStart]);
             $topPages = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Top countries today
             $stmt = $this->db->prepare('
                 SELECT country_code, COUNT(*) as sessions
-                FROM analytics_sessions 
-                WHERE DATE(started_at) = ' . $this->todayExpr() . ' AND country_code IS NOT NULL
-                GROUP BY country_code 
-                ORDER BY sessions DESC 
+                FROM analytics_sessions
+                WHERE started_at >= ? AND started_at < ? AND country_code IS NOT NULL
+                GROUP BY country_code
+                ORDER BY sessions DESC
                 LIMIT 5
             ');
-            $stmt->execute();
+            $stmt->execute([$todayStart, $tomorrowStart]);
             $topCountries = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             return [
@@ -436,48 +453,50 @@ class AnalyticsService
     public function getChartsData(string $startDate, string $endDate): array
     {
         try {
+            [$rangeStart, $rangeEnd] = $this->dateRangeBounds($startDate, $endDate);
+
             // Sessions over time
             $stmt = $this->db->prepare('
                 SELECT DATE(started_at) as date, COUNT(*) as sessions
-                FROM analytics_sessions 
-                WHERE DATE(started_at) BETWEEN ? AND ?
-                GROUP BY DATE(started_at) 
+                FROM analytics_sessions
+                WHERE started_at >= ? AND started_at < ?
+                GROUP BY DATE(started_at)
                 ORDER BY date
             ');
-            $stmt->execute([$startDate, $endDate]);
+            $stmt->execute([$rangeStart, $rangeEnd]);
             $sessionsData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Page views over time
             $stmt = $this->db->prepare('
                 SELECT DATE(viewed_at) as date, COUNT(*) as pageviews
-                FROM analytics_pageviews 
-                WHERE DATE(viewed_at) BETWEEN ? AND ?
-                GROUP BY DATE(viewed_at) 
+                FROM analytics_pageviews
+                WHERE viewed_at >= ? AND viewed_at < ?
+                GROUP BY DATE(viewed_at)
                 ORDER BY date
             ');
-            $stmt->execute([$startDate, $endDate]);
+            $stmt->execute([$rangeStart, $rangeEnd]);
             $pageviewsData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Device types
             $stmt = $this->db->prepare('
                 SELECT device_type, COUNT(*) as count
-                FROM analytics_sessions 
-                WHERE DATE(started_at) BETWEEN ? AND ?
+                FROM analytics_sessions
+                WHERE started_at >= ? AND started_at < ?
                 GROUP BY device_type
             ');
-            $stmt->execute([$startDate, $endDate]);
+            $stmt->execute([$rangeStart, $rangeEnd]);
             $deviceData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Top browsers
             $stmt = $this->db->prepare("
                 SELECT browser, COUNT(*) as count
-                FROM analytics_sessions 
-                WHERE DATE(started_at) BETWEEN ? AND ? AND browser != 'Unknown'
-                GROUP BY browser 
-                ORDER BY count DESC 
+                FROM analytics_sessions
+                WHERE started_at >= ? AND started_at < ? AND browser != 'Unknown'
+                GROUP BY browser
+                ORDER BY count DESC
                 LIMIT 6
             ");
-            $stmt->execute([$startDate, $endDate]);
+            $stmt->execute([$rangeStart, $rangeEnd]);
             $browserData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             return [
@@ -507,14 +526,15 @@ class AnalyticsService
             $headers = [];
             $botFilter = $includeBots ? '' : 'AND s.is_bot = 0';
             $limitClause = $this->sanitizeLimit($limit);
+            [$rangeStart, $rangeEnd] = $this->dateRangeBounds($startDate, $endDate);
 
             switch ($type) {
                 case 'sessions':
                     $stmt = $this->db->prepare("
-                        SELECT session_id, browser, platform, device_type, country_code, 
+                        SELECT session_id, browser, platform, device_type, country_code,
                                started_at, page_views, duration
                         FROM analytics_sessions s
-                        WHERE DATE(started_at) BETWEEN ? AND ? {$botFilter}
+                        WHERE started_at >= ? AND started_at < ? {$botFilter}
                         ORDER BY started_at DESC
                         {$limitClause}
                     ");
@@ -526,7 +546,7 @@ class AnalyticsService
                         SELECT p.session_id, page_url, page_title, page_type, viewed_at
                         FROM analytics_pageviews p
                         JOIN analytics_sessions s ON p.session_id = s.session_id
-                        WHERE DATE(p.viewed_at) BETWEEN ? AND ? {$botFilter}
+                        WHERE p.viewed_at >= ? AND p.viewed_at < ? {$botFilter}
                         ORDER BY viewed_at DESC
                         {$limitClause}
                     ");
@@ -535,11 +555,11 @@ class AnalyticsService
 
                 case 'events':
                     $stmt = $this->db->prepare("
-                        SELECT e.session_id, event_type, event_category, event_action, 
+                        SELECT e.session_id, event_type, event_category, event_action,
                                event_label, occurred_at
                         FROM analytics_events e
                         JOIN analytics_sessions s ON e.session_id = s.session_id
-                        WHERE DATE(e.occurred_at) BETWEEN ? AND ? {$botFilter}
+                        WHERE e.occurred_at >= ? AND e.occurred_at < ? {$botFilter}
                         ORDER BY occurred_at DESC
                         {$limitClause}
                     ");
@@ -550,7 +570,7 @@ class AnalyticsService
                     return '';
             }
 
-            $stmt->execute([$startDate, $endDate]);
+            $stmt->execute([$rangeStart, $rangeEnd]);
             $data = $stmt->fetchAll(PDO::FETCH_NUM);
 
             // Generate CSV
@@ -584,6 +604,7 @@ class AnalyticsService
         try {
             $botFilter = $includeBots ? '' : 'AND s.is_bot = 0';
             $limitClause = $this->sanitizeLimit($limit);
+            [$rangeStart, $rangeEnd] = $this->dateRangeBounds($startDate, $endDate);
 
             switch ($type) {
                 case 'sessions':
@@ -591,7 +612,7 @@ class AnalyticsService
                         SELECT session_id, browser, platform, device_type, country_code, region, city,
                                referrer_domain, started_at, last_activity, page_views, duration
                         FROM analytics_sessions s
-                        WHERE DATE(started_at) BETWEEN ? AND ? {$botFilter}
+                        WHERE started_at >= ? AND started_at < ? {$botFilter}
                         ORDER BY started_at DESC
                         {$limitClause}
                     ");
@@ -603,7 +624,7 @@ class AnalyticsService
                                viewport_width, viewport_height, time_on_page, viewed_at
                         FROM analytics_pageviews p
                         JOIN analytics_sessions s ON p.session_id = s.session_id
-                        WHERE DATE(p.viewed_at) BETWEEN ? AND ? {$botFilter}
+                        WHERE p.viewed_at >= ? AND p.viewed_at < ? {$botFilter}
                         ORDER BY viewed_at DESC
                         {$limitClause}
                     ");
@@ -611,11 +632,11 @@ class AnalyticsService
 
                 case 'events':
                     $stmt = $this->db->prepare("
-                        SELECT e.session_id, event_type, event_category, event_action, event_label, 
+                        SELECT e.session_id, event_type, event_category, event_action, event_label,
                                event_value, page_url, album_id, image_id, occurred_at
                         FROM analytics_events e
                         JOIN analytics_sessions s ON e.session_id = s.session_id
-                        WHERE DATE(e.occurred_at) BETWEEN ? AND ? {$botFilter}
+                        WHERE e.occurred_at >= ? AND e.occurred_at < ? {$botFilter}
                         ORDER BY occurred_at DESC
                         {$limitClause}
                     ");
@@ -625,7 +646,7 @@ class AnalyticsService
                     return [];
             }
 
-            $stmt->execute([$startDate, $endDate]);
+            $stmt->execute([$rangeStart, $rangeEnd]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
             // Analytics tables don't exist - return empty array
@@ -658,6 +679,7 @@ class AnalyticsService
     public function getPeakHoursData(string $startDate, string $endDate): array
     {
         try {
+            [$rangeStart, $rangeEnd] = $this->dateRangeBounds($startDate, $endDate);
             $hourExpr = $this->isSqlite()
                 ? "strftime('%H', viewed_at)"
                 : "HOUR(viewed_at)";
@@ -668,11 +690,11 @@ class AnalyticsService
                     COUNT(*) as pageviews,
                     COUNT(DISTINCT session_id) as sessions
                 FROM analytics_pageviews
-                WHERE DATE(viewed_at) BETWEEN ? AND ?
+                WHERE viewed_at >= ? AND viewed_at < ?
                 GROUP BY {$hourExpr}
                 ORDER BY hour
             ");
-            $stmt->execute([$startDate, $endDate]);
+            $stmt->execute([$rangeStart, $rangeEnd]);
             $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Fill in missing hours with zeros
@@ -706,32 +728,38 @@ class AnalyticsService
             // Subtract (diff - 1) days from prevEnd to get same period length
             $prevStart = (clone $prevEnd)->modify('-' . ($diff - 1) . ' days');
 
+            [$rangeStart, $rangeEnd] = $this->dateRangeBounds($startDate, $endDate);
+            [$prevRangeStart, $prevRangeEnd] = $this->dateRangeBounds(
+                $prevStart->format('Y-m-d'),
+                $prevEnd->format('Y-m-d')
+            );
+
             // Current period stats
             $stmt = $this->db->prepare('
                 SELECT
                     COUNT(DISTINCT session_id) as sessions,
                     COUNT(*) as pageviews
                 FROM analytics_pageviews
-                WHERE DATE(viewed_at) BETWEEN ? AND ?
+                WHERE viewed_at >= ? AND viewed_at < ?
             ');
-            $stmt->execute([$startDate, $endDate]);
+            $stmt->execute([$rangeStart, $rangeEnd]);
             $current = $stmt->fetch(PDO::FETCH_ASSOC);
 
             // Previous period stats
-            $stmt->execute([$prevStart->format('Y-m-d'), $prevEnd->format('Y-m-d')]);
+            $stmt->execute([$prevRangeStart, $prevRangeEnd]);
             $previous = $stmt->fetch(PDO::FETCH_ASSOC);
 
             // Current period events
             $stmt = $this->db->prepare('
                 SELECT COUNT(*) as total
                 FROM analytics_events
-                WHERE DATE(occurred_at) BETWEEN ? AND ?
+                WHERE occurred_at >= ? AND occurred_at < ?
             ');
-            $stmt->execute([$startDate, $endDate]);
+            $stmt->execute([$rangeStart, $rangeEnd]);
             $currentEvents = $stmt->fetch(PDO::FETCH_ASSOC);
 
             // Previous period events
-            $stmt->execute([$prevStart->format('Y-m-d'), $prevEnd->format('Y-m-d')]);
+            $stmt->execute([$prevRangeStart, $prevRangeEnd]);
             $previousEvents = $stmt->fetch(PDO::FETCH_ASSOC);
 
             // Calculate percentage changes
@@ -795,6 +823,8 @@ class AnalyticsService
     public function getEngagementStats(string $startDate, string $endDate): array
     {
         try {
+            [$rangeStart, $rangeEnd] = $this->dateRangeBounds($startDate, $endDate);
+
             // Lightbox opens
             $stmt = $this->db->prepare("
                 SELECT
@@ -802,9 +832,9 @@ class AnalyticsService
                     COUNT(DISTINCT session_id) as unique_users
                 FROM analytics_events
                 WHERE event_type = 'lightbox_open'
-                AND DATE(occurred_at) BETWEEN ? AND ?
+                AND occurred_at >= ? AND occurred_at < ?
             ");
-            $stmt->execute([$startDate, $endDate]);
+            $stmt->execute([$rangeStart, $rangeEnd]);
             $lightbox = $stmt->fetch(PDO::FETCH_ASSOC);
 
             // Downloads
@@ -814,9 +844,9 @@ class AnalyticsService
                     COUNT(DISTINCT session_id) as unique_users
                 FROM analytics_events
                 WHERE event_type = 'download'
-                AND DATE(occurred_at) BETWEEN ? AND ?
+                AND occurred_at >= ? AND occurred_at < ?
             ");
-            $stmt->execute([$startDate, $endDate]);
+            $stmt->execute([$rangeStart, $rangeEnd]);
             $downloads = $stmt->fetch(PDO::FETCH_ASSOC);
 
             // Top downloaded images
@@ -833,12 +863,12 @@ class AnalyticsService
                 LEFT JOIN albums a ON e.album_id = a.id
                 WHERE e.event_type = 'download'
                 AND e.image_id IS NOT NULL
-                AND DATE(e.occurred_at) BETWEEN ? AND ?
+                AND e.occurred_at >= ? AND e.occurred_at < ?
                 GROUP BY e.image_id, e.album_id, i.filename, i.title, a.title
                 ORDER BY download_count DESC
                 LIMIT 10
             ");
-            $stmt->execute([$startDate, $endDate]);
+            $stmt->execute([$rangeStart, $rangeEnd]);
             $topDownloads = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Most viewed in lightbox
@@ -855,12 +885,12 @@ class AnalyticsService
                 LEFT JOIN albums a ON e.album_id = a.id
                 WHERE e.event_type = 'lightbox_open'
                 AND e.image_id IS NOT NULL
-                AND DATE(e.occurred_at) BETWEEN ? AND ?
+                AND e.occurred_at >= ? AND e.occurred_at < ?
                 GROUP BY e.image_id, e.album_id, i.filename, i.title, a.title
                 ORDER BY view_count DESC
                 LIMIT 10
             ");
-            $stmt->execute([$startDate, $endDate]);
+            $stmt->execute([$rangeStart, $rangeEnd]);
             $topLightbox = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             return [
@@ -891,6 +921,7 @@ class AnalyticsService
     public function getAlbumAccessStats(string $startDate, string $endDate, int $limit = 20): array
     {
         try {
+            [$rangeStart, $rangeEnd] = $this->dateRangeBounds($startDate, $endDate);
             $limitClause = $this->sanitizeLimit((string)$limit, 500);
             $stmt = $this->db->prepare("
                 SELECT
@@ -902,12 +933,12 @@ class AnalyticsService
                 FROM analytics_pageviews p
                 LEFT JOIN albums a ON p.album_id = a.id
                 WHERE p.album_id IS NOT NULL
-                AND DATE(p.viewed_at) BETWEEN ? AND ?
+                AND p.viewed_at >= ? AND p.viewed_at < ?
                 GROUP BY p.album_id, a.title, a.slug
                 ORDER BY pageviews DESC
                 {$limitClause}
             ");
-            $stmt->execute([$startDate, $endDate]);
+            $stmt->execute([$rangeStart, $rangeEnd]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (\PDOException $e) {
             return [];
@@ -920,6 +951,7 @@ class AnalyticsService
     public function getAlbumPasswordAccessStats(string $startDate, string $endDate, int $limit = 20): array
     {
         try {
+            [$rangeStart, $rangeEnd] = $this->dateRangeBounds($startDate, $endDate);
             $limitClause = $this->sanitizeLimit((string)$limit, 500);
             $stmt = $this->db->prepare("
                 SELECT
@@ -932,12 +964,12 @@ class AnalyticsService
                 LEFT JOIN albums a ON e.album_id = a.id
                 WHERE e.event_type = 'album_password_unlock'
                 AND e.album_id IS NOT NULL
-                AND DATE(e.occurred_at) BETWEEN ? AND ?
+                AND e.occurred_at >= ? AND e.occurred_at < ?
                 GROUP BY e.album_id, a.title, a.slug
                 ORDER BY password_unlocks DESC
                 {$limitClause}
             ");
-            $stmt->execute([$startDate, $endDate]);
+            $stmt->execute([$rangeStart, $rangeEnd]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (\PDOException $e) {
             return [];
@@ -950,6 +982,8 @@ class AnalyticsService
     public function get404Stats(string $startDate, string $endDate): array
     {
         try {
+            [$rangeStart, $rangeEnd] = $this->dateRangeBounds($startDate, $endDate);
+
             $stmt = $this->db->prepare("
                 SELECT
                     page_url,
@@ -957,12 +991,12 @@ class AnalyticsService
                     COUNT(DISTINCT session_id) as unique_visitors
                 FROM analytics_pageviews
                 WHERE page_type = '404'
-                AND DATE(viewed_at) BETWEEN ? AND ?
+                AND viewed_at >= ? AND viewed_at < ?
                 GROUP BY page_url
                 ORDER BY hits DESC
                 LIMIT 20
             ");
-            $stmt->execute([$startDate, $endDate]);
+            $stmt->execute([$rangeStart, $rangeEnd]);
             $pages = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Total 404 count
@@ -970,9 +1004,9 @@ class AnalyticsService
                 SELECT COUNT(*) as total
                 FROM analytics_pageviews
                 WHERE page_type = '404'
-                AND DATE(viewed_at) BETWEEN ? AND ?
+                AND viewed_at >= ? AND viewed_at < ?
             ");
-            $stmt->execute([$startDate, $endDate]);
+            $stmt->execute([$rangeStart, $rangeEnd]);
             $total = $stmt->fetch(PDO::FETCH_ASSOC);
 
             return [

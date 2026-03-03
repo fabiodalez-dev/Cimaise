@@ -11,16 +11,20 @@ class AnalyticsPro
     private Database $db;
     private SettingsService $settings;
     private ?string $ipSalt = null;
+    private static bool $tablesEnsured = false;
 
     public function __construct(Database $db, ?SettingsService $settings = null)
     {
         $this->db = $db;
         $this->settings = $settings ?? new SettingsService($db);
-        $this->ensureTables();
+        if (!self::$tablesEnsured) {
+            $this->ensureTables();
+            self::$tablesEnsured = true;
+        }
     }
 
     /**
-     * Ensure analytics tables exist
+     * Ensure analytics tables exist (runs once per request via static flag)
      */
     private function ensureTables(): void
     {
@@ -97,6 +101,7 @@ class AnalyticsPro
                 $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_created_at ON analytics_pro_events(created_at)");
                 $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_user_id ON analytics_pro_events(user_id)");
                 $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_session_id ON analytics_pro_events(session_id)");
+                $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_events_cat_created ON analytics_pro_events(category, created_at)");
                 $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_sessions_user_id ON analytics_pro_sessions(user_id)");
                 $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_sessions_started_at ON analytics_pro_sessions(started_at)");
                 $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_dimensions_event_id ON analytics_pro_dimensions(event_id)");
@@ -151,6 +156,7 @@ class AnalyticsPro
                         KEY idx_analytics_pro_created_at (created_at),
                         KEY idx_analytics_pro_user_id (user_id),
                         KEY idx_analytics_pro_session_id (session_id),
+                        KEY idx_analytics_pro_events_cat_created (category, created_at),
                         CONSTRAINT fk_analytics_pro_events_user
                             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
                         CONSTRAINT fk_analytics_pro_events_session
@@ -229,7 +235,7 @@ class AnalyticsPro
 
             // Track custom dimensions if present
             if (!empty($data['dimensions'])) {
-                $this->trackDimensions($this->db->pdo()->lastInsertId(), $data['dimensions']);
+                $this->trackDimensions((int) $this->db->pdo()->lastInsertId(), $data['dimensions']);
             }
 
             return true;
@@ -274,10 +280,14 @@ class AnalyticsPro
      */
     private function updateSession(string $sessionId): void
     {
+        $durationExpr = $this->db->isSqlite()
+            ? "(julianday(CURRENT_TIMESTAMP) - julianday(started_at)) * 86400"
+            : "TIMESTAMPDIFF(SECOND, started_at, CURRENT_TIMESTAMP)";
+
         $stmt = $this->db->pdo()->prepare("
             UPDATE analytics_pro_sessions
             SET last_activity = CURRENT_TIMESTAMP,
-                duration = (julianday(CURRENT_TIMESTAMP) - julianday(started_at)) * 86400,
+                duration = {$durationExpr},
                 events_count = events_count + 1
             WHERE session_id = ?
         ");
@@ -358,43 +368,51 @@ class AnalyticsPro
     public function getRealtimeStats(): array
     {
         $stats = [];
+        $fiveMinAgo = $this->db->dateSubExpression('minutes', 5);
 
         try {
             // Active users (last 5 minutes)
             $stmt = $this->db->pdo()->query("
                 SELECT COUNT(DISTINCT session_id) as active_users
                 FROM analytics_pro_sessions
-                WHERE last_activity >= datetime('now', '-5 minutes')
+                WHERE last_activity >= {$fiveMinAgo}
             ");
             $result = $stmt->fetch(\PDO::FETCH_ASSOC);
             $stats['active_users'] = $result['active_users'] ?? 0;
 
+            // H8: Use range predicates instead of DATE() to allow index usage
+            $todayStart = date('Y-m-d 00:00:00');
+            $tomorrowStart = date('Y-m-d 00:00:00', strtotime('+1 day'));
+
             // Events today
-            $stmt = $this->db->pdo()->query("
+            $stmt = $this->db->pdo()->prepare("
                 SELECT COUNT(*) as events_today
                 FROM analytics_pro_events
-                WHERE DATE(created_at) = DATE('now')
+                WHERE created_at >= ? AND created_at < ?
             ");
+            $stmt->execute([$todayStart, $tomorrowStart]);
             $result = $stmt->fetch(\PDO::FETCH_ASSOC);
             $stats['events_today'] = $result['events_today'] ?? 0;
 
             // Pageviews today
-            $stmt = $this->db->pdo()->query("
+            $stmt = $this->db->pdo()->prepare("
                 SELECT COUNT(*) as pageviews_today
                 FROM analytics_pro_events
-                WHERE event_name = 'page_view' AND DATE(created_at) = DATE('now')
+                WHERE event_name = 'page_view' AND created_at >= ? AND created_at < ?
             ");
+            $stmt->execute([$todayStart, $tomorrowStart]);
             $result = $stmt->fetch(\PDO::FETCH_ASSOC);
             $stats['pageviews_today'] = $result['pageviews_today'] ?? 0;
 
             // Average session duration today
-            $stmt = $this->db->pdo()->query("
+            $stmt = $this->db->pdo()->prepare("
                 SELECT AVG(duration) as avg_duration
                 FROM analytics_pro_sessions
-                WHERE DATE(started_at) = DATE('now') AND duration > 0
+                WHERE started_at >= ? AND started_at < ? AND duration > 0
             ");
+            $stmt->execute([$todayStart, $tomorrowStart]);
             $result = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $stats['avg_session_duration'] = round($result['avg_duration'] ?? 0, 2);
+            $stats['avg_session_duration'] = round((float) ($result['avg_duration'] ?? 0), 2);
 
         } catch (\Throwable $e) {
             error_log("Analytics Pro: Error getting realtime stats: " . $e->getMessage());
@@ -408,38 +426,53 @@ class AnalyticsPro
      */
     public function getEventStats(string $period = 'day', int $limit = 30): array
     {
+        $limit = max(1, min($limit, 365));
+        $rowLimit = $limit * 100;
+
         $dateFormat = match ($period) {
             'hour' => '%Y-%m-%d %H:00:00',
             'day' => '%Y-%m-%d',
-            'week' => '%Y-W%W',
             'month' => '%Y-%m',
             default => '%Y-%m-%d',
+        };
+
+        // Week period needs special handling — both DBs use ISO week/year for consistency
+        if ($period === 'week') {
+            if ($this->db->isSqlite()) {
+                // %G/%V (ISO week) require SQLite >= 3.46.0; fall back to %Y-%W for older versions
+                $dateFormatExpr = version_compare($this->db->sqliteVersion(), '3.46.0', '>=')
+                    ? "strftime('%G-W%V', created_at)"
+                    : "strftime('%Y-W%W', created_at)";
+            } else {
+                $dateFormatExpr = "DATE_FORMAT(created_at, '%x-W%v')";
+            }
+        } else {
+            $dateFormatExpr = $this->db->dateFormatExpression('created_at', $dateFormat);
+        }
+        $intervalExpr = match ($period) {
+            'hour' => $this->db->dateSubExpression('hours', 24),
+            'day' => $this->db->dateSubExpression('days', $limit),
+            'week' => $this->db->dateSubExpression('weeks', $limit),
+            'month' => $this->db->dateSubExpression('months', $limit),
+            default => $this->db->dateSubExpression('days', $limit),
         };
 
         try {
             $stmt = $this->db->pdo()->prepare("
                 SELECT
-                    strftime(?, created_at) as period,
+                    {$dateFormatExpr} as period,
                     event_name,
                     COUNT(*) as count,
                     COUNT(DISTINCT session_id) as unique_sessions,
                     COUNT(DISTINCT user_id) as unique_users
                 FROM analytics_pro_events
-                WHERE created_at >= datetime('now', ?)
+                WHERE created_at >= {$intervalExpr}
                 GROUP BY period, event_name
                 ORDER BY period DESC, count DESC
                 LIMIT ?
             ");
 
-            $interval = match ($period) {
-                'hour' => '-24 hours',
-                'day' => "-{$limit} days",
-                'week' => "-{$limit} weeks",
-                'month' => "-{$limit} months",
-                default => "-{$limit} days",
-            };
-
-            $stmt->execute([$dateFormat, $interval, $limit * 100]);
+            $stmt->execute([$rowLimit]);
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         } catch (\Throwable $e) {
@@ -454,6 +487,7 @@ class AnalyticsPro
     public function getTopEventsByCategory(string $category, int $limit = 10): array
     {
         try {
+            $thirtyDaysAgo = $this->db->dateSubExpression('days', 30);
             $stmt = $this->db->pdo()->prepare("
                 SELECT
                     event_name,
@@ -461,7 +495,7 @@ class AnalyticsPro
                     COUNT(DISTINCT session_id) as unique_sessions,
                     MAX(created_at) as last_occurrence
                 FROM analytics_pro_events
-                WHERE category = ? AND created_at >= datetime('now', '-30 days')
+                WHERE category = ? AND created_at >= {$thirtyDaysAgo}
                 GROUP BY event_name
                 ORDER BY count DESC
                 LIMIT ?
@@ -507,11 +541,12 @@ class AnalyticsPro
         $previousCount = null;
 
         try {
-            foreach ($steps as $index => $step) {
+            $thirtyDaysAgo = $this->db->dateSubExpression('days', 30);
+            foreach ($steps as $step) {
                 $stmt = $this->db->pdo()->prepare("
                     SELECT COUNT(DISTINCT session_id) as count
                     FROM analytics_pro_events
-                    WHERE event_name = ? AND created_at >= datetime('now', '-30 days')
+                    WHERE event_name = ? AND created_at >= {$thirtyDaysAgo}
                 ");
 
                 $stmt->execute([$step]);
@@ -568,19 +603,17 @@ class AnalyticsPro
         try {
             $stmt = $this->db->pdo()->prepare($query);
             $stmt->execute($params);
-            $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-            // Generate CSV
+            // M10: Cursor-based export — stream rows instead of fetchAll()
             $csv = fopen('php://temp', 'r+');
+            $headerWritten = false;
 
-            // Header
-            if (!empty($results)) {
-                fputcsv($csv, array_keys($results[0]));
-
-                // Data
-                foreach ($results as $row) {
-                    fputcsv($csv, $row);
+            while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                if (!$headerWritten) {
+                    fputcsv($csv, array_keys($row));
+                    $headerWritten = true;
                 }
+                fputcsv($csv, $row);
             }
 
             rewind($csv);
@@ -601,19 +634,19 @@ class AnalyticsPro
     public function getDeviceStats(int $days = 30): array
     {
         try {
-            $stmt = $this->db->pdo()->prepare("
+            $days = max(1, $days);
+            $dateThreshold = $this->db->dateSubExpression('days', $days);
+            $stmt = $this->db->pdo()->query("
                 SELECT
                     device_type,
                     COUNT(*) as count,
                     COUNT(DISTINCT session_id) as unique_sessions,
                     ROUND(AVG(duration), 2) as avg_session_duration
                 FROM analytics_pro_sessions
-                WHERE started_at >= datetime('now', ?)
+                WHERE started_at >= {$dateThreshold}
                 GROUP BY device_type
                 ORDER BY count DESC
             ");
-
-            $stmt->execute(["-{$days} days"]);
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         } catch (\Throwable $e) {
@@ -628,18 +661,18 @@ class AnalyticsPro
     public function getBrowserStats(int $days = 30): array
     {
         try {
-            $stmt = $this->db->pdo()->prepare("
+            $days = max(1, $days);
+            $dateThreshold = $this->db->dateSubExpression('days', $days);
+            $stmt = $this->db->pdo()->query("
                 SELECT
                     browser,
                     COUNT(*) as count,
                     COUNT(DISTINCT session_id) as unique_sessions
                 FROM analytics_pro_sessions
-                WHERE started_at >= datetime('now', ?)
+                WHERE started_at >= {$dateThreshold}
                 GROUP BY browser
                 ORDER BY count DESC
             ");
-
-            $stmt->execute(["-{$days} days"]);
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         } catch (\Throwable $e) {
@@ -654,22 +687,16 @@ class AnalyticsPro
     public function cleanup(int $days = 90): int
     {
         try {
-            $stmt = $this->db->pdo()->prepare("
-                DELETE FROM analytics_pro_events
-                WHERE created_at < datetime('now', ?)
-            ");
+            $days = max(1, $days);
+            $dateThreshold = $this->db->dateSubExpression('days', $days);
 
-            $stmt->execute(["-{$days} days"]);
-            $deleted = $stmt->rowCount();
+            $deleted = $this->db->execute(
+                "DELETE FROM analytics_pro_events WHERE created_at < {$dateThreshold}"
+            );
 
-            // Also cleanup old sessions
-            $stmt = $this->db->pdo()->prepare("
-                DELETE FROM analytics_pro_sessions
-                WHERE started_at < datetime('now', ?)
-            ");
-
-            $stmt->execute(["-{$days} days"]);
-            $deleted += $stmt->rowCount();
+            $deleted += $this->db->execute(
+                "DELETE FROM analytics_pro_sessions WHERE started_at < {$dateThreshold}"
+            );
 
             return $deleted;
 

@@ -11,6 +11,7 @@ class Database
 {
     private PDO $pdo;
     private bool $isSqlite = false;
+    private ?string $sqliteVersionCache = null;
 
     public function __construct(
         private ?string $host = null,
@@ -129,20 +130,12 @@ class Database
         if ($this->isSqlite) {
             $this->pdo->exec($sql);
         } else {
-            // MySQL: execute statements one by one
-            // Remove comments and split by semicolons
-            $sql = preg_replace('/--.*$/m', '', $sql);
-            $sql = preg_replace('/\/\*.*?\*\//s', '', $sql);
-
-            $statements = array_filter(
-                array_map('trim', explode(';', $sql)),
-                fn($s) => !empty($s) && $s !== ''
-            );
+            // MySQL: split into individual statements respecting string literals
+            // (naive explode on ';' breaks when values contain semicolons)
+            $statements = $this->splitSqlStatements($sql);
 
             foreach ($statements as $statement) {
-                if (!empty(trim($statement))) {
-                    $this->pdo->exec($statement);
-                }
+                $this->pdo->exec($statement);
             }
         }
     }
@@ -152,14 +145,128 @@ class Database
         return $this->isSqlite;
     }
 
+    public function sqliteVersion(): string
+    {
+        if ($this->sqliteVersionCache === null) {
+            $this->sqliteVersionCache = $this->pdo->query('SELECT sqlite_version()')->fetchColumn();
+        }
+        return $this->sqliteVersionCache;
+    }
+
     public function isMySQL(): bool
     {
         return !$this->isSqlite;
     }
 
+    /**
+     * Split SQL file content into individual statements, respecting string literals.
+     * Unlike explode(';'), this won't break on semicolons inside quoted values.
+     *
+     * @return string[]
+     */
+    private function splitSqlStatements(string $sql): array
+    {
+        $statements = [];
+        $current = '';
+        $inSingleQuote = false;
+        $inDoubleQuote = false;
+        $inLineComment = false;
+        $inBlockComment = false;
+        $len = strlen($sql);
+
+        for ($i = 0; $i < $len; $i++) {
+            $char = $sql[$i];
+            $next = $i + 1 < $len ? $sql[$i + 1] : '';
+
+            // Handle line comments (-- must be followed by space, control char, or EOF per MySQL rules)
+            if (!$inSingleQuote && !$inDoubleQuote && !$inBlockComment && $char === '-' && $next === '-') {
+                $after = $i + 2 < $len ? $sql[$i + 2] : '';
+                if ($after === ' ' || $after === "\t" || $after === "\r" || $after === "\n" || $after === '') {
+                    $inLineComment = true;
+                    continue;
+                }
+            }
+            if ($inLineComment) {
+                if ($char === "\n") {
+                    $inLineComment = false;
+                    $current .= "\n";
+                }
+                continue;
+            }
+
+            // Handle block comments
+            if (!$inSingleQuote && !$inDoubleQuote && !$inBlockComment && $char === '/' && $next === '*') {
+                $inBlockComment = true;
+                $i++; // skip *
+                continue;
+            }
+            if ($inBlockComment) {
+                if ($char === '*' && $next === '/') {
+                    $inBlockComment = false;
+                    $i++; // skip /
+                }
+                continue;
+            }
+
+            // Handle backslash escapes inside quoted strings
+            if (($inSingleQuote || $inDoubleQuote) && $char === '\\') {
+                $current .= $char . $next;
+                $i++;
+                continue;
+            }
+
+            // Handle single-quoted strings (with escaped quotes)
+            if ($char === "'" && !$inDoubleQuote && !$inBlockComment && !$inLineComment) {
+                if ($inSingleQuote) {
+                    // Check for escaped quote ('')
+                    if ($next === "'") {
+                        $current .= "''";
+                        $i++;
+                        continue;
+                    }
+                    $inSingleQuote = false;
+                } else {
+                    $inSingleQuote = true;
+                }
+                $current .= $char;
+                continue;
+            }
+
+            // Handle double-quoted strings
+            if ($char === '"' && !$inSingleQuote && !$inBlockComment && !$inLineComment) {
+                $inDoubleQuote = !$inDoubleQuote;
+                $current .= $char;
+                continue;
+            }
+
+            // Semicolon outside of quotes = statement delimiter
+            if ($char === ';' && !$inSingleQuote && !$inDoubleQuote) {
+                $trimmed = trim($current);
+                if ($trimmed !== '') {
+                    $statements[] = $trimmed;
+                }
+                $current = '';
+                continue;
+            }
+
+            $current .= $char;
+        }
+
+        // Last statement (may not end with ;)
+        $trimmed = trim($current);
+        if ($trimmed !== '') {
+            $statements[] = $trimmed;
+        }
+
+        return $statements;
+    }
+
     // Helper for cross-database ORDER BY with NULL handling
     public function orderByNullsLast(string $column): string
     {
+        if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_.]*$/', $column)) {
+            throw new \InvalidArgumentException('Invalid column name');
+        }
         if ($this->isSqlite) {
             return "CASE WHEN {$column} IS NULL THEN 1 ELSE 0 END, {$column}";
         } else {
@@ -183,7 +290,13 @@ class Database
     public function dateSubExpression(string $interval, int $value): string
     {
         if ($this->isSqlite) {
-            return "datetime('now', '-{$value} {$interval}')";
+            // SQLite doesn't support 'weeks' modifier — convert to days
+            $sqliteInterval = strtolower($interval);
+            if ($sqliteInterval === 'weeks' || $sqliteInterval === 'week') {
+                $value = $value * 7;
+                $sqliteInterval = 'days';
+            }
+            return "datetime('now', '-{$value} {$sqliteInterval}')";
         }
         $mysqlInterval = match (strtolower($interval)) {
             'hours', 'hour' => 'HOUR',
@@ -193,7 +306,7 @@ class Database
             'weeks', 'week' => 'WEEK',
             'months', 'month' => 'MONTH',
             'years', 'year' => 'YEAR',
-            default => strtoupper($interval),
+            default => throw new \InvalidArgumentException("Unsupported interval: {$interval}"),
         };
         return "DATE_SUB(NOW(), INTERVAL {$value} {$mysqlInterval})";
     }
@@ -201,6 +314,9 @@ class Database
     // Helper for portable year extraction from date column
     public function yearExpression(string $column): string
     {
+        if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_.]*$/', $column)) {
+            throw new \InvalidArgumentException('Invalid column name');
+        }
         return $this->isSqlite ? "strftime('%Y', {$column})" : "YEAR({$column})";
     }
 
@@ -208,5 +324,35 @@ class Database
     public function replaceKeyword(): string
     {
         return $this->isSqlite ? 'INSERT OR REPLACE' : 'REPLACE';
+    }
+
+    // Helper for portable current date (without time)
+    public function currentDateExpression(): string
+    {
+        return $this->isSqlite ? "DATE('now')" : 'CURDATE()';
+    }
+
+    /**
+     * Portable date formatting.
+     * Supported portable specifiers: %Y, %m, %d, %H, %M (minutes), %S.
+     * %W (week number) is translated to MySQL %u (Monday-based, 00-53).
+     * For ISO week numbering, use db-specific expressions directly.
+     */
+    public function dateFormatExpression(string $column, string $format): string
+    {
+        if (preg_match('/[\'";]/', $format)) {
+            throw new \InvalidArgumentException('Invalid characters in date format');
+        }
+        // M14: Validate column name to prevent SQL injection
+        if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_.]*$/', $column)) {
+            throw new \InvalidArgumentException('Invalid column name');
+        }
+        if ($this->isSqlite) {
+            return "strftime('{$format}', {$column})";
+        }
+        // Translate SQLite format specifiers to MySQL equivalents
+        // %W (week number) → %u, %M (minutes) → %i (MySQL %M = month name)
+        $mysqlFormat = str_replace(['%W', '%M'], ['%u', '%i'], $format);
+        return "DATE_FORMAT({$column}, '{$mysqlFormat}')";
     }
 }

@@ -22,7 +22,7 @@ class DbTestCommand extends Command
         $info = $this->db->testConnection();
         
         if ($info['driver'] === 'sqlite') {
-            $size = isset($info['file_size']) ? round($info['file_size'] / 1024, 2) . 'KB' : '0KB';
+            $size = isset($info['file_size']) ? round((float)$info['file_size'] / 1024, 2) . 'KB' : '0KB';
             $output->writeln(sprintf(
                 '<info>Connected:</info> %s %s (db=%s, size=%s)',
                 $info['driver'],

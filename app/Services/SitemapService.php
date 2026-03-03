@@ -163,23 +163,22 @@ class SitemapService
 
         // Batch fetch all images for these albums with metadata
         $placeholders = implode(',', array_fill(0, count($albumIds), '?'));
-        $stmt = $this->db->prepare("
+        $stmt = $this->db->query("
             SELECT
                 i.id, i.album_id, i.alt_text, i.caption, i.width, i.height,
                 i.camera_id, i.lens_id, i.film_id, i.location_id,
                 i.custom_camera, i.custom_lens, i.custom_film,
-                iv.path as variant_path, iv.format, iv.size_key
+                iv.path as variant_path, iv.format, iv.variant
             FROM images i
             LEFT JOIN image_variants iv ON i.id = iv.image_id
-                AND iv.format = 'jpg' AND iv.size_key = 'xl'
+                AND iv.format = 'jpg' AND iv.variant = 'xl'
             WHERE i.album_id IN ($placeholders)
             ORDER BY i.album_id, i.sort_order, i.id
-        ");
-        $stmt->execute($albumIds);
+        ", $albumIds);
         $imagesRaw = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
 
         // Enrich images with metadata names
-        ImagesService::enrichWithMetadata($this->db->getPdo(), $imagesRaw, 'sitemap');
+        ImagesService::enrichWithMetadata($this->db->pdo(), $imagesRaw, 'sitemap');
 
         // Group images by album
         $imagesByAlbum = [];

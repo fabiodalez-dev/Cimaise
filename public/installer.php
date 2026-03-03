@@ -7,10 +7,21 @@ declare(strict_types=1);
  * with the app's minimal black/white/silver design
  */
 
+ini_set('session.use_strict_mode', '1');
+ini_set('session.cookie_httponly', '1');
+ini_set('session.cookie_samesite', 'Lax');
+if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
+    ini_set('session.cookie_secure', '1');
+}
 session_start();
 error_reporting(E_ALL);
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
+
+// Prevent browser caching of installer pages
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
 
 $rootPath = dirname(__DIR__);
 $dbPath = $rootPath . '/database/database.sqlite';
@@ -19,16 +30,51 @@ $templateDbPath = $rootPath . '/database/template.sqlite';
 
 // Check if already installed
 $installed = false;
-if (file_exists($envPath) && file_exists($dbPath) && filesize($dbPath) > 0) {
+$markerPath = $rootPath . '/storage/tmp/.installed';
+if (file_exists($markerPath) && file_exists($envPath)) {
+    $installed = true;
+} elseif (file_exists($envPath)) {
+    // DB-agnostic: detect both SQLite and MySQL prior installs
     try {
-        $pdo = new PDO('sqlite:' . $dbPath);
-        $stmt = $pdo->query('SELECT COUNT(*) as count FROM users WHERE role = "admin"');
-        $result = $stmt->fetch();
-        if ($result['count'] > 0) {
-            $installed = true;
+        $pdo = null;
+        if (file_exists($dbPath) && filesize($dbPath) > 0) {
+            $pdo = new PDO('sqlite:' . $dbPath);
+        } else {
+            // Try MySQL: parse .env for DB credentials
+            $envContent = @file_get_contents($envPath);
+            if ($envContent !== false) {
+                $envVars = [];
+                foreach (explode("\n", $envContent) as $line) {
+                    $line = trim($line);
+                    if ($line === '' || str_starts_with($line, '#')) continue;
+                    if (str_contains($line, '=')) {
+                        [$key, $val] = explode('=', $line, 2);
+                        $envVars[trim($key)] = trim($val, " \t\n\r\0\x0B\"'");
+                    }
+                }
+                $dbConn = $envVars['DB_CONNECTION'] ?? '';
+                if ($dbConn === 'mysql') {
+                    $host = $envVars['DB_HOST'] ?? '127.0.0.1';
+                    $port = $envVars['DB_PORT'] ?? '3306';
+                    $dbName = $envVars['DB_DATABASE'] ?? '';
+                    $user = $envVars['DB_USERNAME'] ?? '';
+                    $pass = $envVars['DB_PASSWORD'] ?? '';
+                    if ($dbName && $user) {
+                        $pdo = new PDO("mysql:host={$host};port={$port};dbname={$dbName};charset=utf8mb4", $user, $pass);
+                        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                    }
+                }
+            }
+        }
+        if ($pdo) {
+            $stmt = $pdo->query('SELECT COUNT(*) as count FROM users WHERE role = "admin"');
+            $result = $stmt->fetch();
+            if ($result && $result['count'] > 0) {
+                $installed = true;
+            }
         }
     } catch (Exception $e) {
-        // Not installed
+        // Not installed or DB unreachable
     }
 }
 
@@ -43,10 +89,47 @@ if ($installed) {
     exit;
 }
 
-// Get current step
+// CSRF token management
+if (empty($_SESSION['installer_csrf'])) {
+    $_SESSION['installer_csrf'] = bin2hex(random_bytes(32));
+}
+$csrfToken = $_SESSION['installer_csrf'];
+
+// Get current step (M7: validate against allowlist)
+$allowedSteps = ['requirements', 'database', 'admin', 'settings', 'install', 'complete'];
 $step = $_GET['step'] ?? 'requirements';
+if (!in_array($step, $allowedSteps, true)) {
+    $step = 'requirements';
+}
 $errors = [];
 $success = false;
+
+// Load available frontend languages from translation JSON files
+function getAvailableLanguages(): array {
+    $translationsDir = dirname(__DIR__) . '/storage/translations';
+    $languages = [];
+    $files = glob($translationsDir . '/*.json');
+    if ($files) {
+        foreach ($files as $file) {
+            $basename = basename($file, '.json');
+            // Skip admin translation files
+            if (str_contains($basename, '_admin')) continue;
+            $data = json_decode(file_get_contents($file), true);
+            if (!$data || !isset($data['_meta']['code'], $data['_meta']['language'])) continue;
+            $languages[$data['_meta']['code']] = [
+                'label' => $data['_meta']['language'],
+                'seeds' => $data['_seeds'] ?? [],
+            ];
+        }
+    }
+    // Fallback if no files found
+    if (empty($languages)) {
+        $languages['en'] = ['label' => 'English', 'seeds' => []];
+    }
+    return $languages;
+}
+
+$availableLanguages = getAvailableLanguages();
 
 // Helper functions
 function checkRequirements() {
@@ -85,7 +168,8 @@ function testDatabaseConnection($config) {
                 throw new InvalidArgumentException('Invalid MySQL database name. Use only letters, numbers and underscores.');
             }
 
-            $dsn = "mysql:host={$config['host']};port={$config['port']};charset=utf8mb4";
+            $connectHost = $config['resolved_host'] ?? $config['host'];
+            $dsn = "mysql:host={$connectHost};port={$config['port']};charset=utf8mb4";
             $pdo = new PDO($dsn, $config['username'], $config['password']);
 
             // Try to create database if it doesn't exist
@@ -96,7 +180,9 @@ function testDatabaseConnection($config) {
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         return ['success' => true, 'pdo' => $pdo];
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        // H2: Don't leak DSN/credentials in error messages
+        error_log('Installer DB test error: ' . $e->getMessage());
+        return ['success' => false, 'error' => 'Connection failed. Please verify your database credentials and host.'];
     }
 }
 
@@ -191,73 +277,45 @@ HTACCESS;
         file_put_contents($publicHtaccess, $publicHtaccessContent);
     }
     
+    // M6: Apache 2.2 + 2.4 compatible deny-all blocks
+    $denyAllContent = <<<'HTACCESS'
+# Deny all access (Apache 2.4+)
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+# Deny all access (Apache 2.2)
+<IfModule !mod_authz_core.c>
+    Order Allow,Deny
+    Deny from all
+</IfModule>
+HTACCESS;
+
     // 3. Protect database directory
-    $databaseHtaccess = $rootPath . '/database/.htaccess';
-    $databaseHtaccessContent = <<<'HTACCESS'
-# Deny all access to database files
-<Files "*">
-    Order Allow,Deny
-    Deny from all
-</Files>
-HTACCESS;
-    file_put_contents($databaseHtaccess, $databaseHtaccessContent);
-    
+    file_put_contents($rootPath . '/database/.htaccess', $denyAllContent);
+
     // 4. Protect app directory
-    $appHtaccess = $rootPath . '/app/.htaccess';
-    $appHtaccessContent = <<<'HTACCESS'
-# Deny all access to application files
-<Files "*">
-    Order Allow,Deny
-    Deny from all
-</Files>
-HTACCESS;
-    file_put_contents($appHtaccess, $appHtaccessContent);
-    
+    file_put_contents($rootPath . '/app/.htaccess', $denyAllContent);
+
     // 5. Protect vendor directory
-    $vendorHtaccess = $rootPath . '/vendor/.htaccess';
-    $vendorHtaccessContent = <<<'HTACCESS'
-# Deny all access to vendor files
-<Files "*">
-    Order Allow,Deny
-    Deny from all
-</Files>
-HTACCESS;
-    file_put_contents($vendorHtaccess, $vendorHtaccessContent);
+    file_put_contents($rootPath . '/vendor/.htaccess', $denyAllContent);
     
     // 6. Protect .env file specifically
     $envHtaccess = $rootPath . '/.htaccess';
-    $envProtection = "
+    $envProtection = '
 
-# Protect sensitive files
-<Files \".env\">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-<Files \".env.*\">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-<Files \"composer.json\">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-<Files \"composer.lock\">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-<Files \"package.json\">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-<Files \"package-lock.json\">
-    Order Allow,Deny
-    Deny from all
-</Files>";
+# Protect sensitive files (Apache 2.4+)
+<IfModule mod_authz_core.c>
+    <FilesMatch "^(\\.env|composer\\.(json|lock)|package(-lock)?\\.json)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+# Protect sensitive files (Apache 2.2)
+<IfModule !mod_authz_core.c>
+    <FilesMatch "^(\\.env|composer\\.(json|lock)|package(-lock)?\\.json)$">
+        Order Allow,Deny
+        Deny from all
+    </FilesMatch>
+</IfModule>';
     
     // Add protection to existing root .htaccess
     if (file_exists($rootHtaccess)) {
@@ -288,54 +346,119 @@ ROBOTS;
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if ($step === 'database') {
+    // C1: CSRF validation on every POST
+    $postedCsrf = $_POST['_csrf'] ?? '';
+    if (!is_string($postedCsrf) || !hash_equals($csrfToken, $postedCsrf)) {
+        $errors['csrf'] = 'Invalid or missing CSRF token. Please reload the page.';
+    }
+
+    if (empty($errors) && $step === 'database') {
+        // C2: Validate db_type against allowlist
+        $dbType = $_POST['db_type'] ?? 'sqlite';
+        if (!in_array($dbType, ['sqlite', 'mysql'], true)) {
+            $dbType = 'sqlite';
+        }
+
         $dbConfig = [
-            'type' => $_POST['db_type'] ?? 'sqlite',
-            'host' => trim($_POST['db_host'] ?? 'localhost'),
+            'type' => $dbType,
+            'host' => trim($_POST['db_host'] ?? '127.0.0.1'),
             'port' => (int)($_POST['db_port'] ?? 3306),
-            'database' => ($_POST['db_type'] ?? 'sqlite') === 'sqlite' ? 'database.sqlite' : (trim($_POST['db_database'] ?? 'cimaise')),
+            'database' => $dbType === 'sqlite' ? 'database.sqlite' : (trim($_POST['db_database'] ?? 'cimaise')),
             'username' => trim($_POST['db_username'] ?? ''),
             'password' => $_POST['db_password'] ?? ''
         ];
-        
+
         // Validate
         if ($dbConfig['type'] === 'mysql') {
             if (empty($dbConfig['host'])) $errors['db_host'] = 'Host is required for MySQL';
             if (empty($dbConfig['database'])) $errors['db_database'] = 'Database name is required';
             if (empty($dbConfig['username'])) $errors['db_username'] = 'Username is required for MySQL';
+
+            // C2: SSRF prevention — validate MySQL host
+            if (!empty($dbConfig['host'])) {
+                $host = $dbConfig['host'];
+                // Block cloud metadata endpoints and link-local addresses
+                $blockedPatterns = ['169.254.169.254', 'metadata.google', 'metadata.azure', '100.100.100.200',
+                    'fd00:ec2::254', '::ffff:169.254.169.254', 'fe80::'];
+                foreach ($blockedPatterns as $blocked) {
+                    if (stripos($host, $blocked) !== false) {
+                        $errors['db_host'] = 'This host address is not allowed.';
+                        break;
+                    }
+                }
+                // Validate as IP or hostname
+                if (empty($errors)) {
+                    $isValidIp = filter_var($host, FILTER_VALIDATE_IP);
+                    $isValidHostname = preg_match('/^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$/', $host);
+                    if (!$isValidIp && !$isValidHostname) {
+                        $errors['db_host'] = 'Invalid host address.';
+                    }
+                }
+                // Note: private/reserved IPs are legitimate for database hosts
+                // (127.0.0.1, 10.x, 192.168.x, etc. are standard DB setups).
+                // Cloud metadata endpoints are already blocked above.
+                $isValidIp = $isValidIp ?? false;
+                $isValidHostname = $isValidHostname ?? false;
+                // DNS resolution check for hostnames — use resolved IP in DSN to prevent TOCTOU
+                if (empty($errors) && !$isValidIp && $isValidHostname) {
+                    $resolvedIp = gethostbyname($host);
+                    if ($resolvedIp !== $host) {
+                        // Block hostnames that resolve to cloud metadata endpoints
+                        foreach ($blockedPatterns as $blocked) {
+                            if (stripos($resolvedIp, $blocked) !== false) {
+                                $errors['db_host'] = 'This host resolves to a restricted IP address.';
+                                break;
+                            }
+                        }
+                        if (empty($errors)) {
+                            // Store resolved IP to use in DSN (prevents DNS rebinding TOCTOU)
+                            $dbConfig['resolved_host'] = $resolvedIp;
+                        }
+                    }
+                }
+            }
+
+            // Validate port range
+            if ($dbConfig['port'] < 1 || $dbConfig['port'] > 65535) {
+                $errors['db_port'] = 'Port must be between 1 and 65535.';
+            }
         }
         // SQLite validation removed - we use fixed database name
-        
+
         // Test connection
         if (empty($errors)) {
             $testResult = testDatabaseConnection($dbConfig);
             if (!$testResult['success']) {
-                $errors['connection'] = 'Database connection failed: ' . $testResult['error'];
+                $errors['connection'] = 'Database connection failed. Please check your credentials and try again.';
+                error_log('Installer DB connection error: ' . $testResult['error']);
             } else {
                 $_SESSION['db_config'] = $dbConfig;
                 header('Location: installer.php?step=admin');
                 exit;
             }
         }
-        
+
         $_SESSION['db_errors'] = $errors;
         $_SESSION['db_form_data'] = $dbConfig;
     }
     
-    if ($step === 'admin') {
+    if (empty($errors) && $step === 'admin') {
+        $adminPassword = $_POST['admin_password'] ?? '';
+        $adminPasswordConfirm = $_POST['admin_password_confirm'] ?? '';
         $adminData = [
             'name' => trim($_POST['admin_name'] ?? ''),
             'email' => trim($_POST['admin_email'] ?? ''),
-            'password' => $_POST['admin_password'] ?? '',
-            'password_confirm' => $_POST['admin_password_confirm'] ?? '',
         ];
-        
+
         if (empty($adminData['name'])) $errors['admin_name'] = 'Full name is required';
         if (empty($adminData['email']) || !filter_var($adminData['email'], FILTER_VALIDATE_EMAIL)) $errors['admin_email'] = 'Valid email is required';
-        if (strlen($adminData['password']) < 8) $errors['admin_password'] = 'Password must be at least 8 characters';
-        if ($adminData['password'] !== $adminData['password_confirm']) $errors['admin_password'] = 'Passwords do not match';
-        
+        if (strlen($adminPassword) < 8) $errors['admin_password'] = 'Password must be at least 8 characters';
+        if ($adminPassword !== $adminPasswordConfirm) $errors['admin_password'] = 'Passwords do not match';
+
         if (empty($errors)) {
+            // H4: Hash password immediately, never store plaintext in session
+            $adminData['password_hash'] = password_hash($adminPassword, PASSWORD_ARGON2ID);
+            unset($adminPassword, $adminPasswordConfirm);
             $_SESSION['admin_data'] = $adminData;
             header('Location: installer.php?step=settings');
             exit;
@@ -344,17 +467,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['admin_form_data'] = $adminData;
     }
     
-    if ($step === 'settings') {
+    if (empty($errors) && $step === 'settings') {
         $settingsData = [
             'site_title' => trim($_POST['site_title'] ?? 'My Photography'),
             'site_description' => trim($_POST['site_description'] ?? 'A beautiful photography portfolio'),
             'site_copyright' => trim($_POST['site_copyright'] ?? '© {year} My Photography'),
             'site_email' => trim($_POST['site_email'] ?? ''),
-            'timezone' => $_POST['timezone'] ?? 'Europe/Rome'
+            'timezone' => $_POST['timezone'] ?? 'Europe/Rome',
+            'site_language' => $_POST['site_language'] ?? 'en',
+            'admin_language' => $_POST['admin_language'] ?? 'en',
+            'date_format' => $_POST['date_format'] ?? 'Y-m-d',
+            'home_template' => $_POST['home_template'] ?? 'classic',
+            'gallery_template_id' => $_POST['gallery_template_id'] ?? '4',
+            'cache_enabled' => isset($_POST['cache_enabled']) ? '1' : '0',
+            'compression_enabled' => isset($_POST['compression_enabled']) ? '1' : '0',
         ];
-        
+
+        // Validate allowed values
+        $validLangCodes = array_keys(getAvailableLanguages());
+        $validTimezones = \DateTimeZone::listIdentifiers();
+        if (!in_array($settingsData['site_language'], $validLangCodes, true)) $settingsData['site_language'] = 'en';
+        if (!in_array($settingsData['admin_language'], $validLangCodes, true)) $settingsData['admin_language'] = 'en';
+        if (!in_array($settingsData['timezone'], $validTimezones, true)) $settingsData['timezone'] = 'UTC';
+        if (!in_array($settingsData['date_format'], ['Y-m-d', 'd-m-Y', 'm/d/Y'], true)) $settingsData['date_format'] = 'Y-m-d';
+        if (!in_array($settingsData['home_template'], ['classic', 'masonry', 'hero', 'gallery'], true)) $settingsData['home_template'] = 'classic';
+        if (!in_array($settingsData['gallery_template_id'], ['1','2','3','4','5','6','7'], true)) $settingsData['gallery_template_id'] = '4';
+
+        // Handle logo upload
+        $settingsData['site_logo'] = null;
+        $settingsData['site_logo_type'] = 'text';
+        if (!empty($_FILES['site_logo']['tmp_name']) && $_FILES['site_logo']['error'] === UPLOAD_ERR_OK) {
+            // M13: File size limit (2 MB)
+            if ($_FILES['site_logo']['size'] > 2 * 1024 * 1024) {
+                $errors['site_logo'] = 'Logo file must be under 2 MB.';
+            } else {
+                $allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+                $finfo = new finfo(FILEINFO_MIME_TYPE);
+                $mimeType = $finfo->file($_FILES['site_logo']['tmp_name']);
+                if (in_array($mimeType, $allowedTypes, true)) {
+                    // H3: Re-encode via GD to strip embedded payloads + random filename
+                    $srcImage = match($mimeType) {
+                        'image/png' => @imagecreatefrompng($_FILES['site_logo']['tmp_name']),
+                        'image/jpeg' => @imagecreatefromjpeg($_FILES['site_logo']['tmp_name']),
+                        'image/webp' => @imagecreatefromwebp($_FILES['site_logo']['tmp_name']),
+                        default => false,
+                    };
+                    if ($srcImage) {
+                        $logoFilename = 'logo_' . bin2hex(random_bytes(8)) . '.png';
+                        $logoDir = $rootPath . '/public/media';
+                        if (!is_dir($logoDir)) {
+                            mkdir($logoDir, 0755, true);
+                        }
+                        if (imagepng($srcImage, $logoDir . '/' . $logoFilename)) {
+                            $settingsData['site_logo'] = '/media/' . $logoFilename;
+                            $settingsData['site_logo_type'] = 'image';
+                        }
+                        imagedestroy($srcImage);
+                    } else {
+                        $errors['site_logo'] = 'Could not process image file.';
+                    }
+                } else {
+                    $errors['site_logo'] = 'Invalid image format. Please use PNG, JPEG, or WebP.';
+                }
+            }
+        }
+
         if (empty($settingsData['site_title'])) $errors['site_title'] = 'Site title is required';
-        
+        if (empty($settingsData['site_email']) || !filter_var($settingsData['site_email'], FILTER_VALIDATE_EMAIL)) {
+            $errors['site_email'] = 'Valid contact email is required';
+        }
+
         if (empty($errors)) {
             $_SESSION['settings_data'] = $settingsData;
             header('Location: installer.php?step=install');
@@ -364,7 +546,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['settings_form_data'] = $settingsData;
     }
     
-    if ($step === 'install') {
+    if (empty($errors) && $step === 'install') {
         try {
             $dbConfig = $_SESSION['db_config'] ?? [];
             $adminData = $_SESSION['admin_data'] ?? [];
@@ -400,6 +582,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!file_put_contents($envPath, $envContent)) {
                 throw new Exception('Could not create .env file. Check file permissions.');
             }
+            // H5: Restrict .env file permissions
+            @chmod($envPath, 0600);
             
             // Set up database
             if ($dbConfig['type'] === 'sqlite') {
@@ -418,16 +602,100 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pdo = $testResult['pdo'];
                 
                 // Run complete MySQL schema with data
-                $schemaFile = $rootPath . '/database/complete_mysql_schema.sql';
+                $schemaFile = $rootPath . '/database/schema.mysql.sql';
                 if (file_exists($schemaFile)) {
                     $sql = file_get_contents($schemaFile);
                     if ($sql) {
-                        // Execute each statement separately
-                        $statements = array_filter(array_map('trim', explode(';', $sql)));
-                        foreach ($statements as $statement) {
-                            if (!empty($statement) && !str_starts_with($statement, '--')) {
-                                $pdo->exec($statement . ';');
+                        // Split SQL into statements respecting quoted strings,
+                        // block comments (/* ... */), and line comments (-- ...)
+                        $statements = [];
+                        $current = '';
+                        $inSingleQuote = false;
+                        $inDoubleQuote = false;
+                        $inBlockComment = false;
+                        $inLineComment = false;
+                        $escaped = false;
+                        for ($i = 0, $len = strlen($sql); $i < $len; $i++) {
+                            $ch = $sql[$i];
+                            $next = $i + 1 < $len ? $sql[$i + 1] : '';
+
+                            // Line comment: skip until newline
+                            if ($inLineComment) {
+                                if ($ch === "\n") {
+                                    $inLineComment = false;
+                                    $current .= $ch;
+                                }
+                                continue;
                             }
+
+                            // Block comment handling
+                            if ($inBlockComment) {
+                                if ($ch === '*' && $next === '/') {
+                                    $i++;
+                                    $inBlockComment = false;
+                                    // Preserve token separation after block comment
+                                    if ($current !== '' && !str_ends_with($current, ' ')) {
+                                        $current .= ' ';
+                                    }
+                                }
+                                continue;
+                            }
+
+                            if ($escaped) {
+                                $current .= $ch;
+                                $escaped = false;
+                                continue;
+                            }
+                            if ($ch === '\\') {
+                                $current .= $ch;
+                                $escaped = true;
+                                continue;
+                            }
+
+                            // Enter line comment (-- followed by space/tab/newline/EOF)
+                            if (!$inSingleQuote && !$inDoubleQuote && $ch === '-' && $next === '-') {
+                                $after = $i + 2 < $len ? $sql[$i + 2] : '';
+                                if ($after === ' ' || $after === "\t" || $after === "\r" || $after === "\n" || $after === '') {
+                                    $inLineComment = true;
+                                    $i++;
+                                    continue;
+                                }
+                            }
+
+                            // Enter block comment
+                            if ($ch === '/' && $next === '*' && !$inSingleQuote && !$inDoubleQuote) {
+                                $i++;
+                                $inBlockComment = true;
+                                continue;
+                            }
+
+                            if ($ch === "'" && !$inDoubleQuote) {
+                                $inSingleQuote = !$inSingleQuote;
+                                $current .= $ch;
+                                continue;
+                            }
+                            if ($ch === '"' && !$inSingleQuote) {
+                                $inDoubleQuote = !$inDoubleQuote;
+                                $current .= $ch;
+                                continue;
+                            }
+                            if ($ch === ';' && !$inSingleQuote && !$inDoubleQuote) {
+                                $trimmed = trim($current);
+                                if ($trimmed !== '') {
+                                    $statements[] = $trimmed;
+                                }
+                                $current = '';
+                                continue;
+                            }
+                            $current .= $ch;
+                        }
+                        $trimmed = trim($current);
+                        if ($trimmed !== '') {
+                            $statements[] = $trimmed;
+                        }
+
+                        foreach ($statements as $statement) {
+                            $pdo->exec($statement . ';');
                         }
                     }
                 } else {
@@ -437,16 +705,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             
-            // Create admin user
+            // Create admin user (H4: password already hashed in session)
             $nameParts = explode(' ', $adminData['name'], 2);
             $firstName = $nameParts[0];
             $lastName = $nameParts[1] ?? '';
-            
-            $hashedPassword = password_hash($adminData['password'], PASSWORD_ARGON2ID);
+
             $stmt = $pdo->prepare('INSERT INTO users (email, password_hash, role, is_active, first_name, last_name, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)');
             $stmt->execute([
                 $adminData['email'],
-                $hashedPassword,
+                $adminData['password_hash'],
                 'admin',
                 1,
                 $firstName,
@@ -455,29 +722,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
             
             // Update settings
+            $cacheVal = $settingsData['cache_enabled'] === '1' ? 'true' : 'false';
+            $compressionVal = $settingsData['compression_enabled'] === '1' ? 'true' : 'false';
+
             $settingsToUpdate = [
                 'site.title' => $settingsData['site_title'],
                 'site.description' => $settingsData['site_description'],
                 'site.copyright' => $settingsData['site_copyright'],
                 'site.email' => $settingsData['site_email'],
+                'site.language' => $settingsData['site_language'],
+                'admin.language' => $settingsData['admin_language'],
+                'date.format' => $settingsData['date_format'],
+                'home.template' => $settingsData['home_template'],
+                'gallery.default_template_id' => $settingsData['gallery_template_id'],
+                'performance.cache_enabled' => $cacheVal,
+                'performance.compression_enabled' => $compressionVal,
+                'cache.pages_enabled' => $cacheVal,
+                'cache.compression_enabled' => $compressionVal,
             ];
-            
+
+            // Handle logo
+            if (!empty($settingsData['site_logo'])) {
+                $settingsToUpdate['site.logo'] = $settingsData['site_logo'];
+                $settingsToUpdate['site.logo_type'] = $settingsData['site_logo_type'];
+            }
+
             foreach ($settingsToUpdate as $key => $value) {
-                if (!empty($value)) {
-                    $stmt = $pdo->prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)');
-                    $stmt->execute([$key, $value, date('Y-m-d H:i:s')]);
+                if ($dbConfig['type'] === 'sqlite') {
+                    $stmt = $pdo->prepare('INSERT OR REPLACE INTO settings (`key`, value, updated_at) VALUES (?, ?, ?)');
+                } else {
+                    $stmt = $pdo->prepare('INSERT INTO settings (`key`, value, updated_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = VALUES(updated_at)');
                 }
+                $stmt->execute([$key, $value, date('Y-m-d H:i:s')]);
             }
             
+            // Localize home page texts based on site language (read from JSON _seeds)
+            $langs = getAvailableLanguages();
+            $langCode = $settingsData['site_language'];
+            $localizedSeeds = $langs[$langCode]['seeds'] ?? [];
+            foreach ($localizedSeeds as $key => $value) {
+                if ($dbConfig['type'] === 'sqlite') {
+                    $stmt = $pdo->prepare('INSERT OR REPLACE INTO settings (`key`, value, updated_at) VALUES (?, ?, ?)');
+                } else {
+                    $stmt = $pdo->prepare('INSERT INTO settings (`key`, value, updated_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = VALUES(updated_at)');
+                }
+                $stmt->execute([$key, $value, date('Y-m-d H:i:s')]);
+            }
+
             // Create required directories
             createStorageDirectories($rootPath);
-            
+
             // Create security files
             createSecurityFiles($rootPath);
-            
+
+            // Clear query cache so fresh settings are loaded
+            $cacheDir = $rootPath . '/storage/tmp/query_cache';
+            if (is_dir($cacheDir)) {
+                $files = glob($cacheDir . '/*');
+                if ($files) {
+                    foreach ($files as $file) {
+                        if (is_file($file)) unlink($file);
+                    }
+                }
+            }
+
+            // Mark installation as completed
+            $markerDir = $rootPath . '/storage/tmp';
+            if (!is_dir($markerDir)) {
+                mkdir($markerDir, 0755, true);
+            }
+            file_put_contents($markerDir . '/.installed', date('Y-m-d H:i:s'), LOCK_EX);
+
             // Clear session data
             session_destroy();
-            
+
             $success = true;
             $step = 'complete';
             
@@ -822,7 +1140,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                         <div class="mt-8 pt-6 border-t border-gray-100">
                             <div class="text-center">
                                 <p class="text-sm text-gray-600 mb-4">
-                                    Detected Installation URL: <strong><?= getCurrentUrl() ?></strong>
+                                    Detected Installation URL: <strong><?= htmlspecialchars(getCurrentUrl()) ?></strong>
                                 </p>
                                 
                                 <?php if ($requirementsPassed): ?>
@@ -854,6 +1172,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                         <?php endif; ?>
                         
                         <form method="post" action="installer.php?step=database">
+                            <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrfToken) ?>">
                             <div class="mb-6">
                                 <label class="block text-sm font-medium text-gray-700 mb-3">Database Type</label>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -896,7 +1215,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Host</label>
                                         <input type="text" name="db_host" class="form-input w-full <?= isset($dbErrors['db_host']) ? 'error' : '' ?>" 
-                                               value="<?= htmlspecialchars($dbFormData['host'] ?? 'localhost') ?>" placeholder="localhost">
+                                               value="<?= htmlspecialchars($dbFormData['host'] ?? '127.0.0.1') ?>" placeholder="127.0.0.1">
                                         <?php if (isset($dbErrors['db_host'])): ?>
                                             <div class="text-red-600 text-sm mt-1"><?= $dbErrors['db_host'] ?></div>
                                         <?php endif; ?>
@@ -904,8 +1223,8 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                                     
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Port</label>
-                                        <input type="number" name="db_port" class="form-input w-full" 
-                                               value="<?= htmlspecialchars($dbFormData['port'] ?? '3306') ?>" placeholder="3306">
+                                        <input type="text" name="db_port" class="form-input w-full"
+                                               value="<?= htmlspecialchars((string)($dbFormData['port'] ?? '3306')) ?>" placeholder="3306">
                                     </div>
                                 </div>
                                 
@@ -954,6 +1273,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                         <p class="text-gray-600 mb-8">Create your first admin user account to manage Cimaise.</p>
                         
                         <form method="post" action="installer.php?step=admin">
+                            <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrfToken) ?>">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
@@ -1015,67 +1335,153 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                 <?php elseif ($step === 'settings'): ?>
                     <div class="card p-8">
                         <h2 class="text-2xl font-light text-black mb-6">Site Settings</h2>
-                        <p class="text-gray-600 mb-8">Configure your site's basic information and preferences.</p>
-                        
-                        <form method="post" action="installer.php?step=settings">
+                        <p class="text-gray-600 mb-8">Configure your site's information and preferences.</p>
+
+                        <form method="post" action="installer.php?step=settings" enctype="multipart/form-data">
+                            <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrfToken) ?>">
+                            <!-- Site Identity -->
+                            <h3 class="text-lg font-medium text-gray-900 mb-4"><i class="fas fa-globe mr-2"></i>Site Identity</h3>
+
                             <div class="mb-6">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Site Title</label>
-                                <input type="text" name="site_title" class="form-input w-full <?= isset($settingsErrors['site_title']) ? 'error' : '' ?>" 
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Site Title <span class="text-red-500">*</span></label>
+                                <input type="text" name="site_title" class="form-input w-full <?= isset($settingsErrors['site_title']) ? 'error' : '' ?>"
                                        value="<?= htmlspecialchars($settingsFormData['site_title'] ?? 'My Photography') ?>" placeholder="My Photography" required>
                                 <?php if (isset($settingsErrors['site_title'])): ?>
                                     <div class="text-red-600 text-sm mt-1"><?= $settingsErrors['site_title'] ?></div>
                                 <?php endif; ?>
-                                <div class="text-sm text-gray-500 mt-1">This will appear in the browser title and header</div>
+                                <div class="text-sm text-gray-500 mt-1">Appears in browser title and site header</div>
                             </div>
-                            
+
                             <div class="mb-6">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Site Description</label>
-                                <textarea name="site_description" class="form-input w-full" rows="3" 
+                                <textarea name="site_description" class="form-input w-full" rows="3"
                                           placeholder="A beautiful photography portfolio"><?= htmlspecialchars($settingsFormData['site_description'] ?? 'A beautiful photography portfolio') ?></textarea>
-                                <div class="text-sm text-gray-500 mt-1">A short description for SEO and social media</div>
+                                <div class="text-sm text-gray-500 mt-1">Used for SEO and social media sharing</div>
                             </div>
-                            
+
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Site Logo <span class="text-gray-400">(Optional)</span></label>
+                                <input type="file" name="site_logo" class="form-input w-full" accept="image/png,image/jpeg,image/webp">
+                                <div class="text-sm text-gray-500 mt-1">Upload a logo (PNG, JPEG, or WebP). Leave empty to use site title as text.</div>
+                            </div>
+
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
-                                    <input type="email" name="site_email" class="form-input w-full" 
-                                           value="<?= htmlspecialchars($settingsFormData['site_email'] ?? ($_SESSION['admin_data']['email'] ?? '')) ?>" placeholder="contact@example.com">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Contact Email <span class="text-red-500">*</span></label>
+                                    <input type="email" name="site_email" class="form-input w-full"
+                                           value="<?= htmlspecialchars($settingsFormData['site_email'] ?? ($_SESSION['admin_data']['email'] ?? '')) ?>" placeholder="contact@example.com" required>
                                     <div class="text-sm text-gray-500 mt-1">For contact form submissions</div>
                                 </div>
-                                
+
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
-                                    <select name="timezone" class="form-input w-full">
-                                        <option value="Europe/Rome" <?= ($settingsFormData['timezone'] ?? 'Europe/Rome') === 'Europe/Rome' ? 'selected' : '' ?>>Europe/Rome</option>
-                                        <option value="UTC" <?= ($settingsFormData['timezone'] ?? '') === 'UTC' ? 'selected' : '' ?>>UTC</option>
-                                        <option value="America/New_York" <?= ($settingsFormData['timezone'] ?? '') === 'America/New_York' ? 'selected' : '' ?>>America/New_York</option>
-                                        <option value="America/Los_Angeles" <?= ($settingsFormData['timezone'] ?? '') === 'America/Los_Angeles' ? 'selected' : '' ?>>America/Los_Angeles</option>
-                                        <option value="Europe/London" <?= ($settingsFormData['timezone'] ?? '') === 'Europe/London' ? 'selected' : '' ?>>Europe/London</option>
-                                        <option value="Europe/Paris" <?= ($settingsFormData['timezone'] ?? '') === 'Europe/Paris' ? 'selected' : '' ?>>Europe/Paris</option>
-                                        <option value="Europe/Berlin" <?= ($settingsFormData['timezone'] ?? '') === 'Europe/Berlin' ? 'selected' : '' ?>>Europe/Berlin</option>
-                                        <option value="Asia/Tokyo" <?= ($settingsFormData['timezone'] ?? '') === 'Asia/Tokyo' ? 'selected' : '' ?>>Asia/Tokyo</option>
-                                        <option value="Australia/Sydney" <?= ($settingsFormData['timezone'] ?? '') === 'Australia/Sydney' ? 'selected' : '' ?>>Australia/Sydney</option>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Copyright Notice</label>
+                                    <input type="text" name="site_copyright" class="form-input w-full"
+                                           value="<?= htmlspecialchars($settingsFormData['site_copyright'] ?? '© {year} My Photography') ?>" placeholder="© {year} My Photography">
+                                    <div class="text-sm text-gray-500 mt-1">Use <code class="bg-gray-100 px-1 rounded">{year}</code> for current year</div>
+                                </div>
+                            </div>
+
+                            <!-- Language & Format -->
+                            <h3 class="text-lg font-medium text-gray-900 mb-4 mt-8"><i class="fas fa-language mr-2"></i>Language &amp; Format</h3>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Site Language</label>
+                                    <select name="site_language" class="form-input w-full">
+                                        <?php foreach ($availableLanguages as $code => $lang): ?>
+                                            <option value="<?= htmlspecialchars($code) ?>" <?= ($settingsFormData['site_language'] ?? 'en') === $code ? 'selected' : '' ?>><?= htmlspecialchars($lang['label']) ?></option>
+                                        <?php endforeach; ?>
                                     </select>
+                                    <div class="text-sm text-gray-500 mt-1">Frontend language</div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Admin Language</label>
+                                    <select name="admin_language" class="form-input w-full">
+                                        <?php foreach ($availableLanguages as $code => $lang): ?>
+                                            <option value="<?= htmlspecialchars($code) ?>" <?= ($settingsFormData['admin_language'] ?? 'en') === $code ? 'selected' : '' ?>><?= htmlspecialchars($lang['label']) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <div class="text-sm text-gray-500 mt-1">Admin panel language</div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Date Format</label>
+                                    <select name="date_format" class="form-input w-full">
+                                        <option value="Y-m-d" <?= ($settingsFormData['date_format'] ?? 'Y-m-d') === 'Y-m-d' ? 'selected' : '' ?>><?= date('Y-m-d') ?> (ISO)</option>
+                                        <option value="d-m-Y" <?= ($settingsFormData['date_format'] ?? '') === 'd-m-Y' ? 'selected' : '' ?>><?= date('d-m-Y') ?> (European)</option>
+                                        <option value="m/d/Y" <?= ($settingsFormData['date_format'] ?? '') === 'm/d/Y' ? 'selected' : '' ?>><?= date('m/d/Y') ?> (US)</option>
+                                    </select>
+                                    <div class="text-sm text-gray-500 mt-1">How dates are displayed</div>
                                 </div>
                             </div>
-                            
+
                             <div class="mb-6">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Copyright Notice</label>
-                                <input type="text" name="site_copyright" class="form-input w-full"
-                                       value="<?= htmlspecialchars($settingsFormData['site_copyright'] ?? '© {year} My Photography') ?>" placeholder="© {year} My Photography">
-                                <div class="text-sm text-gray-500 mt-1">Will appear in the site footer. Use <code>{year}</code> for current year.</div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
+                                <select name="timezone" class="form-input w-full">
+                                    <option value="Europe/Rome" <?= ($settingsFormData['timezone'] ?? 'Europe/Rome') === 'Europe/Rome' ? 'selected' : '' ?>>Europe/Rome</option>
+                                    <option value="UTC" <?= ($settingsFormData['timezone'] ?? '') === 'UTC' ? 'selected' : '' ?>>UTC</option>
+                                    <option value="America/New_York" <?= ($settingsFormData['timezone'] ?? '') === 'America/New_York' ? 'selected' : '' ?>>America/New York</option>
+                                    <option value="America/Los_Angeles" <?= ($settingsFormData['timezone'] ?? '') === 'America/Los_Angeles' ? 'selected' : '' ?>>America/Los Angeles</option>
+                                    <option value="Europe/London" <?= ($settingsFormData['timezone'] ?? '') === 'Europe/London' ? 'selected' : '' ?>>Europe/London</option>
+                                    <option value="Europe/Paris" <?= ($settingsFormData['timezone'] ?? '') === 'Europe/Paris' ? 'selected' : '' ?>>Europe/Paris</option>
+                                    <option value="Europe/Berlin" <?= ($settingsFormData['timezone'] ?? '') === 'Europe/Berlin' ? 'selected' : '' ?>>Europe/Berlin</option>
+                                    <option value="Asia/Tokyo" <?= ($settingsFormData['timezone'] ?? '') === 'Asia/Tokyo' ? 'selected' : '' ?>>Asia/Tokyo</option>
+                                    <option value="Australia/Sydney" <?= ($settingsFormData['timezone'] ?? '') === 'Australia/Sydney' ? 'selected' : '' ?>>Australia/Sydney</option>
+                                </select>
                             </div>
-                            
-                            <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6">
-                                <div class="flex items-start">
-                                    <i class="fas fa-lightbulb mr-2 mt-0.5"></i>
-                                    <div>
-                                        <div class="font-medium">Ready to Go</div>
-                                        <div class="text-sm">The installer will use the pre-configured template database with default categories, templates, and settings to get you started quickly.</div>
-                                    </div>
+
+                            <!-- Templates -->
+                            <h3 class="text-lg font-medium text-gray-900 mb-4 mt-8"><i class="fas fa-palette mr-2"></i>Default Templates</h3>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Homepage Template</label>
+                                    <select name="home_template" class="form-input w-full">
+                                        <option value="classic" <?= ($settingsFormData['home_template'] ?? 'classic') === 'classic' ? 'selected' : '' ?>>Classic (Albums grid)</option>
+                                        <option value="masonry" <?= ($settingsFormData['home_template'] ?? '') === 'masonry' ? 'selected' : '' ?>>Masonry (Photo wall)</option>
+                                        <option value="hero" <?= ($settingsFormData['home_template'] ?? '') === 'hero' ? 'selected' : '' ?>>Hero (Full-screen hero + albums)</option>
+                                        <option value="gallery" <?= ($settingsFormData['home_template'] ?? '') === 'gallery' ? 'selected' : '' ?>>Gallery (Scrollable photo gallery)</option>
+                                    </select>
+                                    <div class="text-sm text-gray-500 mt-1">Layout for the homepage</div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Default Gallery Template</label>
+                                    <select name="gallery_template_id" class="form-input w-full">
+                                        <option value="1" <?= ($settingsFormData['gallery_template_id'] ?? '4') === '1' ? 'selected' : '' ?>>Grid Classica</option>
+                                        <option value="2" <?= ($settingsFormData['gallery_template_id'] ?? '4') === '2' ? 'selected' : '' ?>>Masonry Portfolio</option>
+                                        <option value="3" <?= ($settingsFormData['gallery_template_id'] ?? '4') === '3' ? 'selected' : '' ?>>Magazine Split</option>
+                                        <option value="4" <?= ($settingsFormData['gallery_template_id'] ?? '4') === '4' ? 'selected' : '' ?>>Masonry Full</option>
+                                        <option value="5" <?= ($settingsFormData['gallery_template_id'] ?? '4') === '5' ? 'selected' : '' ?>>Grid Compatta</option>
+                                        <option value="6" <?= ($settingsFormData['gallery_template_id'] ?? '4') === '6' ? 'selected' : '' ?>>Grid Ampia</option>
+                                        <option value="7" <?= ($settingsFormData['gallery_template_id'] ?? '4') === '7' ? 'selected' : '' ?>>Gallery Wall Scroll</option>
+                                    </select>
+                                    <div class="text-sm text-gray-500 mt-1">Default template for new album galleries</div>
                                 </div>
                             </div>
-                            
+
+                            <!-- Performance -->
+                            <h3 class="text-lg font-medium text-gray-900 mb-4 mt-8"><i class="fas fa-tachometer-alt mr-2"></i>Performance</h3>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <label class="flex items-start gap-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                                    <input type="checkbox" name="cache_enabled" value="1" class="mt-0.5" <?= ($settingsFormData['cache_enabled'] ?? '1') ? 'checked' : '' ?>>
+                                    <div>
+                                        <div class="font-medium text-gray-900">Enable Caching</div>
+                                        <div class="text-sm text-gray-500">Cache pages for better performance (recommended)</div>
+                                    </div>
+                                </label>
+
+                                <label class="flex items-start gap-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                                    <input type="checkbox" name="compression_enabled" value="1" class="mt-0.5" <?= ($settingsFormData['compression_enabled'] ?? '1') ? 'checked' : '' ?>>
+                                    <div>
+                                        <div class="font-medium text-gray-900">Enable Compression</div>
+                                        <div class="text-sm text-gray-500">Compress responses for faster loading (recommended)</div>
+                                    </div>
+                                </label>
+                            </div>
+
                             <div class="flex justify-between pt-6">
                                 <a href="installer.php?step=admin" class="btn-secondary px-6 py-3 rounded-lg font-medium inline-flex items-center">
                                     <i class="fas fa-arrow-left mr-2"></i>Back
@@ -1134,7 +1540,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                                     <div class="bg-gray-50 p-4 rounded-lg">
                                         <div class="text-sm">
                                             <div><strong>Title:</strong> <?= htmlspecialchars($_SESSION['settings_data']['site_title'] ?? '') ?></div>
-                                            <div><strong>URL:</strong> <?= getCurrentUrl() ?></div>
+                                            <div><strong>URL:</strong> <?= htmlspecialchars(getCurrentUrl()) ?></div>
                                             <div><strong>Timezone:</strong> <?= htmlspecialchars($_SESSION['settings_data']['timezone'] ?? 'Europe/Rome') ?></div>
                                         </div>
                                     </div>
@@ -1166,6 +1572,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                             </div>
                             
                             <form method="post" action="installer.php?step=install">
+                                <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrfToken) ?>">
                                 <div class="flex justify-between">
                                     <a href="installer.php?step=settings" class="btn-secondary px-6 py-3 rounded-lg font-medium inline-flex items-center">
                                         <i class="fas fa-arrow-left mr-2"></i>Back
@@ -1211,11 +1618,11 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                         </div>
                         
                         <div class="space-y-4">
-                            <a href="<?= getCurrentUrl() ?>" class="btn-primary px-8 py-4 rounded-lg font-medium inline-flex items-center text-lg">
+                            <a href="<?= htmlspecialchars(getCurrentUrl()) ?>" class="btn-primary px-8 py-4 rounded-lg font-medium inline-flex items-center text-lg">
                                 <i class="fas fa-home mr-2"></i>Visit Your Site
                             </a>
                             <div>
-                                <a href="<?= getCurrentUrl() ?>/admin/login" class="btn-secondary px-6 py-3 rounded-lg font-medium inline-flex items-center">
+                                <a href="<?= htmlspecialchars(getCurrentUrl()) ?>/admin/login" class="btn-secondary px-6 py-3 rounded-lg font-medium inline-flex items-center">
                                     <i class="fas fa-sign-in-alt mr-2"></i>Admin Login
                                 </a>
                             </div>

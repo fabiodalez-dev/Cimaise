@@ -7,10 +7,12 @@
 class ImageRating
 {
     private PDO $db;
+    private bool $isSqlite;
 
     public function __construct(PDO $db)
     {
         $this->db = $db;
+        $this->isSqlite = $db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite';
     }
 
     /**
@@ -18,15 +20,29 @@ class ImageRating
      */
     public function createTable(): void
     {
-        $sql = "
-            CREATE TABLE IF NOT EXISTS plugin_image_ratings (
-                image_id INTEGER PRIMARY KEY,
-                rating INTEGER NOT NULL CHECK(rating >= 0 AND rating <= 5),
-                rated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                rated_by INTEGER NULL,
-                FOREIGN KEY (image_id) REFERENCES images(id) ON DELETE CASCADE
-            )
-        ";
+        if ($this->isSqlite) {
+            $sql = "
+                CREATE TABLE IF NOT EXISTS plugin_image_ratings (
+                    image_id INTEGER NOT NULL,
+                    rating INTEGER NOT NULL CHECK(rating >= 0 AND rating <= 5),
+                    rated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    rated_by INTEGER NULL,
+                    UNIQUE(image_id, rated_by),
+                    FOREIGN KEY (image_id) REFERENCES images(id) ON DELETE CASCADE
+                )
+            ";
+        } else {
+            $sql = "
+                CREATE TABLE IF NOT EXISTS plugin_image_ratings (
+                    image_id INT NOT NULL,
+                    rating INT NOT NULL,
+                    rated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    rated_by INT NULL,
+                    UNIQUE KEY uniq_image_rated_by (image_id, rated_by),
+                    FOREIGN KEY (image_id) REFERENCES images(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            ";
+        }
 
         try {
             $this->db->exec($sql);
@@ -61,13 +77,18 @@ class ImageRating
         }
 
         try {
-            $sql = "
-                INSERT OR REPLACE INTO plugin_image_ratings (image_id, rating, rated_by, rated_at)
-                VALUES (?, ?, ?, datetime('now'))
-            ";
-
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$imageId, $rating, $userId]);
+            if ($this->isSqlite) {
+                $sql = "INSERT OR REPLACE INTO plugin_image_ratings (image_id, rating, rated_by, rated_at)
+                    VALUES (?, ?, ?, datetime('now'))";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([$imageId, $rating, $userId]);
+            } else {
+                $sql = "INSERT INTO plugin_image_ratings (image_id, rating, rated_by, rated_at)
+                    VALUES (?, ?, ?, NOW())
+                    ON DUPLICATE KEY UPDATE rating = VALUES(rating), rated_by = VALUES(rated_by), rated_at = NOW()";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([$imageId, $rating, $userId]);
+            }
 
             return true;
         } catch (PDOException $e) {
@@ -121,8 +142,8 @@ class ImageRating
         $distribution = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return [
-            'average' => round($stats['avg'] ?? 0, 2),
-            'total_rated' => $stats['total'] ?? 0,
+            'average' => round((float)($stats['avg'] ?? 0), 2),
+            'total_rated' => (int)($stats['total'] ?? 0),
             'distribution' => $distribution
         ];
     }

@@ -28,8 +28,13 @@
     ]
   },
   "resources/app.css": {
-    "file": "app-BG_6bH0g.css",
+    "file": "app-CN1l53Sc.css",
     "src": "resources/app.css",
+    "isEntry": true
+  },
+  "resources/frontend.css": {
+    "file": "frontend-C6W0wfxl.css",
+    "src": "resources/frontend.css",
     "isEntry": true
   },
   "resources/js/hero.js": {
@@ -52,7 +57,7 @@
     ]
   },
   "resources/js/home-masonry.js": {
-    "file": "js/home-masonry-Bgq67z9J.js",
+    "file": "js/home-masonry-B7wIfHcf.js",
     "name": "js/home-masonry",
     "src": "resources/js/home-masonry.js",
     "isEntry": true,

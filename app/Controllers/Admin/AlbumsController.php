@@ -39,7 +39,7 @@ class AlbumsController extends BaseController
      * @param string|null $oldAlbumSlug Previous slug (for rename cases) to also invalidate
      * @param int|null $albumId Album ID for tag-based invalidation
      */
-    private function invalidatePageCaches(?string $albumSlug = null, ?string $oldAlbumSlug = null, ?int $albumId = null): void
+    private function invalidatePageCaches(?string $albumSlug = null, ?string $oldAlbumSlug = null, ?int $albumId = null, bool $warmAlbum = true): void
     {
         try {
             $settings = new SettingsService($this->db);
@@ -49,7 +49,27 @@ class AlbumsController extends BaseController
 
             // Use tag-based invalidation for efficient bulk clearing
             if ($albumId !== null) {
-                $this->pageCacheService->invalidateByTags(CacheTags::albumRelated($albumId));
+                // Collect all categories from pivot table (multi-category support)
+                $categoryIds = [];
+                try {
+                    $pivotStmt = $this->db->pdo()->prepare('SELECT category_id FROM album_category WHERE album_id = ?');
+                    $pivotStmt->execute([$albumId]);
+                    $categoryIds = array_map('intval', $pivotStmt->fetchAll(\PDO::FETCH_COLUMN) ?: []);
+                } catch (\Throwable) {
+                    // Schema legacy: pivot table may not exist yet
+                }
+                // Fallback to legacy albums.category_id if pivot is empty
+                if ($categoryIds === []) {
+                    $fallbackStmt = $this->db->pdo()->prepare('SELECT category_id FROM albums WHERE id = ?');
+                    $fallbackStmt->execute([$albumId]);
+                    $fbId = (int)($fallbackStmt->fetchColumn() ?: 0);
+                    if ($fbId > 0) { $categoryIds[] = $fbId; }
+                }
+                $tags = CacheTags::albumRelated($albumId);
+                foreach ($categoryIds as $cid) {
+                    if ($cid > 0) { $tags[] = CacheTags::category($cid); }
+                }
+                $this->pageCacheService->invalidateByTags(array_unique($tags));
             } else {
                 // Fallback to direct invalidation if no album ID
                 $this->pageCacheService->invalidate('home');
@@ -72,13 +92,20 @@ class AlbumsController extends BaseController
                 $warmService = new CacheWarmService($this->db);
                 $warmService->warmHome();
                 $warmService->warmGalleries();
-                if ($albumSlug !== null) {
+                if ($warmAlbum && $albumSlug !== null) {
                     $warmService->warmAlbum($albumSlug);
                 }
             }
         } catch (\Throwable) {
             // Cache invalidation/warming failure should not break admin operations
         }
+    }
+
+    private function getAlbumSlug(int $albumId): ?string
+    {
+        $stmt = $this->db->pdo()->prepare('SELECT slug FROM albums WHERE id = ?');
+        $stmt->execute([$albumId]);
+        return $stmt->fetchColumn() ?: null;
     }
 
     public function index(Request $request, Response $response): Response
@@ -273,6 +300,9 @@ class AlbumsController extends BaseController
         $published_at = $is_published ? date('Y-m-d H:i:s') : null;
         $pdo = $this->db->pdo();
 
+        // H7: Wrap slug check + album creation + pivot inserts in transaction
+        $pdo->beginTransaction();
+
         // Ensure unique slug by appending numeric suffix if needed
         $baseSlug = $slug;
         $counter = 2;
@@ -392,8 +422,10 @@ class AlbumsController extends BaseController
                 }
             }
 
+            $pdo->commit();
+
             // Invalidate page caches
-            $this->invalidatePageCaches($slug);
+            $this->invalidatePageCaches($slug, null, $albumId);
 
             // If client expects JSON, return album id for AJAX flows (e.g., upload on create)
             $accept = $request->getHeaderLine('Accept');
@@ -405,6 +437,7 @@ class AlbumsController extends BaseController
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_created')];
             return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
         } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
             $accept = $request->getHeaderLine('Accept');
             if (str_contains($accept, 'application/json')) {
                 $response->getBody()->write(json_encode(['ok'=>false,'error'=>$e->getMessage()]));
@@ -621,6 +654,7 @@ class AlbumsController extends BaseController
         $params[':album'] = $albumId;
         $sql = 'UPDATE images SET ' . implode(', ', $setParts) . ' WHERE id = :id AND album_id = :album';
         $pdo->prepare($sql)->execute($params);
+        $this->invalidatePageCaches($this->getAlbumSlug($albumId), null, $albumId);
 
         $accept = $request->getHeaderLine('Accept');
         if (str_contains($accept, 'application/json')) {
@@ -641,8 +675,11 @@ class AlbumsController extends BaseController
             return $response->withHeader('Location', $this->redirect('/admin/albums/'.$id.'/edit'))->withStatus(302);
         }
 
-        // Get old album data to detect protection status changes (NSFW or password) and slug changes
+        // H7: Wrap old album read + slug check + update + pivot sync in transaction
         $pdo = $this->db->pdo();
+        $pdo->beginTransaction();
+
+        // Get old album data to detect protection status changes (NSFW or password) and slug changes
         $oldAlbum = $pdo->prepare('SELECT slug, is_nsfw, password_hash FROM albums WHERE id = ?');
         $oldAlbum->execute([$id]);
         $oldAlbumData = $oldAlbum->fetch(\PDO::FETCH_ASSOC) ?: [];
@@ -705,12 +742,12 @@ class AlbumsController extends BaseController
         }
         
         if ($title === '' || $category_id <= 0) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.title_category_required')];
             return $response->withHeader('Location', $this->redirect('/admin/albums/'.$id.'/edit'))->withStatus(302);
         }
         $slug = $slug !== '' ? \App\Support\Str::slug($slug) : \App\Support\Str::slug($title);
         $published_at = $is_published ? (date('Y-m-d H:i:s')) : null;
-        $pdo = $this->db->pdo();
 
         // Ensure unique slug by appending numeric suffix if needed (exclude current album)
         $baseSlug = $slug;
@@ -878,6 +915,8 @@ class AlbumsController extends BaseController
                 }
             }
 
+            $pdo->commit();
+
             // Handle blur variant generation when protection status changes (NSFW or password)
             // Logic: clearPassword takes precedence - if set, password is cleared regardless of passwordRaw
             $newHasPassword = !$clearPassword && ($passwordRaw !== '' || $oldHasPassword);
@@ -905,10 +944,11 @@ class AlbumsController extends BaseController
             }
 
             // Invalidate page caches (pass old slug if renamed to prevent orphaned cache)
-            $this->invalidatePageCaches($slug, $oldAlbumSlug);
+            $this->invalidatePageCaches($slug, $oldAlbumSlug, $id);
 
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_updated')];
         } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
         }
         return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
@@ -939,11 +979,17 @@ class AlbumsController extends BaseController
         $stmt->execute([$id]);
         $images = $stmt->fetchAll();
 
+        $imageIds = [];
         foreach ($images as $img) {
             $files[] = $img['original_path'];
-            // Get variant paths for this image
-            $vstmt = $pdo->prepare('SELECT path FROM image_variants WHERE image_id = ?');
-            $vstmt->execute([(int)$img['id']]);
+            $imageIds[] = (int)$img['id'];
+        }
+
+        // H6: Batch variant query instead of N+1
+        if (!empty($imageIds)) {
+            $placeholders = implode(',', array_fill(0, count($imageIds), '?'));
+            $vstmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id IN ({$placeholders})");
+            $vstmt->execute($imageIds);
             foreach ($vstmt->fetchAll() as $v) {
                 $files[] = $v['path'];
             }
@@ -952,10 +998,10 @@ class AlbumsController extends BaseController
         // Delete album (CASCADE will handle images and image_variants records)
         $stmt = $pdo->prepare('DELETE FROM albums WHERE id=:id');
         try {
-            $stmt->execute([':id'=>$id]);
+            // Invalidate before DELETE so category pivot data is still readable
+            $this->invalidatePageCaches($albumSlug, null, $id, false);
 
-            // Invalidate page caches
-            $this->invalidatePageCaches($albumSlug);
+            $stmt->execute([':id'=>$id]);
 
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_deleted')];
 
@@ -993,7 +1039,7 @@ class AlbumsController extends BaseController
         $stmt->execute([':id'=>$id]);
 
         // Invalidate page caches
-        $this->invalidatePageCaches($albumSlug);
+        $this->invalidatePageCaches($albumSlug, null, $id);
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_published')];
         return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
@@ -1018,8 +1064,8 @@ class AlbumsController extends BaseController
         $stmt = $pdo->prepare('UPDATE albums SET is_published=0, published_at=NULL WHERE id=:id');
         $stmt->execute([':id'=>$id]);
 
-        // Invalidate page caches
-        $this->invalidatePageCaches($albumSlug);
+        // Invalidate page caches (no warm — album is unpublished)
+        $this->invalidatePageCaches($albumSlug, null, $id, false);
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_unpublished')];
         return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
@@ -1048,6 +1094,7 @@ class AlbumsController extends BaseController
         }
         $stmt = $this->db->pdo()->prepare('UPDATE albums SET cover_image_id=:img WHERE id=:id');
         $stmt->execute([':img'=>$imageId, ':id'=>$albumId]);
+        $this->invalidatePageCaches($this->getAlbumSlug($albumId), null, $albumId);
         $accept = $request->getHeaderLine('Accept');
         if (str_contains($accept, 'application/json')) {
             $response->getBody()->write(json_encode(['ok'=>true]));
@@ -1076,6 +1123,7 @@ class AlbumsController extends BaseController
                 $stmt->execute([':s'=>$sort++, ':id'=>(int)$imageId, ':a'=>$albumId]);
             }
             $pdo->commit();
+            $this->invalidatePageCaches($this->getAlbumSlug($albumId), null, $albumId);
             $payload = json_encode(['ok'=>true]);
             $response->getBody()->write($payload);
             return $response->withHeader('Content-Type','application/json');
@@ -1106,6 +1154,33 @@ class AlbumsController extends BaseController
             $stmt = $pdo->prepare('UPDATE albums SET sort_order=:s WHERE id=:id');
             foreach ($ids as $id) { $stmt->execute([':s'=>$sort++, ':id'=>$id]); }
             $pdo->commit();
+            // Batch invalidate: collect all tags once, then invalidate in a single pass
+            // Avoids N redundant HOME+GALLERIES invalidations
+            try {
+                $settings = new SettingsService($this->db);
+                if ($this->pageCacheService === null) {
+                    $this->pageCacheService = new PageCacheService($settings, $this->db);
+                }
+                $allTags = [];
+                $pivotStmt = $this->db->pdo()->prepare('SELECT category_id FROM album_category WHERE album_id = ?');
+                $fallbackStmt = $this->db->pdo()->prepare('SELECT category_id FROM albums WHERE id = ?');
+                foreach ($ids as $id) {
+                    $allTags = array_merge($allTags, CacheTags::albumRelated($id));
+                    $pivotStmt->execute([$id]);
+                    $catIds = array_map('intval', $pivotStmt->fetchAll(\PDO::FETCH_COLUMN) ?: []);
+                    if ($catIds === []) {
+                        $fallbackStmt->execute([$id]);
+                        $fbId = (int) ($fallbackStmt->fetchColumn() ?: 0);
+                        if ($fbId > 0) { $catIds[] = $fbId; }
+                    }
+                    foreach ($catIds as $cid) {
+                        if ($cid > 0) { $allTags[] = CacheTags::category($cid); }
+                    }
+                }
+                $this->pageCacheService->invalidateByTags(array_unique($allTags));
+            } catch (\Throwable $e) {
+                error_log('Cache invalidation failed in reorderList: ' . $e->getMessage());
+            }
             $response->getBody()->write(json_encode(['ok'=>true]));
             return $response->withHeader('Content-Type','application/json');
         } catch (\Throwable $e) {
@@ -1139,6 +1214,7 @@ class AlbumsController extends BaseController
                 }
             }
             $pdo->commit();
+            $this->invalidatePageCaches($this->getAlbumSlug($albumId), null, $albumId);
             $response->getBody()->write(json_encode(['ok'=>true]));
             return $response->withHeader('Content-Type','application/json');
         } catch (\Throwable $e) {
@@ -1179,6 +1255,7 @@ class AlbumsController extends BaseController
             $pdo->rollBack();
             return $response->withStatus(500);
         }
+        $this->invalidatePageCaches($this->getAlbumSlug($albumId), null, $albumId);
         // try unlink files (best-effort)
         $root = dirname(__DIR__, 2);
         @unlink($root . $row['original_path']);
@@ -1225,6 +1302,7 @@ class AlbumsController extends BaseController
             $pdo->rollBack();
             return $response->withStatus(500);
         }
+        $this->invalidatePageCaches($this->getAlbumSlug($albumId), null, $albumId);
         $root = dirname(__DIR__, 2);
         foreach ($files as $p) {
             $abs = str_starts_with((string)$p, '/media/') ? ($root . '/public' . $p) : ($root . $p);
@@ -1318,6 +1396,9 @@ class AlbumsController extends BaseController
                 ]);
             }
         }
+
+        // Invalidate page caches — new image added to album
+        $this->invalidatePageCaches($this->getAlbumSlug($albumId), null, $albumId);
 
         $response->getBody()->write(json_encode(['ok'=>true,'id'=>$newId]));
         return $response->withHeader('Content-Type','application/json');
