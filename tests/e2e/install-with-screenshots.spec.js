@@ -6,7 +6,6 @@ const BASE = 'http://localhost:8000';
 const SCREENSHOTS = 'test-results/screenshots';
 
 test.describe.serial('Full Install with Screenshots', () => {
-  test.beforeAll(() => { skipIfInstalled(test); });
   /** @type {import('@playwright/test').Browser} */
   let browser;
   /** @type {import('@playwright/test').BrowserContext} */
@@ -14,15 +13,18 @@ test.describe.serial('Full Install with Screenshots', () => {
   /** @type {import('@playwright/test').Page} */
   let page;
 
+  // Skip check + browser launch in the same beforeAll, see the comment on
+  // full-install-test.spec.js for the rationale.
   test.beforeAll(async () => {
+    skipIfInstalled(test);
     browser = await chromium.launch();
     context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     page = await context.newPage();
   });
 
   test.afterAll(async () => {
-    await context.close();
-    await browser.close();
+    if (context) await context.close();
+    if (browser) await browser.close();
   });
 
   test('Step 1: Homepage redirects to installer', async () => {

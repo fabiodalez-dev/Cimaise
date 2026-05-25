@@ -49,8 +49,11 @@ test('Screenshot masonry home with demo data', async ({ page }) => {
 
 // --- Galleries page ---
 test('Screenshot galleries full page with demo data', async ({ page }) => {
-  test.setTimeout(30000);
-  await page.goto('http://localhost:8000/galleries');
+  // The full e2e suite seeds ~100+ test albums by the time this screenshot
+  // test runs; the /galleries render + lazy-image waterfall can exceed the
+  // default 30s budget on a busy local dev box.
+  test.setTimeout(90000);
+  await page.goto('http://localhost:8000/galleries', { timeout: 30000 });
   await page.waitForTimeout(2000);
   await loadAllImages(page);
   await page.screenshot({ path: 'test-results/galleries-demo-full.png', fullPage: true });

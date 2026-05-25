@@ -146,7 +146,22 @@ class UploadController extends BaseController
             // For non-FPM environments, VariantMaintenanceService cron will generate variants.
 
             if (function_exists('fastcgi_finish_request') && !empty($meta['id'])) {
-                // Send response to client immediately
+                // Slim's ResponseEmitter only runs after this handler returns, so calling
+                // fastcgi_finish_request() here would close the FastCGI connection BEFORE
+                // the JSON body is emitted — Apache logs HTTP 200 with Content-Length: 0
+                // and the client never sees the payload. Emit headers + body manually so
+                // the client has the full response, then close the FCGI connection.
+                if (!headers_sent()) {
+                    http_response_code($response->getStatusCode());
+                    foreach ($response->getHeaders() as $name => $values) {
+                        $first = true;
+                        foreach ($values as $value) {
+                            header($name . ': ' . $value, $first);
+                            $first = false;
+                        }
+                    }
+                }
+                echo $json;
                 fastcgi_finish_request();
 
                 // BACKGROUND WORK: Now generate variants (client already has response)
@@ -173,6 +188,13 @@ class UploadController extends BaseController
                         ], 'upload');
                     }
                 }
+                // After fastcgi_finish_request() the FCGI connection is already closed.
+                // Return an EMPTY response so Slim's ResponseEmitter doesn't try to
+                // emit headers/body again — those would either fail (headers already
+                // sent) or duplicate the JSON we just wrote. The body stream is
+                // replaced with an empty in-memory one to neuter the emitter.
+                return $response
+                    ->withBody(new \Slim\Psr7\Stream(fopen('php://temp', 'r+')));
             }
             // For non-FPM: Response sent immediately, variants generated later by cron
 

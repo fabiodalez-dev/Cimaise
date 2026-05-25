@@ -5,8 +5,6 @@ import { skipIfInstalled } from './_install-guard.js';
 const BASE = 'http://localhost:8000';
 
 test.describe.serial('Full Cimaise Install + NSFW Test', () => {
-  test.beforeAll(() => { skipIfInstalled(test); });
-
   /** @type {import('@playwright/test').Browser} */
   let browser;
   /** @type {import('@playwright/test').BrowserContext} */
@@ -14,15 +12,21 @@ test.describe.serial('Full Cimaise Install + NSFW Test', () => {
   /** @type {import('@playwright/test').Page} */
   let page;
 
+  // Skip check + browser launch must happen in the SAME beforeAll: when
+  // skipIfInstalled() calls test.skip(true, ...), Playwright marks
+  // subsequent hooks as skipped — but the browser/context/page locals
+  // would remain undefined and any test that still runs (under
+  // PLAYWRIGHT_RESET_INSTALL=1) would TypeError on .newContext().
   test.beforeAll(async () => {
+    skipIfInstalled(test);
     browser = await chromium.launch();
     context = await browser.newContext();
     page = await context.newPage();
   });
 
   test.afterAll(async () => {
-    await context.close();
-    await browser.close();
+    if (context) await context.close();
+    if (browser) await browser.close();
   });
 
   test('Step 1: Installer requirements page', async () => {
