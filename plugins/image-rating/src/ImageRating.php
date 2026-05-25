@@ -198,12 +198,18 @@ class ImageRating
      */
     private function migrateSchemaMysql(): void
     {
+        // Detect the legacy schema: image_id is itself the PRIMARY KEY (no
+        // separate `id` AUTO_INCREMENT column). A modern schema either has
+        // `id` AUTO_INCREMENT PRIMARY KEY (existing installs) or no PK and a
+        // composite UNIQUE on (image_id, rated_by) (fresh CREATE TABLE).
         $stmt = $this->db->query("
             SELECT COUNT(*) AS c
             FROM information_schema.STATISTICS
             WHERE TABLE_SCHEMA = DATABASE()
               AND TABLE_NAME = 'plugin_image_ratings'
               AND INDEX_NAME = 'PRIMARY'
+              AND COLUMN_NAME = 'image_id'
+              AND SEQ_IN_INDEX = 1
         ");
         $hasLegacyPk = ((int)($stmt->fetch(PDO::FETCH_ASSOC)['c'] ?? 0)) > 0;
 
@@ -220,17 +226,32 @@ class ImageRating
         }
         $ratedByNullable = strtoupper($row['IS_NULLABLE']) === 'YES';
 
+        // Detect composite UNIQUE on (image_id, rated_by) by column coverage,
+        // not by literal name — projects may have named the index differently
+        // (e.g. uniq_plugin_image_ratings_image_rated_by) and the legacy
+        // INDEX_NAME = 'uniq_image_rated_by' check missed those.
         $stmt = $this->db->query("
-            SELECT COUNT(*) AS c
+            SELECT INDEX_NAME
             FROM information_schema.STATISTICS
             WHERE TABLE_SCHEMA = DATABASE()
               AND TABLE_NAME = 'plugin_image_ratings'
-              AND INDEX_NAME = 'uniq_image_rated_by'
+              AND NON_UNIQUE = 0
+              AND INDEX_NAME <> 'PRIMARY'
+              AND COLUMN_NAME IN ('image_id', 'rated_by')
+            GROUP BY INDEX_NAME
+            HAVING COUNT(*) = 2
         ");
-        $hasCompositeUnique = ((int)($stmt->fetch(PDO::FETCH_ASSOC)['c'] ?? 0)) > 0;
+        $hasCompositeUnique = $stmt->fetch(PDO::FETCH_ASSOC) !== false;
 
-        if (!$hasLegacyPk && !$ratedByNullable && $hasCompositeUnique) {
-            return; // already current
+        if (!$hasLegacyPk && $hasCompositeUnique) {
+            // Schema is already current (or modern with extra `id` AUTO_INCREMENT
+            // PK on top of the composite UNIQUE — that's fine, no migration
+            // needed). rated_by nullability is a soft drift we don't tighten
+            // automatically here because doing so requires DROP/MODIFY which
+            // collides with AUTO_INCREMENT PRIMARY KEY on installs that have
+            // an `id` column. Future option: a migration tool with explicit
+            // operator opt-in.
+            return;
         }
 
         // Step (a): consolidate NULL rated_by + collapse duplicates BEFORE the
