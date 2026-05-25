@@ -49,7 +49,11 @@ if (file_exists($markerPath) && file_exists($envPath)) {
                     if ($line === '' || str_starts_with($line, '#')) continue;
                     if (str_contains($line, '=')) {
                         [$key, $val] = explode('=', $line, 2);
-                        $envVars[trim($key)] = trim($val, " \t\n\r\0\x0B\"'");
+                        // F018 follow-up: values are written via envEscape() (quoted +
+                        // backslash-escaped). Use envUnescape() so DB_CONNECTION,
+                        // DB_HOST, credentials, etc. are compared/used as the original
+                        // raw values rather than their on-disk quoted+escaped form.
+                        $envVars[trim($key)] = envUnescape($val);
                     }
                 }
                 $dbConn = $envVars['DB_CONNECTION'] ?? '';
@@ -224,6 +228,36 @@ function envEscape(string $value): string {
         $value
     );
     return '"' . $escaped . '"';
+}
+
+/**
+ * Reverse envEscape(): strip surrounding double quotes (if any) and undo the
+ * backslash escape sequences applied during write so callers see the original
+ * raw value. Symmetric inverse of envEscape().
+ *
+ * F018 follow-up: the initial "already installed" parser above reads .env
+ * before any phpdotenv code runs, so it must perform the same unescape that
+ * phpdotenv would do internally — otherwise a MySQL install with escaped
+ * credentials gets reread with corrupted values and the installer reappears
+ * as if the site wasn't installed.
+ *
+ * @param string $value Raw on-disk value (possibly quoted+escaped).
+ * @return string Decoded value matching what envEscape() received.
+ */
+function envUnescape(string $value): string {
+    $value = trim($value);
+    if (strlen($value) >= 2 && $value[0] === '"' && substr($value, -1) === '"') {
+        $value = substr($value, 1, -1);
+    }
+    // Order matters: undo single-backslash escapes BEFORE collapsing "\\",
+    // otherwise a restored backslash would re-form an escape sequence.
+    $value = str_replace(
+        ['\\n', '\\r', '\\"', '\\$'],
+        ["\n",  "\r",  '"',   '$'],
+        $value
+    );
+    $value = str_replace('\\\\', '\\', $value);
+    return $value;
 }
 
 // Create required storage directories

@@ -620,6 +620,11 @@ class UploadService
 
     /**
      * Ensure a generic blur placeholder exists for protected media fallbacks.
+     *
+     * Returns the public URL path on success, or null if GD is unavailable
+     * or the placeholder could not be allocated/written. The installer requires
+     * ext-gd as a core extension, but this runtime guard prevents fatal errors
+     * in misconfigured environments (e.g. Imagick-only PHP builds).
      */
     public function ensureBlurPlaceholder(): ?string
     {
@@ -628,6 +633,21 @@ class UploadService
 
         $placeholderPath = $mediaDir . '/blur-placeholder.jpg';
         if (!is_file($placeholderPath)) {
+            // Runtime GD guard: ensure the extension and required functions are loaded.
+            // If GD is missing, gracefully return null so callers can degrade (CR-12).
+            if (!extension_loaded('gd')
+                || !function_exists('imagecreatetruecolor')
+                || !function_exists('imagecolorallocate')
+                || !function_exists('imagefilledrectangle')
+                || !function_exists('imagejpeg')
+                || !function_exists('imagedestroy')
+            ) {
+                Logger::warning('UploadService: GD extension unavailable, cannot create blur placeholder', [
+                    'path' => $placeholderPath,
+                ], 'upload');
+                return null;
+            }
+
             $image = imagecreatetruecolor(8, 8);
             if ($image === false) {
                 Logger::warning('UploadService: Failed to allocate blur placeholder image', [], 'upload');
@@ -807,16 +827,28 @@ class UploadService
         // and/or an admin maintenance route so operators can run it on demand after upgrade.
         $pdo = $this->db->pdo();
 
-        $stmt = $pdo->query("
-            SELECT i.id AS image_id
-            FROM images i
-            JOIN albums a ON a.id = i.album_id
-            LEFT JOIN image_variants iv
-              ON iv.image_id = i.id AND iv.variant = 'blur'
-            WHERE a.is_published = 1
-              AND (a.password_hash IS NOT NULL AND a.password_hash <> '' OR a.is_nsfw = 1)
-              AND iv.id IS NULL
-        ");
+        // When $force is true, process every image in protected/NSFW albums so that
+        // existing blur variants can be rebuilt. The non-force path keeps the original
+        // `iv.id IS NULL` filter for an idempotent backfill (CR-11).
+        $sql = $force
+            ? "
+                SELECT i.id AS image_id
+                FROM images i
+                JOIN albums a ON a.id = i.album_id
+                WHERE a.is_published = 1
+                  AND ((a.password_hash IS NOT NULL AND a.password_hash <> '') OR a.is_nsfw = 1)
+            "
+            : "
+                SELECT i.id AS image_id
+                FROM images i
+                JOIN albums a ON a.id = i.album_id
+                LEFT JOIN image_variants iv
+                  ON iv.image_id = i.id AND iv.variant = 'blur'
+                WHERE a.is_published = 1
+                  AND ((a.password_hash IS NOT NULL AND a.password_hash <> '') OR a.is_nsfw = 1)
+                  AND iv.id IS NULL
+            ";
+        $stmt = $pdo->query($sql);
 
         if ($stmt === false) {
             Logger::warning('UploadService: backfillBlurForProtectedAlbums query failed', [], 'upload');

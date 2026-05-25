@@ -107,13 +107,13 @@ class Database
             return null;
         }
 
-        $blocked = ['169.254.169.254', '100.100.100.200', '::ffff:169.254.169.254'];
+        $blocked = ['169.254.169.254', '100.100.100.200', '::ffff:169.254.169.254', 'fd00:ec2::254'];
         foreach ($blocked as $b) {
             if (strcasecmp($pinned, $b) === 0) {
                 return null;
             }
         }
-        if (stripos($pinned, 'fe80:') === 0 || stripos($pinned, '169.254.') === 0) {
+        if (stripos($pinned, 'fe80:') === 0 || stripos($pinned, '169.254.') === 0 || stripos($pinned, 'fd00:ec2::') === 0) {
             return null;
         }
 

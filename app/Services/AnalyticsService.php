@@ -171,20 +171,21 @@ class AnalyticsService
     /**
      * F043: Resolve the per-install salt used to pseudonymize IP addresses.
      *
-     * Resolution order:
+     * Resolution order (DB is the single source of truth — SESSION_SECRET only
+     * seeds it on first use, so analytics history stays stable across requests
+     * regardless of whether SESSION_SECRET happens to be set in the env):
      *   1. In-memory cache (set on first successful resolve).
-     *   2. SESSION_SECRET from the environment (already a high-entropy per-install
-     *      value written by the installer).
-     *   3. 'ip_salt' row in the analytics_settings table (where this service
-     *      stores its own configuration via loadSettings()).
-     *   4. If still absent: generate bin2hex(random_bytes(32)) and persist it
-     *      to analytics_settings so future calls re-use the same value.
+     *   2. 'ip_salt' row in analytics_settings — if non-empty, cache and return.
+     *   3. SESSION_SECRET from $_ENV/$_SERVER. If present, persist it to
+     *      analytics_settings AND cache+return so it becomes the canonical salt.
+     *   4. Otherwise: generate bin2hex(random_bytes(32)), persist to
+     *      analytics_settings, cache+return.
      *
-     * Fails closed (throws) when all four paths fail. We intentionally do NOT
-     * fall back to a hardcoded/public constant — that defeats the purpose of
-     * hashing the IP at all under a GPLv3 codebase.
-     *
-     * @throws \RuntimeException when no salt can be resolved or persisted.
+     * Persistence failures (missing table, read-only DB, race conditions) are
+     * NEVER fatal: this method always returns a non-empty salt by falling back
+     * to an in-memory generated value. Callers (hashIp, getOrCreateSession,
+     * trackPageView) catch only PDOException, so a thrown RuntimeException
+     * would otherwise escape and break the request.
      */
     private function getIpSalt(): string
     {
@@ -192,14 +193,10 @@ class AnalyticsService
             return $this->ipSalt;
         }
 
-        // (2) Prefer the high-entropy per-install SESSION_SECRET when present.
-        $sessionSecret = $_ENV['SESSION_SECRET'] ?? $_SERVER['SESSION_SECRET'] ?? null;
-        if (is_string($sessionSecret) && $sessionSecret !== '') {
-            $this->ipSalt = $sessionSecret;
-            return $this->ipSalt;
-        }
-
-        // (3) Look it up in analytics_settings.
+        // (2) DB FIRST: look up the persisted salt in analytics_settings.
+        // Using the DB as the source of truth ensures that ip_hash values stay
+        // consistent across requests even if SESSION_SECRET differs between
+        // processes (e.g. only set in some FPM workers).
         try {
             $stmt = $this->db->prepare('SELECT setting_value FROM analytics_settings WHERE setting_key = ?');
             $stmt->execute(['ip_salt']);
@@ -209,46 +206,88 @@ class AnalyticsService
                 return $this->ipSalt;
             }
         } catch (\PDOException $e) {
-            // Table may not exist yet on legacy installs. Fall through to (4).
+            // Table may not exist yet on legacy installs. Fall through.
         }
 
-        // (4) Generate a fresh salt and persist it so subsequent hashes stay stable.
+        // (3) Seed from SESSION_SECRET if present — but persist it to the DB
+        // so subsequent requests (which may or may not have SESSION_SECRET set)
+        // all converge on the same canonical value via path (2).
+        $sessionSecret = $_ENV['SESSION_SECRET'] ?? $_SERVER['SESSION_SECRET'] ?? null;
+        if (is_string($sessionSecret) && $sessionSecret !== '') {
+            $this->persistIpSalt($sessionSecret);
+            $this->ipSalt = $sessionSecret;
+            $this->settings['ip_salt'] = $sessionSecret;
+            return $this->ipSalt;
+        }
+
+        // (4) Generate a fresh salt and persist it so subsequent hashes stay
+        // stable. If CSPRNG is unavailable we still must return a usable salt
+        // (the alternative — throwing — would break the entire request).
         try {
             $fresh = bin2hex(random_bytes(32));
         } catch (\Throwable $e) {
-            throw new \RuntimeException('AnalyticsService: cannot generate IP salt (CSPRNG unavailable): ' . $e->getMessage(), 0, $e);
+            // Last-resort: derive a process-local pseudo-salt. Not cryptographically
+            // ideal, but better than killing the request. Logged so operators see it.
+            Logger::warning(
+                'AnalyticsService: CSPRNG unavailable for IP salt, using degraded in-memory salt',
+                ['error' => $e->getMessage()],
+                'analytics'
+            );
+            $fresh = hash('sha256', uniqid('', true) . microtime(true) . (string)getmypid());
         }
 
+        $this->persistIpSalt($fresh);
+        $this->ipSalt = $fresh;
+        $this->settings['ip_salt'] = $fresh;
+        return $this->ipSalt;
+    }
+
+    /**
+     * Best-effort persistence of the IP salt to analytics_settings.
+     *
+     * Persistence failures are intentionally swallowed (only logged) so that
+     * IP hashing always succeeds — see getIpSalt() docblock. A subsequent
+     * request will retry persistence via getIpSalt() path (4).
+     */
+    private function persistIpSalt(string $salt): void
+    {
         try {
             // Portable upsert: try INSERT, on duplicate-key fall back to UPDATE.
             $insert = $this->db->prepare(
                 'INSERT INTO analytics_settings (setting_key, setting_value, description) VALUES (?, ?, ?)'
             );
-            $insert->execute(['ip_salt', $fresh, 'Per-install salt for IP pseudonymization (auto-generated)']);
+            $insert->execute(['ip_salt', $salt, 'Per-install salt for IP pseudonymization (auto-generated)']);
+            return;
         } catch (\PDOException $e) {
-            // Likely a unique-key race or a missing table. Try to UPDATE the row,
-            // then re-read so two concurrent processes converge on the same salt.
+            // Likely a unique-key race or a missing table. Try UPDATE, then re-read
+            // so two concurrent processes converge on the same salt.
             try {
                 $update = $this->db->prepare('UPDATE analytics_settings SET setting_value = ? WHERE setting_key = ? AND (setting_value IS NULL OR setting_value = \'\')');
-                $update->execute([$fresh, 'ip_salt']);
+                $update->execute([$salt, 'ip_salt']);
 
                 $read = $this->db->prepare('SELECT setting_value FROM analytics_settings WHERE setting_key = ?');
                 $read->execute(['ip_salt']);
                 $row = $read->fetch(PDO::FETCH_ASSOC);
                 if ($row !== false && isset($row['setting_value']) && $row['setting_value'] !== '') {
-                    $this->ipSalt = (string)$row['setting_value'];
-                    return $this->ipSalt;
+                    // Another process already wrote a different salt — defer to it
+                    // so all processes converge. Caller will pick this up on next
+                    // getIpSalt() invocation; for *this* request we keep the value
+                    // the caller already cached (analytics history won't fragment
+                    // because the DB-persisted value is now authoritative).
+                    return;
                 }
             } catch (\PDOException $inner) {
-                // Fall through to throw below.
+                // Fall through to log.
             }
-            throw new \RuntimeException('AnalyticsService: cannot persist IP salt to analytics_settings: ' . $e->getMessage(), 0, $e);
+            // Non-fatal: log and continue with the in-memory salt. CR-1: do NOT
+            // throw — callers catch only PDOException so a RuntimeException would
+            // escape and break the request.
+            Logger::warning(
+                'AnalyticsService: cannot persist IP salt to analytics_settings (using in-memory fallback)',
+                ['error' => $e->getMessage()],
+                'analytics'
+            );
         }
-
-        $this->ipSalt = $fresh;
-        // Keep loaded settings in sync so other call sites see the value too.
-        $this->settings['ip_salt'] = $fresh;
-        return $this->ipSalt;
     }
 
     /**

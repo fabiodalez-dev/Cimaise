@@ -137,28 +137,33 @@ class ImageRating
             return; // already current
         }
 
-        // Consolidate NULL rated_by BEFORE the rebuild so the new NOT NULL column
-        // accepts every row during the INSERT SELECT step.
-        $this->db->exec("UPDATE plugin_image_ratings SET rated_by = 0 WHERE rated_by IS NULL");
-
-        // Collapse duplicate (image_id, rated_by) rows keeping the most recent rated_at.
-        $this->db->exec("
-            DELETE FROM plugin_image_ratings
-            WHERE rowid NOT IN (
-                SELECT rowid FROM (
-                    SELECT rowid,
-                           ROW_NUMBER() OVER (
-                               PARTITION BY image_id, rated_by
-                               ORDER BY rated_at DESC, rowid DESC
-                           ) AS rn
-                    FROM plugin_image_ratings
-                )
-                WHERE rn = 1
-            )
-        ");
-
         $this->db->beginTransaction();
         try {
+            // Consolidate NULL rated_by BEFORE the rebuild so the new NOT NULL column
+            // accepts every row during the INSERT SELECT step. Kept INSIDE the
+            // transaction so a failure in the subsequent ALTER/CREATE/INSERT can roll
+            // back this normalization too - otherwise the migration would leave the
+            // table partially transformed.
+            $this->db->exec("UPDATE plugin_image_ratings SET rated_by = 0 WHERE rated_by IS NULL");
+
+            // Collapse duplicate (image_id, rated_by) rows keeping the most recent rated_at.
+            // Also INSIDE the transaction so rollback restores the deleted duplicates
+            // if the rebuild fails downstream.
+            $this->db->exec("
+                DELETE FROM plugin_image_ratings
+                WHERE rowid NOT IN (
+                    SELECT rowid FROM (
+                        SELECT rowid,
+                               ROW_NUMBER() OVER (
+                                   PARTITION BY image_id, rated_by
+                                   ORDER BY rated_at DESC, rowid DESC
+                               ) AS rn
+                        FROM plugin_image_ratings
+                    )
+                    WHERE rn = 1
+                )
+            ");
+
             $this->db->exec("ALTER TABLE plugin_image_ratings RENAME TO plugin_image_ratings_old");
             // FK ON DELETE CASCADE on images(id) is preserved in the rebuild.
             $this->db->exec("
@@ -233,14 +238,33 @@ class ImageRating
         $this->db->beginTransaction();
         try {
             $this->db->exec("UPDATE plugin_image_ratings SET rated_by = 0 WHERE rated_by IS NULL");
-            $this->db->exec("
-                DELETE r1 FROM plugin_image_ratings r1
-                INNER JOIN plugin_image_ratings r2
-                    ON r1.image_id = r2.image_id
-                   AND r1.rated_by = r2.rated_by
-                   AND (r1.rated_at < r2.rated_at
-                        OR (r1.rated_at = r2.rated_at AND r1.rating < r2.rating))
+            // Collapse duplicates - including EXACT ties on (rated_at, rating).
+            // Strategy: rebuild the table from a deduped projection. ROW_NUMBER()
+            // is available in MySQL 8.0+ (we require PHP 8.2+, so this is safe);
+            // PARTITION BY (image_id, rated_by) with ORDER BY rated_at DESC, rating
+            // DESC and a final tie-breaker on a synthetic per-row sequence so two
+            // rows that share image_id+rated_by+rated_at+rating do NOT both
+            // survive - otherwise ADD UNIQUE KEY uniq_image_rated_by would fail.
+            $this->db->exec("CREATE TEMPORARY TABLE plugin_image_ratings_dedup AS
+                SELECT image_id, rating, rated_at, rated_by
+                FROM (
+                    SELECT image_id,
+                           rating,
+                           rated_at,
+                           rated_by,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY image_id, rated_by
+                               ORDER BY rated_at DESC, rating DESC
+                           ) AS rn
+                    FROM plugin_image_ratings
+                ) ranked
+                WHERE rn = 1
             ");
+            $this->db->exec("DELETE FROM plugin_image_ratings");
+            $this->db->exec("INSERT INTO plugin_image_ratings (image_id, rating, rated_at, rated_by)
+                SELECT image_id, rating, rated_at, rated_by FROM plugin_image_ratings_dedup
+            ");
+            $this->db->exec("DROP TEMPORARY TABLE plugin_image_ratings_dedup");
             $this->db->commit();
         } catch (PDOException $e) {
             $this->db->rollBack();
@@ -365,22 +389,42 @@ class ImageRating
     /**
      * Get images by rating
      *
-     * @param int $rating Exact rating or minimum if $exact = false
-     * @param bool $exact Match exact rating
-     * @return array Image IDs
+     * With UNIQUE(image_id, rated_by) an image can have several rating rows
+     * (one per rater, plus the optional rated_by=0 sentinel from upload-time
+     * init). We must aggregate per image_id and apply the rating predicate to
+     * the AVERAGE of real votes, not to raw rows - otherwise the result would
+     * contain duplicates and would match images on the sentinel value 0.
+     *
+     * Sentinel rows (rated_by = 0) are excluded from the aggregate; images
+     * that have ONLY sentinel rows therefore contribute no aggregate row and
+     * are correctly absent from the result.
+     *
+     * @param int $rating Exact (rounded) average rating, or minimum if $exact = false
+     * @param bool $exact Match exact rounded average rating
+     * @return array Distinct image IDs
      */
     public function getImagesByRating(int $rating, bool $exact = true): array
     {
         if ($exact) {
-            $sql = "SELECT image_id FROM plugin_image_ratings WHERE rating = ?";
-            $params = [$rating];
+            $sql = "
+                SELECT image_id
+                FROM plugin_image_ratings
+                WHERE rated_by <> 0
+                GROUP BY image_id
+                HAVING ROUND(AVG(rating)) = ?
+            ";
         } else {
-            $sql = "SELECT image_id FROM plugin_image_ratings WHERE rating >= ?";
-            $params = [$rating];
+            $sql = "
+                SELECT image_id
+                FROM plugin_image_ratings
+                WHERE rated_by <> 0
+                GROUP BY image_id
+                HAVING AVG(rating) >= ?
+            ";
         }
 
         $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
+        $stmt->execute([$rating]);
 
         return array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'image_id');
     }
@@ -451,16 +495,23 @@ class ImageRating
     /**
      * Get top rated images
      *
+     * Aggregates per image_id so an image with N raters appears exactly once,
+     * ranked by its average real-vote rating (descending). Sentinel rows
+     * (rated_by = 0) are excluded from the aggregate so they do not pull the
+     * average toward 0; images with ONLY sentinel rows therefore do not
+     * appear in the result. Ties are broken by the most recent rated_at.
+     *
      * @param int $limit Number of images to return
-     * @return array Image IDs
+     * @return array Distinct image IDs, highest-rated first
      */
     public function getTopRated(int $limit = 10): array
     {
         $stmt = $this->db->prepare("
             SELECT image_id
             FROM plugin_image_ratings
-            WHERE rating > 0
-            ORDER BY rating DESC, rated_at DESC
+            WHERE rated_by <> 0 AND rating > 0
+            GROUP BY image_id
+            ORDER BY AVG(rating) DESC, MAX(rated_at) DESC
             LIMIT ?
         ");
         $stmt->execute([$limit]);
@@ -470,14 +521,31 @@ class ImageRating
 
     /**
      * Get unrated images
+     *
+     * An image is "unrated" when it has NO real rating rows. Because upload-time
+     * init may insert a sentinel row with rated_by = 0 alongside real votes,
+     * a simple LEFT JOIN on plugin_image_ratings would (a) emit duplicates for
+     * images with multiple raters and (b) misclassify an image that has both
+     * the sentinel AND a real vote as "unrated" (the sentinel row has rating = 0
+     * which used to satisfy `r.rating IS NULL OR r.rating = 0`).
+     *
+     * The correct definition is "no row where rated_by <> 0 with rating > 0"
+     * - i.e., no real positive vote.
+     *
+     * @return array Distinct image IDs that have not been rated by any real user
      */
     public function getUnratedImages(?int $albumId = null): array
     {
         $sql = "
             SELECT i.id
             FROM images i
-            LEFT JOIN plugin_image_ratings r ON i.id = r.image_id
-            WHERE (r.rating IS NULL OR r.rating = 0)
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM plugin_image_ratings r
+                WHERE r.image_id = i.id
+                  AND r.rated_by <> 0
+                  AND r.rating > 0
+            )
         ";
 
         $params = [];

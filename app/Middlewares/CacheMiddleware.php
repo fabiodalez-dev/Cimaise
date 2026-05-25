@@ -424,6 +424,11 @@ class CacheMiddleware implements MiddlewareInterface
     private function isSessionDependent(): bool
     {
         return session_status() === PHP_SESSION_ACTIVE
-            && (!empty($_SESSION['album_access']) || !empty($_SESSION['nsfw_confirmed']) || !empty($_SESSION['admin_id']));
+            && (
+                !empty($_SESSION['album_access'])
+                || !empty($_SESSION['nsfw_confirmed'])
+                || !empty($_SESSION['nsfw_confirmed_global'])
+                || !empty($_SESSION['admin_id'])
+            );
     }
 }

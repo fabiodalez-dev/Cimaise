@@ -368,15 +368,110 @@ abstract class BaseController
 
     /**
      * URL path for the static blur placeholder used when a protected album lacks a blur variant.
-     * The actual placeholder file is created on-demand by UploadService::ensureBlurPlaceholder()
-     * (generates an 8x8 gray jpeg at public/media/blur-placeholder.jpg the first time it is hit).
+     *
+     * Lazily creates an 8x8 gray jpeg at public/media/blur-placeholder.jpg the first time
+     * it is requested (CR-2): without this, the very first page render with a protected cover
+     * would emit a `<img src="/media/blur-placeholder.jpg">` for an asset that doesn't exist
+     * on disk yet (MediaController::generateBlurOnDemand() materialises it only on a /media
+     * request), producing a 404 from serveStaticFile().
      *
      * Returned as an absolute server path (starting with `/`) so _album_card.twig will prepend
      * base_path itself, consistent with how other variant.path values flow through the template.
+     *
+     * If GD is unavailable and the file cannot be created, we still return the canonical URL —
+     * any resulting 404 is preferable to leaking the original cover. Callers/templates should
+     * treat this as a best-effort fallback.
      */
     protected function blurPlaceholderUrl(): string
     {
+        $this->ensureBlurPlaceholderExists();
         return '/media/blur-placeholder.jpg';
+    }
+
+    /**
+     * Ensure the blur placeholder file exists on disk (CR-2).
+     *
+     * Performs a cheap is_file() check first; only when the file is missing does it
+     * attempt to materialise the 8x8 gray jpeg directly. This mirrors the logic of
+     * UploadService::ensureBlurPlaceholder() but is inlined here because BaseController
+     * does not have any service dependencies injected — and instantiating UploadService
+     * requires a Database, which is owned by the concrete child controllers.
+     *
+     * If GD is unavailable (CR-12), or any write step fails, we degrade silently:
+     * blurPlaceholderUrl() still returns the canonical URL and the caller's template
+     * may emit a 404 image — strictly better than leaking the un-blurred cover.
+     *
+     * The static guard avoids retrying creation on every cover render within a single
+     * request once a successful or failed attempt has been made.
+     */
+    private function ensureBlurPlaceholderExists(): void
+    {
+        static $checked = false;
+        if ($checked) {
+            return;
+        }
+
+        $mediaDir = dirname(__DIR__, 2) . '/public/media';
+        $placeholderPath = $mediaDir . '/blur-placeholder.jpg';
+        if (is_file($placeholderPath)) {
+            $checked = true;
+            return;
+        }
+
+        // Runtime GD guard: if GD is missing we cannot generate a JPEG. Bail out
+        // gracefully so a misconfigured environment doesn't fatal on a page render.
+        if (!extension_loaded('gd')
+            || !function_exists('imagecreatetruecolor')
+            || !function_exists('imagecolorallocate')
+            || !function_exists('imagefilledrectangle')
+            || !function_exists('imagejpeg')
+            || !function_exists('imagedestroy')
+        ) {
+            Logger::warning('BaseController: GD extension unavailable, cannot lazily create blur placeholder', [
+                'path' => $placeholderPath,
+            ], 'frontend');
+            $checked = true;
+            return;
+        }
+
+        try {
+            if (!is_dir($mediaDir) && !@mkdir($mediaDir, 0755, true) && !is_dir($mediaDir)) {
+                Logger::warning('BaseController: failed to create media dir for blur placeholder', [
+                    'dir' => $mediaDir,
+                ], 'frontend');
+                $checked = true;
+                return;
+            }
+
+            $image = imagecreatetruecolor(8, 8);
+            if ($image === false) {
+                Logger::warning('BaseController: failed to allocate blur placeholder image', [], 'frontend');
+                $checked = true;
+                return;
+            }
+
+            $color = imagecolorallocate($image, 120, 120, 120);
+            if ($color !== false) {
+                imagefilledrectangle($image, 0, 0, 7, 7, $color);
+            }
+
+            $saved = imagejpeg($image, $placeholderPath, 60);
+            imagedestroy($image);
+
+            if (!$saved) {
+                Logger::warning('BaseController: failed to write blur placeholder image', [
+                    'path' => $placeholderPath,
+                ], 'frontend');
+            }
+        } catch (\Throwable $e) {
+            Logger::warning('BaseController: exception while lazily creating blur placeholder', [
+                'error' => $e->getMessage(),
+            ], 'frontend');
+        }
+
+        // Mark checked regardless of outcome — avoid retrying on every cover render
+        // for this request. A subsequent request will see the file via is_file().
+        $checked = true;
     }
 
     /**

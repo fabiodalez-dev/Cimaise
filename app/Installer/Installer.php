@@ -36,7 +36,11 @@ class Installer
         foreach ($lines as $line) {
             if (strpos($line, '=') !== false && strpos($line, '#') !== 0) {
                 list($key, $value) = explode('=', $line, 2);
-                $this->config[trim($key)] = trim($value);
+                // F018: values written by createEnvFile() pass through envEscape()
+                // (quoted + backslash-escaped). Apply the inverse here so consumers
+                // (DB_CONNECTION, DB_HOST, credentials, …) compare/use the original
+                // raw values rather than the on-disk quoted+escaped form.
+                $this->config[trim($key)] = $this->envUnescape($value);
             }
         }
 
@@ -724,6 +728,33 @@ class Installer
             $value
         );
         return '"' . $escaped . '"';
+    }
+
+    /**
+     * Reverse envEscape(): strip surrounding double quotes (if any) and undo
+     * the backslash escape sequences applied during write so callers see the
+     * original raw value. Symmetric inverse of envEscape().
+     *
+     * F018 follow-up: without this, readers (isInstalled(), the standalone
+     * installer.php fallback parser) see quoted/backslashed credentials and
+     * either take the wrong branch (e.g. DB_CONNECTION="sqlite" != 'sqlite')
+     * or hand corrupted credentials to PDO.
+     */
+    private function envUnescape(string $value): string
+    {
+        $value = trim($value);
+        if (strlen($value) >= 2 && $value[0] === '"' && substr($value, -1) === '"') {
+            $value = substr($value, 1, -1);
+        }
+        // Order matters: undo single-backslash escapes BEFORE collapsing "\\",
+        // otherwise a restored backslash would re-form an escape sequence.
+        $value = str_replace(
+            ['\\n', '\\r', '\\"', '\\$'],
+            ["\n",  "\r",  '"',   '$'],
+            $value
+        );
+        $value = str_replace('\\\\', '\\', $value);
+        return $value;
     }
 
     private function createEnvFile(array $data): void
