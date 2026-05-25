@@ -7,8 +7,9 @@
 
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', '..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 export function installMarkerExists() {
     return fs.existsSync(path.join(ROOT, 'storage', 'tmp', '.installed'));
@@ -22,7 +23,11 @@ export function envFileExists() {
  *  and PLAYWRIGHT_RESET_INSTALL is not opted in. */
 export function skipIfInstalled(test) {
     if (process.env.PLAYWRIGHT_RESET_INSTALL === '1') return;
-    if (installMarkerExists()) {
+    // public/installer.php considers the app installed when EITHER the marker
+    // file exists OR a populated .env is present (the installer's fallback
+    // detection path). Mirror both so fresh-install specs don't run on top of
+    // an already-installed system and produce flaky results.
+    if (installMarkerExists() || envFileExists()) {
         test.skip(true, 'System already installed — set PLAYWRIGHT_RESET_INSTALL=1 + run globalSetup to test fresh-install flow.');
     }
 }

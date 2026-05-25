@@ -48,6 +48,7 @@ test.describe('CodeRabbit + adamsreview fix verification', () => {
             const m = src.match(/\.header-search-input:focus[\s\S]{0,200}\}/);
             expect(m).not.toBeNull();
             expect(m?.[0]).toMatch(/outline:\s*\d+px\s+solid/);
+            expect(m?.[0]).not.toMatch(/outline:\s*none/);
             return;
         }
         const cssResp = await page.request.get(cssUrl, { failOnStatusCode: false });
@@ -183,23 +184,34 @@ test.describe('CodeRabbit + adamsreview fix verification', () => {
     });
 
     test('CR-FIX-10: addApiCache emits Vary: Cookie for session-dependent /api/album (F009)', async ({ page }) => {
-        // Browse an album as anonymous + then with a session cookie that simulates
-        // album_access. The Vary header on /api/album/{slug}/template must include Cookie.
-        // We can't easily mint a session cookie from outside; instead we hit the endpoint
-        // and check the response headers when no album exists (still returns from the
-        // middleware so we see the Vary header).
+        // Runtime: anonymous request → middleware emits Cache-Control: private and
+        // Vary: Accept-Encoding (Cookie is only appended when isSessionDependent()
+        // returns true, which requires an active PHP session that this anonymous
+        // HTTP probe cannot mint from outside the browser).
         const resp = await page.request.get(`${BASE}/api/album/nonexistent-xyz/template?template=1`, {
             failOnStatusCode: false,
         });
-        // The middleware applies regardless of status — assert Cache-Control + Vary.
         const cc = resp.headers()['cache-control'] || '';
         expect(cc).toBeTruthy();
         expect(cc).toContain('private');
-        // Vary must list Accept-Encoding (compression) — when the request carries
-        // a session cookie, Vary must ALSO list Cookie (F009 fix). Anonymous
-        // requests like this one don't surface session-dependence in the body, but
-        // the header policy is set unconditionally in addApiCache.
         const vary = (resp.headers()['vary'] || '').toLowerCase();
         expect(vary).toContain('accept-encoding');
+
+        // Source-level: addApiCache MUST append ", Cookie" when isSessionDependent().
+        // This is what we cannot exercise via an anonymous HTTP probe, so we lock
+        // it down by reading the middleware source and proving the branch exists.
+        const fs = await import('fs');
+        const path = await import('path');
+        const mwSrc = fs.readFileSync(
+            path.resolve(process.cwd(), 'app/Middlewares/CacheMiddleware.php'),
+            'utf-8',
+        );
+        const addApi = mwSrc.match(/function\s+addApiCache[\s\S]+?(?=\n\s*(?:private|public|protected)\s+function|\n\s*\}\s*$)/);
+        expect(addApi).not.toBeNull();
+        if (addApi) {
+            // Must reference isSessionDependent() and append ", Cookie" to Vary
+            expect(addApi[0]).toMatch(/isSessionDependent\s*\(\s*\)/);
+            expect(addApi[0]).toMatch(/['"],\s*Cookie['"]/);
+        }
     });
 });

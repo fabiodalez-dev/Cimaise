@@ -133,13 +133,16 @@ test.describe.serial('Full Cimaise Install + NSFW Test', () => {
     const visitorPage = await visitorContext.newPage();
     await visitorPage.goto(`${BASE}/album/test-nsfw-album`);
 
-    // Check for NSFW gate - should show age warning or content notice
+    // Check for NSFW gate - should show age warning or content notice.
+    // Hard-assert so a missing gate fails the test (was previously a silent log).
     const body = await visitorPage.textContent('body');
     const hasWarning = /adult|nsfw|18\+|mature|age.?verif|content.?warning/i.test(body || '');
-    console.log('NSFW gate visible:', hasWarning);
-
-    await visitorPage.close();
-    await visitorContext.close();
+    try {
+        expect(hasWarning).toBe(true);
+    } finally {
+        await visitorPage.close();
+        await visitorContext.close();
+    }
   });
 
   test('Step 9: Verify homepage loads', async () => {

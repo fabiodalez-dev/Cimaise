@@ -49,8 +49,10 @@ export async function createAlbum(page, title, opts = {}) {
     await nsfwBox.scrollIntoViewIfNeeded();
     if (isNsfw && !(await nsfwBox.isChecked())) await nsfwBox.check({ force: true });
     if (!isNsfw && (await nsfwBox.isChecked())) await nsfwBox.uncheck({ force: true });
-    await page.click('button[type="submit"][form="album-form"]');
-    await page.waitForURL(/\/admin\/albums/, { timeout: 15000 });
+    await Promise.all([
+        page.waitForURL(ADMIN_ALBUMS_LIST_RE, { timeout: 15000 }),
+        page.click('button[type="submit"][form="album-form"]'),
+    ]);
     // Find the album in the list
     await page.goto(`${BASE}/admin/albums`);
     const link = page.locator(`a:has-text("${title}")`).first();

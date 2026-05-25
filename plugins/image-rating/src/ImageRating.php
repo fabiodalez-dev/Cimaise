@@ -243,16 +243,17 @@ class ImageRating
         ");
         $hasCompositeUnique = $stmt->fetch(PDO::FETCH_ASSOC) !== false;
 
-        if (!$hasLegacyPk && $hasCompositeUnique) {
-            // Schema is already current (or modern with extra `id` AUTO_INCREMENT
-            // PK on top of the composite UNIQUE — that's fine, no migration
-            // needed). rated_by nullability is a soft drift we don't tighten
-            // automatically here because doing so requires DROP/MODIFY which
-            // collides with AUTO_INCREMENT PRIMARY KEY on installs that have
-            // an `id` column. Future option: a migration tool with explicit
-            // operator opt-in.
+        if (!$hasLegacyPk && $hasCompositeUnique && !$ratedByNullable) {
+            // Schema is already current: no legacy PK, composite UNIQUE present,
+            // and rated_by is NOT NULL. Nothing to do.
             return;
         }
+        // Otherwise fall through: when rated_by is still nullable, anonymous votes
+        // can duplicate because MySQL treats NULL ≠ NULL inside a UNIQUE — so we
+        // run the consolidation (NULL → 0) and tighten rated_by to NOT NULL even
+        // if PK/UNIQUE are already in their modern shape. The DROP/ADD steps
+        // below are individually guarded so we don't touch a structure that's
+        // already in place.
 
         // Step (a): consolidate NULL rated_by + collapse duplicates BEFORE the
         // ALTER, otherwise strict-mode MySQL rejects the NOT NULL conversion.
