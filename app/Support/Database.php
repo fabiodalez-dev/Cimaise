@@ -43,7 +43,26 @@ class Database
             $this->pdo->exec('PRAGMA busy_timeout = 30000');    // Wait up to 30 seconds on lock
         } else {
             // MySQL mode
-            $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s', $this->host, $this->port, $this->database, $this->charset);
+            //
+            // F019: SSRF / DNS-rebinding TOCTOU mitigation.
+            // The installer resolves the user-supplied hostname at validation time and
+            // (when the resolved IP differs from the hostname) persists it as
+            // DB_HOST_PINNED_IP. At runtime we connect to that pinned IP when present
+            // so a later DNS change cannot redirect the connection to cloud-metadata
+            // or link-local hosts. The original hostname is preserved in $this->host
+            // for TLS SNI / certificate validation — managed MySQL (RDS, Cloud SQL,
+            // ...) rejects connections that skip SNI. If the PDO MySQL driver does
+            // not expose a knob to set SNI independently of the connect host, the
+            // pinned IP is still safe because the installer-side blocklist already
+            // rejected metadata endpoints; we re-validate the pinned IP here against
+            // the same blocklist before use.
+            $connectHost = $this->host;
+            $pinnedIp = $this->resolvePinnedIp();
+            if ($pinnedIp !== null) {
+                $connectHost = $pinnedIp;
+            }
+
+            $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s', $connectHost, $this->port, $this->database, $this->charset);
             $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -52,6 +71,53 @@ class Database
             $this->pdo = new PDO($dsn, $this->username, $this->password, $options);
             $this->pdo->exec("SET NAMES '{$this->charset}' COLLATE '{$this->collation}'");
         }
+    }
+
+    /**
+     * F019: Read and validate DB_HOST_PINNED_IP from the environment.
+     *
+     * Returns the pinned IP only when (a) it is set, (b) it parses as a valid IP,
+     * and (c) it is not in the cloud-metadata / link-local blocklist. Otherwise
+     * returns null and the connect falls back to the configured hostname.
+     *
+     * The blocklist mirrors the one applied by the installer
+     * (public/installer.php). We only enforce it here when DB_HOST_PINNED_IP is
+     * set, so legitimate runtime overrides that use a plain DB_HOST are not
+     * affected.
+     */
+    private function resolvePinnedIp(): ?string
+    {
+        $pinned = null;
+        if (array_key_exists('DB_HOST_PINNED_IP', $_ENV) && $_ENV['DB_HOST_PINNED_IP'] !== '') {
+            $pinned = (string)$_ENV['DB_HOST_PINNED_IP'];
+        } elseif (array_key_exists('DB_HOST_PINNED_IP', $_SERVER) && $_SERVER['DB_HOST_PINNED_IP'] !== '') {
+            $pinned = (string)$_SERVER['DB_HOST_PINNED_IP'];
+        } else {
+            $env = getenv('DB_HOST_PINNED_IP');
+            if ($env !== false && $env !== '') {
+                $pinned = $env;
+            }
+        }
+
+        if ($pinned === null) {
+            return null;
+        }
+
+        if (!filter_var($pinned, FILTER_VALIDATE_IP)) {
+            return null;
+        }
+
+        $blocked = ['169.254.169.254', '100.100.100.200', '::ffff:169.254.169.254'];
+        foreach ($blocked as $b) {
+            if (strcasecmp($pinned, $b) === 0) {
+                return null;
+            }
+        }
+        if (stripos($pinned, 'fe80:') === 0 || stripos($pinned, '169.254.') === 0) {
+            return null;
+        }
+
+        return $pinned;
     }
 
     public function pdo(): PDO

@@ -255,6 +255,19 @@ class MediaController extends BaseController
             if ($blurResponse !== null) {
                 return $blurResponse;
             }
+
+            // No blur variant available: dispatch on-demand generation and serve placeholder
+            // Covers BOTH 'password' AND 'nsfw' access-denial branches.
+            if ($accessResult === 'password' || $accessResult === 'nsfw') {
+                $placeholderUrl = $this->generateBlurOnDemand($imageId);
+                if ($placeholderUrl !== null) {
+                    $placeholderResponse = $this->serveStaticFile($request, $response, ltrim($placeholderUrl, '/'));
+                    if ($placeholderResponse->getStatusCode() < 400) {
+                        return $placeholderResponse;
+                    }
+                }
+            }
+
             return $response->withStatus(403);
         }
 
@@ -527,11 +540,25 @@ class MediaController extends BaseController
 
         $accessResult = $this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant, true);
         if ($accessResult !== true) {
-            // Try blur fallback for protected albums
+            // Try blur fallback for protected albums (password or NSFW)
             $blurResponse = $this->tryServeBlurFallback($request, $response, $imageId, $isPasswordProtected || $isNsfw, $variant);
             if ($blurResponse !== null) {
                 return $blurResponse;
             }
+
+            // No blur variant available: dispatch on-demand generation and serve placeholder
+            // Covers BOTH 'password' AND 'nsfw' access-denial branches so listing pages
+            // (which use cover images of protected albums) never return 403.
+            if ($accessResult === 'password' || $accessResult === 'nsfw') {
+                $placeholderUrl = $this->generateBlurOnDemand($imageId);
+                if ($placeholderUrl !== null) {
+                    $placeholderResponse = $this->serveStaticFile($request, $response, ltrim($placeholderUrl, '/'));
+                    if ($placeholderResponse->getStatusCode() < 400) {
+                        return $placeholderResponse;
+                    }
+                }
+            }
+
             return $response->withStatus(403);
         }
 

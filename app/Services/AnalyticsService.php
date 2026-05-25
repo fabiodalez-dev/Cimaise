@@ -13,6 +13,8 @@ class AnalyticsService
     private array $settings;
     private ?Reader $geoReader = null;
     private string $driver = 'mysql';
+    /** F043: cached IP-pseudonymization salt resolved lazily on first hashIp() call. */
+    private ?string $ipSalt = null;
 
     public function __construct(PDO $db)
     {
@@ -138,7 +140,13 @@ class AnalyticsService
     }
 
     /**
-     * Hash IP address for privacy
+     * Hash IP address for privacy.
+     *
+     * F043: Historical note — ip_hash values produced before this change used a
+     * hardcoded fallback salt that was public (the project ships GPLv3). Any
+     * pre-existing analytics_*.ip_hash entries should be considered reversible
+     * via rainbow tables and SHOULD be truncated on upgrade (see
+     * truncateLegacyIpHashes()). New hashes use a per-install secret salt.
      */
     public function hashIp(string $ip): string
     {
@@ -153,9 +161,114 @@ class AnalyticsService
                 $ip = substr($ip, 0, 19) . '::';
             }
         }
-        
-        $salt = $_ENV['SESSION_SECRET'] ?? $_SERVER['SESSION_SECRET'] ?? 'cimaise_salt';
+
+        // F043: resolve a real, per-install salt. Fails closed if no salt is
+        // available — we refuse to fall back to a public/predictable value.
+        $salt = $this->getIpSalt();
         return hash('sha256', $ip . $salt);
+    }
+
+    /**
+     * F043: Resolve the per-install salt used to pseudonymize IP addresses.
+     *
+     * Resolution order:
+     *   1. In-memory cache (set on first successful resolve).
+     *   2. SESSION_SECRET from the environment (already a high-entropy per-install
+     *      value written by the installer).
+     *   3. 'ip_salt' row in the analytics_settings table (where this service
+     *      stores its own configuration via loadSettings()).
+     *   4. If still absent: generate bin2hex(random_bytes(32)) and persist it
+     *      to analytics_settings so future calls re-use the same value.
+     *
+     * Fails closed (throws) when all four paths fail. We intentionally do NOT
+     * fall back to a hardcoded/public constant — that defeats the purpose of
+     * hashing the IP at all under a GPLv3 codebase.
+     *
+     * @throws \RuntimeException when no salt can be resolved or persisted.
+     */
+    private function getIpSalt(): string
+    {
+        if ($this->ipSalt !== null && $this->ipSalt !== '') {
+            return $this->ipSalt;
+        }
+
+        // (2) Prefer the high-entropy per-install SESSION_SECRET when present.
+        $sessionSecret = $_ENV['SESSION_SECRET'] ?? $_SERVER['SESSION_SECRET'] ?? null;
+        if (is_string($sessionSecret) && $sessionSecret !== '') {
+            $this->ipSalt = $sessionSecret;
+            return $this->ipSalt;
+        }
+
+        // (3) Look it up in analytics_settings.
+        try {
+            $stmt = $this->db->prepare('SELECT setting_value FROM analytics_settings WHERE setting_key = ?');
+            $stmt->execute(['ip_salt']);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row !== false && isset($row['setting_value']) && $row['setting_value'] !== '') {
+                $this->ipSalt = (string)$row['setting_value'];
+                return $this->ipSalt;
+            }
+        } catch (\PDOException $e) {
+            // Table may not exist yet on legacy installs. Fall through to (4).
+        }
+
+        // (4) Generate a fresh salt and persist it so subsequent hashes stay stable.
+        try {
+            $fresh = bin2hex(random_bytes(32));
+        } catch (\Throwable $e) {
+            throw new \RuntimeException('AnalyticsService: cannot generate IP salt (CSPRNG unavailable): ' . $e->getMessage(), 0, $e);
+        }
+
+        try {
+            // Portable upsert: try INSERT, on duplicate-key fall back to UPDATE.
+            $insert = $this->db->prepare(
+                'INSERT INTO analytics_settings (setting_key, setting_value, description) VALUES (?, ?, ?)'
+            );
+            $insert->execute(['ip_salt', $fresh, 'Per-install salt for IP pseudonymization (auto-generated)']);
+        } catch (\PDOException $e) {
+            // Likely a unique-key race or a missing table. Try to UPDATE the row,
+            // then re-read so two concurrent processes converge on the same salt.
+            try {
+                $update = $this->db->prepare('UPDATE analytics_settings SET setting_value = ? WHERE setting_key = ? AND (setting_value IS NULL OR setting_value = \'\')');
+                $update->execute([$fresh, 'ip_salt']);
+
+                $read = $this->db->prepare('SELECT setting_value FROM analytics_settings WHERE setting_key = ?');
+                $read->execute(['ip_salt']);
+                $row = $read->fetch(PDO::FETCH_ASSOC);
+                if ($row !== false && isset($row['setting_value']) && $row['setting_value'] !== '') {
+                    $this->ipSalt = (string)$row['setting_value'];
+                    return $this->ipSalt;
+                }
+            } catch (\PDOException $inner) {
+                // Fall through to throw below.
+            }
+            throw new \RuntimeException('AnalyticsService: cannot persist IP salt to analytics_settings: ' . $e->getMessage(), 0, $e);
+        }
+
+        $this->ipSalt = $fresh;
+        // Keep loaded settings in sync so other call sites see the value too.
+        $this->settings['ip_salt'] = $fresh;
+        return $this->ipSalt;
+    }
+
+    /**
+     * F043 (optional helper): truncate analytics ip_hash columns that were
+     * computed before this service shipped a real salt. Returns the number of
+     * rows updated across the analytics tables. Safe to call repeatedly.
+     */
+    public function truncateLegacyIpHashes(): int
+    {
+        $total = 0;
+        foreach (['analytics_sessions'] as $table) {
+            try {
+                $stmt = $this->db->prepare("UPDATE {$table} SET ip_hash = NULL WHERE ip_hash IS NOT NULL");
+                $stmt->execute();
+                $total += $stmt->rowCount();
+            } catch (\PDOException $e) {
+                // Table may not exist or column may differ — ignore.
+            }
+        }
+        return $total;
     }
 
     /**

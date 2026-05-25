@@ -39,6 +39,15 @@
           {% endfor %}
         {% endif %}
 
+        {# Final fallback: static placeholder asset. NEVER leak the full-resolution
+           cover URL for protected/NSFW albums when no blur variant exists.
+           The placeholder file (8x8 gray jpg) is generated lazily by
+           UploadService::ensureBlurPlaceholder() the first time MediaController
+           serves a protected image without a blur variant. #}
+        {% if blur_path is null %}
+          {% set blur_path = base_path ~ '/media/blur-placeholder.jpg' %}
+        {% endif %}
+
         {# Get the real image URL for when consent is given #}
         {# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
         {% if card_img_url is null %}
@@ -51,24 +60,14 @@
             {% endfor %}
           {% endif %}
         {% endif %}
-        {% set real_url = card_img_url starts with '/' ? base_path ~ card_img_url : card_img_url %}
-        {% if blur_path %}
-          <img src="{{ blur_path }}"
-               data-nsfw-real-src="{{ real_url }}"
-               alt="{{ (album.cover.alt_text ?? album.title)|e }}"
-               title="{{ seo_title|e('html_attr') }}"
-               loading="lazy"
-               decoding="async"
-               class="nsfw-blur block absolute inset-0 w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
-        {% else %}
-          <img src="{{ real_url }}"
-               data-nsfw-real-src="{{ real_url }}"
-               alt="{{ (album.cover.alt_text ?? album.title)|e }}"
-               title="{{ seo_title|e('html_attr') }}"
-               loading="lazy"
-               decoding="async"
-               class="nsfw-blur block absolute inset-0 w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
-        {% endif %}
+        {% set real_url = card_img_url ? (card_img_url starts with '/' ? base_path ~ card_img_url : card_img_url) : blur_path %}
+        <img src="{{ blur_path }}"
+             data-nsfw-real-src="{{ real_url }}"
+             alt="{{ (album.cover.alt_text ?? album.title)|e }}"
+             title="{{ seo_title|e('html_attr') }}"
+             loading="lazy"
+             decoding="async"
+             class="nsfw-blur block absolute inset-0 w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
       {% else %}
         {# Non-NSFW albums (or consented NSFW): show full quality responsive images #}
         {% set has_variants = album.cover.variants is iterable and album.cover.variants|length > 0 %}

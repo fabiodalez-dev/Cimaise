@@ -267,6 +267,7 @@ abstract class BaseController
 
         // Mark as requiring CSS blur fallback if no blur variant exists
         $album['nsfw_needs_css_blur'] = true;
+        $placeholderUrl = $this->blurPlaceholderUrl();
 
         if (!empty($album['cover']) && !empty($album['cover']['variants']) && is_array($album['cover']['variants'])) {
             $blurVariants = array_values(array_filter(
@@ -279,13 +280,26 @@ abstract class BaseController
                 $album['cover']['variants'] = $blurVariants;
                 unset($album['cover']['original_path']);
                 $album['nsfw_needs_css_blur'] = false;
+            } else {
+                // No blur variant: substitute with a static placeholder so the template never
+                // falls back to the full-resolution preview/original for NSFW covers.
+                $album['cover']['variants'] = [[
+                    'variant' => 'blur',
+                    'format' => 'jpg',
+                    'path' => $placeholderUrl,
+                    'width' => null,
+                    'height' => null,
+                ]];
+                unset($album['cover']['original_path']);
+                $album['nsfw_needs_css_blur'] = false;
             }
-            // If no blur variants, keep the cover as-is for CSS blur fallback in template
         }
 
         if (!empty($album['cover_image']) && is_array($album['cover_image'])) {
-            if (empty($album['cover_image']['blur_path']) && !empty($album['cover_image']['preview_path'])) {
-                $album['cover_image']['blur_path'] = $album['cover_image']['preview_path'];
+            if (empty($album['cover_image']['blur_path'])) {
+                // Prefer a real blur if we have one; otherwise fall back to the static placeholder
+                // (never leak preview_path/original_path for NSFW covers).
+                $album['cover_image']['blur_path'] = $placeholderUrl;
             }
             // Don't unset cover_image even without blur - template will apply CSS blur
             if (!empty($album['cover_image']['blur_path'])) {
@@ -304,6 +318,15 @@ abstract class BaseController
     protected function ensureAlbumCoverImage(array $album): array
     {
         if (!empty($album['cover_image']) || empty($album['cover']) || !is_array($album['cover'])) {
+            // Even if cover_image already exists, password-protected albums without a
+            // blur_path must still get a placeholder so _album_card.twig always has a
+            // renderable URL when should_blur_cover is true.
+            if (!empty($album['cover_image']) && is_array($album['cover_image'])) {
+                $needsPlaceholder = !empty($album['is_password_protected']) || !empty($album['is_locked']);
+                if ($needsPlaceholder && empty($album['cover_image']['blur_path'])) {
+                    $album['cover_image']['blur_path'] = $this->blurPlaceholderUrl();
+                }
+            }
             return $album;
         }
 
@@ -331,8 +354,29 @@ abstract class BaseController
             }
         }
 
+        // For password-protected (or locked) albums without a blur variant, fall back to a
+        // static placeholder so listings never expose the full-resolution cover via the
+        // _album_card.twig blur branch.
+        $needsPlaceholder = !empty($album['is_password_protected']) || !empty($album['is_locked']);
+        if ($needsPlaceholder && empty($coverImage['blur_path'])) {
+            $coverImage['blur_path'] = $this->blurPlaceholderUrl();
+        }
+
         $album['cover_image'] = $coverImage;
         return $album;
+    }
+
+    /**
+     * URL path for the static blur placeholder used when a protected album lacks a blur variant.
+     * The actual placeholder file is created on-demand by UploadService::ensureBlurPlaceholder()
+     * (generates an 8x8 gray jpeg at public/media/blur-placeholder.jpg the first time it is hit).
+     *
+     * Returned as an absolute server path (starting with `/`) so _album_card.twig will prepend
+     * base_path itself, consistent with how other variant.path values flow through the template.
+     */
+    protected function blurPlaceholderUrl(): string
+    {
+        return '/media/blur-placeholder.jpg';
     }
 
     /**

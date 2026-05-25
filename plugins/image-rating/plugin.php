@@ -166,10 +166,24 @@ class ImageRatingPlugin
     }
 
     /**
-     * Initialize rating on image upload (default 0)
+     * Initialize rating on image upload (default 0).
+     *
+     * Idempotency guard: if a rating row already exists for this image (from any
+     * rater), do NOT overwrite it. Re-firing the image_after_upload hook (e.g.,
+     * on re-upload, re-import, or duplicate-detection retries) must not clobber
+     * a real rating with the default 0.
      */
     public function initializeRating(int $imageId, array $imageData, string $filePath): void
     {
+        if (!isset($this->ratingService)) {
+            return; // setup() not yet run
+        }
+
+        if ($this->ratingService->hasAnyRating($imageId)) {
+            error_log("Image Rating: Skipping init for image {$imageId} (rating already exists)");
+            return;
+        }
+
         $this->ratingService->setRating($imageId, 0);
         error_log("Image Rating: Initialized rating for image {$imageId}");
     }

@@ -294,6 +294,7 @@
     "installer.italian": "Italiano",
     "installer.optional": "(opzionale)",
     "installer.required": "(obbligatorio)",
+    "installer.required_field": "Campo obbligatorio",
     "installer.site_copyright": "Note di copyright",
     "installer.site_copyright_help": "Usa <code>{year}</code> per l'anno corrente",
     "installer.site_description": "Descrizione del sito",
