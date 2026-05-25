@@ -385,10 +385,16 @@ class ExifService
         }
         
         try {
-            if (extension_loaded('imagick')) {
+            // Imagick is opt-out via CIMAISE_DISABLE_IMAGICK=1 (see UploadService).
+            // GD is the safer fallback when ImageMagick segfaults under the
+            // current php-fpm build (macOS Apple Silicon + ImageMagick 7.1.x).
+            $imagickDisabled = filter_var((string)(function_exists('envv') ? envv('CIMAISE_DISABLE_IMAGICK', 'false') : ($_ENV['CIMAISE_DISABLE_IMAGICK'] ?? 'false')), FILTER_VALIDATE_BOOLEAN);
+            if (extension_loaded('imagick') && !$imagickDisabled) {
                 return $this->normalizeWithImagick($imagePath, $orientation);
-            } else {
+            } elseif (extension_loaded('gd')) {
                 return $this->normalizeWithGD($imagePath, $orientation);
+            } else {
+                return false;
             }
         } catch (\Throwable $e) {
             Logger::warning('ExifService: EXIF orientation fix failed', ['error' => $e->getMessage(), 'path' => $imagePath], 'upload');

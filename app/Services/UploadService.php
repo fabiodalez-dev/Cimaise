@@ -313,7 +313,7 @@ class UploadService
 
     private function resizeWithImagickOrGd(string $src, string $dest, int $targetW, string $format, int $quality): bool
     {
-        if (class_exists(\Imagick::class)) {
+        if (class_exists(\Imagick::class) && !$this->imagickDisabled()) {
             return $this->resizeWithImagick($src, $dest, $targetW, $format, $quality);
         }
         // GD fallback JPEG only
@@ -431,7 +431,7 @@ class UploadService
         $mediaDir = dirname(__DIR__, 2) . '/public/media';
         ImagesService::ensureDir($mediaDir);
 
-        $haveImagick = class_exists(\Imagick::class);
+        $haveImagick = class_exists(\Imagick::class) && !$this->imagickDisabled();
         $stats = ['generated' => 0, 'failed' => 0, 'skipped' => 0];
 
         foreach ($breakpoints as $variant => $targetW) {
@@ -524,6 +524,17 @@ class UploadService
     }
 
     /**
+     * Imagick is opt-out via CIMAISE_DISABLE_IMAGICK=1 — set this when running
+     * under a php-fpm whose Imagick build segfaults on real upload payloads
+     * (macOS / Apple Silicon + ImageMagick 7.1.x is the known offender). GD is
+     * always used as the fallback.
+     */
+    private function imagickDisabled(): bool
+    {
+        return $this->envFlag('CIMAISE_DISABLE_IMAGICK', false);
+    }
+
+    /**
      * Helper to parse boolean flags from environment with sane defaults.
      */
     private function envFlag(string $key, bool $default = false): bool
@@ -597,7 +608,7 @@ class UploadService
 
         // Generate blurred image
         $ok = false;
-        if (class_exists(\Imagick::class)) {
+        if (class_exists(\Imagick::class) && !$this->imagickDisabled()) {
             $ok = $this->generateBlurWithImagick($sourcePath, $destPath);
         } else {
             $ok = $this->generateBlurWithGd($sourcePath, $destPath);
@@ -1029,7 +1040,7 @@ class UploadService
 
                 // Generate LQIP (tiny with light blur)
                 $ok = false;
-                if (class_exists(\Imagick::class)) {
+                if (class_exists(\Imagick::class) && !$this->imagickDisabled()) {
                     $ok = $this->generateLQIPWithImagick($sourcePath, $destPath);
                 } else {
                     $ok = $this->generateLQIPWithGd($sourcePath, $destPath);

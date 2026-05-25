@@ -10,6 +10,11 @@ export const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'TestPass123!';
 
 export const ADMIN_DASHBOARD_RE = /\/admin\/?(\?.*)?$/;
 export const ADMIN_ALBUMS_LIST_RE = /\/admin\/albums\/?(\?.*)?$/;
+// Post-create redirect destination — the controller sends the user to the
+// edit page of the freshly created album (NOT back to the list). Used by
+// createAlbum() to know when the submit has actually landed somewhere we
+// can read the new album id from.
+export const ADMIN_ALBUM_EDIT_RE = /\/admin\/albums\/\d+\/edit\/?(\?.*)?$/;
 
 /** Log in as the test admin via the admin login form. */
 export async function adminLogin(page) {
@@ -49,17 +54,31 @@ export async function createAlbum(page, title, opts = {}) {
     await nsfwBox.scrollIntoViewIfNeeded();
     if (isNsfw && !(await nsfwBox.isChecked())) await nsfwBox.check({ force: true });
     if (!isNsfw && (await nsfwBox.isChecked())) await nsfwBox.uncheck({ force: true });
+    // The controller redirects to /admin/albums/<id>/edit on success.
+    // Wait for that URL — fall back to /admin/albums (list) if some build
+    // routes back there instead, then walk the list.
     await Promise.all([
-        page.waitForURL(ADMIN_ALBUMS_LIST_RE, { timeout: 15000 }),
+        page.waitForURL(
+            (url) => ADMIN_ALBUM_EDIT_RE.test(url.pathname + url.search)
+                  || ADMIN_ALBUMS_LIST_RE.test(url.pathname + url.search),
+            { timeout: 15000 },
+        ),
         page.click('button[type="submit"][form="album-form"]'),
     ]);
-    // Find the album in the list
+    // Pick the id directly from the URL when we landed on the edit page.
+    const currentUrl = page.url();
+    const m = currentUrl.match(/\/admin\/albums\/(\d+)\/edit/);
+    if (m) {
+        const id = Number(m[1]);
+        const slug = await page.locator('input[name="slug"]').inputValue().catch(() => null);
+        return { id, slug };
+    }
+    // Fallback: scan the listing for the freshly created title.
     await page.goto(`${BASE}/admin/albums`);
     const link = page.locator(`a:has-text("${title}")`).first();
     const href = await link.getAttribute('href').catch(() => null);
     const id = href?.match(/\/albums\/(\d+)/)?.[1];
     if (!id) return { id: null, slug: null };
-    // Get slug from edit page
     await page.goto(`${BASE}/admin/albums/${id}/edit`);
     const slug = await page.locator('input[name="slug"]').inputValue().catch(() => null);
     return { id: Number(id), slug };
@@ -69,55 +88,74 @@ function escapeRegExp(s) {
     return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/** Upload a small canvas-generated JPEG to an album and optionally set as cover. */
+/** Upload a small canvas-generated JPEG to an album and optionally set as cover.
+ *  Synthesizes the JPEG bytes in the page, then uses Playwright's
+ *  APIRequestContext to POST the multipart upload — avoids the in-page
+ *  fetch failing opaquely when a worker dies or a CSP edge case bites. */
 export async function uploadCover(page, albumId, label = 'Cover', color = '#3b82f6') {
     await page.goto(`${BASE}/admin/albums/${albumId}/edit`);
     await page.waitForSelector('#uppy', { timeout: 5000 });
 
-    const result = await page.evaluate(async ({ albumId, base, label, color }) => {
-        const csrf = document.querySelector('input[name="csrf"]')?.value
-                  || document.querySelector('#uppy')?.dataset?.csrf || '';
+    const csrf = await page.locator('input[name="csrf"]').first().getAttribute('value', { timeout: 2000 }).catch(() => null)
+              || await page.locator('#uppy').first().getAttribute('data-csrf', { timeout: 500 }).catch(() => null);
+    if (!csrf) return { ok: false, imageId: null };
+
+    // Render the test image as a data: URL inside the page, then transport
+    // the raw bytes to node so we can POST the multipart from outside.
+    const dataUrl = await page.evaluate(({ label, color }) => {
         const canvas = document.createElement('canvas');
         canvas.width = 200; canvas.height = 200;
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = color; ctx.fillRect(0, 0, 200, 200);
         ctx.fillStyle = '#fff'; ctx.font = '20px sans-serif';
         ctx.fillText(label, 20, 110);
-        const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.9));
-        const fd = new FormData();
-        fd.append('file', blob, `test-${label}.jpg`);
-        const res = await fetch(`${base}/admin/albums/${albumId}/upload`, {
-            method: 'POST',
-            headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' },
-            body: fd
-        });
-        const data = await res.json().catch(() => null);
-        if (res.ok && data?.id) {
-            await fetch(`${base}/admin/albums/${albumId}/cover/${data.id}`, {
-                method: 'POST',
-                headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' }
-            });
-        }
-        return { ok: res.ok, imageId: data?.id || null };
-    }, { albumId, base: BASE, label, color });
+        return canvas.toDataURL('image/jpeg', 0.9);
+    }, { label, color });
 
-    return result;
+    const base64 = dataUrl.replace(/^data:image\/jpeg;base64,/, '');
+    const buffer = Buffer.from(base64, 'base64');
+
+    const uploadResp = await page.request.post(`${BASE}/admin/albums/${albumId}/upload`, {
+        headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' },
+        multipart: {
+            file: { name: `test-${label}.jpg`, mimeType: 'image/jpeg', buffer },
+            csrf,
+        },
+        failOnStatusCode: false,
+    }).catch(() => null);
+    if (!uploadResp || !uploadResp.ok()) return { ok: false, imageId: null };
+    const data = await uploadResp.json().catch(() => null);
+    const imageId = data?.id || null;
+
+    if (imageId) {
+        await page.request.post(`${BASE}/admin/albums/${albumId}/cover/${imageId}`, {
+            headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' },
+            form: { csrf },
+            failOnStatusCode: false,
+        }).catch(() => {});
+    }
+
+    return { ok: !!imageId, imageId };
 }
 
-/** Delete an album (admin) by id. Best-effort; ignores 404. */
+/** Delete an album (admin) by id. Best-effort; ignores 404 / missing CSRF. */
 export async function deleteAlbum(page, albumId) {
     if (!albumId) return;
-    await page.goto(`${BASE}/admin/albums`);
-    await page.waitForSelector('body');
-    const csrf = await page.locator('meta[name="csrf-token"]').first().getAttribute('content').catch(() => null)
-              || await page.locator('input[name="csrf"]').first().getAttribute('value').catch(() => null);
+    // Use the album EDIT page — it always renders a hidden `input[name="csrf"]`
+    // in the surrounding admin form. The albums list page does not expose the
+    // CSRF in a meta tag, so probing for one there hangs Playwright until the
+    // default 30s locator timeout.
+    await page.goto(`${BASE}/admin/albums/${albumId}/edit`);
+    const csrfField = page.locator('input[name="csrf"]').first();
+    const csrf = await csrfField.getAttribute('value', { timeout: 2000 }).catch(() => null);
     if (!csrf) return;
-    await page.evaluate(async ({ albumId, base, csrf }) => {
-        await fetch(`${base}/admin/albums/${albumId}/delete`, {
-            method: 'POST',
-            headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' }
-        });
-    }, { albumId, base: BASE, csrf });
+    // Use Playwright's APIRequestContext (not in-page fetch) so a server-side
+    // worker crash doesn't surface as an opaque "TypeError: Failed to fetch".
+    await page.request.post(`${BASE}/admin/albums/${albumId}/delete`, {
+        headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' },
+        form: { csrf },
+        failOnStatusCode: false,
+    }).catch(() => {});
 }
 
 /** Read the value of an HTTP response header (case-insensitive). */
