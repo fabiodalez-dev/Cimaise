@@ -470,7 +470,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // neutralizes them, refusing the request gives the user clearer feedback
             // and ensures no surprise interpolation in tools that re-read .env.
             foreach (['username' => 'db_username', 'database' => 'db_database', 'password' => 'db_password'] as $cfgKey => $errKey) {
-                $val = (string)($dbConfig[$cfgKey] ?? '');
+                $val = (string)$dbConfig[$cfgKey];
                 if ($val !== '' && (strpos($val, "\n") !== false || strpos($val, "\r") !== false)) {
                     $errors[$errKey] = 'Line breaks are not allowed in this field.';
                 }
@@ -627,12 +627,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $finfo = new finfo(FILEINFO_MIME_TYPE);
                 $mimeType = $finfo->file($_FILES['site_logo']['tmp_name']);
                 if (in_array($mimeType, $allowedTypes, true)) {
-                    // H3: Re-encode via GD to strip embedded payloads + random filename
-                    $srcImage = match($mimeType) {
+                    // H3: Re-encode via GD to strip embedded payloads + random filename.
+                    // The in_array() guard above narrowed $mimeType to png/jpeg/webp,
+                    // so the last arm collapses into default → imagecreatefromwebp().
+                    $srcImage = match ($mimeType) {
                         'image/png' => @imagecreatefrompng($_FILES['site_logo']['tmp_name']),
                         'image/jpeg' => @imagecreatefromjpeg($_FILES['site_logo']['tmp_name']),
-                        'image/webp' => @imagecreatefromwebp($_FILES['site_logo']['tmp_name']),
-                        default => false,
+                        default => @imagecreatefromwebp($_FILES['site_logo']['tmp_name']),
                     };
                     if ($srcImage) {
                         $logoFilename = 'logo_' . bin2hex(random_bytes(8)) . '.png';
@@ -1110,7 +1111,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 <div class="step-indicator">
                     <div class="flex justify-between">
-                        <div class="step <?= $step === 'requirements' ? 'active' : ($step !== 'requirements' && $step !== 'database' && $step !== 'admin' && $step !== 'settings' && $step !== 'install' ? '' : 'completed') ?>">
+                        <div class="step <?= $step === 'requirements' ? 'active' : (in_array($step, ['database', 'admin', 'settings', 'install'], true) ? 'completed' : '') ?>">
                             <div class="step-circle">1</div>
                             <div class="text-xs text-center font-medium">Requirements</div>
                         </div>

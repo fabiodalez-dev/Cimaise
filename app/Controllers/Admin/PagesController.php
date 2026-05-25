@@ -240,7 +240,7 @@ class PagesController extends BaseController
         $svc->set('about.subtitle', trim((string)($data['about_subtitle'] ?? '')));
         // Slug/permalink
         $rawSlug = strtolower(trim((string)($data['about_slug'] ?? 'about')));
-        $cleanSlug = preg_replace('/[^a-z0-9\-]+/', '-', $rawSlug ?? 'about');
+        $cleanSlug = preg_replace('/[^a-z0-9\-]+/', '-', $rawSlug);
         $cleanSlug = trim($cleanSlug, '-') ?: 'about';
         $svc->set('about.slug', $cleanSlug);
 
@@ -449,7 +449,7 @@ class PagesController extends BaseController
 
         // Slug/permalink
         $rawSlug = strtolower(trim((string)($data['license_slug'] ?? 'license')));
-        $cleanSlug = preg_replace('/[^a-z0-9\-]+/', '-', $rawSlug ?? 'license');
+        $cleanSlug = preg_replace('/[^a-z0-9\-]+/', '-', $rawSlug);
         $cleanSlug = trim($cleanSlug, '-') ?: 'license';
         $svc->set('license.slug', $cleanSlug);
 
@@ -500,7 +500,7 @@ class PagesController extends BaseController
 
         // Slug/permalink
         $rawSlug = strtolower(trim((string)($data['privacy_slug'] ?? 'privacy-policy')));
-        $cleanSlug = preg_replace('/[^a-z0-9\-]+/', '-', $rawSlug ?? 'privacy-policy');
+        $cleanSlug = preg_replace('/[^a-z0-9\-]+/', '-', $rawSlug);
         $cleanSlug = trim($cleanSlug, '-') ?: 'privacy-policy';
         $svc->set('privacy.slug', $cleanSlug);
 
@@ -551,7 +551,7 @@ class PagesController extends BaseController
 
         // Slug/permalink
         $rawSlug = strtolower(trim((string)($data['cookie_slug'] ?? 'cookie-policy')));
-        $cleanSlug = preg_replace('/[^a-z0-9\-]+/', '-', $rawSlug ?? 'cookie-policy');
+        $cleanSlug = preg_replace('/[^a-z0-9\-]+/', '-', $rawSlug);
         $cleanSlug = trim($cleanSlug, '-') ?: 'cookie-policy';
         $svc->set('cookie.slug', $cleanSlug);
 
@@ -661,15 +661,13 @@ class PagesController extends BaseController
         ];
         
         $isValidMagic = false;
-        if (isset($magicNumbers[$detectedMime])) {
-            foreach ($magicNumbers[$detectedMime] as $signature) {
-                if (str_starts_with($fileHeader, $signature)) {
-                    $isValidMagic = true;
-                    break;
-                }
+        foreach ($magicNumbers[$detectedMime] as $signature) {
+            if (str_starts_with($fileHeader, $signature)) {
+                $isValidMagic = true;
+                break;
             }
         }
-        
+
         if (!$isValidMagic) {
             return false;
         }

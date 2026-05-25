@@ -74,7 +74,7 @@ class TextsController extends BaseController
     /**
      * Edit a single text
      *
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     * @SuppressWarnings("PHPMD.UnusedFormalParameter")
      */
     public function edit(Request $request, Response $response, array $args): Response
     {
@@ -128,7 +128,7 @@ class TextsController extends BaseController
     /**
      * Show create form
      *
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     * @SuppressWarnings("PHPMD.UnusedFormalParameter")
      */
     public function create(Request $request, Response $response): Response
     {
@@ -271,7 +271,7 @@ class TextsController extends BaseController
     /**
      * Get available language files (AJAX endpoint)
      *
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     * @SuppressWarnings("PHPMD.UnusedFormalParameter")
      */
     public function languages(Request $request, Response $response): Response
     {
@@ -390,7 +390,7 @@ class TextsController extends BaseController
     /**
      * Export current translations as JSON
      *
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     * @SuppressWarnings("PHPMD.UnusedFormalParameter")
      */
     public function export(Request $request, Response $response): Response
     {

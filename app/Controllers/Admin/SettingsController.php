@@ -683,12 +683,13 @@ class SettingsController extends BaseController
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
-        // Determine extension
+        // Determine extension. The upstream in_array() guard narrowed
+        // $mimeType to png/jpeg/webp, so the remaining arm reduces to a
+        // default → 'webp' branch.
         $ext = match ($mimeType) {
             'image/png' => 'png',
             'image/jpeg' => 'jpg',
-            'image/webp' => 'webp',
-            default => 'png',
+            default => 'webp',
         };
 
         $publicPath = dirname(__DIR__, 3) . '/public';

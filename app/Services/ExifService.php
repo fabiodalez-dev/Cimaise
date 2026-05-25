@@ -977,9 +977,10 @@ class ExifService
             // Write EXIF sub-IFD entries
             $this->writeExifSubIfdEntries($exifIfd, $exifData);
 
-            // Write GPS data if coordinates provided
-            if (isset($exifData['gps_lat']) && isset($exifData['gps_lng']) &&
-                $exifData['gps_lat'] !== null && $exifData['gps_lng'] !== null) {
+            // Write GPS data if coordinates provided.
+            // isset() already treats null as absent, so the explicit !== null
+            // checks were redundant.
+            if (isset($exifData['gps_lat'], $exifData['gps_lng'])) {
                 $this->writeGpsData($ifd0, (float)$exifData['gps_lat'], (float)$exifData['gps_lng']);
             }
 

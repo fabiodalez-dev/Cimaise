@@ -62,7 +62,7 @@ class AuthController extends BaseController
         $adminLocale = $this->getAdminLocale();
 
         // Handle CSRF validation with graceful session expiration recovery
-        $csrfValid = is_string($csrf) && isset($_SESSION['csrf']) && hash_equals($_SESSION['csrf'], $csrf);
+        $csrfValid = isset($_SESSION['csrf']) && hash_equals($_SESSION['csrf'], $csrf);
 
         if (!$csrfValid) {
             // Check if this is a session expiration (token was missing, not just wrong)
@@ -272,7 +272,7 @@ class AuthController extends BaseController
             $data = (array)($request->getParsedBody() ?? []);
             $csrf = (string)($data['csrf'] ?? '');
 
-            if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+            if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
                 $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
                 return $response->withHeader('Location', $this->redirect('/admin'))->withStatus(302);
             }
@@ -286,7 +286,7 @@ class AuthController extends BaseController
         $_SESSION = [];
         if (ini_get('session.use_cookies')) {
             $params = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'] ?? '', $params['secure'] ?? false, $params['httponly'] ?? true);
+            setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
         }
         session_destroy();
         return $response->withHeader('Location', $this->redirect('/admin/login'))->withStatus(302);
@@ -304,7 +304,7 @@ class AuthController extends BaseController
         $email = trim((string)($data['email'] ?? ''));
         $csrf = (string)($data['csrf'] ?? '');
 
-        if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+        if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->safeReferer('/admin'))->withStatus(302);
         }
@@ -375,7 +375,7 @@ class AuthController extends BaseController
         $confirmPassword = (string)($data['confirm_password'] ?? '');
         $csrf = (string)($data['csrf'] ?? '');
 
-        if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+        if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->safeReferer('/admin'))->withStatus(302);
         }

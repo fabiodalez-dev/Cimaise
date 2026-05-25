@@ -281,8 +281,11 @@ class Database
                 continue;
             }
 
-            // Handle single-quoted strings (with escaped quotes)
-            if ($char === "'" && !$inDoubleQuote && !$inBlockComment && !$inLineComment) {
+            // Handle single-quoted strings (with escaped quotes). The earlier
+            // `if ($inBlockComment) continue;` / `if ($inLineComment) continue;`
+            // branches already short-circuit those modes, so here we only need
+            // to check the double-quote context.
+            if ($char === "'" && !$inDoubleQuote) {
                 if ($inSingleQuote) {
                     // Check for escaped quote ('')
                     if ($next === "'") {
@@ -298,8 +301,8 @@ class Database
                 continue;
             }
 
-            // Handle double-quoted strings
-            if ($char === '"' && !$inSingleQuote && !$inBlockComment && !$inLineComment) {
+            // Handle double-quoted strings — same rationale as single-quoted above.
+            if ($char === '"' && !$inSingleQuote) {
                 $inDoubleQuote = !$inDoubleQuote;
                 $current .= $char;
                 continue;

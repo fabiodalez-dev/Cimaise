@@ -253,7 +253,7 @@ class UploadService
             $previewSize = @getimagesize($preview) ?: [$previewW, 0];
             $replaceKeyword = $this->db->replaceKeyword();
             $pdo->prepare(sprintf('%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)', $replaceKeyword))
-                ->execute([$imageId,'sm','jpg',$relUrl,$previewW,(int)($previewSize[1] ?? 0), (int)filesize($preview)]);
+                ->execute([$imageId,'sm','jpg',$relUrl,$previewW,(int)$previewSize[1], (int)filesize($preview)]);
             $previewRel = $relUrl;
         } else {
             $previewRel = null;
@@ -322,7 +322,7 @@ class UploadService
         [$w, $h] = $info;
         $ratio = $h > 0 ? $w / $h : 1;
         $newW = $targetW; $newH = (int)round($targetW / $ratio);
-        $srcImg = match ($info['mime'] ?? '') {
+        $srcImg = match ($info['mime']) {
             'image/jpeg' => @imagecreatefromjpeg($src),
             'image/png' => @imagecreatefrompng($src),
             default => null,
@@ -344,7 +344,7 @@ class UploadService
         [$w, $h] = $info;
         $ratio = $h > 0 ? $w / $h : 1;
         $newW = $targetW; $newH = (int)round($targetW / $ratio);
-        $srcImg = match ($info['mime'] ?? '') {
+        $srcImg = match ($info['mime']) {
             'image/jpeg' => @imagecreatefromjpeg($src),
             'image/png' => @imagecreatefrompng($src),
             default => null,
@@ -480,7 +480,9 @@ class UploadService
                             $ok = $this->resizeWithGdWebp($originalPath, $destPath, $targetW, (int)($quality['webp'] ?? 75));
                         }
                     }
-                } elseif ($fmt === 'avif' && $haveImagick) {
+                } elseif ($haveImagick) {
+                    // Remaining format: 'avif' (narrowed by the if/elseif chain
+                    // above). Only Imagick can produce AVIF in this codebase.
                     $ok = $this->resizeWithImagick($originalPath, $destPath, $targetW, 'avif', (int)($quality['avif'] ?? 50));
                 }
 
@@ -739,7 +741,7 @@ class UploadService
         }
 
         [$w, $h] = $info;
-        $srcImg = match ($info['mime'] ?? '') {
+        $srcImg = match ($info['mime']) {
             'image/jpeg' => @imagecreatefromjpeg($src),
             'image/png' => @imagecreatefrompng($src),
             'image/webp' => @imagecreatefromwebp($src),
@@ -1140,7 +1142,7 @@ class UploadService
         }
 
         [$w, $h] = $info;
-        $srcImg = match ($info['mime'] ?? '') {
+        $srcImg = match ($info['mime']) {
             'image/jpeg' => @imagecreatefromjpeg($src),
             'image/png' => @imagecreatefrompng($src),
             'image/webp' => @imagecreatefromwebp($src),

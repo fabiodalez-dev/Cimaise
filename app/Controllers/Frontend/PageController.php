@@ -242,30 +242,21 @@ class PageController extends BaseController
     {
         // Normalize possibly nested columns structure to flat integers
         if (isset($templateSettings['columns']) && is_array($templateSettings['columns'])) {
+            $columnsCfg = [
+                'desktop' => ['max' => 6, 'fallback' => 3],
+                'tablet'  => ['max' => 4, 'fallback' => 2],
+                'mobile'  => ['max' => 2, 'fallback' => 1],
+            ];
             $normalizedColumns = [];
-            foreach (['desktop', 'tablet', 'mobile'] as $device) {
+            foreach ($columnsCfg as $device => $cfg) {
                 if (isset($templateSettings['columns'][$device])) {
                     $value = $templateSettings['columns'][$device];
                     while (is_array($value) && isset($value[$device])) {
                         $value = $value[$device];
                     }
                     $intValue = (int) $value;
-                    $isValid = match ($device) {
-                        'desktop' => $intValue >= 1 && $intValue <= 6,
-                        'tablet' => $intValue >= 1 && $intValue <= 4,
-                        'mobile' => $intValue >= 1 && $intValue <= 2,
-                        default => false,
-                    };
-                    if ($isValid) {
-                        $normalizedColumns[$device] = $intValue;
-                    } else {
-                        $normalizedColumns[$device] = match ($device) {
-                            'desktop' => 3,
-                            'tablet' => 2,
-                            'mobile' => 1,
-                            default => 3,
-                        };
-                    }
+                    $isValid = $intValue >= 1 && $intValue <= $cfg['max'];
+                    $normalizedColumns[$device] = $isValid ? $intValue : $cfg['fallback'];
                 }
             }
             $templateSettings['columns'] = $normalizedColumns;
@@ -912,38 +903,33 @@ class PageController extends BaseController
             $equipment['labs'] = array_filter(array_map('trim', explode("\n", $album['custom_labs'])));
         }
 
-        // 2. For any equipment types not set via custom fields, load from DB in ONE query
-        $needsDbLookup = empty($equipment['cameras']) || empty($equipment['lenses']) ||
-            empty($equipment['film']) || empty($equipment['developers']) ||
-            empty($equipment['labs']) || empty($equipment['locations']);
+        // 2. For any equipment types not set via custom fields, load from DB in ONE query.
+        // `locations` has no `custom_locations` column in the albums schema so it
+        // is always sourced from the album_location pivot — we eager-load it
+        // unconditionally on the same DB roundtrip below.
+        try {
+            $dbEquipment = \App\Services\ImageVariantsService::eagerLoadEquipment($pdo, [(int) $album['id']]);
+            $albumEquip = $dbEquipment[(int) $album['id']] ?? [];
 
-        if ($needsDbLookup) {
-            try {
-                $dbEquipment = \App\Services\ImageVariantsService::eagerLoadEquipment($pdo, [(int) $album['id']]);
-                $albumEquip = $dbEquipment[(int) $album['id']] ?? [];
-
-                // Merge only empty equipment types (preserve custom field priority)
-                if (empty($equipment['cameras'])) {
-                    $equipment['cameras'] = $albumEquip['cameras'] ?? [];
-                }
-                if (empty($equipment['lenses'])) {
-                    $equipment['lenses'] = $albumEquip['lenses'] ?? [];
-                }
-                if (empty($equipment['film'])) {
-                    $equipment['film'] = $albumEquip['film'] ?? [];
-                }
-                if (empty($equipment['developers'])) {
-                    $equipment['developers'] = $albumEquip['developers'] ?? [];
-                }
-                if (empty($equipment['labs'])) {
-                    $equipment['labs'] = $albumEquip['labs'] ?? [];
-                }
-                if (empty($equipment['locations'])) {
-                    $equipment['locations'] = $albumEquip['locations'] ?? [];
-                }
-            } catch (\Throwable) {
-                // Equipment tables might not exist yet
+            // Merge only empty equipment types (preserve custom field priority)
+            if (empty($equipment['cameras'])) {
+                $equipment['cameras'] = $albumEquip['cameras'] ?? [];
             }
+            if (empty($equipment['lenses'])) {
+                $equipment['lenses'] = $albumEquip['lenses'] ?? [];
+            }
+            if (empty($equipment['film'])) {
+                $equipment['film'] = $albumEquip['film'] ?? [];
+            }
+            if (empty($equipment['developers'])) {
+                $equipment['developers'] = $albumEquip['developers'] ?? [];
+            }
+            if (empty($equipment['labs'])) {
+                $equipment['labs'] = $albumEquip['labs'] ?? [];
+            }
+            $equipment['locations'] = $albumEquip['locations'] ?? [];
+        } catch (\Throwable) {
+            // Equipment tables might not exist yet
         }
 
         // Get album images
@@ -1049,9 +1035,11 @@ class PageController extends BaseController
 
         $relatedAlbums = $this->filterAlbumsByAccess($relatedAlbums, $isAdmin, $nsfwConsent);
 
-        // Get template libraries from the resolved template
+        // Get template libraries from the resolved template.
+        // $template is guaranteed non-null by the resolution chain above; only
+        // the libs key may be absent/empty on minimal templates.
         $templateLibs = [];
-        if ($template && !empty($template['libs'])) {
+        if (!empty($template['libs'])) {
             $rawLibs = $template['libs'];
             if (is_array($rawLibs)) {
                 $templateLibs = $rawLibs;
@@ -1954,13 +1942,10 @@ class PageController extends BaseController
 
             // Render only the gallery part (not the full page)
             $partial = 'frontend/_gallery_content.twig';
-            try {
-                if ($templateCustomTwig) {
-                    $partial = 'frontend/_gallery_custom_content.twig';
-                } elseif (($template['slug'] ?? '') === 'magazine-split') {
-                    $partial = 'frontend/_gallery_magazine_content.twig';
-                }
-            } catch (\Throwable) {
+            if ($templateCustomTwig) {
+                $partial = 'frontend/_gallery_custom_content.twig';
+            } elseif (($template['slug'] ?? '') === 'magazine-split') {
+                $partial = 'frontend/_gallery_magazine_content.twig';
             }
             return $this->view->render($response, $partial, [
                 'images' => $images,
@@ -2502,7 +2487,7 @@ class PageController extends BaseController
         if (!empty($coverImageIds)) {
             $coverPlaceholders = implode(',', array_fill(0, count($coverImageIds), '?'));
             $stmt = $pdo->prepare("SELECT * FROM images WHERE id IN ($coverPlaceholders)");
-            $stmt->execute(array_values($coverImageIds));
+            $stmt->execute($coverImageIds);
             foreach ($stmt->fetchAll() as $img) {
                 $coverImages[(int) $img['id']] = $img;
             }
@@ -2516,7 +2501,7 @@ class PageController extends BaseController
                 WHERE image_id IN ($coverPlaceholders)
                 ORDER BY image_id, variant ASC
             ");
-            $stmt->execute(array_values($coverImageIds));
+            $stmt->execute($coverImageIds);
             foreach ($stmt->fetchAll() as $variant) {
                 $imageId = (int) $variant['image_id'];
                 if (!isset($variantsByImage[$imageId])) {
@@ -2607,49 +2592,6 @@ class PageController extends BaseController
         return $albums;
     }
 
-    private function enrichAlbum(array $album): array
-    {
-        $pdo = $this->db->pdo();
-
-        // Cover image
-        if ($album['cover_image_id']) {
-            $stmt = $pdo->prepare('SELECT * FROM images WHERE id = :id');
-            $stmt->execute([':id' => $album['cover_image_id']]);
-            $cover = $stmt->fetch();
-
-            if ($cover) {
-                $variantsStmt = $pdo->prepare('SELECT * FROM image_variants WHERE image_id = :id ORDER BY variant ASC');
-                $variantsStmt->execute([':id' => $cover['id']]);
-                $cover['variants'] = $variantsStmt->fetchAll();
-                $album['cover'] = $cover;
-            }
-        }
-
-        // Tags
-        $stmt = $pdo->prepare('
-            SELECT t.* FROM tags t 
-            JOIN album_tag at ON at.tag_id = t.id 
-            WHERE at.album_id = :id 
-            ORDER BY t.name ASC
-        ');
-        $stmt->execute([':id' => $album['id']]);
-        $album['tags'] = $stmt->fetchAll();
-        // Locations (if present)
-        try {
-            $locStmt = $pdo->prepare('SELECT l.id, l.name, l.slug FROM album_location al JOIN locations l ON l.id = al.location_id WHERE al.album_id = :id ORDER BY l.name');
-            $locStmt->execute([':id' => $album['id']]);
-            $album['locations'] = $locStmt->fetchAll() ?: [];
-        } catch (\Throwable) {
-            $album['locations'] = [];
-        }
-
-        // Images count
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM images WHERE album_id = :id');
-        $stmt->execute([':id' => $album['id']]);
-        $album['images_count'] = (int) $stmt->fetchColumn();
-
-        return $album;
-    }
 
     private function filterAlbumsByAccess(array $albums, bool $isAdmin, bool $nsfwConsent): array
     {

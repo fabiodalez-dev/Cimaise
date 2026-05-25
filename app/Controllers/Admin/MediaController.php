@@ -231,16 +231,14 @@ class MediaController extends BaseController
             $params[":$field"] = $value;
         }
 
-        if (!empty($setParts)) {
-            $sql = 'UPDATE images SET ' . implode(', ', $setParts) . ' WHERE id = :id';
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($params);
-
-            // Invalidate page caches — image metadata changed
-            if ($albumId > 0) {
-                $this->invalidateAlbumCaches($albumId);
-            }
-        }
+        // $setParts is populated from the fixed $fields map above, and the
+        // function early-returns when $albumId is not positive, so both
+        // conditions are guaranteed truthy here.
+        $sql = 'UPDATE images SET ' . implode(', ', $setParts) . ' WHERE id = :id';
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        // Invalidate page caches — image metadata changed
+        $this->invalidateAlbumCaches($albumId);
 
         // Handle EXIF write to files if requested
         if (!empty($d['write_exif_to_file'])) {
@@ -351,9 +349,8 @@ class MediaController extends BaseController
         $stmt->execute($params);
 
         // Invalidate page caches — EXIF metadata changed
-        if ($albumId > 0) {
-            $this->invalidateAlbumCaches($albumId);
-        }
+        // ($albumId is guaranteed > 0 by the early return above.)
+        $this->invalidateAlbumCaches($albumId);
 
         // Handle EXIF write to files if requested
         $writeResult = null;

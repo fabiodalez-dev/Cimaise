@@ -1148,7 +1148,9 @@ HTACCESS;
             }
         }
 
-        if ($newContent !== $content && $newContent !== null) {
+        if ($newContent !== $content) {
+            // $newContent is guaranteed string here — the early return at the
+            // top of the function already handled the preg_replace null case.
             if (file_put_contents($htaccessPath, $newContent) === false) {
                 throw new \RuntimeException('Failed to write public/.htaccess file');
             }

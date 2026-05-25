@@ -31,10 +31,6 @@ class AnalyticsService
             ? "datetime('now', '-" . (int)$hours . " hours')"
             : 'DATE_SUB(NOW(), INTERVAL ' . (int)$hours . ' HOUR)';
     }
-    private function todayExpr(): string
-    {
-        return $this->isSqlite() ? "DATE('now')" : 'CURDATE()';
-    }
 
     /**
      * Compute inclusive start and exclusive end boundaries for a date range.

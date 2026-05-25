@@ -11,9 +11,11 @@ use Slim\Views\Twig;
 
 class CommandsController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view) 
+    public function __construct(Database $db, private Twig $view)
     {
         parent::__construct();
+        // $db kept on the signature for DI uniformity but currently unused.
+        unset($db);
     }
 
     public function index(Request $request, Response $response): Response
@@ -35,7 +37,7 @@ class CommandsController extends BaseController
         $csrf = (string)($data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token'));
         
         // SECURITY: Verify CSRF token
-        if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+        if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             return $this->jsonResponse($response, ['error' => 'Invalid CSRF token', 'success' => false], 403);
         }
         

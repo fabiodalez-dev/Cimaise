@@ -204,7 +204,7 @@ class ImagesGenerateCommand extends Command
         $newW = $targetW; 
         $newH = (int)round($targetW / $ratio);
         
-        $srcImg = match ($info['mime'] ?? '') {
+        $srcImg = match ($info['mime']) {
             'image/jpeg' => @imagecreatefromjpeg($src),
             'image/png' => @imagecreatefrompng($src),
             'image/gif' => @imagecreatefromgif($src),
@@ -247,7 +247,7 @@ class ImagesGenerateCommand extends Command
         $newW = $targetW;
         $newH = (int)round($targetW / $ratio);
         
-        $srcImg = match ($info['mime'] ?? '') {
+        $srcImg = match ($info['mime']) {
             'image/jpeg' => @imagecreatefromjpeg($src),
             'image/png' => @imagecreatefrompng($src),
             'image/gif' => @imagecreatefromgif($src),
