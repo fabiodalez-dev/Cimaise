@@ -1,0 +1,24 @@
+# Static analysis config — run with `vendor/bin/phpstan analyse`.
+# Override locally by creating `phpstan.neon` (gitignored) and merging
+# this file with `includes`.
+includes:
+    - phpstan-baseline.neon
+parameters:
+    level: 5
+    paths:
+        - app
+        - plugins/image-rating/src
+        - public/installer.php
+    excludePaths:
+        - app/Views
+    bootstrapFiles:
+        - vendor/autoload.php
+    # Plugins are loaded at runtime via PluginManager — scan them so
+    # CustomTemplatesPro/* (and other plugin namespaces) are visible to
+    # PHPStan even though composer's autoload only knows `App\`.
+    scanDirectories:
+        - plugins
+    # Don't trust PHPDoc types blindly — some of our vendored libs have
+    # imprecise annotations that would otherwise cascade as "always true"
+    # comparisons across our defensive code.
+    treatPhpDocTypesAsCertain: false

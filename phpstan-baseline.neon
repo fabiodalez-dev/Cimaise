@@ -1,0 +1,313 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Comparison operation "\>" between int\<1, max\> and 0 is always true\.$#'
+			identifier: greater.alwaysTrue
+			count: 2
+			path: app/Controllers/Admin/AlbumsController.php
+
+		-
+			message: '#^Result of \|\| is always true\.$#'
+			identifier: booleanOr.alwaysTrue
+			count: 2
+			path: app/Controllers/Admin/AlbumsController.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 4
+			path: app/Controllers/Admin/AuthController.php
+
+		-
+			message: '#^Offset ''domain'' on array\{lifetime\: int\<0, max\>, path\: non\-falsy\-string, domain\: string, secure\: bool, httponly\: bool, samesite\: ''Lax''\|''lax''\|''None''\|''none''\|''Strict''\|''strict''\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Controllers/Admin/AuthController.php
+
+		-
+			message: '#^Offset ''httponly'' on array\{lifetime\: int\<0, max\>, path\: non\-falsy\-string, domain\: string, secure\: bool, httponly\: bool, samesite\: ''Lax''\|''lax''\|''None''\|''none''\|''Strict''\|''strict''\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Controllers/Admin/AuthController.php
+
+		-
+			message: '#^Offset ''secure'' on array\{lifetime\: int\<0, max\>, path\: non\-falsy\-string, domain\: string, secure\: bool, httponly\: bool, samesite\: ''Lax''\|''lax''\|''None''\|''none''\|''Strict''\|''strict''\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Controllers/Admin/AuthController.php
+
+		-
+			message: '#^Offset ''image/jpeg''\|''image/png''\|''image/webp'' on array\{''image/jpeg''\: array\{''''\}, ''image/png''\: array\{"PNG\\r\\n\\032\\n"\}, ''image/webp''\: array\{''RIFF'', ''WEBP''\}\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: app/Controllers/Admin/CategoriesController.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Controllers/Admin/CommandsController.php
+
+		-
+			message: '#^Property App\\Controllers\\Admin\\CommandsController\:\:\$db is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: app/Controllers/Admin/CommandsController.php
+
+		-
+			message: '#^Comparison operation "\>" between int\<1, max\> and 0 is always true\.$#'
+			identifier: greater.alwaysTrue
+			count: 2
+			path: app/Controllers/Admin/MediaController.php
+
+		-
+			message: '#^Variable \$setParts in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.variable
+			count: 1
+			path: app/Controllers/Admin/MediaController.php
+
+		-
+			message: '#^Offset ''image/jpeg''\|''image/png'' on array\{''image/jpeg''\: array\{''''\}, ''image/png''\: array\{"PNG\\r\\n\\032\\n"\}\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: app/Controllers/Admin/PagesController.php
+
+		-
+			message: '#^Variable \$rawSlug on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.variable
+			count: 4
+			path: app/Controllers/Admin/PagesController.php
+
+		-
+			message: '#^Property App\\Controllers\\Admin\\PluginsController\:\:\$db is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: app/Controllers/Admin/PluginsController.php
+
+		-
+			message: '#^Match arm comparison between ''image/webp'' and ''image/webp'' is always true\.$#'
+			identifier: match.alwaysTrue
+			count: 1
+			path: app/Controllers/Admin/SettingsController.php
+
+		-
+			message: '#^PHPDoc tag @SuppressWarnings has invalid value \(\(PHPMD\.UnusedFormalParameter\)\)\: Unexpected token "\.UnusedFormalParameter\)", expected ''\)'' at offset 65 on line 4$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: app/Controllers/Admin/TextsController.php
+
+		-
+			message: '#^PHPDoc tag @SuppressWarnings has invalid value \(\(PHPMD\.UnusedFormalParameter\)\)\: Unexpected token "\.UnusedFormalParameter\)", expected ''\)'' at offset 67 on line 4$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: app/Controllers/Admin/TextsController.php
+
+		-
+			message: '#^PHPDoc tag @SuppressWarnings has invalid value \(\(PHPMD\.UnusedFormalParameter\)\)\: Unexpected token "\.UnusedFormalParameter\)", expected ''\)'' at offset 84 on line 4$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: app/Controllers/Admin/TextsController.php
+
+		-
+			message: '#^PHPDoc tag @SuppressWarnings has invalid value \(\(PHPMD\.UnusedFormalParameter\)\)\: Unexpected token "\.UnusedFormalParameter\)", expected ''\)'' at offset 93 on line 4$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: app/Controllers/Admin/TextsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\GalleriesController\:\:enrichAlbum\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: app/Controllers/Frontend/GalleriesController.php
+
+		-
+			message: '#^Match arm comparison between ''mobile'' and ''mobile'' is always true\.$#'
+			identifier: match.alwaysTrue
+			count: 2
+			path: app/Controllers/Frontend/GalleryController.php
+
+		-
+			message: '#^Variable \$sources on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.variable
+			count: 1
+			path: app/Controllers/Frontend/GalleryController.php
+
+		-
+			message: '#^Dead catch \- Throwable is never thrown in the try block\.$#'
+			identifier: catch.neverThrown
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^If condition is always true\.$#'
+			identifier: if.alwaysTrue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Left side of && is always true\.$#'
+			identifier: booleanAnd.leftAlwaysTrue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Match arm comparison between ''mobile'' and ''mobile'' is always true\.$#'
+			identifier: match.alwaysTrue
+			count: 2
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:enrichAlbum\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Offset ''locations'' on array\{cameras\: array, lenses\: array, film\: array, developers\: array, labs\: array, locations\: array\{\}\} in empty\(\) always exists and is always falsy\.$#'
+			identifier: empty.offset
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Offset ''locations'' on array\{cameras\: mixed, lenses\: mixed, film\: mixed, developers\: mixed, labs\: mixed, locations\: array\{\}\} in empty\(\) always exists and is always falsy\.$#'
+			identifier: empty.offset
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Parameter \#1 \$array \(non\-empty\-list\<mixed\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 2
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Result of \|\| is always true\.$#'
+			identifier: booleanOr.alwaysTrue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 5
+			path: app/Controllers/InstallerController.php
+
+		-
+			message: '#^Offset 0 on array\{0\: int\<0, max\>, 1\: int\<0, max\>, 2\: int, 3\: string, mime\: string, channels\?\: int, bits\?\: int\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Controllers/InstallerController.php
+
+		-
+			message: '#^Offset 1 on array\{0\: int\<0, max\>, 1\: int\<0, max\>, 2\: int, 3\: string, mime\: string, channels\?\: int, bits\?\: int\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Controllers/InstallerController.php
+
+		-
+			message: '#^Call to function is_string\(\) with non\-falsy\-string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/Extensions/AnalyticsTwigExtension.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between array\|string and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Installer/Installer.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Middlewares/EarlyHintsMiddleware.php
+
+		-
+			message: '#^Method App\\Services\\AnalyticsService\:\:todayExpr\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: app/Services/AnalyticsService.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 2
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Offset ''mime'' on array\{0\: int\<0, max\>, 1\: int\<0, max\>, 2\: int, 3\: string, mime\: string, channels\?\: int, bits\?\: int\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/ImagesService.php
+
+		-
+			message: '#^Offset ''mime'' on array\{0\: int\<0, max\>, 1\: int\<0, max\>, 2\: int, 3\: string, mime\: string, channels\?\: int, bits\?\: int\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 4
+			path: app/Services/UploadService.php
+
+		-
+			message: '#^Offset 1 on array\{0\: int\<0, max\>, 1\: int\<0, max\>, 2\: int, 3\: string, mime\: string, channels\?\: int, bits\?\: int\}\|array\{int, 0\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/UploadService.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between ''avif'' and ''avif'' will always evaluate to true\.$#'
+			identifier: identical.alwaysTrue
+			count: 1
+			path: app/Services/UploadService.php
+
+		-
+			message: '#^Negated boolean expression is always true\.$#'
+			identifier: booleanNot.alwaysTrue
+			count: 4
+			path: app/Support/Database.php
+
+		-
+			message: '#^If condition is always true\.$#'
+			identifier: if.alwaysTrue
+			count: 1
+			path: app/Support/Updater.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between resource and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Support/Updater.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Support/Updater.php
+
+		-
+			message: '#^Variable \$http_response_header in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.variable
+			count: 2
+			path: app/Support/Updater.php
+
+		-
+			message: '#^Offset ''mime'' on array\{0\: int\<0, max\>, 1\: int\<0, max\>, 2\: int, 3\: string, mime\: string, channels\?\: int, bits\?\: int\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 2
+			path: app/Tasks/ImagesGenerateCommand.php
+
+		-
+			message: '#^Match arm comparison between ''image/webp'' and ''image/webp'' is always true\.$#'
+			identifier: match.alwaysTrue
+			count: 1
+			path: public/installer.php
+
+		-
+			message: '#^Offset ''database''\|''password''\|''username'' on array\{type\: ''mysql''\|''sqlite'', host\: string, port\: int, database\: string, username\: string, password\: mixed\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: public/installer.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between ''admin''\|''complete''\|''database''\|''install''\|''settings'' and ''requirements'' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: public/installer.php
