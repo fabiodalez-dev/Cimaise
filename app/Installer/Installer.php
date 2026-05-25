@@ -746,15 +746,28 @@ class Installer
         if (strlen($value) >= 2 && $value[0] === '"' && substr($value, -1) === '"') {
             $value = substr($value, 1, -1);
         }
-        // Order matters: undo single-backslash escapes BEFORE collapsing "\\",
-        // otherwise a restored backslash would re-form an escape sequence.
-        $value = str_replace(
-            ['\\n', '\\r', '\\"', '\\$'],
-            ["\n",  "\r",  '"',   '$'],
-            $value
-        );
-        $value = str_replace('\\\\', '\\', $value);
-        return $value;
+        // Single-pass character scan — produces correct decoding for inputs that
+        // contain literal backslash sequences (a value of "\\n" must remain
+        // backslash + 'n', not a newline). Two-step str_replace conflates the
+        // "literal \n" and "encoded \n" cases.
+        $decoded = '';
+        $len = strlen($value);
+        for ($i = 0; $i < $len; $i++) {
+            if ($value[$i] !== '\\' || $i + 1 >= $len) {
+                $decoded .= $value[$i];
+                continue;
+            }
+            $next = $value[++$i];
+            $decoded .= match ($next) {
+                'n' => "\n",
+                'r' => "\r",
+                '"' => '"',
+                '$' => '$',
+                '\\' => '\\',
+                default => '\\' . $next,
+            };
+        }
+        return $decoded;
     }
 
     private function createEnvFile(array $data): void

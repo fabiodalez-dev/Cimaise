@@ -23,36 +23,40 @@ test.describe('CodeRabbit + adamsreview fix verification', () => {
     });
 
     test('CR-FIX-02: search input has visible focus indicator (WCAG 2.4.11)', async ({ page }) => {
-        // F033 + CR — outline must be visible on :focus, not outline:none
-        await page.goto(`${BASE}/`);
-        // Find a search input if the home page has one; otherwise check CSS file directly.
-        const cssResp = await page.request.get(`${BASE}/assets/frontend-C6W0wfxl.css`, {
+        // F033 + CR — outline must be visible on :focus, not outline:none.
+        // Discover the current bundled CSS via the vite manifest so the test
+        // tolerates hash changes between builds.
+        const manifestResp = await page.request.get(`${BASE}/assets/.vite/manifest.json`, {
             failOnStatusCode: false,
         });
-        if (cssResp.ok()) {
-            const body = await cssResp.text();
-            // The fix replaces outline:none with outline: 2px solid <color>
-            // Search input rule should NOT contain outline:none any more
-            const searchInputRule = body.match(/\.header-search-input:focus[^}]*}/);
-            if (searchInputRule) {
-                expect(searchInputRule[0]).not.toMatch(/outline:\s*none/);
-                expect(searchInputRule[0]).toMatch(/outline:\s*\d+px\s+solid/);
-            }
-        } else {
-            // Fallback: confirm the source CSS file has the fix
+        let cssUrl = null;
+        if (manifestResp.ok()) {
+            try {
+                const manifest = await manifestResp.json();
+                const entry = manifest['resources/frontend.css'];
+                if (entry?.file) cssUrl = `${BASE}/assets/${entry.file}`;
+            } catch { /* fall through */ }
+        }
+        if (!cssUrl) {
+            // Fallback: just check the source file
             const fs = await import('fs');
             const path = await import('path');
             const src = fs.readFileSync(
                 path.resolve(process.cwd(), 'resources/frontend.css'),
                 'utf-8',
             );
-            const idx = src.indexOf('.header-search-input:focus');
-            if (idx >= 0) {
-                const slice = src.slice(idx, idx + 400);
-                expect(slice).not.toMatch(/outline:\s*none/);
-                expect(slice).toMatch(/outline:\s*\d+px\s+solid/);
-            }
+            const m = src.match(/\.header-search-input:focus[\s\S]{0,200}\}/);
+            expect(m).not.toBeNull();
+            expect(m?.[0]).toMatch(/outline:\s*\d+px\s+solid/);
+            return;
         }
+        const cssResp = await page.request.get(cssUrl, { failOnStatusCode: false });
+        expect(cssResp.ok()).toBe(true);
+        const body = await cssResp.text();
+        const m = body.match(/\.header-search-input:focus[^,{]*[,{][^}]+\}/);
+        expect(m).not.toBeNull();
+        expect(m?.[0]).toMatch(/outline:\s*\d+px\s+solid/);
+        expect(m?.[0]).not.toMatch(/outline:\s*none/);
     });
 
     test('CR-FIX-03: cimaise_salt is no longer hardcoded in AnalyticsService', async () => {
@@ -187,14 +191,15 @@ test.describe('CodeRabbit + adamsreview fix verification', () => {
         const resp = await page.request.get(`${BASE}/api/album/nonexistent-xyz/template?template=1`, {
             failOnStatusCode: false,
         });
-        // The middleware applies regardless of status, so the Cache-Control header is set
+        // The middleware applies regardless of status — assert Cache-Control + Vary.
         const cc = resp.headers()['cache-control'] || '';
-        if (cc) {
-            // Must be 'private' (per addApiCache semantics)
-            expect(cc).toContain('private');
-        }
-        // Vary may or may not include Cookie depending on session state; the key requirement
-        // is that the addApiCache code path is reachable and emits Cache-Control.
-        // (The CR-FIX-04 source-level test confirms Cookie is added when session-dependent.)
+        expect(cc).toBeTruthy();
+        expect(cc).toContain('private');
+        // Vary must list Accept-Encoding (compression) — when the request carries
+        // a session cookie, Vary must ALSO list Cookie (F009 fix). Anonymous
+        // requests like this one don't surface session-dependence in the body, but
+        // the header policy is set unconditionally in addApiCache.
+        const vary = (resp.headers()['vary'] || '').toLowerCase();
+        expect(vary).toContain('accept-encoding');
     });
 });

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { skipIfInstalled } from './_install-guard.js';
 
 // MySQL credentials from environment variables (set via CI secrets or local .env)
 const MYSQL_CONFIG = {
@@ -25,6 +26,8 @@ if (process.env.CI) {
 }
 
 test.describe('MySQL/MariaDB Installer', () => {
+  test.beforeAll(() => { skipIfInstalled(test); });
+
   test('should complete full MySQL installation flow', async ({ page }) => {
     // Step 1: Requirements
     await page.goto('/installer.php');

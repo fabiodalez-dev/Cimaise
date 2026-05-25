@@ -19,8 +19,12 @@ test.describe.serial('Album public access — password, NSFW, listings', () => {
         await requireServer(test, page);
         await requireAdmin(test, page);
         const name = `ACC01 ${Date.now()}`;
-        const { id } = await createAlbum(page, name);
-        if (!id) test.skip(true, 'admin album create failed');
+        const result = await createAlbum(page, name);
+        const id = result.id;
+        if (!id) {
+            test.skip(true, 'createAlbum helper could not resolve new album id (env-dependent)');
+            return;
+        }
         await uploadCover(page, id, 'A', '#22c55e');
         // Read slug from edit page
         await page.goto(`${BASE}/admin/albums/${id}/edit`);
@@ -42,7 +46,7 @@ test.describe.serial('Album public access — password, NSFW, listings', () => {
         await requireAdmin(test, page);
         const name = `ACC02 ${Date.now()}`;
         const { id } = await createAlbum(page, name, { password: 'correct123' });
-        if (!id) test.skip(true, 'create failed');
+        if (!id) test.skip(true, 'createAlbum helper could not resolve new album id (env-dependent)');
         await page.goto(`${BASE}/admin/albums/${id}/edit`);
         const slug = await page.locator('input[name="slug"]').inputValue().catch(() => null);
         if (!slug) {
@@ -72,7 +76,7 @@ test.describe.serial('Album public access — password, NSFW, listings', () => {
         await requireAdmin(test, page);
         const name = `ACC03 ${Date.now()}`;
         const { id } = await createAlbum(page, name, { password: 'correct123' });
-        if (!id) test.skip(true, 'create failed');
+        if (!id) test.skip(true, 'createAlbum helper could not resolve new album id (env-dependent)');
         await uploadCover(page, id, 'C', '#0ea5e9');
         await page.goto(`${BASE}/admin/albums/${id}/edit`);
         const slug = await page.locator('input[name="slug"]').inputValue().catch(() => null);
@@ -101,7 +105,7 @@ test.describe.serial('Album public access — password, NSFW, listings', () => {
         await requireAdmin(test, page);
         const name = `ACC04 ${Date.now()}`;
         const { id } = await createAlbum(page, name, { password: 'persist123' });
-        if (!id) test.skip(true, 'create failed');
+        if (!id) test.skip(true, 'createAlbum helper could not resolve new album id (env-dependent)');
         await page.goto(`${BASE}/admin/albums/${id}/edit`);
         const slug = await page.locator('input[name="slug"]').inputValue().catch(() => null);
         if (!slug) {
@@ -128,7 +132,7 @@ test.describe.serial('Album public access — password, NSFW, listings', () => {
         await requireAdmin(test, page);
         const name = `ACC05 ${Date.now()}`;
         const { id } = await createAlbum(page, name, { isNsfw: true });
-        if (!id) test.skip(true, 'create failed');
+        if (!id) test.skip(true, 'createAlbum helper could not resolve new album id (env-dependent)');
         await uploadCover(page, id, 'N', '#ef4444');
         await page.goto(`${BASE}/admin/albums/${id}/edit`);
         const slug = await page.locator('input[name="slug"]').inputValue().catch(() => null);
@@ -143,7 +147,7 @@ test.describe.serial('Album public access — password, NSFW, listings', () => {
         const gate = anonPage.locator(
             'form[action*="nsfw-confirm"], form[action*="nsfw"], [data-nsfw-gate], .nsfw-warning'
         );
-        await expect(gate.first()).toBeVisible({ timeout: 5000 }).catch(() => {});
+        await expect(gate.first()).toBeVisible({ timeout: 5000 });
         await anonCtx.close();
         await deleteAlbum(page, id);
     });
@@ -153,7 +157,7 @@ test.describe.serial('Album public access — password, NSFW, listings', () => {
         await requireAdmin(test, page);
         const name = `ACC06 ${Date.now()}`;
         const { id } = await createAlbum(page, name, { isNsfw: true });
-        if (!id) test.skip(true, 'create failed');
+        if (!id) test.skip(true, 'createAlbum helper could not resolve new album id (env-dependent)');
         await uploadCover(page, id, 'N', '#a3e635');
         await page.goto(`${BASE}/admin/albums/${id}/edit`);
         const slug = await page.locator('input[name="slug"]').inputValue().catch(() => null);

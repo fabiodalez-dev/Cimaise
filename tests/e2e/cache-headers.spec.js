@@ -60,9 +60,8 @@ test.describe('HTTP cache headers', () => {
             failOnStatusCode: false,
         });
         const cc = header(resp, 'Cache-Control');
-        if (cc) {
-            // addApiCache emits 'private' (per the existing semantics)
-            expect(cc).toContain('private');
-        }
+        expect(cc).toBeTruthy();
+        // addApiCache emits 'private' (per the existing semantics)
+        expect(cc).toContain('private');
     });
 });

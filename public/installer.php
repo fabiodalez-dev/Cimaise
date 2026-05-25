@@ -59,6 +59,28 @@ if (file_exists($markerPath) && file_exists($envPath)) {
                 $dbConn = $envVars['DB_CONNECTION'] ?? '';
                 if ($dbConn === 'mysql') {
                     $host = $envVars['DB_HOST'] ?? '127.0.0.1';
+                    // F019 follow-up: when DB_HOST_PINNED_IP is set and points to a
+                    // safe IP (not metadata / link-local), use it as the connect
+                    // target so this fallback honors the SSRF/DNS-rebinding pinning
+                    // applied at install time. The hostname is preserved for the
+                    // operator's reference; only the PDO connect IP changes.
+                    $pinnedIp = $envVars['DB_HOST_PINNED_IP'] ?? '';
+                    if ($pinnedIp !== '' && filter_var($pinnedIp, FILTER_VALIDATE_IP) !== false) {
+                        $blocked = [
+                            '169.254.169.254', '100.100.100.200',
+                            '::ffff:169.254.169.254', 'fd00:ec2::254',
+                        ];
+                        $isBlocked = false;
+                        foreach ($blocked as $b) {
+                            if (strcasecmp($pinnedIp, $b) === 0) { $isBlocked = true; break; }
+                        }
+                        if (!$isBlocked
+                            && stripos($pinnedIp, 'fe80:') !== 0
+                            && stripos($pinnedIp, '169.254.') !== 0
+                            && stripos($pinnedIp, 'fd00:ec2:') !== 0) {
+                            $host = $pinnedIp;
+                        }
+                    }
                     $port = $envVars['DB_PORT'] ?? '3306';
                     $dbName = $envVars['DB_DATABASE'] ?? '';
                     $user = $envVars['DB_USERNAME'] ?? '';
@@ -249,15 +271,28 @@ function envUnescape(string $value): string {
     if (strlen($value) >= 2 && $value[0] === '"' && substr($value, -1) === '"') {
         $value = substr($value, 1, -1);
     }
-    // Order matters: undo single-backslash escapes BEFORE collapsing "\\",
-    // otherwise a restored backslash would re-form an escape sequence.
-    $value = str_replace(
-        ['\\n', '\\r', '\\"', '\\$'],
-        ["\n",  "\r",  '"',   '$'],
-        $value
-    );
-    $value = str_replace('\\\\', '\\', $value);
-    return $value;
+    // Single-pass character scan — produces correct decoding for inputs that
+    // contain literal backslash sequences (a value of "\\n" must remain
+    // backslash + 'n', not a newline). Two-step str_replace conflates the
+    // "literal \n" and "encoded \n" cases.
+    $decoded = '';
+    $len = strlen($value);
+    for ($i = 0; $i < $len; $i++) {
+        if ($value[$i] !== '\\' || $i + 1 >= $len) {
+            $decoded .= $value[$i];
+            continue;
+        }
+        $next = $value[++$i];
+        $decoded .= match ($next) {
+            'n' => "\n",
+            'r' => "\r",
+            '"' => '"',
+            '$' => '$',
+            '\\' => '\\',
+            default => '\\' . $next,
+        };
+    }
+    return $decoded;
 }
 
 // Create required storage directories
@@ -466,23 +501,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Cloud metadata endpoints are already blocked above.
                 $isValidIp = $isValidIp ?? false;
                 $isValidHostname = $isValidHostname ?? false;
-                // DNS resolution check for hostnames — use resolved IP in DSN to prevent TOCTOU
+                // DNS resolution check for hostnames — use resolved IP in DSN to prevent TOCTOU.
+                // Resolve both A (IPv4) and AAAA (IPv6) records: an IPv6-only host has
+                // no A record, so gethostbyname() returns the input unchanged and the
+                // SSRF/DNS-rebinding pinning would not activate.
                 if (empty($errors) && !$isValidIp && $isValidHostname) {
-                    $resolvedIp = gethostbyname($host);
-                    if ($resolvedIp !== $host) {
-                        // Block hostnames that resolve to cloud metadata endpoints
+                    $candidateIps = [];
+                    if (function_exists('dns_get_record')) {
+                        foreach (dns_get_record($host, DNS_A) ?: [] as $rec) {
+                            if (!empty($rec['ip'])) $candidateIps[] = $rec['ip'];
+                        }
+                        foreach (dns_get_record($host, DNS_AAAA) ?: [] as $rec) {
+                            if (!empty($rec['ipv6'])) $candidateIps[] = $rec['ipv6'];
+                        }
+                    }
+                    if (empty($candidateIps)) {
+                        $legacy = gethostbyname($host);
+                        if ($legacy !== $host) $candidateIps[] = $legacy;
+                    }
+                    $safeIp = null;
+                    foreach ($candidateIps as $ip) {
+                        $blockedHere = false;
                         foreach ($blockedPatterns as $blocked) {
-                            if (stripos($resolvedIp, $blocked) !== false) {
-                                $errors['db_host'] = 'This host resolves to a restricted IP address.';
-                                break;
-                            }
+                            if (stripos($ip, $blocked) !== false) { $blockedHere = true; break; }
                         }
-                        if (empty($errors)) {
-                            // F019: Store resolved IP separately in DB_HOST_PINNED_IP for
-                            // runtime DNS-rebinding TOCTOU prevention; DB_HOST keeps the
-                            // hostname for TLS SNI on managed MySQL (RDS, Cloud SQL, ...).
-                            $dbConfig['resolved_host'] = $resolvedIp;
+                        if ($blockedHere) {
+                            $errors['db_host'] = 'This host resolves to a restricted IP address.';
+                            break;
                         }
+                        if ($safeIp === null) $safeIp = $ip;
+                    }
+                    if (empty($errors) && $safeIp !== null) {
+                        // F019: Store resolved IP separately in DB_HOST_PINNED_IP for
+                        // runtime DNS-rebinding TOCTOU prevention; DB_HOST keeps the
+                        // hostname for TLS SNI on managed MySQL (RDS, Cloud SQL, ...).
+                        $dbConfig['resolved_host'] = $safeIp;
                     }
                 }
             }

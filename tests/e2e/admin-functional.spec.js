@@ -49,10 +49,11 @@ test.describe.serial('Admin functional', () => {
         const visible = await versionEl.isVisible().catch(() => false);
         // Version may or may not be rendered depending on app_version global wiring
         if (!visible) {
-            // Soft check: page HTML at least contains a version-shaped string
+            // Fall back to a hard check against the served HTML — a version-shaped
+            // string must be present (this is what the F037 fix ships).
             const html = await page.content();
             const hasVersion = /v\d+\.\d+\.\d+/.test(html);
-            expect(hasVersion || !visible).toBe(true);
+            expect(hasVersion).toBe(true);
         }
     });
 });

@@ -34,47 +34,37 @@ export async function tryAdminLogin(page) {
     }
 }
 
-/** Create an album from the admin /admin/albums/create form. Returns {id, slug}. */
-export async function createAlbum(page, name, opts = {}) {
+/** Create an album from the admin /admin/albums/create form. Returns {id, slug}.
+ *  Mirrors the proven pattern in nsfw-password-complete.spec.js verbatim. */
+export async function createAlbum(page, title, opts = {}) {
     const { isNsfw = false, password = null } = opts;
     await page.goto(`${BASE}/admin/albums/create`);
-    await page.waitForSelector('form#album-form', { timeout: 10000 });
-    await page.fill('input[name="title"]', name);
-    const excerpt = page.locator('textarea[name="excerpt"]');
-    if (await excerpt.count() > 0) {
-        await excerpt.fill(`Test album: ${name}`);
-    }
-    if (isNsfw) {
-        const box = page.locator('input[name="is_nsfw"]');
-        await box.scrollIntoViewIfNeeded();
-        if (!(await box.isChecked())) await box.check({ force: true });
-    }
+    await page.waitForSelector('form#album-form', { timeout: 5000 });
+    await page.fill('input[name="title"]', title);
+    await page.fill('textarea[name="excerpt"]', `Test album: ${title}`);
     if (password) {
-        const pwField = page.locator('input[name="password"]');
-        if (await pwField.count() > 0) {
-            await pwField.fill(password);
-        }
+        await page.fill('input[name="password"]', password);
     }
-    await Promise.all([
-        page.waitForURL(/\/admin\/albums(\/.*)?$/, { timeout: 20000 }),
-        page.click('button[type="submit"][form="album-form"]'),
-    ]);
-    // After create the redirect lands on /admin/albums (listing). Find the new
-    // album in the listing by name.
+    const nsfwBox = page.locator('input[name="is_nsfw"]');
+    await nsfwBox.scrollIntoViewIfNeeded();
+    if (isNsfw && !(await nsfwBox.isChecked())) await nsfwBox.check({ force: true });
+    if (!isNsfw && (await nsfwBox.isChecked())) await nsfwBox.uncheck({ force: true });
+    await page.click('button[type="submit"][form="album-form"]');
+    await page.waitForURL(/\/admin\/albums/, { timeout: 15000 });
+    // Find the album in the list
     await page.goto(`${BASE}/admin/albums`);
-    const link = page.locator(`a:has-text("${name}")`).first();
-    if (await link.count() === 0) {
-        return { id: null, slug: null };
-    }
+    const link = page.locator(`a:has-text("${title}")`).first();
     const href = await link.getAttribute('href').catch(() => null);
-    const m = href?.match(/\/albums\/(\d+)/);
-    const id = m ? Number(m[1]) : null;
-    let slug = null;
-    if (id) {
-        await page.goto(`${BASE}/admin/albums/${id}/edit`);
-        slug = await page.locator('input[name="slug"]').inputValue().catch(() => null);
-    }
-    return { id, slug };
+    const id = href?.match(/\/albums\/(\d+)/)?.[1];
+    if (!id) return { id: null, slug: null };
+    // Get slug from edit page
+    await page.goto(`${BASE}/admin/albums/${id}/edit`);
+    const slug = await page.locator('input[name="slug"]').inputValue().catch(() => null);
+    return { id: Number(id), slug };
+}
+
+function escapeRegExp(s) {
+    return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /** Upload a small canvas-generated JPEG to an album and optionally set as cover. */
