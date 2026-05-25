@@ -1,8 +1,7 @@
 // @ts-check
 import { test, expect, chromium } from '@playwright/test';
 import { skipIfInstalled } from './_install-guard.js';
-
-const BASE = 'http://localhost:8000';
+import { BASE } from './_helpers.js';
 
 test.describe.serial('Full Cimaise Install + NSFW Test', () => {
   /** @type {import('@playwright/test').Browser} */
@@ -118,24 +117,34 @@ test.describe.serial('Full Cimaise Install + NSFW Test', () => {
       await nsfwCheckbox.check();
     }
 
-    // Save album - click the visible "Create Album" button at the bottom
-    await page.click('button:has-text("Create Album"):visible');
-    await page.waitForTimeout(2000);
+    // Save album — wait for the real redirect (controller sends the user
+    // back to /admin/albums or to /admin/albums/{id}/edit on success) so
+    // the listing is guaranteed to be populated before Step 8 looks the
+    // album up. waitForTimeout(2000) here would race the slugifier.
+    await Promise.all([
+      page.waitForURL(/\/admin\/albums(\/\d+\/edit)?(?:\?.*)?$/, { timeout: 15000 }),
+      page.click('button:has-text("Create Album"):visible'),
+    ]);
   });
 
   test('Step 8: Verify NSFW album gate on frontend', async () => {
-    // Go to albums to find the one we created
+    // Discover the actual slug from the admin albums list — relying on the
+    // raw title-derived slug ("test-nsfw-album") would be wrong if the
+    // slugifier inserts a numeric suffix to avoid duplicates.
     await page.goto(`${BASE}/admin/albums`);
     const albumLink = page.locator('a:has-text("Test NSFW Album")').first();
-    if (await albumLink.isVisible()) {
-      const href = await albumLink.getAttribute('href');
-      console.log('Album edit link:', href);
-    }
+    await expect(albumLink).toBeVisible({ timeout: 10000 });
+    const href = await albumLink.getAttribute('href');
+    const idMatch = href ? href.match(/\/admin\/albums\/(\d+)/) : null;
+    expect(idMatch).not.toBeNull();
+    await page.goto(`${BASE}/admin/albums/${idMatch[1]}/edit`);
+    const slug = await page.locator('input[name="slug"]').inputValue();
+    expect(slug).toBeTruthy();
 
     // Open a new page in a separate context (no session cookies) to test as visitor
     const visitorContext = await browser.newContext();
     const visitorPage = await visitorContext.newPage();
-    await visitorPage.goto(`${BASE}/album/test-nsfw-album`);
+    await visitorPage.goto(`${BASE}/album/${slug}`);
 
     // Check for NSFW gate - should show age warning or content notice.
     // Hard-assert so a missing gate fails the test (was previously a silent log).

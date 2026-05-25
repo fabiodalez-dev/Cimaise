@@ -1,8 +1,8 @@
 // @ts-check
 import { test, expect, chromium } from '@playwright/test';
 import { skipIfInstalled } from './_install-guard.js';
+import { BASE } from './_helpers.js';
 
-const BASE = 'http://localhost:8000';
 const SCREENSHOTS = 'test-results/screenshots';
 
 test.describe.serial('Full Install with Screenshots', () => {

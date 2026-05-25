@@ -226,20 +226,25 @@ class ImageRating
         }
         $ratedByNullable = strtoupper($row['IS_NULLABLE']) === 'YES';
 
-        // Detect composite UNIQUE on (image_id, rated_by) by column coverage,
-        // not by literal name — projects may have named the index differently
-        // (e.g. uniq_plugin_image_ratings_image_rated_by) and the legacy
-        // INDEX_NAME = 'uniq_image_rated_by' check missed those.
+        // Detect composite UNIQUE on (image_id, rated_by) by exact column
+        // coverage — projects may have named the index differently (e.g.
+        // uniq_plugin_image_ratings_image_rated_by) so a literal-name match
+        // is unreliable. We require the index to span EXACTLY those two
+        // columns: counting only matching columns would also accept a wider
+        // UNIQUE like (image_id, rated_by, foo), which has different
+        // de-duplication semantics and would skip the migration when it
+        // shouldn't.
         $stmt = $this->db->query("
-            SELECT INDEX_NAME
+            SELECT INDEX_NAME,
+                   SUM(CASE WHEN COLUMN_NAME IN ('image_id', 'rated_by') THEN 1 ELSE 0 END) AS matching_cols,
+                   COUNT(*) AS total_cols
             FROM information_schema.STATISTICS
             WHERE TABLE_SCHEMA = DATABASE()
               AND TABLE_NAME = 'plugin_image_ratings'
               AND NON_UNIQUE = 0
               AND INDEX_NAME <> 'PRIMARY'
-              AND COLUMN_NAME IN ('image_id', 'rated_by')
             GROUP BY INDEX_NAME
-            HAVING COUNT(*) = 2
+            HAVING matching_cols = 2 AND total_cols = 2
         ");
         $hasCompositeUnique = $stmt->fetch(PDO::FETCH_ASSOC) !== false;
 

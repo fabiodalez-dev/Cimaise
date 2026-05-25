@@ -100,9 +100,14 @@ test.describe.serial('Album public access — password, NSFW, listings', () => {
         // page.evaluate() and submit the form programmatically — the unlock
         // endpoint is the same either way.
         await submitUnlockForm(anonPage, 'wrong-password');
-        // After wrong password, the form should be re-shown OR there should be an error
+        // After wrong password the URL alone isn't enough — both the success
+        // and failure paths redirect back to /album/{slug}. The real signal
+        // is that the password form is still mounted, i.e. the unlock did
+        // NOT grant access. Without this assertion the test would silently
+        // pass even if a regression let the wrong password through.
         const url = anonPage.url();
         expect(url).toMatch(/\/album\//);
+        await expect(anonPage.locator('#album-password-form')).toBeVisible({ timeout: 5000 });
         await anonCtx.close();
         await deleteAlbum(page, id);
     });
@@ -222,11 +227,23 @@ test.describe.serial('Album public access — password, NSFW, listings', () => {
                 maxRedirects: 5,
                 failOnStatusCode: false,
             });
-            // Navigate away and back — should not see the gate again
+            // Navigate away and back — should not see the gate again. Use
+            // the same set of gate markers ACC-05 checks for (positive
+            // detection) so the negative assertion can't drift apart from
+            // it — any of these patterns showing up means the gate is
+            // still being rendered to the visitor.
             await ctx.request.get(`${BASE}/`);
             const reFetch = await ctx.request.get(`${BASE}/album/${slug}`);
             const reBody = await reFetch.text();
-            expect(reBody).not.toContain('nsfw-confirm-form');
+            const gateMarkers = [
+                /form[^>]*action="[^"]*\/nsfw-confirm/,
+                /data-nsfw-gate/,
+                /class="[^"]*nsfw-warning/,
+                /id="nsfw-confirm-form"/,
+            ];
+            for (const m of gateMarkers) {
+                expect(reBody).not.toMatch(m);
+            }
         } finally {
             await ctx.close();
             await deleteAlbum(page, id);
