@@ -162,16 +162,42 @@ class UploadController extends BaseController
                 $imageIdForBackground = (int) $meta['id'];
                 $needsBlurForBackground = $needsBlur;
                 $svcForBackground = $svc;
+                $dbForBackground = $this->db;
                 register_shutdown_function(static function () use (
                     $imageIdForBackground,
                     $needsBlurForBackground,
-                    $svcForBackground
+                    $svcForBackground,
+                    $dbForBackground
                 ) {
+                    // Release the PHP session write-lock BEFORE closing the
+                    // FCGI connection. Otherwise the lock stays held for the
+                    // entire variant-generation window (up to 300s) and
+                    // concurrent requests from the same user — additional
+                    // uploads, polling endpoints — block on session acquire.
+                    if (session_status() === PHP_SESSION_ACTIVE) {
+                        @session_write_close();
+                    }
                     if (function_exists('fastcgi_finish_request')) {
                         @fastcgi_finish_request();
                     }
                     ignore_user_abort(true);
                     @set_time_limit(300);
+                    // The PDO connection captured by $svc was idle while the
+                    // client downloaded the response, so a server-side
+                    // wait_timeout reaper could have killed it. Issue a cheap
+                    // ping; on failure log and bail — the cron
+                    // VariantMaintenanceService will pick up missing variants
+                    // on its next pass, which is safer than guessing at
+                    // reconnection params here in shutdown context.
+                    try {
+                        $dbForBackground->pdo()->query('SELECT 1');
+                    } catch (\Throwable $pingError) {
+                        Logger::warning('Background variant: DB ping failed, deferring to cron', [
+                            'image_id' => $imageIdForBackground,
+                            'error' => $pingError->getMessage(),
+                        ], 'upload');
+                        return;
+                    }
                     try {
                         $svcForBackground->generateVariantsForImage($imageIdForBackground, false);
                     } catch (\Throwable $variantError) {
