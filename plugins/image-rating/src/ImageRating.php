@@ -310,6 +310,12 @@ class ImageRating
         // The MODIFY clause is always required; DROP PRIMARY KEY and the
         // ADD UNIQUE KEY are conditional. The compound ALTER never has an
         // empty parts list because MODIFY is unconditional.
+        // INVARIANT: $alterParts always carries at least the unconditional
+        // MODIFY clause, so the compound ALTER below is never syntactically
+        // empty. PHPStan verifies this at level 6 — a future edit that
+        // demotes MODIFY to a conditional branch will trip the alwaysTrue
+        // check on the assembled list and force the author to think about
+        // the empty case explicitly.
         $alterParts = ["MODIFY rated_by INT NOT NULL DEFAULT 0"];
         if ($hasLegacyPk) {
             array_unshift($alterParts, "DROP PRIMARY KEY");

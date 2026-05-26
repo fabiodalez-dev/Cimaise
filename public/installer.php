@@ -77,7 +77,9 @@ if (file_exists($markerPath) && file_exists($envPath)) {
                         if (!$isBlocked
                             && stripos($pinnedIp, 'fe80:') !== 0
                             && stripos($pinnedIp, '169.254.') !== 0
-                            && stripos($pinnedIp, 'fd00:ec2:') !== 0) {
+                            && stripos($pinnedIp, 'fd00:ec2:') !== 0
+                            && stripos($pinnedIp, '::ffff:169.254.') !== 0
+                            && stripos($pinnedIp, '::169.254.') !== 0) {
                             $host = $pinnedIp;
                         }
                     }

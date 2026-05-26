@@ -266,19 +266,37 @@ class AnalyticsService
         } catch (\PDOException $e) {
             // Likely a unique-key race or a missing table. Try UPDATE, then re-read
             // so two concurrent processes converge on the same salt.
+            //
+            // F012-related: TRIM() in the WHERE so a row whose setting_value is
+            // pure whitespace (e.g. a botched manual seed) still gets healed
+            // by the UPDATE. Both SQLite and MySQL implement TRIM with the
+            // SQL-standard signature so this is portable.
             try {
-                $update = $this->db->prepare('UPDATE analytics_settings SET setting_value = ? WHERE setting_key = ? AND (setting_value IS NULL OR setting_value = \'\')');
+                $update = $this->db->prepare('UPDATE analytics_settings SET setting_value = ? WHERE setting_key = ? AND (setting_value IS NULL OR TRIM(setting_value) = \'\')');
                 $update->execute([$salt, 'ip_salt']);
 
+                // F012-followup: when the INSERT in the try block lost the race
+                // to another worker, that worker's transaction may still be
+                // mid-commit when we reach the SELECT — reading too eagerly
+                // returns NULL/empty and we'd fall through to logging a
+                // spurious failure. Re-read with a small bounded retry so the
+                // committed value has time to land. Total worst-case wait:
+                // 3 attempts × 20ms = 60ms, well under any realistic commit
+                // latency on either engine.
                 $read = $this->db->prepare('SELECT setting_value FROM analytics_settings WHERE setting_key = ?');
-                $read->execute(['ip_salt']);
-                $row = $read->fetch(PDO::FETCH_ASSOC);
-                if ($row !== false && isset($row['setting_value']) && $row['setting_value'] !== '') {
-                    // Another process already wrote a salt — defer to it so all
-                    // workers converge. The caller will hash THIS request's IPs
-                    // with the DB-canonical value (not the in-flight $salt),
-                    // closing the F012 race window.
-                    return (string)$row['setting_value'];
+                for ($attempt = 0; $attempt < 3; $attempt++) {
+                    $read->execute(['ip_salt']);
+                    $row = $read->fetch(PDO::FETCH_ASSOC);
+                    if ($row !== false && isset($row['setting_value']) && trim((string)$row['setting_value']) !== '') {
+                        // Another process already wrote a salt — defer to it so all
+                        // workers converge. The caller will hash THIS request's IPs
+                        // with the DB-canonical value (not the in-flight $salt),
+                        // closing the F012 race window.
+                        return (string)$row['setting_value'];
+                    }
+                    if ($attempt < 2) {
+                        usleep(20_000); // 20ms
+                    }
                 }
             } catch (\PDOException $inner) {
                 // Fall through to log.

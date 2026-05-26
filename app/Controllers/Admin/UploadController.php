@@ -169,6 +169,29 @@ class UploadController extends BaseController
                     $svcForBackground,
                     $dbForBackground
                 ) {
+                    // F013-D: if the handler bailed with a fatal error
+                    // between register_shutdown_function() and the response
+                    // emitter, the client never saw an image_id and the
+                    // metadata row may be in a broken state — generating
+                    // variants for a record the caller couldn't observe is
+                    // wasted work that can also surface stale data on retry.
+                    // Skip the background work when the response is clearly
+                    // an error (or when an uncaught error is being processed
+                    // right now).
+                    $lastError = error_get_last();
+                    $fatalInProgress = $lastError !== null
+                        && in_array($lastError['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR], true);
+                    $httpStatus = function_exists('http_response_code') ? (int) http_response_code() : 200;
+                    $responseOk = $httpStatus === 0 /* CLI */ || ($httpStatus >= 200 && $httpStatus < 400);
+                    if ($fatalInProgress || !$responseOk) {
+                        Logger::warning('Background variant: skipping, response was not delivered cleanly', [
+                            'image_id' => $imageIdForBackground,
+                            'http_status' => $httpStatus,
+                            'fatal' => $fatalInProgress,
+                        ], 'upload');
+                        return;
+                    }
+
                     // Release the PHP session write-lock BEFORE closing the
                     // FCGI connection. Otherwise the lock stays held for the
                     // entire variant-generation window (up to 300s) and

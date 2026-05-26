@@ -576,6 +576,17 @@ $errorMiddleware->setDefaultErrorHandler(function ($request, \Throwable $excepti
     ]);
 });
 
+// Register fastcgi_finish_request FIRST so it fires before any other
+// shutdown work (perf logger, background variant generators, etc.)
+// and closes the FCGI connection immediately — the client sees the
+// full response with zero added latency, follow-up shutdowns then run
+// strictly in the background. Idempotent — handlers that schedule
+// their own fastcgi_finish_request() call still work (PHP no-ops the
+// second call).
+if (function_exists('fastcgi_finish_request')) {
+    register_shutdown_function('fastcgi_finish_request');
+}
+
 // Register performance logging on shutdown
 register_shutdown_function(function () {
     if (!function_exists('envv') || !filter_var(envv('DEBUG_PERFORMANCE', false), FILTER_VALIDATE_BOOLEAN)) {

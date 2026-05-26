@@ -118,7 +118,19 @@ class Database
         // the same prefix. Must stay symmetric with public/installer.php
         // L80 so an IP that one path rejects is not silently accepted by
         // the other.
-        if (stripos($pinned, 'fe80:') === 0 || stripos($pinned, '169.254.') === 0 || stripos($pinned, 'fd00:ec2:') === 0) {
+        //
+        // F008-related: extend the v4-mapped (`::ffff:`) and v4-compatible
+        // (`::`) IPv6 prefixes to the full link-local /16 — without this an
+        // attacker can hit e.g. `::ffff:169.254.0.42` (or any other host in
+        // the 169.254.0.0/16 range, common on cloud overlay networks) and
+        // bypass the exact-string entry in $blocked.
+        if (
+            stripos($pinned, 'fe80:') === 0
+            || stripos($pinned, '169.254.') === 0
+            || stripos($pinned, 'fd00:ec2:') === 0
+            || stripos($pinned, '::ffff:169.254.') === 0
+            || stripos($pinned, '::169.254.') === 0
+        ) {
             return null;
         }
 

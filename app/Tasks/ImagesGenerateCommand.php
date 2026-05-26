@@ -19,9 +19,30 @@ class ImagesGenerateCommand extends Command
 {
     use RegistersImageVariants;
 
+    /** Memoised result of {@see imagickDisabled()} — env vars don't change per-run. */
+    private ?bool $imagickDisabled = null;
+
     public function __construct(private Database $db)
     {
         parent::__construct();
+    }
+
+    /**
+     * Mirrors UploadService::imagickDisabled() but with a per-instance memo.
+     * The CLI runs the same resize paths that segfault on macOS Apple
+     * Silicon under ImageMagick 7.1.x, so the opt-out env flag must be
+     * honored here too — and the flag is parsed once per command run
+     * (the same env stays in effect for the whole CLI invocation).
+     */
+    private function imagickDisabled(): bool
+    {
+        if ($this->imagickDisabled !== null) {
+            return $this->imagickDisabled;
+        }
+        $raw = function_exists('envv')
+            ? envv('CIMAISE_DISABLE_IMAGICK', 'false')
+            : ($_ENV['CIMAISE_DISABLE_IMAGICK'] ?? $_SERVER['CIMAISE_DISABLE_IMAGICK'] ?? 'false');
+        return $this->imagickDisabled = (bool) filter_var((string) $raw, FILTER_VALIDATE_BOOLEAN);
     }
 
     protected function configure(): void
@@ -60,10 +81,7 @@ class ImagesGenerateCommand extends Command
             throw new RuntimeException('Cannot create media directory');
         }
 
-        // Mirror UploadService::imagickDisabled() — the CLI runs the same
-        // resize paths that segfault on macOS Apple Silicon under
-        // ImageMagick 7.1.x, so the opt-out env flag must be honored here too.
-        $imagickDisabled = filter_var((string)(function_exists('envv') ? envv('CIMAISE_DISABLE_IMAGICK', 'false') : ($_ENV['CIMAISE_DISABLE_IMAGICK'] ?? $_SERVER['CIMAISE_DISABLE_IMAGICK'] ?? 'false')), FILTER_VALIDATE_BOOLEAN);
+        $imagickDisabled = $this->imagickDisabled();
         $imagickOk = class_exists(Imagick::class) && !$imagickDisabled;
         $gdWebpOk = function_exists('imagewebp');
         if (!$imagickOk) {
@@ -196,8 +214,7 @@ class ImagesGenerateCommand extends Command
 
     private function resizeWithImagickOrGd(string $src, string $dest, int $targetW, string $format, int $quality): bool
     {
-        $imagickDisabled = filter_var((string)(function_exists('envv') ? envv('CIMAISE_DISABLE_IMAGICK', 'false') : ($_ENV['CIMAISE_DISABLE_IMAGICK'] ?? $_SERVER['CIMAISE_DISABLE_IMAGICK'] ?? 'false')), FILTER_VALIDATE_BOOLEAN);
-        if (class_exists(Imagick::class) && !$imagickDisabled) {
+        if (class_exists(Imagick::class) && !$this->imagickDisabled()) {
             return $this->resizeWithImagick($src, $dest, $targetW, $format, $quality);
         }
         
