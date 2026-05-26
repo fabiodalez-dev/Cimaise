@@ -1,7 +1,7 @@
 // @ts-check
 import { test, expect, chromium } from '@playwright/test';
 import { skipIfInstalled } from './_install-guard.js';
-import { BASE } from './_helpers.js';
+import { BASE, ADMIN_EMAIL, ADMIN_PASSWORD } from './_helpers.js';
 
 test.describe.serial('Full Cimaise Install + NSFW Test', () => {
   /** @type {import('@playwright/test').Browser} */
@@ -10,6 +10,13 @@ test.describe.serial('Full Cimaise Install + NSFW Test', () => {
   let context;
   /** @type {import('@playwright/test').Page} */
   let page;
+  /**
+   * Album ID captured at creation time (Step 7) and consumed in Step 8.
+   * Avoids a fragile `a:has-text("Test NSFW Album").first()` lookup that
+   * would silently pick the wrong row if another album shares the title.
+   * @type {number | null}
+   */
+  let createdAlbumId = null;
 
   // Skip check + browser launch must happen in the SAME beforeAll: when
   // skipIfInstalled() calls test.skip(true, ...), Playwright marks
@@ -58,9 +65,9 @@ test.describe.serial('Full Cimaise Install + NSFW Test', () => {
 
   test('Step 3: Admin user setup', async () => {
     await page.fill('input[name="admin_name"]', 'Admin');
-    await page.fill('input[name="admin_email"]', 'admin@test.com');
-    await page.fill('input[name="admin_password"]', 'TestPass123!');
-    await page.fill('input[name="admin_password_confirm"]', 'TestPass123!');
+    await page.fill('input[name="admin_email"]', ADMIN_EMAIL);
+    await page.fill('input[name="admin_password"]', ADMIN_PASSWORD);
+    await page.fill('input[name="admin_password_confirm"]', ADMIN_PASSWORD);
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL(/step=settings/, { timeout: 10000 });
   });
@@ -82,8 +89,8 @@ test.describe.serial('Full Cimaise Install + NSFW Test', () => {
   test('Step 6: Login to admin', async () => {
     // New context for post-install tests (installer session destroyed)
     await page.goto(`${BASE}/admin/login`);
-    await page.fill('input[name="email"]', 'admin@test.com');
-    await page.fill('input[name="password"]', 'TestPass123!');
+    await page.fill('input[name="email"]', ADMIN_EMAIL);
+    await page.fill('input[name="password"]', ADMIN_PASSWORD);
     await page.click('button[type="submit"]');
     // Should redirect to admin dashboard
     await expect(page).toHaveURL(/\/admin/, { timeout: 10000 });
@@ -125,19 +132,20 @@ test.describe.serial('Full Cimaise Install + NSFW Test', () => {
       page.waitForURL(/\/admin\/albums(\/\d+\/edit)?(?:\?.*)?$/, { timeout: 15000 }),
       page.click('button:has-text("Create Album"):visible'),
     ]);
+    // Capture the freshly-created album id from the redirect target so Step 8
+    // can address the exact row without doing a text-matching list lookup
+    // (which would pick the wrong row if a previous run left an album with the
+    // same title around).
+    const editMatch = page.url().match(/\/admin\/albums\/(\d+)\/edit/);
+    createdAlbumId = editMatch ? Number(editMatch[1]) : null;
   });
 
   test('Step 8: Verify NSFW album gate on frontend', async () => {
-    // Discover the actual slug from the admin albums list — relying on the
-    // raw title-derived slug ("test-nsfw-album") would be wrong if the
-    // slugifier inserts a numeric suffix to avoid duplicates.
-    await page.goto(`${BASE}/admin/albums`);
-    const albumLink = page.locator('a:has-text("Test NSFW Album")').first();
-    await expect(albumLink).toBeVisible({ timeout: 10000 });
-    const href = await albumLink.getAttribute('href');
-    const idMatch = href ? href.match(/\/admin\/albums\/(\d+)/) : null;
-    expect(idMatch).not.toBeNull();
-    await page.goto(`${BASE}/admin/albums/${idMatch[1]}/edit`);
+    // Use the id captured in Step 7's redirect — addressing by id is
+    // deterministic (a title-based locator could match a previous run's
+    // leftover "Test NSFW Album" row if cleanup didn't fire).
+    expect(createdAlbumId, 'Step 7 must have captured an album id from the create redirect').not.toBeNull();
+    await page.goto(`${BASE}/admin/albums/${createdAlbumId}/edit`);
     const slug = await page.locator('input[name="slug"]').inputValue();
     expect(slug).toBeTruthy();
 

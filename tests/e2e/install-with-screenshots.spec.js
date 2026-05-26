@@ -1,7 +1,7 @@
 // @ts-check
 import { test, expect, chromium } from '@playwright/test';
 import { skipIfInstalled } from './_install-guard.js';
-import { BASE } from './_helpers.js';
+import { BASE, ADMIN_EMAIL, ADMIN_PASSWORD } from './_helpers.js';
 
 const SCREENSHOTS = 'test-results/screenshots';
 
@@ -71,9 +71,9 @@ test.describe.serial('Full Install with Screenshots', () => {
 
   test('Step 3: Admin user', async () => {
     await page.fill('input[name="admin_name"]', 'Admin');
-    await page.fill('input[name="admin_email"]', 'admin@test.com');
-    await page.fill('input[name="admin_password"]', 'TestPass123!');
-    await page.fill('input[name="admin_password_confirm"]', 'TestPass123!');
+    await page.fill('input[name="admin_email"]', ADMIN_EMAIL);
+    await page.fill('input[name="admin_password"]', ADMIN_PASSWORD);
+    await page.fill('input[name="admin_password_confirm"]', ADMIN_PASSWORD);
     await page.screenshot({ path: `${SCREENSHOTS}/04-admin-filled.png`, fullPage: true });
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL(/step=settings/, { timeout: 10000 });
@@ -148,8 +148,8 @@ test.describe.serial('Full Install with Screenshots', () => {
 
   test('Step 6: Login', async () => {
     await page.goto(`${BASE}/admin/login`);
-    await page.fill('input[name="email"]', 'admin@test.com');
-    await page.fill('input[name="password"]', 'TestPass123!');
+    await page.fill('input[name="email"]', ADMIN_EMAIL);
+    await page.fill('input[name="password"]', ADMIN_PASSWORD);
     await page.screenshot({ path: `${SCREENSHOTS}/08-login.png`, fullPage: true });
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL(/\/admin/, { timeout: 10000 });
