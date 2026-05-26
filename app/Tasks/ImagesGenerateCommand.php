@@ -60,10 +60,14 @@ class ImagesGenerateCommand extends Command
             throw new RuntimeException('Cannot create media directory');
         }
 
-        $imagickOk = class_exists(Imagick::class);
+        // Mirror UploadService::imagickDisabled() — the CLI runs the same
+        // resize paths that segfault on macOS Apple Silicon under
+        // ImageMagick 7.1.x, so the opt-out env flag must be honored here too.
+        $imagickDisabled = filter_var((string)(function_exists('envv') ? envv('CIMAISE_DISABLE_IMAGICK', 'false') : ($_ENV['CIMAISE_DISABLE_IMAGICK'] ?? $_SERVER['CIMAISE_DISABLE_IMAGICK'] ?? 'false')), FILTER_VALIDATE_BOOLEAN);
+        $imagickOk = class_exists(Imagick::class) && !$imagickDisabled;
         $gdWebpOk = function_exists('imagewebp');
         if (!$imagickOk) {
-            $output->writeln('<comment>Imagick not available, using GD fallbacks.</comment>');
+            $output->writeln('<comment>Imagick not available' . ($imagickDisabled ? ' (disabled via CIMAISE_DISABLE_IMAGICK)' : '') . ', using GD fallbacks.</comment>');
         }
         if (!$gdWebpOk) {
             $output->writeln('<comment>GD WebP support not available.</comment>');
@@ -192,7 +196,8 @@ class ImagesGenerateCommand extends Command
 
     private function resizeWithImagickOrGd(string $src, string $dest, int $targetW, string $format, int $quality): bool
     {
-        if (class_exists(Imagick::class)) {
+        $imagickDisabled = filter_var((string)(function_exists('envv') ? envv('CIMAISE_DISABLE_IMAGICK', 'false') : ($_ENV['CIMAISE_DISABLE_IMAGICK'] ?? $_SERVER['CIMAISE_DISABLE_IMAGICK'] ?? 'false')), FILTER_VALIDATE_BOOLEAN);
+        if (class_exists(Imagick::class) && !$imagickDisabled) {
             return $this->resizeWithImagick($src, $dest, $targetW, $format, $quality);
         }
         

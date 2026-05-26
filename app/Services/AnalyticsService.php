@@ -290,11 +290,17 @@ class AnalyticsService
      * F043 (optional helper): truncate analytics ip_hash columns that were
      * computed before this service shipped a real salt. Returns the number of
      * rows updated across the analytics tables. Safe to call repeatedly.
+     *
+     * Covers every analytics table that carries an `ip_hash` column —
+     * `analytics_sessions` (core), `analytics_pro_sessions` and
+     * `analytics_pro_events` (analytics-pro plugin). Missing tables fall
+     * through the per-table try/catch so the helper degrades gracefully
+     * when the pro plugin is not installed.
      */
     public function truncateLegacyIpHashes(): int
     {
         $total = 0;
-        foreach (['analytics_sessions'] as $table) {
+        foreach (['analytics_sessions', 'analytics_pro_sessions', 'analytics_pro_events'] as $table) {
             try {
                 $stmt = $this->db->prepare("UPDATE {$table} SET ip_hash = NULL WHERE ip_hash IS NOT NULL");
                 $stmt->execute();
