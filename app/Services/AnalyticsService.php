@@ -210,9 +210,9 @@ class AnalyticsService
         // all converge on the same canonical value via path (2).
         $sessionSecret = $_ENV['SESSION_SECRET'] ?? $_SERVER['SESSION_SECRET'] ?? null;
         if (is_string($sessionSecret) && $sessionSecret !== '') {
-            $this->persistIpSalt($sessionSecret);
-            $this->ipSalt = $sessionSecret;
-            $this->settings['ip_salt'] = $sessionSecret;
+            $persisted = $this->persistIpSalt($sessionSecret);
+            $this->ipSalt = $persisted;
+            $this->settings['ip_salt'] = $persisted;
             return $this->ipSalt;
         }
 
@@ -232,20 +232,29 @@ class AnalyticsService
             $fresh = hash('sha256', uniqid('', true) . microtime(true) . (string)getmypid());
         }
 
-        $this->persistIpSalt($fresh);
-        $this->ipSalt = $fresh;
-        $this->settings['ip_salt'] = $fresh;
+        // F012: persistIpSalt may discover that another worker already wrote
+        // a different salt under us — in that case the DB value is the
+        // canonical one and THIS request must hash with the DB value (not
+        // $fresh), otherwise analytics history fragments across the race
+        // window. The helper now returns whichever salt actually won.
+        $persisted = $this->persistIpSalt($fresh);
+        $this->ipSalt = $persisted;
+        $this->settings['ip_salt'] = $persisted;
         return $this->ipSalt;
     }
 
     /**
      * Best-effort persistence of the IP salt to analytics_settings.
      *
+     * Returns the salt that is now canonical in the database — usually the
+     * argument, but possibly a different value already written by a racing
+     * worker (in which case the caller should defer to it).
+     *
      * Persistence failures are intentionally swallowed (only logged) so that
      * IP hashing always succeeds — see getIpSalt() docblock. A subsequent
      * request will retry persistence via getIpSalt() path (4).
      */
-    private function persistIpSalt(string $salt): void
+    private function persistIpSalt(string $salt): string
     {
         try {
             // Portable upsert: try INSERT, on duplicate-key fall back to UPDATE.
@@ -253,7 +262,7 @@ class AnalyticsService
                 'INSERT INTO analytics_settings (setting_key, setting_value, description) VALUES (?, ?, ?)'
             );
             $insert->execute(['ip_salt', $salt, 'Per-install salt for IP pseudonymization (auto-generated)']);
-            return;
+            return $salt;
         } catch (\PDOException $e) {
             // Likely a unique-key race or a missing table. Try UPDATE, then re-read
             // so two concurrent processes converge on the same salt.
@@ -265,12 +274,11 @@ class AnalyticsService
                 $read->execute(['ip_salt']);
                 $row = $read->fetch(PDO::FETCH_ASSOC);
                 if ($row !== false && isset($row['setting_value']) && $row['setting_value'] !== '') {
-                    // Another process already wrote a different salt — defer to it
-                    // so all processes converge. Caller will pick this up on next
-                    // getIpSalt() invocation; for *this* request we keep the value
-                    // the caller already cached (analytics history won't fragment
-                    // because the DB-persisted value is now authoritative).
-                    return;
+                    // Another process already wrote a salt — defer to it so all
+                    // workers converge. The caller will hash THIS request's IPs
+                    // with the DB-canonical value (not the in-flight $salt),
+                    // closing the F012 race window.
+                    return (string)$row['setting_value'];
                 }
             } catch (\PDOException $inner) {
                 // Fall through to log.
@@ -284,6 +292,7 @@ class AnalyticsService
                 'analytics'
             );
         }
+        return $salt;
     }
 
     /**

@@ -145,58 +145,55 @@ class UploadController extends BaseController
             // Other approaches (flush, Connection: close) don't actually work.
             // For non-FPM environments, VariantMaintenanceService cron will generate variants.
 
+            // BACKGROUND WORK via shutdown handler — runs AFTER Slim's
+            // ResponseEmitter has flushed the full response (so any
+            // wrapping middleware modifications to headers/body land
+            // exactly as configured), then closes the FCGI connection
+            // and continues with variant generation in the background.
+            //
+            // The previous implementation manually emitted headers from
+            // inside the handler before calling fastcgi_finish_request().
+            // That snapshotted $response BEFORE the middleware chain
+            // (cache middleware, security headers, Vary/ETag) had a
+            // chance to mutate it — those modifications were silently
+            // lost on the FPM path. Letting Slim emit naturally and
+            // deferring the close + work to shutdown closes that race.
             if (function_exists('fastcgi_finish_request') && !empty($meta['id'])) {
-                // Slim's ResponseEmitter only runs after this handler returns, so calling
-                // fastcgi_finish_request() here would close the FastCGI connection BEFORE
-                // the JSON body is emitted — Apache logs HTTP 200 with Content-Length: 0
-                // and the client never sees the payload. Emit headers + body manually so
-                // the client has the full response, then close the FCGI connection.
-                if (!headers_sent()) {
-                    http_response_code($response->getStatusCode());
-                    foreach ($response->getHeaders() as $name => $values) {
-                        $first = true;
-                        foreach ($values as $value) {
-                            header($name . ': ' . $value, $first);
-                            $first = false;
-                        }
+                $imageIdForBackground = (int) $meta['id'];
+                $needsBlurForBackground = $needsBlur;
+                $svcForBackground = $svc;
+                register_shutdown_function(static function () use (
+                    $imageIdForBackground,
+                    $needsBlurForBackground,
+                    $svcForBackground
+                ) {
+                    if (function_exists('fastcgi_finish_request')) {
+                        @fastcgi_finish_request();
                     }
-                }
-                echo $json;
-                fastcgi_finish_request();
-
-                // BACKGROUND WORK: Now generate variants (client already has response)
-                ignore_user_abort(true);
-                set_time_limit(300);
-
-                try {
-                    $svc->generateVariantsForImage((int) $meta['id'], false);
-                } catch (\Throwable $variantError) {
-                    Logger::warning('Failed to generate variants in background', [
-                        'image_id' => $meta['id'],
-                        'error' => $variantError->getMessage()
-                    ], 'upload');
-                }
-
-                // Generate blur only if album is NSFW or password-protected
-                if ($needsBlur) {
+                    ignore_user_abort(true);
+                    @set_time_limit(300);
                     try {
-                        $svc->generateBlurredVariant((int) $meta['id']);
-                    } catch (\Throwable $blurError) {
-                        Logger::warning('Failed to generate blur for protected album image', [
-                            'image_id' => $meta['id'],
-                            'error' => $blurError->getMessage()
+                        $svcForBackground->generateVariantsForImage($imageIdForBackground, false);
+                    } catch (\Throwable $variantError) {
+                        Logger::warning('Failed to generate variants in background', [
+                            'image_id' => $imageIdForBackground,
+                            'error' => $variantError->getMessage(),
                         ], 'upload');
                     }
-                }
-                // After fastcgi_finish_request() the FCGI connection is already closed.
-                // Return an EMPTY response so Slim's ResponseEmitter doesn't try to
-                // emit headers/body again — those would either fail (headers already
-                // sent) or duplicate the JSON we just wrote. The body stream is
-                // replaced with an empty in-memory one to neuter the emitter.
-                return $response
-                    ->withBody(new \Slim\Psr7\Stream(fopen('php://temp', 'r+')));
+                    if ($needsBlurForBackground) {
+                        try {
+                            $svcForBackground->generateBlurredVariant($imageIdForBackground);
+                        } catch (\Throwable $blurError) {
+                            Logger::warning('Failed to generate blur for protected album image', [
+                                'image_id' => $imageIdForBackground,
+                                'error' => $blurError->getMessage(),
+                            ], 'upload');
+                        }
+                    }
+                });
             }
-            // For non-FPM: Response sent immediately, variants generated later by cron
+            // Non-FPM: ResponseEmitter still flushes the JSON; the cron
+            // VariantMaintenanceService picks up variant generation later.
 
             return $response;
         } catch (\Throwable $e) {

@@ -298,15 +298,26 @@ class ImageRating
             throw $e;
         }
 
-        // Step (b): drop legacy PRIMARY KEY, step (c): tighten column,
-        // step (d): add composite UNIQUE. (MySQL DDL is auto-committed.)
+        // Steps (b)+(c)+(d): combine the structural changes into a SINGLE
+        // ALTER TABLE so MySQL applies them atomically. Issuing three
+        // separate auto-committing DDL statements opened a race window
+        // where a concurrent INSERT could land between MODIFY (rated_by
+        // NOT NULL) and ADD UNIQUE — long enough on a busy install to
+        // produce duplicates that the next UNIQUE attempt would reject,
+        // leaving the table without PK AND without UNIQUE. A combined
+        // ALTER runs as one operation, the rebind to the new schema is
+        // applied or rolled back as a whole.
+        // The MODIFY clause is always required; DROP PRIMARY KEY and the
+        // ADD UNIQUE KEY are conditional. The compound ALTER never has an
+        // empty parts list because MODIFY is unconditional.
+        $alterParts = ["MODIFY rated_by INT NOT NULL DEFAULT 0"];
         if ($hasLegacyPk) {
-            $this->db->exec("ALTER TABLE plugin_image_ratings DROP PRIMARY KEY");
+            array_unshift($alterParts, "DROP PRIMARY KEY");
         }
-        $this->db->exec("ALTER TABLE plugin_image_ratings MODIFY rated_by INT NOT NULL DEFAULT 0");
         if (!$hasCompositeUnique) {
-            $this->db->exec("ALTER TABLE plugin_image_ratings ADD UNIQUE KEY uniq_image_rated_by (image_id, rated_by)");
+            $alterParts[] = "ADD UNIQUE KEY uniq_image_rated_by (image_id, rated_by)";
         }
+        $this->db->exec("ALTER TABLE plugin_image_ratings " . implode(', ', $alterParts));
 
         error_log("Image Rating: MySQL schema migrated to v2");
     }

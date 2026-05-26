@@ -113,7 +113,12 @@ class Database
                 return null;
             }
         }
-        if (stripos($pinned, 'fe80:') === 0 || stripos($pinned, '169.254.') === 0 || stripos($pinned, 'fd00:ec2::') === 0) {
+        // Use 'fd00:ec2:' (one trailing colon) — matches the canonical
+        // AWS IMDS IPv6 range `fd00:ec2::254` AND any future variant on
+        // the same prefix. Must stay symmetric with public/installer.php
+        // L80 so an IP that one path rejects is not silently accepted by
+        // the other.
+        if (stripos($pinned, 'fe80:') === 0 || stripos($pinned, '169.254.') === 0 || stripos($pinned, 'fd00:ec2:') === 0) {
             return null;
         }
 
