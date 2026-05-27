@@ -301,9 +301,11 @@ class PageCacheService
         }
 
         $cacheKey = $this->getCacheKey($type);
+        // Filter expired entries in SQL so callers don't receive a hash for stale cache.
+        // expires_at is stored as UTC via gmdate() in setToDatabase(), so compare against gmdate('Y-m-d H:i:s').
         $stmt = $this->db->query(
-            'SELECT data_hash FROM page_cache WHERE cache_key = ? AND version = ?',
-            [$cacheKey, self::CACHE_VERSION]
+            'SELECT data_hash FROM page_cache WHERE cache_key = ? AND version = ? AND expires_at > ?',
+            [$cacheKey, self::CACHE_VERSION, gmdate('Y-m-d H:i:s')]
         );
         $row = $stmt->fetch();
         $stmt->closeCursor();

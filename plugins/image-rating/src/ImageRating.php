@@ -98,8 +98,8 @@ class ImageRating
     {
         try {
             $marker = $this->readSchemaMarker();
-            if ($marker === '2') {
-                return; // already migrated to v2 schema
+            if ($marker === self::SCHEMA_VERSION) {
+                return; // already migrated to current schema
             }
 
             if ($this->isSqlite) {
@@ -108,7 +108,7 @@ class ImageRating
                 $this->migrateSchemaMysql();
             }
 
-            $this->writeSchemaMarker('2');
+            $this->writeSchemaMarker(self::SCHEMA_VERSION);
         } catch (PDOException $e) {
             error_log("Image Rating: Schema migration error: " . $e->getMessage());
         }

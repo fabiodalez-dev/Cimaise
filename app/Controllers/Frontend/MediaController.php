@@ -46,21 +46,45 @@ class MediaController extends BaseController
      * Resolve MIME from a trusted (regex-validated) file extension, falling back to
      * finfo_file() only when no mapping is available. The fallback path remains
      * available for callers that serve unconstrained file types.
+     *
+     * When $strict is true (defense-in-depth for DB-sourced paths), the extension-derived
+     * MIME is cross-checked against finfo_file() magic-byte detection. Mismatches return
+     * null so the caller can reject the request (typically 403). This guards against
+     * cases where the DB stores a path with a misleading extension (e.g. a .jpg file
+     * whose actual bytes are something else).
      */
-    private function mimeFromExtension(string $realPath): ?string
+    private function mimeFromExtension(string $realPath, bool $strict = false): ?string
     {
         $ext = strtolower(pathinfo($realPath, PATHINFO_EXTENSION));
-        if (isset(self::EXT_TO_MIME[$ext])) {
-            return self::EXT_TO_MIME[$ext];
+        $extMime = self::EXT_TO_MIME[$ext] ?? null;
+
+        if ($extMime !== null && !$strict) {
+            return $extMime;
         }
 
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         if ($finfo === false) {
-            return null;
+            // In strict mode we must be able to verify; without finfo we cannot.
+            return $strict ? null : $extMime;
         }
         $detected = finfo_file($finfo, $realPath);
         finfo_close($finfo);
-        return $detected !== false ? $detected : null;
+
+        if ($detected === false) {
+            return $strict ? null : $extMime;
+        }
+
+        // Strict mode: require magic-byte MIME to match the extension-derived MIME.
+        // image/jpeg and image/tiff have well-known aliases that finfo may emit.
+        if ($strict && $extMime !== null) {
+            $normalizedDetected = $detected === 'image/jpg' ? 'image/jpeg' : $detected;
+            if ($normalizedDetected !== $extMime) {
+                return null;
+            }
+            return $extMime;
+        }
+
+        return $extMime ?? $detected;
     }
 
     /**
@@ -106,6 +130,7 @@ class MediaController extends BaseController
             if (str_starts_with($realPath, $originals)) {
                 return $base->withHeader('X-Accel-Redirect', '/internal-originals/' . substr($realPath, strlen($originals)));
             }
+            Logger::warning('MediaController: X-Sendfile=nginx configured but path does not match known prefixes; falling back to direct PSR-7 streaming', ['real_path' => $realPath]);
             // Path not under known roots: fall through to direct streaming
         }
 
@@ -401,9 +426,9 @@ class MediaController extends BaseController
             return $response->withStatus(403);
         }
 
-        // Resolve MIME from the (regex-validated) extension. finfo_file() is only used
-        // as fallback when the extension is unknown, which the variant regex prevents.
-        $detectedMime = $this->mimeFromExtension($realPath);
+        // Resolve MIME from the (regex-validated) extension. Strict mode performs
+        // a finfo_file() magic-byte cross-check because the path is DB-sourced.
+        $detectedMime = $this->mimeFromExtension($realPath, strict: true);
 
         $allowedMimes = ['image/jpeg', 'image/webp', 'image/avif', 'image/png'];
         if ($detectedMime === null || !\in_array($detectedMime, $allowedMimes, true)) {
@@ -503,8 +528,9 @@ class MediaController extends BaseController
             return $response->withStatus(404);
         }
 
-        // Validate MIME — try extension-based fast path, fall back to finfo for unknowns
-        $detectedMime = $this->mimeFromExtension($realPath);
+        // Validate MIME — strict mode performs a finfo_file() magic-byte cross-check
+        // because the original_path is DB-sourced and the extension cannot be trusted.
+        $detectedMime = $this->mimeFromExtension($realPath, strict: true);
         $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif', 'image/tiff'];
         if ($detectedMime === null || !\in_array($detectedMime, $allowedMimes, true)) {
             return $response->withStatus(403);

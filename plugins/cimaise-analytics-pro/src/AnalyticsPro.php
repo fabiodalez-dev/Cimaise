@@ -61,7 +61,7 @@ class AnalyticsPro
         try {
             $sql = $this->db->isSqlite()
                 ? "INSERT OR REPLACE INTO settings (`key`, value) VALUES (?, ?)"
-                : "INSERT INTO settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)";
+                : "INSERT INTO settings (`key`, value) VALUES (?, ?) AS new ON DUPLICATE KEY UPDATE value = new.value";
             $stmt = $this->db->pdo()->prepare($sql);
             $stmt->bindValue(1, self::SCHEMA_SETTING_KEY);
             $stmt->bindValue(2, self::SCHEMA_VERSION);
