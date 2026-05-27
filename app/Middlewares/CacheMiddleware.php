@@ -24,22 +24,51 @@ class CacheMiddleware implements MiddlewareInterface
 
     public function process(Request $request, Handler $handler): Response
     {
-        $response = $handler->handle($request);
-
-        // Get cache settings
         $cacheEnabled = $this->settings->get('performance.cache_enabled', true);
-        if (!$cacheEnabled) {
-            return $response;
-        }
-
-        $path = $request->getUri()->getPath();
         $method = $request->getMethod();
 
-        // Normalize path: strip basePath for subdirectory installations
-        // Boundary check: ensure basePath matches a full segment (e.g. /foo must not match /foobar)
+        // Normalize path: strip basePath for subdirectory installations.
+        // Boundary check ensures basePath matches a full segment
+        // (e.g. /foo must not match /foobar).
+        $path = $request->getUri()->getPath();
         $basePath = rtrim($this->settings->get('site.base_path', ''), '/');
         if ($basePath !== '' && str_starts_with($path, $basePath) && (strlen($path) === strlen($basePath) || $path[strlen($basePath)] === '/')) {
             $path = substr($path, strlen($basePath)) ?: '/';
+        }
+
+        // Early 304 fast path: for cacheable HTML routes (home/galleries/album),
+        // resolve the ETag from the page_cache table BEFORE executing the controller.
+        // When the client's If-None-Match matches, skip rendering entirely.
+        // Only safe for anonymous, non-session-dependent GET/HEAD requests.
+        if (
+            $cacheEnabled
+            && in_array($method, ['GET', 'HEAD'], true)
+            && !$this->isSessionDependent()
+            && !str_starts_with($path, '/admin')
+            && !str_starts_with($path, '/api/')
+        ) {
+            $ifNoneMatch = $request->getHeaderLine('If-None-Match');
+            if ($ifNoneMatch !== '') {
+                $earlyEtag = $this->generateHtmlEtag($path);
+                if ($earlyEtag !== null && $this->matchesEtag($earlyEtag, $ifNoneMatch)) {
+                    // Build a 304 from scratch — no handler invocation, no Twig render.
+                    $emptyBody = new \Slim\Psr7\Stream(fopen('php://temp', 'r+'));
+                    $maxAge = $this->settings->get('performance.html_cache_max_age', 3600);
+                    $notModified = (new \Slim\Psr7\Response())
+                        ->withStatus(304)
+                        ->withBody($emptyBody)
+                        ->withHeader('ETag', $earlyEtag)
+                        ->withHeader('Cache-Control', "public, max-age={$maxAge}, must-revalidate, stale-while-revalidate=60")
+                        ->withHeader('Vary', 'Accept-Encoding');
+                    return $notModified;
+                }
+            }
+        }
+
+        $response = $handler->handle($request);
+
+        if (!$cacheEnabled) {
+            return $response;
         }
 
         // Only cache GET and HEAD requests

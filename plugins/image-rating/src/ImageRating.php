@@ -24,8 +24,22 @@ class ImageRating
      * anonymous votes - SQL standard treats every NULL as distinct in UNIQUE
      * indexes, which would let anonymous rows grow unbounded.
      */
+    /**
+     * Current schema version. Bumped when the table structure changes.
+     * Matches the value written by migrateSchema() so a fresh install lands
+     * directly on the target schema without a redundant migration pass.
+     */
+    private const SCHEMA_VERSION = '2';
+
     public function createTable(): void
     {
+        // Schema is already at the current version — skip DDL and migration.
+        // This is the hot path on every request; previously each one ran a
+        // CREATE TABLE IF NOT EXISTS plus a structural check inside migrateSchema().
+        if ($this->readSchemaMarker() === self::SCHEMA_VERSION) {
+            return;
+        }
+
         if ($this->isSqlite) {
             // rated_by INTEGER NOT NULL DEFAULT 0 - 0 = reserved anonymous/system sentinel
             $sql = "
@@ -62,6 +76,10 @@ class ImageRating
         // Migrate older installs that still have the legacy schema
         // (single-column PRIMARY KEY on image_id, or nullable rated_by).
         $this->migrateSchema();
+
+        // Persist the schema marker after a successful fresh install so
+        // subsequent requests take the early-return path above.
+        $this->writeSchemaMarker(self::SCHEMA_VERSION);
     }
 
     /**

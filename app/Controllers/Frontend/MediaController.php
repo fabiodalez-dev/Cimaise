@@ -21,38 +21,103 @@ class MediaController extends BaseController
     private const PUBLIC_CACHE_SECONDS = 31536000; // 1 year for public images
     private const PROTECTED_CACHE_SECONDS = 604800; // 1 week for protected variants
 
+    /**
+     * Extension -> MIME map for images already validated by a whitelist regex.
+     * Avoids a finfo_file() magic-byte read on every request when the extension
+     * has already been constrained by the routing/regex check.
+     */
+    private const EXT_TO_MIME = [
+        'jpg'  => 'image/jpeg',
+        'jpeg' => 'image/jpeg',
+        'webp' => 'image/webp',
+        'avif' => 'image/avif',
+        'png'  => 'image/png',
+        'gif'  => 'image/gif',
+        'tif'  => 'image/tiff',
+        'tiff' => 'image/tiff',
+    ];
+
     public function __construct(private Database $db, private UploadService $uploadService)
     {
         parent::__construct();
     }
 
     /**
-     * Stream a file to the response body and set common headers.
-     * Returns null on failure (caller should return 500 response).
+     * Resolve MIME from a trusted (regex-validated) file extension, falling back to
+     * finfo_file() only when no mapping is available. The fallback path remains
+     * available for callers that serve unconstrained file types.
+     */
+    private function mimeFromExtension(string $realPath): ?string
+    {
+        $ext = strtolower(pathinfo($realPath, PATHINFO_EXTENSION));
+        if (isset(self::EXT_TO_MIME[$ext])) {
+            return self::EXT_TO_MIME[$ext];
+        }
+
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        if ($finfo === false) {
+            return null;
+        }
+        $detected = finfo_file($finfo, $realPath);
+        finfo_close($finfo);
+        return $detected !== false ? $detected : null;
+    }
+
+    /**
+     * Stream a file into the response body.
+     *
+     * Strategy in priority order:
+     *   1. X-Sendfile / X-Accel-Redirect (Apache / Nginx) — kernel-level zero-copy.
+     *      Enabled by setting MEDIA_XSENDFILE=apache or =nginx in env.
+     *   2. PSR-7 stream wrap via fopen() — Slim writes the file straight from disk
+     *      without buffering the whole body in PHP memory, so it scales to large
+     *      originals (multi-MB) without RAM pressure and is faster than the old
+     *      fread(8192) loop.
      */
     private function streamFile(Response $response, string $realPath, string $mime): ?Response
     {
         $filesize = filesize($realPath);
-        $stream = fopen($realPath, 'rb');
-
-        if (!$stream) {
+        if ($filesize === false) {
             return null;
         }
 
-        $body = $response->getBody();
-        while (!feof($stream)) {
-            $chunk = fread($stream, 8192);
-            if ($chunk === false) {
-                break;
-            }
-            $body->write($chunk);
-        }
-        fclose($stream);
-
-        return $response
+        $base = $response
             ->withHeader('Content-Type', $mime)
             ->withHeader('Content-Length', (string)$filesize)
             ->withHeader('X-Content-Type-Options', 'nosniff');
+
+        // Delegate streaming to the web server when configured. The web server
+        // must be set up to expose the storage/ + public/media/ paths as
+        // internal-only (Apache: XSendFilePath; Nginx: internal location).
+        $xsendfile = strtolower((string)($_ENV['MEDIA_XSENDFILE'] ?? getenv('MEDIA_XSENDFILE') ?: ''));
+        if ($xsendfile === 'apache') {
+            return $base->withHeader('X-Sendfile', $realPath);
+        }
+        if ($xsendfile === 'nginx') {
+            // Nginx X-Accel-Redirect expects an internal URI, not a filesystem path.
+            // Map ROOT/public/media/foo.jpg -> /internal-media/foo.jpg and
+            // ROOT/storage/originals/x.jpg -> /internal-originals/x.jpg.
+            $root = dirname(__DIR__, 3);
+            $publicMedia = $root . '/public/media/';
+            $originals = $root . '/storage/originals/';
+            if (str_starts_with($realPath, $publicMedia)) {
+                return $base->withHeader('X-Accel-Redirect', '/internal-media/' . substr($realPath, strlen($publicMedia)));
+            }
+            if (str_starts_with($realPath, $originals)) {
+                return $base->withHeader('X-Accel-Redirect', '/internal-originals/' . substr($realPath, strlen($originals)));
+            }
+            // Path not under known roots: fall through to direct streaming
+        }
+
+        // Fallback: stream from disk via PSR-7 without buffering. Slim writes the
+        // stream straight to the SAPI sink — equivalent in throughput to
+        // readfile() but compatible with the middleware chain (PSR-7 contract).
+        $fh = @fopen($realPath, 'rb');
+        if ($fh === false) {
+            return null;
+        }
+
+        return $base->withBody(new \Slim\Psr7\Stream($fh));
     }
 
     /**
@@ -336,19 +401,12 @@ class MediaController extends BaseController
             return $response->withStatus(403);
         }
 
-        // Validate MIME type
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $detectedMime = finfo_file($finfo, $realPath);
-        finfo_close($finfo);
+        // Resolve MIME from the (regex-validated) extension. finfo_file() is only used
+        // as fallback when the extension is unknown, which the variant regex prevents.
+        $detectedMime = $this->mimeFromExtension($realPath);
 
-        $allowedMimes = [
-            'image/jpeg' => 'jpg',
-            'image/webp' => 'webp',
-            'image/avif' => 'avif',
-            'image/png' => 'png',
-        ];
-
-        if (!isset($allowedMimes[$detectedMime])) {
+        $allowedMimes = ['image/jpeg', 'image/webp', 'image/avif', 'image/png'];
+        if ($detectedMime === null || !\in_array($detectedMime, $allowedMimes, true)) {
             return $response->withStatus(403);
         }
 
@@ -445,13 +503,10 @@ class MediaController extends BaseController
             return $response->withStatus(404);
         }
 
-        // Validate MIME
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $detectedMime = finfo_file($finfo, $realPath);
-        finfo_close($finfo);
-
+        // Validate MIME — try extension-based fast path, fall back to finfo for unknowns
+        $detectedMime = $this->mimeFromExtension($realPath);
         $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif', 'image/tiff'];
-        if (!\in_array($detectedMime, $allowedMimes, true)) {
+        if ($detectedMime === null || !\in_array($detectedMime, $allowedMimes, true)) {
             return $response->withStatus(403);
         }
 
@@ -590,16 +645,10 @@ class MediaController extends BaseController
             return $response->withStatus(404);
         }
 
-        // Validate MIME type
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $detectedMime = finfo_file($finfo, $realPath);
-        finfo_close($finfo);
-
-        $allowedMimes = [
-            'image/jpeg', 'image/webp', 'image/avif', 'image/png', 'image/gif',
-        ];
-
-        if (!\in_array($detectedMime, $allowedMimes, true)) {
+        // Validate MIME type via fast extension lookup; finfo only if unknown extension
+        $detectedMime = $this->mimeFromExtension($realPath);
+        $allowedMimes = ['image/jpeg', 'image/webp', 'image/avif', 'image/png', 'image/gif'];
+        if ($detectedMime === null || !\in_array($detectedMime, $allowedMimes, true)) {
             return $response->withStatus(403);
         }
 

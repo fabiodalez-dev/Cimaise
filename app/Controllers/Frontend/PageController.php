@@ -2475,116 +2475,33 @@ class PageController extends BaseController
             return [];
         }
 
-        $pdo = $this->db->pdo();
+        // Delegate batch fetching to the shared AlbumEnrichmentService.
+        // This controller is responsible only for the "page" shape:
+        // cover (with variants array) + tags + locations + images_count.
+        $enrich = new \App\Services\AlbumEnrichmentService($this->db->pdo());
         $albumIds = array_column($albums, 'id');
         $coverImageIds = array_values(array_filter(array_column($albums, 'cover_image_id')));
 
-        // Build placeholders
-        $albumPlaceholders = implode(',', array_fill(0, count($albumIds), '?'));
+        $coverData = $enrich->loadPageCoverImagesWithVariants($coverImageIds);
+        $coverImages = $coverData['images'];
+        $variantsByImage = $coverData['variants'];
 
-        // 1. Batch fetch cover images
-        $coverImages = [];
-        if (!empty($coverImageIds)) {
-            $coverPlaceholders = implode(',', array_fill(0, count($coverImageIds), '?'));
-            $stmt = $pdo->prepare("SELECT * FROM images WHERE id IN ($coverPlaceholders)");
-            $stmt->execute($coverImageIds);
-            foreach ($stmt->fetchAll() as $img) {
-                $coverImages[(int) $img['id']] = $img;
-            }
-        }
+        $tagsByAlbum = $enrich->loadTags($albumIds);
+        $locationsByAlbum = $enrich->loadLocations($albumIds);
+        $countsByAlbum = $enrich->loadImageCounts($albumIds);
 
-        // 2. Batch fetch variants for all cover images
-        $variantsByImage = [];
-        if (!empty($coverImageIds)) {
-            $stmt = $pdo->prepare("
-                SELECT * FROM image_variants
-                WHERE image_id IN ($coverPlaceholders)
-                ORDER BY image_id, variant ASC
-            ");
-            $stmt->execute($coverImageIds);
-            foreach ($stmt->fetchAll() as $variant) {
-                $imageId = (int) $variant['image_id'];
-                if (!isset($variantsByImage[$imageId])) {
-                    $variantsByImage[$imageId] = [];
-                }
-                $variantsByImage[$imageId][] = $variant;
-            }
-        }
-
-        // 3. Batch fetch tags for all albums
-        $tagsByAlbum = [];
-        $stmt = $pdo->prepare("
-            SELECT at.album_id, t.*
-            FROM tags t
-            JOIN album_tag at ON at.tag_id = t.id
-            WHERE at.album_id IN ($albumPlaceholders)
-            ORDER BY t.name ASC
-        ");
-        $stmt->execute($albumIds);
-        foreach ($stmt->fetchAll() as $tag) {
-            $albumId = (int) $tag['album_id'];
-            unset($tag['album_id']);
-            if (!isset($tagsByAlbum[$albumId])) {
-                $tagsByAlbum[$albumId] = [];
-            }
-            $tagsByAlbum[$albumId][] = $tag;
-        }
-
-        // 4. Batch fetch locations for all albums
-        $locationsByAlbum = [];
-        try {
-            $stmt = $pdo->prepare("
-                SELECT al.album_id, l.id, l.name, l.slug
-                FROM album_location al
-                JOIN locations l ON l.id = al.location_id
-                WHERE al.album_id IN ($albumPlaceholders)
-                ORDER BY l.name
-            ");
-            $stmt->execute($albumIds);
-            foreach ($stmt->fetchAll() as $loc) {
-                $albumId = (int) $loc['album_id'];
-                unset($loc['album_id']);
-                if (!isset($locationsByAlbum[$albumId])) {
-                    $locationsByAlbum[$albumId] = [];
-                }
-                $locationsByAlbum[$albumId][] = $loc;
-            }
-        } catch (\Throwable) {
-            // Locations table may not exist
-        }
-
-        // 5. Batch fetch image counts for all albums
-        $countsByAlbum = [];
-        $stmt = $pdo->prepare("
-            SELECT album_id, COUNT(*) as cnt
-            FROM images
-            WHERE album_id IN ($albumPlaceholders)
-            GROUP BY album_id
-        ");
-        $stmt->execute($albumIds);
-        foreach ($stmt->fetchAll() as $row) {
-            $countsByAlbum[(int) $row['album_id']] = (int) $row['cnt'];
-        }
-
-        // Assemble enriched albums
         foreach ($albums as &$album) {
             $albumId = (int) $album['id'];
             $coverImageId = $album['cover_image_id'] ? (int) $album['cover_image_id'] : null;
 
-            // Cover image with variants
             if ($coverImageId && isset($coverImages[$coverImageId])) {
                 $cover = $coverImages[$coverImageId];
                 $cover['variants'] = $variantsByImage[$coverImageId] ?? [];
                 $album['cover'] = $cover;
             }
 
-            // Tags
             $album['tags'] = $tagsByAlbum[$albumId] ?? [];
-
-            // Locations
             $album['locations'] = $locationsByAlbum[$albumId] ?? [];
-
-            // Images count
             $album['images_count'] = $countsByAlbum[$albumId] ?? 0;
         }
         unset($album);
