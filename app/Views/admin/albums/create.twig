@@ -123,7 +123,7 @@
                   <div class="text-lg font-medium mb-1">{{ trans('admin.albums.drag_images') }}</div>
                   <div class="text-sm text-gray-500">{{ trans('admin.albums.or_click') }}</div>
                   <div class="text-xs text-gray-400 mt-2">{{ trans('admin.albums.file_types') }}</div>
-                  <div class="text-xs text-blue-600 mt-3 font-medium">{{ trans('admin.albums.auto_create_hint') }}</div>
+                  <div class="text-xs text-accent-600 mt-3 font-medium">{{ trans('admin.albums.auto_create_hint') }}</div>
                 </div>
               </div>
 
@@ -157,7 +157,7 @@
                     <i class="fas fa-check-circle text-green-500 mr-2"></i>
                     {{ trans('admin.albums.uploaded_images') }} (<span id="uploaded-count">0</span>)
                   </h4>
-                  <button type="button" id="add-more-images" class="text-sm text-blue-600 hover:text-blue-800">
+                  <button type="button" id="add-more-images" class="text-sm text-accent-600 hover:text-accent-800">
                     <i class="fas fa-plus mr-1"></i>{{ trans('admin.albums.add_more_images') }}
                   </button>
                 </div>
@@ -378,7 +378,7 @@
                 </div>
               {% endfor %}
               <p class="text-xs text-gray-500">
-                <a href="{{ base_path }}/admin/custom-field-types" class="text-blue-600 hover:text-blue-800" data-spa-link>
+                <a href="{{ base_path }}/admin/custom-field-types" class="text-accent-600 hover:text-accent-800" data-spa-link>
                   <i class="fas fa-cog mr-1"></i>{{ trans('admin.custom_fields.manage_fields') }}
                 </a>
               </p>
@@ -787,7 +787,7 @@
         }
 
         // Update uploader text
-        const uploaderText = uploader.querySelector('.text-xs.text-blue-600');
+        const uploaderText = uploader.querySelector('.text-xs.text-accent-600');
         if (uploaderText) {
           uploaderText.textContent = t('admin.albums.drop_more_hint');
         }
@@ -893,18 +893,18 @@
       function handleDragOver(e) {
         e.preventDefault();
         if (!isUploading) {
-          uploader.classList.add('bg-gray-100', 'border-blue-400');
+          uploader.classList.add('bg-gray-100', 'border-accent-400');
         }
       }
       
       function handleDragLeave(e) {
         e.preventDefault();
-        uploader.classList.remove('bg-gray-100', 'border-blue-400');
+        uploader.classList.remove('bg-gray-100', 'border-accent-400');
       }
       
       async function handleDrop(e) {
         e.preventDefault();
-        uploader.classList.remove('bg-gray-100', 'border-blue-400');
+        uploader.classList.remove('bg-gray-100', 'border-accent-400');
         if (!e.dataTransfer || isUploading) return;
         const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
         await uploadFiles(files);

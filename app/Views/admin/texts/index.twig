@@ -24,11 +24,11 @@
     <div class="border-b border-gray-200">
       <nav class="-mb-px flex space-x-8" aria-label="Tabs">
         <a href="{{ base_path }}/admin/texts?scope=frontend"
-           class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm {{ current_scope == 'frontend' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+           class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm {{ current_scope == 'frontend' ? 'border-accent-500 text-accent-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
           <i class="fas fa-globe mr-2"></i>{{ trans('admin.texts.scope_frontend') }}
         </a>
         <a href="{{ base_path }}/admin/texts?scope=admin"
-           class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm {{ current_scope == 'admin' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+           class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm {{ current_scope == 'admin' ? 'border-accent-500 text-accent-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
           <i class="fas fa-cog mr-2"></i>{{ trans('admin.texts.scope_admin') }}
         </a>
       </nav>
@@ -37,8 +37,8 @@
 
   {# Import/Upload translations card #}
   <div class="card mb-6">
-    <div class="card-header bg-blue-50 border-b border-blue-200 py-4 px-6 flex items-center justify-between">
-      <h2 class="text-lg font-semibold text-blue-800 flex items-center">
+    <div class="card-header bg-accent-50 border-b border-accent-200 py-4 px-6 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-accent-800 flex items-center">
         <i class="fas fa-language mr-2"></i>{{ trans('admin.texts.import_translations') }}
       </h2>
       <div class="flex gap-2">
@@ -109,7 +109,7 @@
             </button>
           </div>
           <label class="flex items-center text-sm text-gray-600 mt-3">
-            <input type="checkbox" name="save_file" value="1" class="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+            <input type="checkbox" name="save_file" value="1" class="mr-2 rounded border-gray-300 text-accent-600 focus:ring-accent-500">
             {{ trans('admin.texts.save_as_preset') }}
           </label>
         </form>
@@ -149,9 +149,9 @@
   {# Grouped texts #}
   {% for context, texts in grouped %}
     <div class="card mb-6">
-      <div class="card-header bg-blue-50 border-b border-blue-200 py-4 px-6">
-        <h2 class="text-lg font-semibold text-blue-800 flex items-center">
-          <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 mr-3 text-sm">
+      <div class="card-header bg-accent-50 border-b border-accent-200 py-4 px-6">
+        <h2 class="text-lg font-semibold text-accent-800 flex items-center">
+          <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-accent-100 text-accent-600 mr-3 text-sm">
             {{ texts|length }}
           </span>
           {{ context|capitalize }}
@@ -186,7 +186,7 @@
                 <td class="px-4 py-3 text-sm text-gray-500">{{ text.description }}</td>
                 <td class="px-4 py-3 text-right whitespace-nowrap">
                   <div class="flex items-center justify-end gap-2">
-                    <button type="button" class="edit-inline-btn inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200" title="{{ trans('admin.texts.quick_edit') }}">
+                    <button type="button" class="edit-inline-btn inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-accent-50 text-accent-700 hover:bg-accent-100 border border-accent-200" title="{{ trans('admin.texts.quick_edit') }}">
                       <i class="fas fa-pen-to-square mr-1"></i>{{ trans('admin.texts.quick') }}
                     </button>
                     <a href="{{ base_path }}/admin/texts/{{ text.id }}/edit" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200" title="{{ trans('admin.texts.full_edit') }}">

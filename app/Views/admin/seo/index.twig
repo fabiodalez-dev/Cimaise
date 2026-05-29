@@ -58,7 +58,7 @@
       <div class="card">
         <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
           <h2 class="text-lg font-medium text-gray-900 flex items-center">
-            <i class="fas fa-globe mr-3 text-blue-600"></i>
+            <i class="fas fa-globe mr-3 text-accent-600"></i>
             {{ trans('admin.seo.sitewide_seo') }}
           </h2>
           <p class="text-sm text-gray-600 mt-1">{{ trans('admin.seo.sitewide_seo_hint') }}</p>
@@ -108,7 +108,7 @@
       <div class="card">
         <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
           <h2 class="text-lg font-medium text-gray-900 flex items-center">
-            <i class="fab fa-facebook mr-3 text-blue-600"></i>
+            <i class="fab fa-facebook mr-3 text-accent-600"></i>
             {{ trans('admin.seo.open_graph') }}
           </h2>
           <p class="text-sm text-gray-600 mt-1">{{ trans('admin.seo.open_graph_hint') }}</p>
@@ -179,13 +179,13 @@
           <div class="flex items-center gap-6">
             <label class="flex items-center cursor-pointer">
               <input type="checkbox" name="schema_enabled" value="1" class="sr-only peer" {{ settings.schema_enabled ? 'checked' : '' }}>
-              <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-600"></div>
               <span class="ml-3 text-sm font-medium text-gray-900">{{ trans('admin.seo.enable_schema') }}</span>
             </label>
 
             <label class="flex items-center cursor-pointer">
               <input type="checkbox" name="breadcrumbs_enabled" value="1" class="sr-only peer" {{ settings.breadcrumbs_enabled ? 'checked' : '' }}>
-              <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-600"></div>
               <span class="ml-3 text-sm font-medium text-gray-900">{{ trans('admin.seo.enable_breadcrumbs') }}</span>
             </label>
           </div>
@@ -227,7 +227,7 @@
               </h3>
               <label class="flex items-center cursor-pointer">
                 <input type="checkbox" name="local_business_enabled" value="1" class="sr-only peer" {{ settings.local_business_enabled ? 'checked' : '' }}>
-                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-600"></div>
                 <span class="ml-3 text-sm font-medium text-gray-900">{{ trans('admin.seo.enable_local_business') }}</span>
               </label>
             </div>
@@ -326,7 +326,7 @@
           <div class="flex items-center gap-6">
             <label class="flex items-center cursor-pointer">
               <input type="checkbox" name="sitemap_enabled" value="1" class="sr-only peer" {{ settings.sitemap_enabled ? 'checked' : '' }}>
-              <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-600"></div>
               <span class="ml-3 text-sm font-medium text-gray-900">{{ trans('admin.seo.enable_sitemap') }}</span>
             </label>
           </div>
@@ -359,19 +359,19 @@
           <div class="flex items-center gap-6">
             <label class="flex items-center cursor-pointer">
               <input type="checkbox" name="image_alt_auto" value="1" class="sr-only peer" {{ settings.image_alt_auto ? 'checked' : '' }}>
-              <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-600"></div>
               <span class="ml-3 text-sm font-medium text-gray-900">{{ trans('admin.seo.auto_alt_text') }}</span>
             </label>
 
             <label class="flex items-center cursor-pointer">
               <input type="checkbox" name="preload_critical_images" value="1" class="sr-only peer" {{ settings.preload_critical_images ? 'checked' : '' }}>
-              <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-600"></div>
               <span class="ml-3 text-sm font-medium text-gray-900">{{ trans('admin.seo.preload_critical') }}</span>
             </label>
 
             <label class="flex items-center cursor-pointer">
               <input type="checkbox" name="lazy_load_images" value="1" class="sr-only peer" {{ settings.lazy_load_images ? 'checked' : '' }}>
-              <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-600"></div>
               <span class="ml-3 text-sm font-medium text-gray-900">{{ trans('admin.seo.lazy_loading') }}</span>
             </label>
           </div>

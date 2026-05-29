@@ -93,7 +93,7 @@
                       {% if album.album_slug %}
                         <a href="{{ base_path }}/album/{{ album.album_slug }}" 
                            target="_blank" 
-                           class="text-blue-600 hover:text-blue-800">
+                           class="text-accent-600 hover:text-accent-800">
                           /album/{{ album.album_slug }}
                         </a>
                       {% else %}
@@ -141,7 +141,7 @@
                   {% if album.album_slug %}
                     <a href="{{ base_path }}/album/{{ album.album_slug }}"
                        target="_blank"
-                       class="text-blue-600 hover:text-blue-800 text-sm">
+                       class="text-accent-600 hover:text-accent-800 text-sm">
                       <i class="fas fa-external-link-alt mr-1"></i>{{ trans('admin.analytics.albums.view') }}
                     </a>
                   {% endif %}
@@ -229,7 +229,7 @@
       <!-- Quick Stats -->
       <div class="card p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">
-          <i class="fas fa-chart-pie text-blue-500 mr-2"></i>{{ trans('admin.analytics.albums.quick_stats') }}
+          <i class="fas fa-chart-pie text-accent-500 mr-2"></i>{{ trans('admin.analytics.albums.quick_stats') }}
         </h3>
         <div class="space-y-4">
           <div class="flex justify-between">
@@ -351,7 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 /* Link hover effects */
-.text-blue-600:hover {
+.text-accent-600:hover {
   text-decoration: underline;
 }
 

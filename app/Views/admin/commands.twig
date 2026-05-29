@@ -18,7 +18,7 @@
     <div class="card">
       <div class="p-6">
         <h3 class="text-lg font-medium text-gray-900 mb-2 flex items-center">
-          <i class="fas fa-database mr-3 text-blue-600"></i>
+          <i class="fas fa-database mr-3 text-accent-600"></i>
           {{ trans('admin.commands.database') }}
         </h3>
         <p class="text-gray-600 text-sm mb-4">{{ trans('admin.commands.database_desc') }}</p>
@@ -73,12 +73,12 @@
         <p class="text-gray-600 text-sm mb-4">{{ trans('admin.commands.seo_desc') }}</p>
 
         <div class="mb-4">
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div class="bg-accent-50 border border-accent-200 rounded-lg p-3">
             <div class="flex items-center">
-              <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+              <i class="fas fa-info-circle text-accent-600 mr-2"></i>
               <div class="text-sm">
-                <div class="font-medium text-blue-800">{{ trans('admin.commands.detected_base_url') }}:</div>
-                <div class="text-blue-700" id="detected-base-url">{{ detected_base_url }}</div>
+                <div class="font-medium text-accent-800">{{ trans('admin.commands.detected_base_url') }}:</div>
+                <div class="text-accent-700" id="detected-base-url">{{ detected_base_url }}</div>
               </div>
             </div>
           </div>
@@ -271,7 +271,7 @@ function updateStatus(command, status, duration) {
     resultSpan.className += 'bg-red-100 text-red-800';
     resultSpan.textContent = t('admin.commands.failed');
   } else {
-    resultSpan.className += 'bg-blue-100 text-blue-800';
+    resultSpan.className += 'bg-accent-100 text-accent-800';
     resultSpan.textContent = `${t('admin.commands.running')}...`;
   }
 

@@ -339,7 +339,7 @@
             background-color: #f9fafb;
           }
           
-          .upload-zone.border-blue-400 {
+          .upload-zone.border-accent-400 {
             border-color: #60a5fa !important;
             background-color: #eff6ff !important;
           }
@@ -473,8 +473,8 @@
               </div>
               <div id="upload-preview" class="hidden mt-3">
                 <img id="upload-preview-img" class="w-full h-32 object-cover rounded-lg border" alt="{{ trans('admin.categories.preview') }}">
-                <div class="flex items-center justify-between mt-2 p-2 bg-blue-50 rounded">
-                  <small class="text-blue-600">{{ trans('admin.categories.new_image_selected') }}</small>
+                <div class="flex items-center justify-between mt-2 p-2 bg-accent-50 rounded">
+                  <small class="text-accent-600">{{ trans('admin.categories.new_image_selected') }}</small>
                   <button type="button" data-action="clear-upload-preview" class="text-red-600 text-sm hover:underline">
                     {{ trans('admin.categories.remove') }}
                   </button>
@@ -925,16 +925,16 @@
       // Drag and drop handlers
       uploadZone.addEventListener('dragover', (e) => {
         e.preventDefault();
-        uploadZone.classList.add('border-blue-400', 'bg-blue-50');
+        uploadZone.classList.add('border-accent-400', 'bg-accent-50');
       });
       
       uploadZone.addEventListener('dragleave', () => {
-        uploadZone.classList.remove('border-blue-400', 'bg-blue-50');
+        uploadZone.classList.remove('border-accent-400', 'bg-accent-50');
       });
       
       uploadZone.addEventListener('drop', (e) => {
         e.preventDefault();
-        uploadZone.classList.remove('border-blue-400', 'bg-blue-50');
+        uploadZone.classList.remove('border-accent-400', 'bg-accent-50');
         
         const files = e.dataTransfer.files;
         if (files.length > 0) {

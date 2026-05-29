@@ -88,10 +88,10 @@
         </div>
         
         <!-- Filter Configuration -->
-        <div class="card border-l-4 border-l-blue-500">
+        <div class="card border-l-4 border-l-accent-500">
           <div class="p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <i class="fas fa-sliders-h mr-3 text-blue-600"></i>
+              <i class="fas fa-sliders-h mr-3 text-accent-600"></i>
               {{ trans('admin.pages.galleries.filter_config') }}
             </h3>
 
@@ -104,7 +104,7 @@
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" id="filters-enabled" class="sr-only peer" {{ filter_settings.enabled ? 'checked' : '' }}>
-                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent-300 dark:peer-focus:ring-accent-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-accent-600"></div>
                 </label>
               </div>
               
@@ -128,7 +128,7 @@
                   <div class="filter-toggle-item p-3 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
                     <label class="flex items-center cursor-pointer">
                       <input type="checkbox" name="show_{{ key }}" value="1" class="sr-only peer filter-checkbox" {{ config.enabled ? 'checked' : '' }}>
-                      <div class="w-4 h-4 border-2 border-gray-300 rounded peer-checked:bg-blue-600 peer-checked:border-blue-600 flex items-center justify-center transition-colors">
+                      <div class="w-4 h-4 border-2 border-gray-300 rounded peer-checked:bg-accent-600 peer-checked:border-accent-600 flex items-center justify-center transition-colors">
                         <i class="fas fa-check text-white text-xs opacity-0 peer-checked:opacity-100"></i>
                       </div>
                       <div class="ml-3 flex items-center">
@@ -149,7 +149,7 @@
                     <label class="text-sm text-gray-700">{{ trans('admin.pages.galleries.enable_fade') }}</label>
                     <label class="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" id="animation-enabled" class="sr-only peer" {{ filter_settings.animation_enabled ? 'checked' : '' }}>
-                      <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-600"></div>
                     </label>
                   </div>
                   <div>
@@ -314,7 +314,7 @@
               <span class="font-medium">{{ filter_settings.grid_columns_mobile }} {{ trans('admin.pages.galleries.columns') }}</span>
             </div>
           </div>
-          <a href="{{ base_path }}/admin/filter-settings" class="inline-flex items-center gap-2 mt-4 text-sm text-blue-600 hover:text-blue-800">
+          <a href="{{ base_path }}/admin/filter-settings" class="inline-flex items-center gap-2 mt-4 text-sm text-accent-600 hover:text-accent-800">
             <i class="fas fa-cog"></i>
             {{ trans('admin.pages.galleries.manage_filter_settings') }}
           </a>
@@ -625,7 +625,7 @@ class GalleriesFilterManager {
     // Show loading state
     previewContent.innerHTML = `
       <div class="flex items-center justify-center py-8">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-600"></div>
         <span class="ml-3 text-gray-600">${jsTranslations.loadingPreview}</span>
       </div>
     `;
@@ -658,7 +658,7 @@ class GalleriesFilterManager {
           <h4 class="font-medium text-gray-900">${jsTranslations.activeFilters}</h4>
           <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
             ${activeFilters.map(filter => `
-              <div class="px-3 py-2 bg-blue-100 text-blue-800 rounded-lg text-sm">
+              <div class="px-3 py-2 bg-accent-100 text-accent-800 rounded-lg text-sm">
                 ${filter}
               </div>
             `).join('')}
@@ -669,7 +669,7 @@ class GalleriesFilterManager {
             <div class="bg-gray-100 rounded-lg p-4">
               <div class="grid grid-cols-3 gap-4">
                 <div class="bg-white rounded-lg p-3 shadow-sm">
-                  <div class="h-32 bg-gradient-to-br from-blue-200 to-blue-300 rounded mb-2"></div>
+                  <div class="h-32 bg-gradient-to-br from-accent-200 to-accent-300 rounded mb-2"></div>
                   <div class="text-sm font-medium">${jsTranslations.albumExample} 1</div>
                 </div>
                 <div class="bg-white rounded-lg p-3 shadow-sm">
@@ -721,7 +721,7 @@ class GalleriesFilterManager {
     notification.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg ${
       type === 'success' ? 'bg-green-500 text-white' :
       type === 'error' ? 'bg-red-500 text-white' :
-      'bg-blue-500 text-white'
+      'bg-accent-500 text-white'
     }`;
     notification.innerHTML = `
       <div class="flex items-center">
