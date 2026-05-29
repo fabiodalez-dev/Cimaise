@@ -279,6 +279,14 @@ return function (App $app, array $container) {
         return $controller->show($request, $response, $args);
     });
 
+    // Syndication feeds (recent albums)
+    $app->get('/feed.xml', function (Request $request, Response $response) use ($container) {
+        return (new \App\Controllers\Frontend\FeedController($container['db']))->rss($request, $response);
+    });
+    $app->get('/feed/atom', function (Request $request, Response $response) use ($container) {
+        return (new \App\Controllers\Frontend\FeedController($container['db']))->atom($request, $response);
+    });
+
     // (public API routes are defined near the bottom of this file)
 
     // Admin redirects

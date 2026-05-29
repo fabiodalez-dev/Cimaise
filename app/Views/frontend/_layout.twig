@@ -19,6 +19,8 @@
 
     <!-- PWA Manifest & Meta Tags -->
     <link rel="manifest" href="{{ base_path }}/site.webmanifest">
+    <link rel="alternate" type="application/rss+xml" title="{{ site_title|default('Cimaise') }} — RSS" href="{{ base_path }}/feed.xml">
+    <link rel="alternate" type="application/atom+xml" title="{{ site_title|default('Cimaise') }} — Atom" href="{{ base_path }}/feed/atom">
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f5f5">
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
