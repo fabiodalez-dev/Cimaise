@@ -68,6 +68,12 @@
     "category.no_albums_title": "No albums in this category yet",
     "category.other_categories": "Other Categories"
   },
+  "collection": {
+    "collection.index_title": "Collections",
+    "collection.none": "No collections published yet.",
+    "collection.photos": "photos",
+    "collection.empty": "This collection has no visible photos yet."
+  },
   "contact": {
     "contact.email": "Email",
     "contact.error": "Failed to send message. Please try again.",

@@ -1,0 +1,36 @@
+{% extends 'frontend/_layout.twig' %}
+
+{% block title %}{{ collection.title }} — {{ site_title|default('Portfolio') }}{% endblock %}
+{% block meta_description %}{{ collection.description|default('')|striptags|slice(0, 160) }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <header class="mb-8">
+    <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">{{ collection.title }}</h1>
+    {% if collection.description %}
+      <p class="text-gray-600 mt-2 max-w-2xl text-sm sm:text-base">{{ collection.description }}</p>
+    {% endif %}
+  </header>
+
+  {% if images is empty %}
+    <div class="text-center py-20 text-gray-500">
+      <i class="fas fa-images text-2xl mb-3 text-gray-300"></i>
+      <p>{{ trans('collection.empty', [], 'This collection has no visible photos yet.') }}</p>
+    </div>
+  {% else %}
+    {# #images-gallery + a.pswp-link is auto-bound by the PhotoSwipe init in _layout.twig #}
+    <div id="images-gallery" class="pswp-gallery grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3" data-layout="custom">
+      {% for image in images %}
+        <a class="pswp-link block rounded-md overflow-hidden bg-gray-100 aspect-square group"
+           href="{{ image.lightbox_url }}"
+           data-pswp-width="{{ image.width }}"
+           data-pswp-height="{{ image.height }}"
+           data-pswp-caption="{{ image.caption|default('')|e('html_attr') }}">
+          <img src="{{ image.url }}" alt="{{ image.alt|default('') }}" loading="lazy"
+               class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

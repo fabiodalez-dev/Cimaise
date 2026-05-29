@@ -1,0 +1,63 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}{{ trans('admin.collections.title', [], 'Collections') }} — Cimaise{% endblock %}
+
+{% block content %}
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div class="min-w-0">
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">{{ trans('admin.collections.title', [], 'Collections') }}</h1>
+      <p class="text-gray-600 mt-1 text-sm sm:text-base">{{ trans('admin.collections.subtitle', [], 'Curated sets of photos that can span any album.') }}</p>
+    </div>
+    <a href="{{ base_path }}/admin/collections/create" class="btn-primary flex-shrink-0 text-sm sm:text-base">
+      <i class="fas fa-plus mr-2"></i>{{ trans('admin.collections.new', [], 'New collection') }}
+    </a>
+  </div>
+
+  {% if collections is empty %}
+    <div class="card p-12 text-center">
+      <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-4 mx-auto">
+        <i class="fas fa-layer-group text-gray-400 text-xl"></i>
+      </div>
+      <h3 class="text-sm font-medium text-gray-900 mb-1">{{ trans('admin.collections.empty_title', [], 'No collections yet') }}</h3>
+      <p class="text-sm text-gray-500">{{ trans('admin.collections.empty_hint', [], 'Create one and start adding photos from your albums.') }}</p>
+    </div>
+  {% else %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for c in collections %}
+        <div class="card p-4 flex flex-col gap-3">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <a href="{{ base_path }}/admin/collections/{{ c.id }}/edit" class="font-medium text-gray-900 hover:text-accent-600 truncate block">{{ c.title }}</a>
+              <p class="text-xs text-gray-500 mt-0.5">
+                <span>{{ c.image_count }} {{ trans('admin.collections.photos', [], 'photos') }}</span>
+                <span class="mx-1">·</span>
+                {% if c.is_published %}
+                  <span class="text-green-600">{{ trans('admin.collections.published', [], 'Published') }}</span>
+                {% else %}
+                  <span class="text-gray-400">{{ trans('admin.collections.draft', [], 'Draft') }}</span>
+                {% endif %}
+              </p>
+            </div>
+            <i class="fas fa-layer-group text-gray-300"></i>
+          </div>
+          <div class="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
+            <a href="{{ base_path }}/admin/collections/{{ c.id }}/edit" class="text-xs text-gray-600 hover:text-gray-900 inline-flex items-center gap-1">
+              <i class="fas fa-pen"></i>{{ trans('admin.collections.edit', [], 'Edit') }}
+            </a>
+            {% if c.is_published %}
+              <a href="{{ base_path }}/collection/{{ c.slug }}" target="_blank" rel="noopener" class="text-xs text-gray-500 hover:text-gray-900 inline-flex items-center gap-1">
+                <i class="fas fa-external-link-alt"></i>{{ trans('admin.collections.view', [], 'View') }}
+              </a>
+            {% endif %}
+            <form method="post" action="{{ base_path }}/admin/collections/{{ c.id }}/delete" class="inline"
+                  onsubmit="return confirm('{{ trans('admin.collections.delete_confirm', [], 'Delete this collection?')|e('js') }}');">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+              <button type="submit" class="text-xs text-red-600 hover:text-red-700 inline-flex items-center gap-1">
+                <i class="fas fa-trash"></i>{{ trans('admin.collections.delete', [], 'Delete') }}
+              </button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}
