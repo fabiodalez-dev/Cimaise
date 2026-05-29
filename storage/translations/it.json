@@ -68,6 +68,12 @@
     "category.no_albums_title": "Nessun album in questa categoria",
     "category.other_categories": "Altre Categorie"
   },
+  "collection": {
+    "collection.index_title": "Collezioni",
+    "collection.none": "Ancora nessuna collezione pubblicata.",
+    "collection.photos": "foto",
+    "collection.empty": "Questa collezione non ha ancora foto visibili."
+  },
   "contact": {
     "contact.email": "Email",
     "contact.error": "Impossibile inviare il messaggio. Riprova.",

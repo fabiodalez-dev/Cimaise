@@ -1,0 +1,222 @@
+{% extends 'admin/_layout.twig' %}
+{% set is_new = collection is null %}
+{% block title %}{{ is_new ? trans('admin.collections.new', [], 'New collection') : collection.title }} — Cimaise{% endblock %}
+
+{% block content %}
+  <div class="flex items-center gap-3 mb-6">
+    <a href="{{ base_path }}/admin/collections" class="text-gray-400 hover:text-gray-700"><i class="fas fa-arrow-left"></i></a>
+    <h1 class="text-2xl font-bold text-gray-900">
+      {{ is_new ? trans('admin.collections.new', [], 'New collection') : trans('admin.collections.edit', [], 'Edit collection') }}
+    </h1>
+  </div>
+
+  <form method="post"
+        action="{{ base_path }}/admin/collections{{ is_new ? '' : '/' ~ collection.id }}"
+        class="card p-6 space-y-5 max-w-2xl">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+
+    <div>
+      <label for="c-title" class="block text-xs font-semibold text-gray-900 mb-1">{{ trans('admin.collections.field_title', [], 'Title') }}</label>
+      <input id="c-title" name="title" type="text" required value="{{ collection.title|default('') }}"
+             class="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-accent-500 focus:ring-accent-300">
+    </div>
+
+    <div>
+      <label for="c-slug" class="block text-xs font-semibold text-gray-900 mb-1">{{ trans('admin.collections.field_slug', [], 'Slug') }}</label>
+      <input id="c-slug" name="slug" type="text" value="{{ collection.slug|default('') }}"
+             placeholder="{{ trans('admin.collections.slug_auto', [], 'Auto-generated from title if empty') }}"
+             class="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-accent-500 focus:ring-accent-300">
+    </div>
+
+    <div>
+      <label for="c-desc" class="block text-xs font-semibold text-gray-900 mb-1">{{ trans('admin.collections.field_description', [], 'Description') }}</label>
+      <textarea id="c-desc" name="description" rows="3"
+                class="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-accent-500 focus:ring-accent-300">{{ collection.description|default('') }}</textarea>
+    </div>
+
+    <div class="flex items-center justify-between">
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" name="is_published" value="1" {{ collection.is_published|default(0) ? 'checked' : '' }}
+               class="rounded border-gray-300 text-accent-600 focus:ring-accent-300">
+        <span class="text-sm text-gray-700">{{ trans('admin.collections.field_published', [], 'Published') }}</span>
+      </label>
+      <button type="submit" class="btn-primary text-sm">
+        <i class="fas fa-save mr-2"></i>{{ trans('admin.collections.save', [], 'Save') }}
+      </button>
+    </div>
+  </form>
+
+  {% if not is_new %}
+    <div class="card p-6 mt-6" id="collection-photos"
+         data-collection-id="{{ collection.id }}"
+         data-csrf="{{ csrf }}"
+         data-base="{{ base_path }}"
+         data-cover-id="{{ collection.cover_image_id|default('') }}">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-gray-900">{{ trans('admin.collections.photos', [], 'Photos') }} <span id="photo-count" class="text-gray-400 text-sm">({{ images|length }})</span></h2>
+        <button type="button" id="toggle-picker" class="btn-secondary text-sm"><i class="fas fa-plus mr-2"></i>{{ trans('admin.collections.add_photos', [], 'Add photos') }}</button>
+      </div>
+
+      <p class="text-xs text-gray-500 mb-3">{{ trans('admin.collections.reorder_hint', [], 'Drag to reorder. The cover marks the collection thumbnail.') }}</p>
+
+      <div id="current-photos" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+        {% for img in images %}
+          <div class="relative group rounded-md overflow-hidden bg-gray-100 aspect-square" data-image-id="{{ img.id }}">
+            {% set thumb = img.preview_path ? (img.preview_path starts with '/' ? base_path ~ img.preview_path : img.preview_path) : '' %}
+            {% if thumb %}<img src="{{ thumb }}" alt="{{ img.alt_text|default('') }}" loading="lazy" class="w-full h-full object-cover">{% endif %}
+            <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+              <button type="button" class="set-cover-btn w-7 h-7 rounded-full bg-white/90 text-gray-700 hover:text-accent-600 text-xs" title="{{ trans('admin.collections.set_cover', [], 'Set as cover') }}"><i class="fas fa-star"></i></button>
+              <button type="button" class="remove-photo-btn w-7 h-7 rounded-full bg-white/90 text-red-600 hover:text-red-700 text-xs" title="{{ trans('admin.collections.remove', [], 'Remove') }}"><i class="fas fa-times"></i></button>
+            </div>
+            <span class="cover-badge absolute top-1 left-1 text-[10px] px-1.5 py-0.5 rounded bg-accent-600 text-white {{ collection.cover_image_id == img.id ? '' : 'hidden' }}">{{ trans('admin.collections.cover', [], 'Cover') }}</span>
+          </div>
+        {% endfor %}
+      </div>
+      {% if images is empty %}
+        <p id="no-photos" class="text-sm text-gray-400 py-6 text-center">{{ trans('admin.collections.no_photos', [], 'No photos yet. Use “Add photos”.') }}</p>
+      {% endif %}
+
+      <!-- Picker -->
+      <div id="picker" class="hidden mt-6 border-t border-gray-100 pt-6">
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+          <input type="search" id="picker-search" placeholder="{{ trans('admin.collections.search_photos', [], 'Search photos / albums…') }}"
+                 class="flex-1 min-w-[180px] rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-accent-500 focus:ring-accent-300">
+        </div>
+        <div id="picker-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 min-h-[80px]"></div>
+        <div class="flex items-center justify-center gap-3 mt-4">
+          <button type="button" id="picker-prev" class="btn-secondary text-sm" disabled><i class="fas fa-chevron-left"></i></button>
+          <span id="picker-page" class="text-sm text-gray-500"></span>
+          <button type="button" id="picker-next" class="btn-secondary text-sm"><i class="fas fa-chevron-right"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <script nonce="{{ csp_nonce() }}">
+    (function () {
+      const root = document.getElementById('collection-photos');
+      if (!root) return;
+      const cid = root.dataset.collectionId;
+      const csrf = root.dataset.csrf;
+      const base = root.dataset.base;
+      const current = document.getElementById('current-photos');
+      const countEl = document.getElementById('photo-count');
+      const picker = document.getElementById('picker');
+      const pickerGrid = document.getElementById('picker-grid');
+      const pageEl = document.getElementById('picker-page');
+      const prevBtn = document.getElementById('picker-prev');
+      const nextBtn = document.getElementById('picker-next');
+      const searchInput = document.getElementById('picker-search');
+      let page = 1, totalPages = 1, searchTimer = null;
+
+      const post = (url, body) => fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+        body: JSON.stringify(body || {})
+      }).then(r => r.json());
+
+      const updateCount = (n) => { if (countEl && typeof n === 'number') countEl.textContent = '(' + n + ')'; };
+
+      const thumbUrl = (p) => p ? (p.charAt(0) === '/' ? base + p : p) : '';
+
+      function makeTile(img) {
+        const el = document.createElement('div');
+        el.className = 'relative group rounded-md overflow-hidden bg-gray-100 aspect-square';
+        el.dataset.imageId = img.id;
+        const t = thumbUrl(img.preview_path);
+        el.innerHTML =
+          (t ? '<img src="' + t + '" loading="lazy" class="w-full h-full object-cover">' : '') +
+          '<div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">' +
+            '<button type="button" class="set-cover-btn w-7 h-7 rounded-full bg-white/90 text-gray-700 hover:text-accent-600 text-xs"><i class="fas fa-star"></i></button>' +
+            '<button type="button" class="remove-photo-btn w-7 h-7 rounded-full bg-white/90 text-red-600 hover:text-red-700 text-xs"><i class="fas fa-times"></i></button>' +
+          '</div>' +
+          '<span class="cover-badge absolute top-1 left-1 text-[10px] px-1.5 py-0.5 rounded bg-accent-600 text-white hidden">{{ trans('admin.collections.cover', [], 'Cover')|e('js') }}</span>';
+        return el;
+      }
+
+      // Attach handlers (delegated) on current photos
+      current.addEventListener('click', function (e) {
+        const tile = e.target.closest('[data-image-id]');
+        if (!tile) return;
+        const imageId = parseInt(tile.dataset.imageId, 10);
+        if (e.target.closest('.remove-photo-btn')) {
+          post(base + '/admin/collections/' + cid + '/images/detach', { image_id: imageId }).then(d => {
+            if (d.ok) { tile.remove(); updateCount(d.count); }
+          });
+        } else if (e.target.closest('.set-cover-btn')) {
+          post(base + '/admin/collections/' + cid + '/cover', { image_id: imageId }).then(d => {
+            if (d.ok) {
+              current.querySelectorAll('.cover-badge').forEach(b => b.classList.add('hidden'));
+              const badge = tile.querySelector('.cover-badge');
+              if (badge) badge.classList.remove('hidden');
+            }
+          });
+        }
+      });
+
+      // Drag reorder (if SortableJS is available from the admin bundle)
+      if (window.Sortable) {
+        new window.Sortable(current, {
+          animation: 150,
+          onEnd: function () {
+            const order = Array.from(current.querySelectorAll('[data-image-id]')).map(el => parseInt(el.dataset.imageId, 10));
+            post(base + '/admin/collections/' + cid + '/images/reorder', { order: order });
+          }
+        });
+      }
+
+      // Picker
+      function loadPicker() {
+        const q = encodeURIComponent(searchInput.value.trim());
+        fetch(base + '/admin/collections/' + cid + '/picker?page=' + page + '&q=' + q, { headers: { 'Accept': 'application/json' } })
+          .then(r => r.json())
+          .then(d => {
+            if (!d.ok) return;
+            totalPages = d.total_pages;
+            pageEl.textContent = d.page + ' / ' + d.total_pages;
+            prevBtn.disabled = d.page <= 1;
+            nextBtn.disabled = d.page >= d.total_pages;
+            pickerGrid.innerHTML = '';
+            d.images.forEach(img => {
+              const el = document.createElement('button');
+              el.type = 'button';
+              el.className = 'relative rounded-md overflow-hidden bg-gray-100 aspect-square group';
+              const t = thumbUrl(img.preview_path);
+              const inColl = parseInt(img.in_collection, 10) === 1;
+              el.innerHTML =
+                (t ? '<img src="' + t + '" loading="lazy" class="w-full h-full object-cover">' : '') +
+                '<span class="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 text-white opacity-0 group-hover:opacity-100"><i class="fas ' + (inColl ? 'fa-check' : 'fa-plus') + '"></i></span>';
+              if (inColl) el.classList.add('ring-2', 'ring-accent-500');
+              el.addEventListener('click', function () {
+                if (el.dataset.busy) return;
+                el.dataset.busy = '1';
+                post(base + '/admin/collections/' + cid + '/images/attach', { image_id: img.id }).then(dd => {
+                  el.dataset.busy = '';
+                  if (dd.ok) {
+                    updateCount(dd.count);
+                    el.classList.add('ring-2', 'ring-accent-500');
+                    el.querySelector('i').className = 'fas fa-check';
+                    const np = document.getElementById('no-photos');
+                    if (np) np.remove();
+                    current.appendChild(makeTile(img));
+                  }
+                });
+              });
+              pickerGrid.appendChild(el);
+            });
+          });
+      }
+
+      document.getElementById('toggle-picker').addEventListener('click', function () {
+        picker.classList.toggle('hidden');
+        if (!picker.classList.contains('hidden') && !pickerGrid.children.length) { page = 1; loadPicker(); }
+      });
+      prevBtn.addEventListener('click', function () { if (page > 1) { page--; loadPicker(); } });
+      nextBtn.addEventListener('click', function () { if (page < totalPages) { page++; loadPicker(); } });
+      searchInput.addEventListener('input', function () {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(function () { page = 1; loadPicker(); }, 250);
+      });
+    })();
+    </script>
+  {% endif %}
+{% endblock %}

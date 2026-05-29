@@ -1,0 +1,35 @@
+{% extends 'frontend/_layout.twig' %}
+
+{% block title %}{{ trans('collection.index_title', [], 'Collections') }} — {{ site_title|default('Portfolio') }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <header class="mb-8">
+    <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">{{ trans('collection.index_title', [], 'Collections') }}</h1>
+  </header>
+
+  {% if collections is empty %}
+    <div class="text-center py-20 text-gray-500">
+      <i class="fas fa-layer-group text-2xl mb-3 text-gray-300"></i>
+      <p>{{ trans('collection.none', [], 'No collections published yet.') }}</p>
+    </div>
+  {% else %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% for c in collections %}
+        <a href="{{ base_path }}/collection/{{ c.slug }}" class="group block">
+          <div class="aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 mb-3">
+            {% if c.cover_url %}
+              <img src="{{ c.cover_url }}" alt="{{ c.title }}" loading="lazy"
+                   class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
+            {% else %}
+              <div class="w-full h-full flex items-center justify-center"><i class="fas fa-layer-group text-gray-300 text-2xl"></i></div>
+            {% endif %}
+          </div>
+          <h2 class="font-medium text-gray-900 group-hover:text-accent-600 transition-colors">{{ c.title }}</h2>
+          <p class="text-sm text-gray-500">{{ c.image_count }} {{ trans('collection.photos', [], 'photos') }}</p>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
