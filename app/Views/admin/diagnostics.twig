@@ -38,10 +38,10 @@
                         </svg>
                         <span class="text-red-700 font-medium">{{ diagnostic.value }}</span>
                         {% else %}
-                        <svg class="w-5 h-5 text-blue-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <svg class="w-5 h-5 text-accent-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                         </svg>
-                        <span class="text-blue-700 font-medium">{{ diagnostic.value }}</span>
+                        <span class="text-accent-700 font-medium">{{ diagnostic.value }}</span>
                         {% endif %}
                     </div>
                     
@@ -68,16 +68,16 @@
         {% endfor %}
     </div>
 
-    <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 class="text-lg font-medium text-blue-900 mb-2">{{ trans('admin.diagnostics.system_requirements') }}</h3>
-        <p class="text-blue-800 text-sm mb-4">
+    <div class="mt-8 bg-accent-50 border border-accent-200 rounded-lg p-6">
+        <h3 class="text-lg font-medium text-accent-900 mb-2">{{ trans('admin.diagnostics.system_requirements') }}</h3>
+        <p class="text-accent-800 text-sm mb-4">
             {{ trans('admin.diagnostics.requirements_hint') }}
         </p>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
-                <h4 class="font-medium text-blue-900 mb-2">{{ trans('admin.diagnostics.minimum_requirements') }}</h4>
-                <ul class="text-blue-800 space-y-1">
+                <h4 class="font-medium text-accent-900 mb-2">{{ trans('admin.diagnostics.minimum_requirements') }}</h4>
+                <ul class="text-accent-800 space-y-1">
                     <li>• PHP 8.2+</li>
                     <li>• MySQL 8.0+ / MariaDB 10.6+</li>
                     <li>• 128MB memory limit</li>
@@ -86,8 +86,8 @@
             </div>
 
             <div>
-                <h4 class="font-medium text-blue-900 mb-2">{{ trans('admin.diagnostics.recommended') }}</h4>
-                <ul class="text-blue-800 space-y-1">
+                <h4 class="font-medium text-accent-900 mb-2">{{ trans('admin.diagnostics.recommended') }}</h4>
+                <ul class="text-accent-800 space-y-1">
                     <li>• 256MB+ memory limit</li>
                     <li>• GD / ImageMagick</li>
                     <li>• EXIF</li>

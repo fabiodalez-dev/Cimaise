@@ -5,42 +5,59 @@
 /* Custom CSS for Cimaise */
 @layer base {
   /* Color variables for light/dark mode */
+  /* Clean white + cool gray (#E6E7EB) surfaces with a single magenta accent
+     (#D70261, Pinakes brand) — shared visual language with the biblioteca admin
+     so the two read as one suite. No gradients. */
   :root {
-    --color-bg-primary: #fafafa;
+    --color-bg-primary: #f6f7f9;
     --color-bg-secondary: #ffffff;
-    --color-bg-tertiary: #f5f5f5;
-    --color-bg-primary-rgb: 250 250 250;
+    --color-bg-tertiary: #e6e7eb;
+    --color-bg-primary-rgb: 246 247 249;
     --color-bg-secondary-rgb: 255 255 255;
-    --color-bg-tertiary-rgb: 245 245 245;
-    --color-text-primary: #171717;
-    --color-text-secondary: #525252;
-    --color-text-tertiary: #737373;
-    --color-text-on-light: #171717;
-    --color-border: #e5e5e5;
-    --color-border-secondary: #f5f5f5;
-    --color-icon: #171717;
-    --color-icon-secondary: #525252;
-    --color-shadow: rgba(0, 0, 0, 0.1);
-    --color-shadow-hover: rgba(0, 0, 0, 0.15);
+    --color-bg-tertiary-rgb: 230 231 235;
+    --color-text-primary: #111827;
+    --color-text-secondary: #4b5563;
+    --color-text-tertiary: #6b7280;
+    --color-text-on-light: #111827;
+    --color-border: #e6e7eb;
+    --color-border-secondary: #f1f2f4;
+    --color-icon: #111827;
+    --color-icon-secondary: #4b5563;
+    --color-shadow: rgba(17, 24, 39, 0.06);
+    --color-shadow-hover: rgba(17, 24, 39, 0.12);
+    /* Accent (magenta) — #D70261 vs white ≈ 5.1:1, AA-safe for text + buttons */
+    --color-accent: #d70261;
+    --color-accent-hover: #b80254;
+    --color-accent-contrast: #ffffff;
+    --color-accent-soft: #fde8f1;
+    --color-accent-soft-border: #f59ec5;
+    --color-focus-ring: rgba(215, 2, 97, 0.4);
   }
 
   html.dark {
-    --color-bg-primary: #0a0a0a;
-    --color-bg-secondary: #171717;
-    --color-bg-tertiary: #262626;
-    --color-bg-primary-rgb: 10 10 10;
-    --color-bg-secondary-rgb: 23 23 23;
-    --color-bg-tertiary-rgb: 38 38 38;
-    --color-text-primary: #fafafa;
-    --color-text-secondary: #d4d4d4;
-    --color-text-tertiary: #a3a3a3;
-    --color-text-on-light: #171717;
-    --color-border: #262626;
-    --color-border-secondary: #1a1a1a;
-    --color-icon: #fafafa;
-    --color-icon-secondary: #d4d4d4;
-    --color-shadow: rgba(0, 0, 0, 0.3);
-    --color-shadow-hover: rgba(0, 0, 0, 0.4);
+    --color-bg-primary: #0f1115;
+    --color-bg-secondary: #171a1f;
+    --color-bg-tertiary: #1f242b;
+    --color-bg-primary-rgb: 15 17 21;
+    --color-bg-secondary-rgb: 23 26 31;
+    --color-bg-tertiary-rgb: 31 36 43;
+    --color-text-primary: #f3f4f6;
+    --color-text-secondary: #c2c7d0;
+    --color-text-tertiary: #9aa1ad;
+    --color-text-on-light: #111827;
+    --color-border: #2a2f37;
+    --color-border-secondary: #20242b;
+    --color-icon: #f3f4f6;
+    --color-icon-secondary: #c2c7d0;
+    --color-shadow: rgba(0, 0, 0, 0.45);
+    --color-shadow-hover: rgba(0, 0, 0, 0.6);
+    /* Slightly brighter magenta for dark surfaces */
+    --color-accent: #ec1f76;
+    --color-accent-hover: #f0357f;
+    --color-accent-contrast: #ffffff;
+    --color-accent-soft: #2a0d1b;
+    --color-accent-soft-border: #4a1730;
+    --color-focus-ring: rgba(236, 31, 118, 0.45);
   }
 
   body {
@@ -54,6 +71,27 @@
   html {
     scroll-behavior: smooth;
   }
+
+  /* Override @tailwindcss/forms' default blue (#2563eb) focus ring/border on
+     every form control so unstyled inputs pick up the amber accent, not blue. */
+  [type='text']:focus,
+  [type='email']:focus,
+  [type='url']:focus,
+  [type='password']:focus,
+  [type='number']:focus,
+  [type='date']:focus,
+  [type='datetime-local']:focus,
+  [type='month']:focus,
+  [type='search']:focus,
+  [type='tel']:focus,
+  [type='time']:focus,
+  [type='week']:focus,
+  [multiple]:focus,
+  textarea:focus,
+  select:focus {
+    --tw-ring-color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
 }
 
 @layer components {
@@ -63,16 +101,17 @@
   }
 
   .btn-primary {
-    @apply bg-black text-white hover:bg-gray-800 focus:ring-gray-500;
+    background-color: var(--color-accent);
+    color: var(--color-accent-contrast);
   }
 
-  html.dark .btn-primary {
-    background-color: #fafafa;
-    color: var(--color-text-on-light);
+  .btn-primary:hover {
+    background-color: var(--color-accent-hover);
   }
 
-  html.dark .btn-primary:hover {
-    background-color: #f5f5f5;
+  .btn-primary:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-bg-primary), 0 0 0 4px var(--color-focus-ring);
   }
 
   .btn-secondary {
@@ -108,7 +147,7 @@
 
   /* Form styles */
   .form-input {
-    @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm;
+    @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-accent-500 focus:ring-accent-500 sm:text-sm;
   }
 
   html.dark .form-input {
@@ -118,8 +157,8 @@
   }
 
   html.dark .form-input:focus {
-    border-color: #fafafa;
-    --tw-ring-color: #fafafa;
+    border-color: var(--color-accent);
+    --tw-ring-color: var(--color-accent);
   }
 
   /* Date input - ensure native picker is visible */
@@ -147,7 +186,7 @@
   }
   
   .form-select {
-    @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm;
+    @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-accent-500 focus:ring-accent-500 sm:text-sm;
   }
 
   html.dark .form-select {
@@ -157,12 +196,12 @@
   }
 
   html.dark .form-select:focus {
-    border-color: #fafafa;
-    --tw-ring-color: #fafafa;
+    border-color: var(--color-accent);
+    --tw-ring-color: var(--color-accent);
   }
 
   .form-textarea {
-    @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm;
+    @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-accent-500 focus:ring-accent-500 sm:text-sm;
   }
 
   html.dark .form-textarea {
@@ -172,8 +211,8 @@
   }
 
   html.dark .form-textarea:focus {
-    border-color: #fafafa;
-    --tw-ring-color: #fafafa;
+    border-color: var(--color-accent);
+    --tw-ring-color: var(--color-accent);
   }
   
   /* Text truncation utilities */

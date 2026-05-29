@@ -203,12 +203,12 @@
 
           <!-- Text Logo Section (shown when logo_type=text) -->
           <div id="logo-text-section" class="{{ settings['site.logo_type']|default('text') == 'text' ? '' : 'hidden' }}">
-            <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-6">
+            <div class="p-4 bg-accent-50 border border-accent-200 rounded-lg mb-6">
               <div class="flex items-start gap-3">
-                <i class="fas fa-font text-blue-600 mt-0.5"></i>
+                <i class="fas fa-font text-accent-600 mt-0.5"></i>
                 <div>
-                  <p class="text-sm text-blue-800">{{ trans('admin.settings.logo_text_info') }}</p>
-                  <p class="text-xs text-blue-600 mt-1">{{ trans('admin.settings.logo_text_hint') }}</p>
+                  <p class="text-sm text-accent-800">{{ trans('admin.settings.logo_text_info') }}</p>
+                  <p class="text-xs text-accent-600 mt-1">{{ trans('admin.settings.logo_text_hint') }}</p>
                 </div>
               </div>
             </div>
@@ -440,14 +440,14 @@
           </div>
           <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
             <input type="checkbox" name="nsfw_global_warning" class="sr-only peer" {{ settings['privacy.nsfw_global_warning']|default(false) ? 'checked' : '' }}>
-            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-600"></div>
           </label>
         </div>
 
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+        <div class="bg-accent-50 border border-accent-200 rounded-lg p-4 mt-4">
           <div class="flex items-start">
-            <i class="fas fa-info-circle text-blue-600 mt-0.5 mr-3"></i>
-            <div class="text-sm text-blue-800">
+            <i class="fas fa-info-circle text-accent-600 mt-0.5 mr-3"></i>
+            <div class="text-sm text-accent-800">
               <strong>{{ trans('admin.privacy.nsfw_how_it_works') }}</strong> {{ trans('admin.privacy.nsfw_how_it_works_desc') }}
             </div>
           </div>
@@ -463,7 +463,7 @@
           {{ trans('admin.settings.recaptcha_title') }}
         </h3>
 
-        <p class="text-sm text-gray-600 mb-6">{{ trans('admin.settings.recaptcha_desc') }} <a href="https://www.google.com/recaptcha/admin" target="_blank" rel="noopener" class="text-blue-600 hover:underline">google.com/recaptcha/admin</a></p>
+        <p class="text-sm text-gray-600 mb-6">{{ trans('admin.settings.recaptcha_desc') }} <a href="https://www.google.com/recaptcha/admin" target="_blank" rel="noopener" class="text-accent-600 hover:underline">google.com/recaptcha/admin</a></p>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -596,10 +596,10 @@
           </div>
         </div>
 
-        <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="mt-6 p-4 bg-accent-50 border border-accent-200 rounded-lg">
           <div class="flex items-start">
-            <i class="fas fa-info-circle text-blue-600 mr-3 mt-0.5"></i>
-            <div class="text-sm text-blue-800">
+            <i class="fas fa-info-circle text-accent-600 mr-3 mt-0.5"></i>
+            <div class="text-sm text-accent-800">
               <strong>{{ trans('admin.settings.pwa_info_title') }}</strong>
               <p class="mt-1">{{ trans('admin.settings.pwa_info_desc') }}</p>
             </div>
@@ -772,10 +772,10 @@
           </div>
         </div>
 
-        <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="mt-6 p-4 bg-accent-50 border border-accent-200 rounded-lg">
           <div class="flex items-start">
-            <i class="fas fa-info-circle text-blue-600 mr-3 mt-0.5"></i>
-            <div class="text-sm text-blue-800">
+            <i class="fas fa-info-circle text-accent-600 mr-3 mt-0.5"></i>
+            <div class="text-sm text-accent-800">
               <strong>{{ trans('admin.settings.performance_how_it_works') }}</strong>
               <ul class="list-disc ml-5 mt-2 space-y-1">
                 <li><strong>{{ trans('admin.settings.performance_auto_mode') }}</strong></li>
@@ -816,7 +816,7 @@
             </div>
             <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
               <input type="checkbox" name="maintenance_enabled" class="sr-only peer" {{ settings['maintenance.enabled']|default(false) ? 'checked' : '' }}>
-              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-600"></div>
             </label>
           </div>
 
@@ -872,7 +872,7 @@
             <span id="generate-text">{{ trans('admin.settings.generate_variants') }}</span>
           </button>
           <div id="generate-status" class="mt-2 hidden">
-            <div class="text-xs text-blue-600 flex items-center">
+            <div class="text-xs text-accent-600 flex items-center">
               <i class="fas fa-spinner fa-spin mr-2"></i>
               <span>{{ trans('admin.settings.generation_in_progress') }}</span>
             </div>
@@ -897,7 +897,7 @@
             <span id="lensfun-text">{{ trans('admin.settings.update_lensfun')|default('Update Database') }}</span>
           </button>
           <div id="lensfun-status" class="mt-2 hidden">
-            <div class="text-xs text-blue-600 flex items-center">
+            <div class="text-xs text-accent-600 flex items-center">
               <i class="fas fa-spinner fa-spin mr-2"></i>
               <span>{{ trans('admin.settings.downloading')|default('Downloading...') }}</span>
             </div>
@@ -1012,7 +1012,7 @@
         }
 
         const message = data.message || '{{ trans('admin.settings.generate_started')|e('js') }}';
-        result.innerHTML = '<div class="text-xs text-blue-600 flex items-center"><i class="fas fa-info-circle mr-2"></i><span></span></div>';
+        result.innerHTML = '<div class="text-xs text-accent-600 flex items-center"><i class="fas fa-info-circle mr-2"></i><span></span></div>';
         const msgSpan = result.querySelector('span');
         if (msgSpan) msgSpan.textContent = message;
         result.classList.remove('hidden');

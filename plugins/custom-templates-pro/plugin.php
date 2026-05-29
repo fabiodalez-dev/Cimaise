@@ -112,7 +112,7 @@ class CustomTemplatesProPlugin
         $basePath = $context['base_path'] ?? '';
         echo <<<HTML
             <a href="{$basePath}/admin/custom-templates" class="sidebar-link" data-spa-link>
-                <i class="fas fa-palette"></i>Custom Templates
+                <i class="fas fa-palette"></i><span class="nav-text"><span class="nav-title">Custom Templates</span><span class="nav-sub">Template personalizzati</span></span>
             </a>
 HTML;
     }

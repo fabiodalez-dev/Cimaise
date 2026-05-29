@@ -204,7 +204,7 @@
                          data-alt_text="{{ img.alt_text }}" data-caption="{{ img.caption }}"
                          data-camera_id="{{ img.camera_id }}" data-lens_id="{{ img.lens_id }}" data-film_id="{{ img.film_id }}" data-developer_id="{{ img.developer_id }}" data-lab_id="{{ img.lab_id }}" data-location_id="{{ img.location_id }}"
                          data-custom_camera="{{ img.custom_camera }}" data-custom_lens="{{ img.custom_lens }}" data-custom_film="{{ img.custom_film }}" data-iso="{{ img.iso }}" data-shutter_speed="{{ img.shutter_speed }}" data-aperture="{{ img.aperture }}">
-                      <div class="aspect-square overflow-hidden bg-gray-100 relative cursor-pointer hover:ring-2 hover:ring-blue-500 hover:ring-opacity-50 transition-all" title="Click to edit image details">
+                      <div class="aspect-square overflow-hidden bg-gray-100 relative cursor-pointer hover:ring-2 hover:ring-accent-500 hover:ring-opacity-50 transition-all" title="Click to edit image details">
                         <img src="{{ img.preview_path }}" class="w-full h-full object-cover" alt="{{ img.alt_text|default(img.caption|default('Album image'))|e('html_attr') }}">
                         <input type="checkbox" class="absolute top-2 left-2 w-4 h-4 bg-white rounded border z-10" data-select-id="{{ img.id }}">
                         <div class="absolute inset-0 bg-black/0 hover:bg-black/10 transition-all flex items-center justify-center">
@@ -382,7 +382,7 @@
               <div class="border-t pt-4 mt-6">
                 <h3 class="text-md font-medium text-gray-900 mb-4">{{ trans('admin.albums.seo_preview') }}</h3>
                 <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
-                  <div class="text-blue-600 text-lg hover:underline cursor-pointer" id="seo-preview-title">
+                  <div class="text-accent-600 text-lg hover:underline cursor-pointer" id="seo-preview-title">
                     {{ item.seo_title ?: item.title }}
                   </div>
                   <div class="text-green-600 text-sm" id="seo-preview-url">
@@ -614,7 +614,7 @@
                 </div>
               {% endfor %}
               <p class="text-xs text-gray-500">
-                <a href="{{ base_path }}/admin/custom-field-types" class="text-blue-600 hover:text-blue-800" data-spa-link>
+                <a href="{{ base_path }}/admin/custom-field-types" class="text-accent-600 hover:text-accent-800" data-spa-link>
                   <i class="fas fa-cog mr-1"></i>{{ trans('admin.custom_fields.manage_fields') }}
                 </a>
               </p>
@@ -653,7 +653,7 @@
                         <span class="text-sm font-medium text-green-800">{{ trans('admin.albums.password_protected') }}</span>
                       </div>
                       <div class="flex gap-2">
-                        <button type="button" id="change-password-btn" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                        <button type="button" id="change-password-btn" class="text-sm text-accent-600 hover:text-accent-800 font-medium">
                           <i class="fas fa-edit mr-1"></i>{{ trans('admin.albums.change_password') }}
                         </button>
                         <button type="button" id="remove-password-btn" class="text-sm text-red-600 hover:text-red-800 font-medium">
@@ -680,7 +680,7 @@
                         <i class="fas fa-unlock text-gray-500"></i>
                         <span class="text-sm text-gray-600">{{ trans('admin.albums.not_protected') }}</span>
                       </div>
-                      <button type="button" id="add-password-btn" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                      <button type="button" id="add-password-btn" class="text-sm text-accent-600 hover:text-accent-800 font-medium">
                         <i class="fas fa-plus mr-1"></i>{{ trans('admin.albums.add_password') }}
                       </button>
                     </div>

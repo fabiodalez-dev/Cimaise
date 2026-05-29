@@ -52,54 +52,84 @@
       margin: 0;
       padding: 0;
     }
+    /* Pinakes nav rows — EXACT values:
+       row  bg-gray-100 #f3f4f6 / hover bg-gray-200 #e5e7eb / text-gray-700 #374151, no border
+       chip bg-gray-200 #e5e7eb / icon text-gray-600 #4b5563 / text-sm, w-8 h-8, rounded-lg
+       title font-medium text-sm / subtitle text-xs text-gray-500 #6b7280
+       padding px-4 py-3(=1rem), rounded-lg, transition-all 200ms */
     .sidebar-link {
       display: flex;
       align-items: center;
-      padding: 12px 16px;
+      padding: 1rem;
       color: #374151;
       text-decoration: none;
-      transition: background-color 0.15s ease, color 0.15s ease;
-      margin-bottom: 4px;
-      border-radius: 6px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 0.5rem;
+      font-weight: 500;
+      font-size: 0.875rem;
+      background-color: #f3f4f6;
     }
     .sidebar-link:hover {
-      background-color: #f3f4f6;
-      color: #000;
+      background-color: #e5e7eb;
+      color: #374151;
     }
-    .sidebar-link.active { 
-      background-color: #000; 
-      color: #fff; 
+    .sidebar-link.active {
+      background-color: var(--color-accent-soft);
+      color: var(--color-accent);
     }
-    .sidebar-link i { 
-      width: 20px; 
-      margin-right: 12px; 
-      text-align: center; 
+    .sidebar-link i {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2rem;
+      height: 2rem;
+      min-width: 2rem;
+      margin-right: 0.75rem;
+      border-radius: 0.5rem;
+      background-color: #e5e7eb;
+      color: #4b5563;
+      font-size: 0.875rem;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .btn-primary { 
-      background-color: #000; 
-      color: #fff; 
-      padding: 8px 24px; 
-      border-radius: 6px; 
+    .sidebar-link.active i {
+      background-color: #ffffff;
+      color: var(--color-accent);
+    }
+    .nav-text { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+    .nav-title { font-weight: 500; font-size: 0.875rem; }
+    .nav-sub { font-size: 0.75rem; color: #6b7280; margin-top: 2px; }
+    .sidebar-link.active .nav-sub { color: var(--color-accent); opacity: 0.72; }
+    /* Dark-mode equivalents */
+    html.dark .sidebar-link { background-color: #1f242b; color: #c2c7d0; }
+    html.dark .sidebar-link:hover { background-color: #2a2f37; color: #f3f4f6; }
+    html.dark .sidebar-link i { background-color: #2a2f37; color: #c2c7d0; }
+    html.dark .nav-sub { color: #9aa1ad; }
+    html.dark .sidebar-link.active i { background-color: #171a1f; }
+    .btn-primary {
+      background-color: var(--color-accent);
+      color: var(--color-accent-contrast);
+      padding: 8px 24px;
+      border-radius: 6px;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
       transition: background-color 0.2s;
     }
-    .btn-primary:hover { 
-      background-color: #374151; 
+    .btn-primary:hover {
+      background-color: var(--color-accent-hover);
     }
-    .btn-secondary { 
-      background-color: #e5e7eb; 
-      color: #374151; 
-      padding: 8px 24px; 
-      border-radius: 6px; 
+    .btn-secondary {
+      background-color: var(--color-bg-tertiary);
+      color: var(--color-text-primary);
+      padding: 8px 24px;
+      border-radius: 6px;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
       transition: background-color 0.2s;
     }
-    .btn-secondary:hover { 
-      background-color: #d1d5db; 
+    .btn-secondary:hover {
+      background-color: var(--color-border);
     }
     .btn-outline-danger {
       background-color: transparent;
@@ -471,30 +501,30 @@
         <!-- Main Navigation -->
         <div class="mb-8">
           <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">{{ trans('admin.sidebar.navigation') }}</p>
-          <div class="space-y-1">
+          <div class="space-y-2">
             <a href="{{ base_path }}/admin" class="sidebar-link" data-spa-link>
-              <i class="fas fa-tachometer-alt"></i>{{ trans('admin.sidebar.dashboard') }}
+              <i class="fas fa-tachometer-alt"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.dashboard') }}</span><span class="nav-sub">Panoramica generale</span></span>
             </a>
             <a href="{{ base_path }}/admin/media" class="sidebar-link" data-spa-link>
-              <i class="fas fa-images"></i>{{ trans('admin.sidebar.gallery') }}
+              <i class="fas fa-images"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.gallery') }}</span><span class="nav-sub">Tutte le immagini</span></span>
             </a>
             <a href="{{ base_path }}/admin/albums" class="sidebar-link" data-spa-link>
-              <i class="fas fa-images"></i>{{ trans('admin.sidebar.albums') }}
+              <i class="fas fa-images"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.albums') }}</span><span class="nav-sub">Progetti e immagini</span></span>
             </a>
             <a href="{{ base_path }}/admin/categories" class="sidebar-link" data-spa-link>
-              <i class="fas fa-folder"></i>{{ trans('admin.sidebar.categories') }}
+              <i class="fas fa-folder"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.categories') }}</span><span class="nav-sub">Organizza gli album</span></span>
             </a>
             <a href="{{ base_path }}/admin/tags" class="sidebar-link" data-spa-link>
-              <i class="fas fa-tags"></i>{{ trans('admin.sidebar.tags') }}
+              <i class="fas fa-tags"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.tags') }}</span><span class="nav-sub">Classifica e filtra</span></span>
             </a>
             <a href="{{ base_path }}/admin/templates" class="sidebar-link" data-spa-link>
-              <i class="fas fa-palette"></i>{{ trans('admin.sidebar.templates') }}
+              <i class="fas fa-palette"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.templates') }}</span><span class="nav-sub">Layout disponibili</span></span>
             </a>
             <a href="{{ base_path }}/admin/pages" class="sidebar-link" data-spa-link>
-              <i class="fas fa-file-alt"></i>{{ trans('admin.sidebar.pages') }}
+              <i class="fas fa-file-alt"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.pages') }}</span><span class="nav-sub">Contenuti statici</span></span>
             </a>
             <a href="{{ base_path }}/admin/texts" class="sidebar-link" data-spa-link>
-              <i class="fas fa-language"></i>{{ trans('admin.sidebar.texts') }}
+              <i class="fas fa-language"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.texts') }}</span><span class="nav-sub">Etichette e traduzioni</span></span>
             </a>
             {# Hook: admin_sidebar_navigation - Add custom navigation items #}
             {{ do_action('admin_sidebar_navigation', {base_path: base_path}) }}
@@ -504,27 +534,27 @@
         <!-- Metadata -->
         <div class="mb-8">
           <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">{{ trans('admin.sidebar.metadata') }}</p>
-          <div class="space-y-1">
+          <div class="space-y-2">
             <a href="{{ base_path }}/admin/cameras" class="sidebar-link" data-spa-link>
-              <i class="fas fa-camera"></i>{{ trans('admin.sidebar.cameras') }}
+              <i class="fas fa-camera"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.cameras') }}</span><span class="nav-sub">Anagrafica fotocamere</span></span>
             </a>
             <a href="{{ base_path }}/admin/lenses" class="sidebar-link" data-spa-link>
-              <i class="fas fa-circle-dot"></i>{{ trans('admin.sidebar.lenses') }}
+              <i class="fas fa-circle-dot"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.lenses') }}</span><span class="nav-sub">Anagrafica obiettivi</span></span>
             </a>
             <a href="{{ base_path }}/admin/films" class="sidebar-link" data-spa-link>
-              <i class="fas fa-film"></i>{{ trans('admin.sidebar.films') }}
+              <i class="fas fa-film"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.films') }}</span><span class="nav-sub">Anagrafica pellicole</span></span>
             </a>
             <a href="{{ base_path }}/admin/developers" class="sidebar-link" data-spa-link>
-              <i class="fas fa-flask"></i>{{ trans('admin.sidebar.developers') }}
+              <i class="fas fa-flask"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.developers') }}</span><span class="nav-sub">Anagrafica sviluppatori</span></span>
             </a>
             <a href="{{ base_path }}/admin/labs" class="sidebar-link" data-spa-link>
-              <i class="fas fa-microscope"></i>{{ trans('admin.sidebar.labs') }}
+              <i class="fas fa-microscope"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.labs') }}</span><span class="nav-sub">Anagrafica laboratori</span></span>
             </a>
             <a href="{{ base_path }}/admin/locations" class="sidebar-link" data-spa-link>
-              <i class="fas fa-location-dot"></i>{{ trans('admin.sidebar.locations') }}
+              <i class="fas fa-location-dot"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.locations') }}</span><span class="nav-sub">Anagrafica luoghi</span></span>
             </a>
             <a href="{{ base_path }}/admin/custom-field-types" class="sidebar-link" data-spa-link>
-              <i class="fas fa-sliders-h"></i>{{ trans('admin.sidebar.custom_fields') }}
+              <i class="fas fa-sliders-h"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.custom_fields') }}</span><span class="nav-sub">Campi su misura</span></span>
             </a>
             {# Hook: admin_sidebar_metadata - Add custom metadata menu items #}
             {{ do_action('admin_sidebar_metadata', {base_path: base_path}) }}
@@ -537,46 +567,46 @@
         <!-- System -->
         <div>
           <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">{{ trans('admin.sidebar.system') }}</p>
-          <div class="space-y-1">
+          <div class="space-y-2">
             <a href="{{ base_path }}/admin/analytics" class="sidebar-link" data-spa-link>
-              <i class="fas fa-chart-line"></i>{{ trans('admin.sidebar.analytics') }}
+              <i class="fas fa-chart-line"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.analytics') }}</span><span class="nav-sub">Statistiche e traffico</span></span>
             </a>
             <a href="{{ base_path }}/admin/plugins" class="sidebar-link" data-spa-link>
-              <i class="fas fa-puzzle-piece"></i>{{ trans('admin.sidebar.plugins') }}
+              <i class="fas fa-puzzle-piece"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.plugins') }}</span><span class="nav-sub">Estensioni installate</span></span>
             </a>
             <a href="{{ base_path }}/admin/users" class="sidebar-link" data-spa-link>
-              <i class="fas fa-users"></i>{{ trans('admin.sidebar.users') }}
+              <i class="fas fa-users"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.users') }}</span><span class="nav-sub">Account e ruoli</span></span>
             </a>
             <a href="{{ base_path }}/admin/settings" class="sidebar-link" data-spa-link>
-              <i class="fas fa-cog"></i>{{ trans('admin.sidebar.settings') }}
+              <i class="fas fa-cog"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.settings') }}</span><span class="nav-sub">Configurazione sito</span></span>
             </a>
             <a href="{{ base_path }}/admin/social" class="sidebar-link" data-spa-link>
-              <i class="fas fa-share-alt"></i>{{ trans('admin.sidebar.social') }}
+              <i class="fas fa-share-alt"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.social') }}</span><span class="nav-sub">Profili e condivisione</span></span>
             </a>
             <a href="{{ base_path }}/admin/typography" class="sidebar-link" data-spa-link>
-              <i class="fas fa-font"></i>{{ trans('admin.sidebar.typography') }}
+              <i class="fas fa-font"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.typography') }}</span><span class="nav-sub">Font e stili</span></span>
             </a>
             <a href="{{ base_path }}/admin/seo" class="sidebar-link" data-spa-link>
-              <i class="fas fa-search"></i>{{ trans('admin.sidebar.seo') }}
+              <i class="fas fa-search"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.seo') }}</span><span class="nav-sub">Indicizzazione</span></span>
             </a>
             <a href="{{ base_path }}/admin/privacy" class="sidebar-link" data-spa-link>
-              <i class="fas fa-shield-alt"></i>{{ trans('admin.sidebar.privacy') }}
+              <i class="fas fa-shield-alt"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.privacy') }}</span><span class="nav-sub">Consensi e cookie</span></span>
             </a>
             <a href="{{ base_path }}/admin/filter-settings" class="sidebar-link" data-spa-link>
-              <i class="fas fa-sliders-h"></i>{{ trans('admin.sidebar.filter_settings') }}
+              <i class="fas fa-sliders-h"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.filter_settings') }}</span><span class="nav-sub">Opzioni di filtro</span></span>
             </a>
 
             <a href="{{ base_path }}/admin/commands" class="sidebar-link" data-spa-link>
-              <i class="fas fa-terminal"></i>{{ trans('admin.sidebar.commands') }}
+              <i class="fas fa-terminal"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.commands') }}</span><span class="nav-sub">Operazioni CLI</span></span>
             </a>
             <a href="{{ base_path }}/admin/diagnostics" class="sidebar-link" data-spa-link>
-              <i class="fas fa-stethoscope"></i>{{ trans('admin.sidebar.diagnostics') }}
+              <i class="fas fa-stethoscope"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.diagnostics') }}</span><span class="nav-sub">Stato del sistema</span></span>
             </a>
             <a href="{{ base_path }}/admin/cache" class="sidebar-link" data-spa-link>
-              <i class="fas fa-database"></i>{{ trans('admin.sidebar.cache') }}
+              <i class="fas fa-database"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.cache') }}</span><span class="nav-sub">Prestazioni e pulizia</span></span>
             </a>
             <a href="{{ base_path }}/admin/updates" class="sidebar-link" data-spa-link>
-              <i class="fas fa-cloud-download-alt"></i>{{ trans('admin.sidebar.updates') }}
+              <i class="fas fa-cloud-download-alt"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.updates') }}</span><span class="nav-sub">Verifica versioni</span></span>
             </a>
             {# Hook: admin_sidebar_system - Add custom system menu items #}
             {{ do_action('admin_sidebar_system', {base_path: base_path}) }}
@@ -631,12 +661,12 @@
                 </button>
               </div>
             {% elseif message.type == 'info' %}
-              <div class="flash-message mb-6 bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg shadow-sm flex items-center justify-between transition-opacity duration-300" data-auto-dismiss="8000">
+              <div class="flash-message mb-6 bg-accent-50 border border-accent-200 text-accent-800 px-4 py-3 rounded-lg shadow-sm flex items-center justify-between transition-opacity duration-300" data-auto-dismiss="8000">
                 <div class="flex items-center">
-                  <i class="fas fa-info-circle text-blue-600 mr-3"></i>
+                  <i class="fas fa-info-circle text-accent-600 mr-3"></i>
                   <span>{{ message.message }}</span>
                 </div>
-                <button type="button" class="flash-close ml-4 text-blue-600 hover:text-blue-800 focus:outline-none" aria-label="Close">
+                <button type="button" class="flash-close ml-4 text-accent-600 hover:text-accent-800 focus:outline-none" aria-label="Close">
                   <i class="fas fa-times"></i>
                 </button>
               </div>

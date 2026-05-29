@@ -23,10 +23,10 @@
           </div>
         </div>
       {% elseif message.type == 'info' %}
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="bg-accent-50 border border-accent-200 rounded-lg p-4">
           <div class="flex items-center">
-            <i class="fas fa-info-circle text-blue-600 mr-3"></i>
-            <p class="text-blue-800">{{ message.message|e }}</p>
+            <i class="fas fa-info-circle text-accent-600 mr-3"></i>
+            <p class="text-accent-800">{{ message.message|e }}</p>
           </div>
         </div>
       {% endif %}

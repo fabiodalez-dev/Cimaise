@@ -32,17 +32,17 @@
             </div>
           </div>
         {% elseif updateInfo.available %}
-          <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
+          <div class="bg-accent-50 border-l-4 border-accent-500 p-4 mb-4">
             <div class="flex items-start justify-between">
               <div class="flex items-start">
-                <i class="fas fa-arrow-circle-up text-blue-500 mr-3 mt-1"></i>
+                <i class="fas fa-arrow-circle-up text-accent-500 mr-3 mt-1"></i>
                 <div>
-                  <p class="text-sm font-medium text-blue-800">{{ trans('admin.updates.new_version_available') }}</p>
-                  <p class="text-sm text-blue-700">
+                  <p class="text-sm font-medium text-accent-800">{{ trans('admin.updates.new_version_available') }}</p>
+                  <p class="text-sm text-accent-700">
                     {{ trans('admin.updates.version') }} <span class="font-mono font-bold">v{{ updateInfo.latest }}</span> {{ trans('admin.updates.version_available') }} <span class="font-mono">v{{ updateInfo.current }}</span>.
                   </p>
                   {% if updateInfo.release.published_at %}
-                    <p class="text-xs text-blue-600 mt-1">
+                    <p class="text-xs text-accent-600 mt-1">
                       {{ trans('admin.updates.released') }}: {{ updateInfo.release.published_at|date('F j, Y') }}
                     </p>
                   {% endif %}
@@ -146,7 +146,7 @@
 
         <div class="space-y-4 max-h-96 overflow-y-auto">
           {% for release in changelog %}
-          <div class="border-l-4 border-blue-500 pl-4 py-2">
+          <div class="border-l-4 border-accent-500 pl-4 py-2">
             <div class="flex items-center justify-between">
               <h4 class="font-medium text-gray-900">
                 {{ release.name }}
@@ -206,7 +206,7 @@
                     <td class="px-4 py-3 text-sm text-gray-500">{{ (backup.size / 1024)|round(2) }} KB</td>
                     <td class="px-4 py-3 text-sm text-right">
                       <a href="{{ base_path }}/admin/updates/backup/download?backup={{ backup.name|url_encode }}"
-                         class="text-blue-600 hover:text-blue-800 mr-3">
+                         class="text-accent-600 hover:text-accent-800 mr-3">
                         <i class="fas fa-download"></i>
                       </a>
                       <button type="button"
@@ -348,12 +348,12 @@
     <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
       <div class="p-6">
         <div class="flex items-center mb-4">
-          <i class="fas fa-spinner fa-spin text-2xl text-blue-500 mr-3"></i>
+          <i class="fas fa-spinner fa-spin text-2xl text-accent-500 mr-3"></i>
           <h3 class="text-lg font-medium text-gray-900">{{ trans('admin.updates.updating') }}</h3>
         </div>
         <div class="space-y-3">
           <div class="flex items-center text-sm" id="step-backup">
-            <i class="fas fa-circle-notch fa-spin text-blue-500 mr-3 w-5"></i>
+            <i class="fas fa-circle-notch fa-spin text-accent-500 mr-3 w-5"></i>
             <span>{{ trans('admin.updates.creating_backup') }}</span>
           </div>
           <div class="flex items-center text-sm text-gray-400" id="step-download">
@@ -468,7 +468,7 @@ function updateStep(stepId, status) {
         step.classList.remove('text-gray-400');
         step.classList.add('text-green-700');
     } else if (status === 'active') {
-        icon.className = 'fas fa-circle-notch fa-spin text-blue-500 mr-3 w-5';
+        icon.className = 'fas fa-circle-notch fa-spin text-accent-500 mr-3 w-5';
         step.classList.remove('text-gray-400');
     } else if (status === 'failed') {
         icon.className = 'fas fa-times-circle text-red-500 mr-3 w-5';
