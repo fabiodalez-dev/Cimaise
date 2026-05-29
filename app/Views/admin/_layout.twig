@@ -52,72 +52,58 @@
       margin: 0;
       padding: 0;
     }
-    /* Pinakes-style nav rows: rounded row + icon in a soft rounded chip. */
+    /* Pinakes nav rows — EXACT values:
+       row  bg-gray-100 #f3f4f6 / hover bg-gray-200 #e5e7eb / text-gray-700 #374151, no border
+       chip bg-gray-200 #e5e7eb / icon text-gray-600 #4b5563 / text-sm, w-8 h-8, rounded-lg
+       title font-medium text-sm / subtitle text-xs text-gray-500 #6b7280
+       padding px-4 py-3(=1rem), rounded-lg, transition-all 200ms */
     .sidebar-link {
       display: flex;
       align-items: center;
-      padding: 14px 16px;
-      color: var(--color-text-secondary);
+      padding: 1rem;
+      color: #374151;
       text-decoration: none;
-      transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-      border-radius: 8px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 0.5rem;
       font-weight: 500;
-      background-color: var(--color-border-secondary);
-      border: 1px solid var(--color-border);
+      background-color: #f3f4f6;
     }
     .sidebar-link:hover {
-      background-color: var(--color-bg-tertiary);
-      border-color: var(--color-border);
-      color: var(--color-text-primary);
+      background-color: #e5e7eb;
+      color: #374151;
     }
     .sidebar-link.active {
       background-color: var(--color-accent-soft);
-      border-color: var(--color-accent-soft-border);
       color: var(--color-accent);
     }
-    /* Icon chip */
     .sidebar-link i {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 32px;
-      height: 32px;
-      min-width: 32px;
-      margin-right: 12px;
-      border-radius: 8px;
-      background-color: var(--color-bg-tertiary);
-      color: var(--color-text-secondary);
-      font-size: 0.8125rem;
-      transition: background-color 0.15s ease, color 0.15s ease;
-    }
-    .sidebar-link:hover i {
-      background-color: var(--color-bg-secondary);
-      color: var(--color-accent);
+      width: 2rem;
+      height: 2rem;
+      min-width: 2rem;
+      margin-right: 0.75rem;
+      border-radius: 0.5rem;
+      background-color: #e5e7eb;
+      color: #4b5563;
+      font-size: 0.875rem;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .sidebar-link.active i {
-      background-color: var(--color-bg-secondary);
+      background-color: #ffffff;
       color: var(--color-accent);
     }
-    /* Two-line nav label (Pinakes-style: title + subtitle) */
-    .nav-text {
-      display: flex;
-      flex-direction: column;
-      line-height: 1.25;
-      min-width: 0;
-    }
-    .nav-title {
-      font-weight: 500;
-      font-size: 0.875rem;
-    }
-    .nav-sub {
-      font-size: 0.75rem;
-      color: var(--color-text-tertiary);
-      margin-top: 2px;
-    }
-    .sidebar-link.active .nav-sub {
-      color: var(--color-accent);
-      opacity: 0.72;
-    }
+    .nav-text { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+    .nav-title { font-weight: 500; font-size: 0.875rem; }
+    .nav-sub { font-size: 0.75rem; color: #6b7280; margin-top: 2px; }
+    .sidebar-link.active .nav-sub { color: var(--color-accent); opacity: 0.72; }
+    /* Dark-mode equivalents */
+    html.dark .sidebar-link { background-color: #1f242b; color: #c2c7d0; }
+    html.dark .sidebar-link:hover { background-color: #2a2f37; color: #f3f4f6; }
+    html.dark .sidebar-link i { background-color: #2a2f37; color: #c2c7d0; }
+    html.dark .nav-sub { color: #9aa1ad; }
+    html.dark .sidebar-link.active i { background-color: #171a1f; }
     .btn-primary {
       background-color: var(--color-accent);
       color: var(--color-accent-contrast);
