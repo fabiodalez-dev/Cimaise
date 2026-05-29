@@ -31,12 +31,12 @@ jobs:
       PLUGIN_SIGNING_KEY: ${{ secrets.PLUGIN_SIGNING_KEY }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           persist-credentials: false
 
       - name: Setup PHP 8.2 (with sodium)
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@7c071dfe9dc99bdf297fa79cb49ea005b9fcadbc # v2
         with:
           php-version: '8.2'
           extensions: sodium, mbstring, json

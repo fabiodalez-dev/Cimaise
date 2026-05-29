@@ -20,6 +20,12 @@ class UploadController extends BaseController
         parent::__construct();
     }
 
+    /**
+     * Validate and ingest an uploaded image into an album, returning a JSON
+     * result (id, variants). Heavy lifting is delegated to UploadService.
+     *
+     * @param array<string,mixed> $args
+     */
     public function uploadToAlbum(Request $request, Response $response, array $args): Response
     {
         $albumId = (int) ($args['id'] ?? 0);

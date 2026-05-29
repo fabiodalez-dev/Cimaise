@@ -29,6 +29,7 @@ class AuthController extends BaseController
         parent::__construct();
     }
 
+    /** Render the admin login form with a fresh CSRF token and any flash messages. */
     public function showLogin(Request $request, Response $response): Response
     {
         // Redirect to dashboard if already logged in
@@ -206,6 +207,7 @@ class AuthController extends BaseController
     /**
      * Generate and set remember token for persistent login
      */
+    /** Mint a remember-me token, store its SHA-256 hash, and set the cookie. */
     private function setRememberToken(int $userId): void
     {
         try {
@@ -251,6 +253,7 @@ class AuthController extends BaseController
     /**
      * Clear remember token from database and cookie
      */
+    /** Clear the stored remember-me token for the user and expire the cookie. */
     private function clearRememberToken(int $userId): void
     {
         // Clear from database
@@ -271,6 +274,7 @@ class AuthController extends BaseController
         Logger::info('Remember token cleared for user', ['user_id' => $userId], 'auth');
     }
 
+    /** Destroy the admin session, clear the remember-me token, and redirect to login. */
     public function logout(Request $request, Response $response): Response
     {
         // SECURITY: Verify CSRF token for logout
@@ -298,6 +302,7 @@ class AuthController extends BaseController
         return $response->withHeader('Location', $this->redirect('/admin/login'))->withStatus(302);
     }
 
+    /** Update the current admin's profile fields after CSRF validation. */
     public function updateProfile(Request $request, Response $response): Response
     {
         if (empty($_SESSION['admin_id'])) {
@@ -369,6 +374,7 @@ class AuthController extends BaseController
         return $response->withHeader('Location', $this->safeReferer('/admin'))->withStatus(302);
     }
 
+    /** Verify the current password and persist a new Argon2id hash after CSRF checks. */
     public function changePassword(Request $request, Response $response): Response
     {
         if (empty($_SESSION['admin_id'])) {
@@ -441,6 +447,7 @@ class AuthController extends BaseController
         return $response->withHeader('Location', $this->safeReferer('/admin'))->withStatus(302);
     }
 
+    /** Resolve the admin UI locale from session/cookie/settings, defaulting safely. */
     private function getAdminLocale(): string
     {
         try {

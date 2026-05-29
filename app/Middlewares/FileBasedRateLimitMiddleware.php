@@ -82,6 +82,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         return $response->withoutHeader(self::AUTH_RESULT_HEADER);
     }
 
+    /** Resolve the client IP, trusting forwarded headers only behind TRUSTED_PROXIES. */
     private function getClientIp(Request $request): string
     {
         $serverParams = $request->getServerParams();
@@ -122,6 +123,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         return $remoteAddr;
     }
 
+    /** Load the stored attempt timestamps, dropping any outside the current window. */
     private function loadAttempts(string $filePath, int $currentTime): array
     {
         if (!file_exists($filePath)) {
@@ -151,6 +153,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         }
     }
 
+    /** Persist the attempt timestamps to the counter file (best-effort, file-locked). */
     private function saveAttempts(string $filePath, array $attempts): void
     {
         try {
@@ -166,6 +169,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         }
     }
 
+    /** Delete the counter file, resetting the attempt count for this key. */
     private function clearAttempts(string $filePath): void
     {
         try {
@@ -210,6 +214,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         return $response->getStatusCode() >= 200 && $response->getStatusCode() < 300;
     }
 
+    /** Build the 429 Too Many Requests JSON response with a Retry-After header. */
     private function createRateLimitResponse(): Response
     {
         $response = new \Slim\Psr7\Response(429);
