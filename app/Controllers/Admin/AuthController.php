@@ -52,6 +52,11 @@ class AuthController extends BaseController
         ]);
     }
 
+    /**
+     * Handle an admin login POST: validate CSRF and credentials, regenerate the
+     * session, optionally set a remember-me token, and signal the outcome to the
+     * rate limiter via the X-Auth-Result header (success redirects to /admin).
+     */
     public function login(Request $request, Response $response): Response
     {
         $data = (array)$request->getParsedBody();

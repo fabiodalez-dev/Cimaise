@@ -14,6 +14,13 @@ class DownloadController extends BaseController
         parent::__construct();
     }
 
+    /**
+     * Stream an original image as a download: resolve and confine the path under
+     * storage/, validate it is an allowed raster type via finfo, sanitize the
+     * filename, and emit it as a nosniff attachment with the detected MIME.
+     *
+     * @param array<string,mixed> $args
+     */
     public function downloadImage(Request $request, Response $response, array $args): Response
     {
         $id = (int)($args['id'] ?? 0);

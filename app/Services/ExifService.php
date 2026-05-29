@@ -326,6 +326,13 @@ class ExifService
         return $meta;
     }
 
+    /**
+     * Normalize an EXIF value to a safe, single-line string: flatten arrays,
+     * strip control characters and HTML tags, collapse whitespace, and cap the
+     * length. Returns null when the result is empty.
+     *
+     * @param mixed $value
+     */
     private function cleanString($value): ?string
     {
         if ($value === null) return null;

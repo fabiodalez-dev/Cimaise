@@ -44,6 +44,11 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         }
     }
 
+    /**
+     * Enforce the per-IP+endpoint limit: short-circuit with 429 when exceeded,
+     * otherwise run the handler, record failures / clear on success, and strip
+     * the internal auth-result sentinel from the outgoing response.
+     */
     public function process(Request $request, Handler $handler): Response
     {
         $ip = $this->getClientIp($request);
@@ -189,6 +194,11 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         return $response->getStatusCode() >= 400 && $response->getStatusCode() < 500;
     }
 
+    /**
+     * Whether the response counts as a success that clears the counter. For
+     * `/login` only an explicit `X-Auth-Result: success` qualifies; other
+     * endpoints treat any 2xx as success.
+     */
     private function isSuccessfulAttempt(Request $request, Response $response): bool
     {
         // For login endpoints, only an explicit success signal clears the counter.

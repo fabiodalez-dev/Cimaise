@@ -17,6 +17,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 )]
 class PluginSignCommand extends Command
 {
+    /** Declare the `zip` argument and the `--key` / `--out` options. */
     protected function configure(): void
     {
         $this->addArgument('zip', InputArgument::REQUIRED, 'Path to the plugin .zip to sign');
@@ -26,6 +27,10 @@ class PluginSignCommand extends Command
             'Output signature path. Defaults to <zip>.sig');
     }
 
+    /**
+     * Read the target ZIP and signing key, produce a base64 detached Ed25519
+     * signature, and write it to the resolved output path.
+     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $zip = (string) $input->getArgument('zip');

@@ -251,6 +251,11 @@ class UploadController extends BaseController
         }
     }
 
+    /**
+     * Validate and store an uploaded site logo: finfo MIME + dimension and
+     * pixel-count guards, content-hashed filename under public/media, then
+     * favicon generation. Returns a JSON result.
+     */
     public function uploadSiteLogo(Request $request, Response $response): Response
     {
         // CSRF validation

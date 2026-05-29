@@ -16,11 +16,16 @@ use Symfony\Component\Console\Output\OutputInterface;
 )]
 class PluginKeygenCommand extends Command
 {
+    /** Declare the `--force` option used to overwrite an existing public key. */
     protected function configure(): void
     {
         $this->addOption('force', 'f', InputOption::VALUE_NONE, 'Overwrite an existing public key');
     }
 
+    /**
+     * Generate an Ed25519 keypair, write the public key to the resources path,
+     * and print the secret key to stdout for the operator to store securely.
+     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $pubPath = PluginSignature::publicKeyPath();
