@@ -25,9 +25,15 @@ jobs:
   sign:
     name: Sign release ZIP assets
     runs-on: ubuntu-latest
+    # Job-level env so `if:` conditions can read the secret (step-level env is not
+    # available when the step's own `if:` is evaluated).
+    env:
+      PLUGIN_SIGNING_KEY: ${{ secrets.PLUGIN_SIGNING_KEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup PHP 8.2 (with sodium)
         uses: shivammathur/setup-php@v2
@@ -63,8 +69,6 @@ jobs:
 
       - name: Sign each archive
         if: ${{ env.PLUGIN_SIGNING_KEY != '' }}
-        env:
-          PLUGIN_SIGNING_KEY: ${{ secrets.PLUGIN_SIGNING_KEY }}
         run: |
           shopt -s nullglob
           for zip in _assets/*.zip; do
@@ -76,7 +80,6 @@ jobs:
         if: ${{ env.PLUGIN_SIGNING_KEY != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
-          PLUGIN_SIGNING_KEY: ${{ secrets.PLUGIN_SIGNING_KEY }}
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           shopt -s nullglob

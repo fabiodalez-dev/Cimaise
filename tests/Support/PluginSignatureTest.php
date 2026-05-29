@@ -73,15 +73,13 @@ final class PluginSignatureTest extends TestCase
 
     public function testEmptyPublicKeyDisablesVerification(): void
     {
-        putenv('PLUGIN_SIGNING_PUBKEY='); // explicitly empty
+        putenv('PLUGIN_SIGNING_PUBKEY='); // explicitly empty -> fall back to the file key (if any)
         $msg = 'x';
         $sig = PluginSignature::sign($msg, $this->keypair['secret']);
-        // No usable key configured -> verify must fail closed (cannot confirm).
-        if (!is_file(PluginSignature::publicKeyPath())
-            || trim((string) file_get_contents(PluginSignature::publicKeyPath())) === '') {
-            $this->assertFalse(PluginSignature::verify($msg, $sig));
-        } else {
-            $this->assertTrue(true); // a real key file is present; skip the negative
-        }
+        // Either no usable key is configured (verify fails closed) OR a committed
+        // file key is present — but that key did NOT sign $sig (we used the test
+        // keypair), so verification must fail in both cases. Always assertFalse,
+        // so the test never degrades into a no-op.
+        $this->assertFalse(PluginSignature::verify($msg, $sig));
     }
 }

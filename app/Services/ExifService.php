@@ -347,7 +347,9 @@ class ExifService
         // Strip control characters and any HTML tags at the source so a crafted
         // tag like "<img onerror=...>" can never reach a render sink. Twig still
         // escapes on output; this is defense-in-depth, not the only barrier.
-        $str = preg_replace('/[\x00-\x1F\x7F]/u', '', $str) ?? '';
+        // No /u flag: the class only matches ASCII control bytes, and on non-UTF-8
+        // EXIF data preg_replace with /u returns null (which would wipe the field).
+        $str = preg_replace('/[\x00-\x1F\x7F]/', '', $str) ?? '';
         $str = strip_tags($str);
         $str = trim(preg_replace('/\s+/', ' ', $str) ?? '');
 

@@ -39,6 +39,13 @@ let sharedAlbumId = null;
 let sharedImageId = null;
 let adminAvailable = false;
 
+/** Navigate to the login page (establishing a session) and return its CSRF token. */
+async function getLoginCsrf(page) {
+    await page.goto(`${BASE}/admin/login`);
+    return await page.locator('input[name="csrf"]').first()
+        .getAttribute('value', { timeout: 3000 }).catch(() => null);
+}
+
 test.beforeAll(async ({ browser }) => {
     clearRateLimitFiles();
     const ctx = await browser.newContext();
@@ -91,36 +98,57 @@ test.describe('A. Auth & login throttling (C1)', () => {
         await expect(page).toHaveURL(/\/admin\/?(\?.*)?$/);
     });
 
-    test('A2: invalid credentials re-render the login page (no auth)', async ({ page }) => {
+    test('A2: wrong credentials (real failed-login path) do not grant access', async ({ page }) => {
         await requireServer(test, page);
+        // Establish a session + CSRF so the request reaches AuthController's
+        // credential check (an empty CSRF would short-circuit at the CSRF guard
+        // and never exercise the real failed-login path).
+        const csrf = await getLoginCsrf(page);
+        test.skip(!csrf, 'Could not obtain a login CSRF token');
         const resp = await page.request.post(`${BASE}/admin/login`, {
-            form: { email: 'nobody@example.com', password: 'wrong-password', csrf: '' },
+            form: { email: 'nobody@example.com', password: 'wrong-password', csrf },
             failOnStatusCode: false,
             maxRedirects: 0,
         });
-        // Either a 200 rendered login page or a redirect back to /login — never /admin.
+        // Rendered login (200) or a redirect to /login — never an authenticated /admin.
         const loc = header(resp, 'location') || '';
         expect(loc.includes('/admin') && !loc.includes('/login')).toBeFalsy();
         expect(resp.status()).toBeLessThan(500);
+        clearRateLimitFiles();
     });
 
-    test('A3: failed-login response does NOT leak the X-Auth-Result sentinel', async ({ page }) => {
+    test('A3: real failed-login response does NOT leak the X-Auth-Result sentinel', async ({ page }) => {
         await requireServer(test, page);
+        const csrf = await getLoginCsrf(page);
+        test.skip(!csrf, 'Could not obtain a login CSRF token');
+        // Valid CSRF + wrong password -> AuthController sets X-Auth-Result: failed,
+        // which the middleware must strip before the response leaves the server.
         const resp = await page.request.post(`${BASE}/admin/login`, {
-            form: { email: 'nobody@example.com', password: 'wrong-password', csrf: '' },
+            form: { email: 'nobody@example.com', password: 'wrong-password', csrf },
             failOnStatusCode: false,
             maxRedirects: 0,
         });
-        // The internal sentinel must be stripped by the middleware before sending.
         expect(header(resp, 'x-auth-result')).toBeNull();
+        clearRateLimitFiles();
     });
 
     test('A4: successful-login response does NOT leak the X-Auth-Result sentinel', async ({ page }) => {
         await requireServer(test, page);
-        const ok = await tryAdminLogin(page);
-        test.skip(!ok, 'No seeded admin in this environment');
-        const resp = await page.request.get(`${BASE}/admin`, { failOnStatusCode: false });
+        test.skip(!adminAvailable, 'No seeded admin in this environment');
+        const csrf = await getLoginCsrf(page);
+        test.skip(!csrf, 'Could not obtain a login CSRF token');
+        // Drive the actual login POST (not a later GET /admin) so we inspect the
+        // very response on which AuthController sets — and the middleware strips —
+        // the success sentinel.
+        const resp = await page.request.post(`${BASE}/admin/login`, {
+            form: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD, csrf },
+            failOnStatusCode: false,
+            maxRedirects: 0,
+        });
+        expect(resp.status()).toBe(302);
+        expect((header(resp, 'location') || '')).toContain('/admin');
         expect(header(resp, 'x-auth-result')).toBeNull();
+        clearRateLimitFiles();
     });
 
     test('A5: unauthenticated /admin is redirected to login', async ({ page }) => {
