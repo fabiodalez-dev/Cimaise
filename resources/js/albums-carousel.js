@@ -12,10 +12,24 @@ onReady(() => {
   let hasMoved = false; // Track if user actually dragged
   const DRAG_THRESHOLD = 8; // Minimum pixels to consider it a drag
 
-  const getItemWidth = () => { const item = items[0]; const styles = getComputedStyle(item); return item.offsetWidth + parseFloat(styles.marginLeft) + parseFloat(styles.marginRight); };
-  // Calculate totalWidth dynamically to handle resize
-  const getTotalWidth = () => getItemWidth() * items.length;
+  // PERFORMANCE: measure item/total width once (and on resize/load) instead of
+  // reading layout (getComputedStyle + offsetWidth) on every autoplay frame.
+  let cachedItemWidth = 0;
+  let cachedTotalWidth = 0;
+  const measure = () => {
+    const item = items[0];
+    if (!item) return;
+    const styles = getComputedStyle(item);
+    cachedItemWidth = item.offsetWidth + parseFloat(styles.marginLeft) + parseFloat(styles.marginRight);
+    cachedTotalWidth = cachedItemWidth * items.length;
+  };
+  const getItemWidth = () => { if (!cachedItemWidth) measure(); return cachedItemWidth; };
+  const getTotalWidth = () => { if (!cachedTotalWidth) measure(); return cachedTotalWidth; };
   const setSliderPosition = () => { carousel.style.transform = `translate3d(${currentTranslate}px, 0, 0)`; };
+  const prefersReduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  measure();
+  carousel.style.willChange = 'transform';
+  window.addEventListener('load', measure);
   const getPosition = (e) => {
     if (e.type.includes('mouse')) return { x: e.clientX, y: e.clientY };
     return { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -25,7 +39,7 @@ onReady(() => {
   const mobileQuery = window.matchMedia('(max-width: 767px)');
 
   const autoPlay = () => {
-    const totalWidth = getTotalWidth(); // Recalculate on each frame for resize handling
+    const totalWidth = cachedTotalWidth || getTotalWidth(); // cached; recomputed on resize/load
     currentTranslate -= 0.6;
     if (Math.abs(currentTranslate) >= totalWidth) currentTranslate = 0;
     setSliderPosition();
@@ -34,6 +48,8 @@ onReady(() => {
 
   // PERFORMANCE: Defer autoplay start using requestIdleCallback
   const startAutoPlay = () => {
+    // Respect reduced-motion: no autoplay (drag + arrows still work).
+    if (prefersReduced) return;
     // Check isDragging to prevent starting autoplay during a drag
     if (!isMobile && !autoPlayId && !document.hidden && !isDragging) {
       autoPlayId = requestAnimationFrame(autoPlay);
@@ -44,6 +60,7 @@ onReady(() => {
   const handleResize = () => {
     const wasIsMobile = isMobile;
     isMobile = mobileQuery.matches;
+    measure(); // refresh cached widths on resize
     // If switched to mobile, stop autoplay
     if (isMobile && autoPlayId) {
       cancelAnimationFrame(autoPlayId);

@@ -51,9 +51,15 @@ export class HomeProgressiveLoader {
         .filter(id => !isNaN(id) && id > 0)
     );
 
-    // Use Set for album IDs too for O(1) lookup
+    // Use Set for album IDs too for O(1) lookup.
+    // Tolerate non-array shapes (the server config may serialize this as an
+    // object, e.g. {"0":1}); fall back to its values, else an empty list.
+    const rawIds = options.shownAlbumIds;
+    const idList = Array.isArray(rawIds)
+      ? rawIds
+      : (rawIds && typeof rawIds === 'object' ? Object.values(rawIds) : []);
     this.shownAlbumIds = new Set(
-      (options.shownAlbumIds || [])
+      idList
         .map(id => parseInt(id, 10))
         .filter(id => !isNaN(id) && id > 0)
     );

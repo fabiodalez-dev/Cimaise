@@ -327,7 +327,7 @@ html.dark .pswp__custom-caption {
     cursor: pointer;
     padding: 6px;
     border-radius: 6px;
-    transition: all 0.15s ease;
+    transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
 }
 .pswp__exif-panel-close:hover {
     background: rgba(0, 0, 0, 0.06);
@@ -583,7 +583,7 @@ html.dark .pswp__custom-caption {
     background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(10px);
     border: 2px solid rgba(255, 255, 255, 0.1);
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease, filter 0.3s ease;
     z-index: 30;
 }
 
@@ -622,7 +622,7 @@ html.dark .pswp__custom-caption {
     border-radius: 8px;
     overflow: hidden;
     border: 2px solid transparent;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease, filter 0.3s ease;
 }
 
 .slideshow-thumbs .swiper-slide-thumb-active {
@@ -647,7 +647,7 @@ html.dark .pswp__custom-caption {
     background: rgba(255, 255, 255, 0.5);
     border: 1px solid rgba(0, 0, 0, 0.2);
     opacity: 1;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease, filter 0.3s ease;
 }
 
 .slideshow-pro .swiper-pagination-bullet-active {
@@ -658,7 +658,7 @@ html.dark .pswp__custom-caption {
 
 /* GRID MINIMAL - Hover eleganti e spacing aumentato */
 .grid-minimal-item {
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.5s cubic-bezier(0.4, 0, 0.2, 1), filter 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .grid-minimal-item:hover {
@@ -732,7 +732,7 @@ html.dark .pswp__custom-caption {
 }
 
 .carousel-flow .swiper-slide {
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease, filter 0.3s ease;
     border-radius: 16px;
     overflow: hidden;
 }
@@ -759,7 +759,7 @@ html.dark .pswp__custom-caption {
 
 .polaroid-item {
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease, filter 0.3s ease;
     z-index: 1;
 }
 
@@ -777,7 +777,7 @@ html.dark .pswp__custom-caption {
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3),
                 0 0 0 1px rgba(255, 255, 255, 0.8) inset;
     transform-origin: center center;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease, filter 0.3s ease;
 }
 
 .polaroid-item:hover a {
@@ -937,6 +937,7 @@ input[type="search"]::-webkit-search-results-decoration {
     flex: 1;
     min-width: 0;
     border: 0;
+    outline: 0;
     padding: 0.7rem 0.75rem;
     padding-right: 0.5rem;
     font-size: 0.875rem;
@@ -944,10 +945,8 @@ input[type="search"]::-webkit-search-results-decoration {
     appearance: none;
 }
 
-.header-search-input:focus,
-.header-search-input:focus-visible {
-    outline: 2px solid #005fcc;
-    outline-offset: 2px;
+.header-search-input:focus {
+    outline: none;
     border-color: #d1d5db;
     box-shadow: 0 0 0 1px rgba(156, 163, 175, 0.3);
 }
@@ -1008,7 +1007,7 @@ input[type="search"]::-webkit-search-results-decoration {
     border-radius: 4px;
     color: #000;
     text-decoration: none;
-    transition: all 0.2s ease;
+    transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
     background: none;
     border: none;
     cursor: pointer;

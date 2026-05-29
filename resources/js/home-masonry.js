@@ -41,14 +41,16 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
     const gridWidth = grid.offsetWidth;
     const colWidth = (gridWidth - gap * (cols - 1)) / cols;
 
+    // marginBottom is uniform across items (set by CSS) — read it once instead
+    // of calling getComputedStyle() for every item inside the loop.
+    const mb = parseFloat(getComputedStyle(items[0]).marginBottom) || 0;
+
     // Calculate total visual height from aspect ratios (no layout thrash)
     let totalHeight = 0;
     items.forEach(item => {
       const img = item.querySelector('img');
       const w = parseFloat(img?.getAttribute('width')) || 1;
       const h = parseFloat(img?.getAttribute('height')) || 1;
-      const mbStr = getComputedStyle(item).marginBottom;
-      const mb = parseFloat(mbStr) || 0;
       totalHeight += (colWidth * h / w) + mb;
     });
 
