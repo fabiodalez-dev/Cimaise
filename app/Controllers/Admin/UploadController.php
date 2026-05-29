@@ -20,6 +20,12 @@ class UploadController extends BaseController
         parent::__construct();
     }
 
+    /**
+     * Validate and ingest an uploaded image into an album, returning a JSON
+     * result (id, variants). Heavy lifting is delegated to UploadService.
+     *
+     * @param array<string,mixed> $args
+     */
     public function uploadToAlbum(Request $request, Response $response, array $args): Response
     {
         $albumId = (int) ($args['id'] ?? 0);
@@ -251,6 +257,11 @@ class UploadController extends BaseController
         }
     }
 
+    /**
+     * Validate and store an uploaded site logo: finfo MIME + dimension and
+     * pixel-count guards, content-hashed filename under public/media, then
+     * favicon generation. Returns a JSON result.
+     */
     public function uploadSiteLogo(Request $request, Response $response): Response
     {
         // CSRF validation
@@ -291,6 +302,9 @@ class UploadController extends BaseController
             [$w, $h] = $info;
             if ($w <= 0 || $h <= 0 || $w > 10000 || $h > 10000)
                 throw new \RuntimeException('Invalid image dimensions');
+            // Decompression-bomb guard before favicon generation decodes the image.
+            if ($w * $h > 40000000)
+                throw new \RuntimeException('Image resolution too high');
 
             $hash = sha1($contents);
             $ext = $allowed[$mime];

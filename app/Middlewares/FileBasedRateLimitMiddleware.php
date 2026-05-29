@@ -8,7 +8,6 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface as Handler;
-use Slim\Psr7\Factory\StreamFactory;
 
 /**
  * File-based rate limiting middleware without Redis dependency
@@ -16,14 +15,12 @@ use Slim\Psr7\Factory\StreamFactory;
  */
 class FileBasedRateLimitMiddleware implements MiddlewareInterface
 {
-    /** Error message patterns for failed login detection (multi-language support) */
-    private const ERROR_PATTERNS = [
-        'Credenziali non valide',   // Italian
-        'Invalid credentials',       // English
-        'Login failed',              // Generic English
-        'Account disattivato',       // Italian - account disabled
-        'Account disabled',          // English - account disabled
-    ];
+    /**
+     * Response header set by AuthController to signal the auth outcome.
+     * Used for login throttling detection instead of matching localized body
+     * text (which silently breaks whenever translations change).
+     */
+    private const AUTH_RESULT_HEADER = 'X-Auth-Result';
 
     private string $storageDir;
     private int $maxAttempts;
@@ -47,6 +44,11 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         }
     }
 
+    /**
+     * Enforce the per-IP+endpoint limit: short-circuit with 429 when exceeded,
+     * otherwise run the handler, record failures / clear on success, and strip
+     * the internal auth-result sentinel from the outgoing response.
+     */
     public function process(Request $request, Handler $handler): Response
     {
         $ip = $this->getClientIp($request);
@@ -76,9 +78,11 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
             $this->saveAttempts($filePath, $attempts);
         }
 
-        return $response;
+        // Never leak the internal auth-outcome signal to the client.
+        return $response->withoutHeader(self::AUTH_RESULT_HEADER);
     }
 
+    /** Resolve the client IP, trusting forwarded headers only behind TRUSTED_PROXIES. */
     private function getClientIp(Request $request): string
     {
         $serverParams = $request->getServerParams();
@@ -119,6 +123,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         return $remoteAddr;
     }
 
+    /** Load the stored attempt timestamps, dropping any outside the current window. */
     private function loadAttempts(string $filePath, int $currentTime): array
     {
         if (!file_exists($filePath)) {
@@ -148,6 +153,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         }
     }
 
+    /** Persist the attempt timestamps to the counter file (best-effort, file-locked). */
     private function saveAttempts(string $filePath, array $attempts): void
     {
         try {
@@ -163,6 +169,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         }
     }
 
+    /** Delete the counter file, resetting the attempt count for this key. */
     private function clearAttempts(string $filePath): void
     {
         try {
@@ -176,87 +183,38 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
 
     /**
      * Check if the request was a failed attempt (e.g., failed login).
-     * Note: Response is passed by reference as it may be rebuilt for non-seekable streams.
+     *
+     * Login outcome is read from the AUTH_RESULT_HEADER sentinel set by
+     * AuthController, never from localized body text. For non-login endpoints
+     * we fall back to treating 4xx as a failure.
      */
-    private function isFailedAttempt(Request $request, Response &$response): bool
+    private function isFailedAttempt(Request $request, Response $response): bool
     {
-        $path = $request->getUri()->getPath();
-
-        // For login endpoints handle precisely
-        if (str_contains($path, '/login')) {
-            $status = $response->getStatusCode();
-            if ($status === 302) {
-                $location = $response->getHeaderLine('Location');
-                // Redirecting back to login implies failure; redirecting to /admin implies success
-                if (str_contains($location, '/login')) {
-                    return true;
-                }
-                return false;
-            }
-
-            // For non-redirect responses (rendered login page with error)
-            // IMPORTANT: Read chunk and handle non-seekable streams properly
-            $body = $response->getBody();
-            $content = '';
-
-            if ($body->isSeekable()) {
-                $content = $body->read(8192); // Read first 8KB - sufficient for login error detection
-                $body->rewind();
-            } else {
-                // Non-seekable stream: recreate body so downstream can read it
-                $streamFactory = new StreamFactory();
-                $resource = @fopen('php://temp', 'r+');
-                if ($resource === false) {
-                    $resource = @fopen('php://memory', 'r+');
-                }
-
-                if ($resource !== false) {
-                    $newStream = $streamFactory->createStreamFromResource($resource);
-                } else {
-                    $newStream = $streamFactory->createStream('');
-                }
-
-                $content = $body->read(8192); // Read first 8KB - sufficient for login error detection
-                $newStream->write($content);
-                // Read remainder of original body if any
-                while (!$body->eof()) {
-                    $newStream->write($body->read(8192));
-                }
-                if ($newStream->isSeekable()) {
-                    $newStream->rewind();
-                }
-                $response = $response->withBody($newStream);
-            }
-
-            // Check for error patterns using class constants
-            foreach (self::ERROR_PATTERNS as $pattern) {
-                if (str_contains($content, $pattern)) {
-                    return true;
-                }
-            }
-            return false;
+        if (str_contains($request->getUri()->getPath(), '/login')) {
+            return $response->getHeaderLine(self::AUTH_RESULT_HEADER) === 'failed';
         }
 
         // For other endpoints, consider 4xx errors as failed attempts
         return $response->getStatusCode() >= 400 && $response->getStatusCode() < 500;
     }
 
+    /**
+     * Whether the response counts as a success that clears the counter. For
+     * `/login` only an explicit `X-Auth-Result: success` qualifies; other
+     * endpoints treat any 2xx as success.
+     */
     private function isSuccessfulAttempt(Request $request, Response $response): bool
     {
-        $path = $request->getUri()->getPath();
-        
-        // For login endpoints
-        if (str_contains($path, '/login')) {
-            // Successful login typically redirects to admin dashboard
-            if ($response->getStatusCode() === 302) {
-                $location = $response->getHeaderLine('Location');
-                return str_contains($location, '/admin') && !str_contains($location, '/login');
-            }
+        // For login endpoints, only an explicit success signal clears the counter.
+        // (Previously any 2xx — including the rendered error page — wrongly cleared it.)
+        if (str_contains($request->getUri()->getPath(), '/login')) {
+            return $response->getHeaderLine(self::AUTH_RESULT_HEADER) === 'success';
         }
-        
+
         return $response->getStatusCode() >= 200 && $response->getStatusCode() < 300;
     }
 
+    /** Build the 429 Too Many Requests JSON response with a Retry-After header. */
     private function createRateLimitResponse(): Response
     {
         $response = new \Slim\Psr7\Response(429);

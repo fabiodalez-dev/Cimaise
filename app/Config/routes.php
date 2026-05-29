@@ -348,14 +348,16 @@ return function (App $app, array $container) {
     $app->post('/admin/albums/{id}/upload', function (Request $request, Response $response, array $args) use ($container) {
         $controller = new \App\Controllers\Admin\UploadController($container['db']);
         return $controller->uploadToAlbum($request, $response, $args);
-    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+    })->add(new RateLimitMiddleware(20, 600)) // 20 uploads / 10 min — added first so it runs AFTER auth (Slim LIFO)
+        ->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
         $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
 
     // Settings: upload site logo
     $app->post('/admin/settings/logo-upload', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Admin\UploadController($container['db']);
         return $controller->uploadSiteLogo($request, $response);
-    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+    })->add(new RateLimitMiddleware(10, 600)) // 10 logo uploads / 10 min — runs AFTER auth (Slim LIFO)
+        ->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
         $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
     $app->get('/admin/api/tags', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Admin\ApiController($container['db']);

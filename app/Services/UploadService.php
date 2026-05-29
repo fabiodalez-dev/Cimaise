@@ -13,6 +13,9 @@ class UploadService
 {
     use RegistersImageVariants;
 
+    /** Maximum total pixel count accepted (decompression-bomb guard, ~40 megapixel). */
+    private const MAX_IMAGE_PIXELS = 40000000;
+
     private array $allowed = ['image/jpeg'=>'.jpg','image/png'=>'.png', 'image/webp'=>'.webp'];
     
     // Magic number signatures for image validation
@@ -25,6 +28,50 @@ class UploadService
 
     public function __construct(private Database $db)
     {
+    }
+
+    /**
+     * Apply process-global Imagick resource limits so a crafted image cannot
+     * exhaust host memory/disk during decode. Static + idempotent; safe to call
+     * before every Imagick instantiation. No-op when the extension is absent.
+     */
+    private static function applyImagickLimits(): void
+    {
+        if (!class_exists('\Imagick')) {
+            return;
+        }
+        \Imagick::setResourceLimit(\Imagick::RESOURCETYPE_MEMORY, 512 * 1024 * 1024);   // 512 MB
+        \Imagick::setResourceLimit(\Imagick::RESOURCETYPE_MAP, 1024 * 1024 * 1024);     // 1 GB
+        \Imagick::setResourceLimit(\Imagick::RESOURCETYPE_AREA, self::MAX_IMAGE_PIXELS);
+        \Imagick::setResourceLimit(\Imagick::RESOURCETYPE_DISK, 2 * 1024 * 1024 * 1024); // 2 GB
+    }
+
+    /**
+     * Delete a file only when it resolves inside an allowed base directory
+     * (storage/, system temp, or the public media tree). Prevents a tainted
+     * path from ever reaching unlink() outside these roots (CWE-22 hardening).
+     */
+    private static function safeUnlink(string $path): bool
+    {
+        $real = realpath($path);
+        if ($real === false) {
+            return false;
+        }
+
+        $allowedRoots = [
+            realpath(dirname(__DIR__, 2) . '/storage') ?: '',
+            realpath(dirname(__DIR__, 2) . '/public/media') ?: '',
+            realpath(sys_get_temp_dir()) ?: '',
+        ];
+
+        foreach ($allowedRoots as $root) {
+            if ($root !== '' && str_starts_with($real, $root . DIRECTORY_SEPARATOR)) {
+                return @unlink($real);
+            }
+        }
+
+        Logger::warning('UploadService: refused unlink outside allowed roots', ['path' => $path], 'security');
+        return false;
     }
     
     /**
@@ -92,10 +139,17 @@ class UploadService
         
         // 6. Validate image dimensions (prevent processing of malicious files)
         [$width, $height] = $imageInfo;
-        if ($width <= 0 || $height <= 0 || $width > 50000 || $height > 50000) {
+        if ($width <= 0 || $height <= 0 || $width > 20000 || $height > 20000) {
             throw new RuntimeException('Invalid image dimensions');
         }
-        
+
+        // 6b. Decompression-bomb guard: cap total pixel count before any GD/Imagick
+        // decode runs. A small, highly-compressible file can declare huge dimensions
+        // and exhaust memory when decoded. 40 MP is generous for photography.
+        if ($width * $height > self::MAX_IMAGE_PIXELS) {
+            throw new RuntimeException('Image resolution too high');
+        }
+
         return $detectedMime;
     }
 
@@ -126,7 +180,7 @@ class UploadService
                 if (!@copy($tmp, $dest)) {
                     throw new RuntimeException('Failed to move uploaded file');
                 }
-                if (!@unlink($tmp)) {
+                if (!self::safeUnlink($tmp)) {
                     Logger::warning('UploadService: Failed to cleanup temp file after copy', [
                         'tmp' => $tmp,
                         'dest' => $dest,
@@ -145,7 +199,7 @@ class UploadService
             $this->validateImageFile($dest);
         } catch (RuntimeException $e) {
             // Clean up the invalid file
-            @unlink($dest);
+            self::safeUnlink($dest);
             throw new RuntimeException('File validation failed after upload: ' . $e->getMessage());
         }
         
@@ -282,6 +336,7 @@ class UploadService
     private function resizeWithImagick(string $src, string $dest, int $targetW, string $format, int $quality): bool
     {
         try {
+            self::applyImagickLimits();
             $im = new \Imagick($src);
             $im->setImageColorspace(\Imagick::COLORSPACE_RGB);
             $im->setInterlaceScheme(\Imagick::INTERLACE_JPEG);
@@ -463,7 +518,7 @@ class UploadService
 
                 // If file exists but NOT in DB (orphan file), delete it first
                 if (is_file($destPath) && !$existsInDb) {
-                    @unlink($destPath);
+                    self::safeUnlink($destPath);
                 }
 
                 @mkdir(dirname($destPath), 0775, true);
@@ -692,6 +747,7 @@ class UploadService
     private function generateBlurWithImagick(string $src, string $dest): bool
     {
         try {
+            self::applyImagickLimits();
             $im = new \Imagick($src);
 
             // Resize to small size first for performance
@@ -909,7 +965,7 @@ class UploadService
             $fileExisted = is_file($blurPath);
 
             if ($fileExisted) {
-                @unlink($blurPath);
+                self::safeUnlink($blurPath);
 
                 // Remove from DB only if blur variant existed
                 $pdo->prepare('DELETE FROM image_variants WHERE image_id = ? AND variant = ?')
@@ -1075,7 +1131,7 @@ class UploadService
                 // Always release lock and cleanup
                 flock($lockHandle, LOCK_UN);
                 fclose($lockHandle);
-                @unlink($lockFile);
+                self::safeUnlink($lockFile);
             }
         } else {
             // Another process is generating LQIP, wait briefly and return existing file
@@ -1103,6 +1159,7 @@ class UploadService
     private function generateLQIPWithImagick(string $src, string $dest): bool
     {
         try {
+            self::applyImagickLimits();
             $im = new \Imagick($src);
 
             // Resize to tiny dimensions (40x30px target)

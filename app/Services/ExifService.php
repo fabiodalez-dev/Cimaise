@@ -326,6 +326,13 @@ class ExifService
         return $meta;
     }
 
+    /**
+     * Normalize an EXIF value to a safe, single-line string: flatten arrays,
+     * strip control characters and HTML tags, collapse whitespace, and cap the
+     * length. Returns null when the result is empty.
+     *
+     * @param mixed $value
+     */
     private function cleanString($value): ?string
     {
         if ($value === null) return null;
@@ -340,7 +347,24 @@ class ExifService
             $value = implode(' ', $parts);
         }
 
-        $str = trim(preg_replace('/\s+/', ' ', (string)$value));
+        $str = (string)$value;
+
+        // SECURITY: EXIF strings are fully attacker-controlled (e.g. Artist,
+        // Copyright, Software) and are later surfaced in the UI / JSON API.
+        // Strip control characters and any HTML tags at the source so a crafted
+        // tag like "<img onerror=...>" can never reach a render sink. Twig still
+        // escapes on output; this is defense-in-depth, not the only barrier.
+        // No /u flag: the class only matches ASCII control bytes, and on non-UTF-8
+        // EXIF data preg_replace with /u returns null (which would wipe the field).
+        $str = preg_replace('/[\x00-\x1F\x7F]/', '', $str) ?? '';
+        $str = strip_tags($str);
+        $str = trim(preg_replace('/\s+/', ' ', $str) ?? '');
+
+        // Cap length to avoid storing absurdly large EXIF blobs.
+        if (mb_strlen($str) > 1000) {
+            $str = mb_substr($str, 0, 1000);
+        }
+
         return $str === '' ? null : $str;
     }
 

@@ -14,6 +14,13 @@ class DownloadController extends BaseController
         parent::__construct();
     }
 
+    /**
+     * Stream an original image as a download: resolve and confine the path under
+     * storage/, validate it is an allowed raster type via finfo, sanitize the
+     * filename, and emit it as a nosniff attachment with the detected MIME.
+     *
+     * @param array<string,mixed> $args
+     */
     public function downloadImage(Request $request, Response $response, array $args): Response
     {
         $id = (int)($args['id'] ?? 0);
@@ -83,16 +90,20 @@ class DownloadController extends BaseController
         $detectedMime = finfo_file($finfo, $realPath);
         finfo_close($finfo);
         
+        // Only raster formats the upload pipeline can actually produce. SVG is
+        // intentionally excluded: it is script-capable and would enable stored
+        // XSS if ever served inline. BMP/TIFF dropped as unsupported.
         $allowedMimes = [
             'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-            'image/bmp', 'image/tiff', 'image/svg+xml'
         ];
-        
+
         if (!in_array($detectedMime, $allowedMimes, true)) {
             return $response->withStatus(403);
         }
-        
-        $mime = $row['mime'] ?: 'application/octet-stream';
+
+        // Emit the finfo-detected MIME, never the untrusted DB `mime` column,
+        // so the Content-Type can never disagree with the validated file type.
+        $mime = $detectedMime;
         
         // SECURITY: Comprehensive filename sanitization to prevent header injection
         $filename = basename($realPath);

@@ -5,7 +5,9 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Support\Database;
+use App\Support\Logger;
 use App\Support\PluginManager;
+use App\Support\PluginSignature;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -200,6 +202,31 @@ class PluginsController extends BaseController
         $tempZip = $tempDir . '/plugin.zip';
         $file->moveTo($tempZip);
 
+        // SECURITY (H3): cryptographic allow-list. When a vendor public key is
+        // configured, the raw ZIP bytes MUST carry a valid Ed25519 signature
+        // before we extract or run any plugin code. This replaces the bypassable
+        // regex blocklist as the actual trust boundary; the scan below is advisory.
+        if (PluginSignature::isEnabled()) {
+            $zipBytes = file_get_contents($tempZip);
+            $providedSig = $this->extractProvidedSignature($request);
+
+            if ($zipBytes === false || $providedSig === '' || !PluginSignature::verify($zipBytes, $providedSig)) {
+                Logger::warning('Plugin upload rejected: missing/invalid signature', [
+                    'filename' => $filename,
+                    'has_signature' => $providedSig !== '',
+                ], 'security');
+                $this->cleanupTemp($tempDir);
+                $response->getBody()->write(json_encode([
+                    'success' => false,
+                    'message' => trans('admin.flash.plugin_signature_invalid'),
+                ]));
+                return $response->withStatus(400);
+            }
+        } else {
+            Logger::warning('Plugin signature verification disabled (no public key configured); '
+                . 'relying on advisory static scan only', ['filename' => $filename], 'security');
+        }
+
         // Extract ZIP
         $zip = new \ZipArchive();
         if ($zip->open($tempZip) !== true) {
@@ -352,6 +379,27 @@ class PluginsController extends BaseController
             ]
         ]));
         return $response->withStatus(200);
+    }
+
+    /**
+     * Read the plugin's detached signature (base64) from the request: either an
+     * uploaded `signature` file field or the `X-Plugin-Signature` header.
+     * Returns '' when none is present.
+     */
+    private function extractProvidedSignature(Request $request): string
+    {
+        $files = $request->getUploadedFiles();
+        $sigFile = $files['signature'] ?? null;
+        if ($sigFile !== null && $sigFile->getError() === UPLOAD_ERR_OK && $sigFile->getSize() > 0
+            && $sigFile->getSize() < 4096) {
+            $contents = (string) $sigFile->getStream();
+            if (trim($contents) !== '') {
+                return trim($contents);
+            }
+        }
+
+        $header = trim($request->getHeaderLine('X-Plugin-Signature'));
+        return $header;
     }
 
     /**

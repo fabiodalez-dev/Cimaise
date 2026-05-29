@@ -1109,6 +1109,7 @@
     "admin.flash.plugin_no_json": "plugin.json not found in package",
     "admin.flash.plugin_not_specified": "Plugin not specified",
     "admin.flash.plugin_security_rejected": "Plugin rejected due to security concerns: {errors}",
+    "admin.flash.plugin_signature_invalid": "Plugin rejected: missing or invalid signature. Only plugins signed with the trusted key can be installed.",
     "admin.flash.plugin_uploaded": "Plugin \"{name}\" uploaded successfully",
     "admin.flash.privacy_settings_saved": "Privacy settings saved successfully",
     "admin.flash.profile_updated": "Profile updated successfully",

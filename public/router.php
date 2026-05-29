@@ -15,7 +15,15 @@ if ($uri === '/fonts/typography.css') {
     return;
 }
 
-if ($uri !== '/' && file_exists($file) && !is_dir($file)) {
+// SECURITY: confine static serving to the public/ document root. urldecode()
+// above means a request like /..%2f.env decodes to a traversal sequence; without
+// this realpath check the built-in dev server would happily serve files (e.g.
+// .env) outside public/. realpath() resolves ../ and symlinks before comparison.
+$docRoot = realpath(__DIR__);
+$real = realpath($file);
+if ($uri !== '/' && $real !== false && $docRoot !== false
+    && str_starts_with($real, $docRoot . DIRECTORY_SEPARATOR)
+    && is_file($real)) {
     return false; // serve the requested resource as-is
 }
 require __DIR__ . '/index.php';

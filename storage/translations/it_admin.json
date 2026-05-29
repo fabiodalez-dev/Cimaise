@@ -1109,6 +1109,7 @@
     "admin.flash.plugin_no_json": "plugin.json non trovato nel pacchetto",
     "admin.flash.plugin_not_specified": "Plugin non specificato",
     "admin.flash.plugin_security_rejected": "Plugin rifiutato per motivi di sicurezza: {errors}",
+    "admin.flash.plugin_signature_invalid": "Plugin rifiutato: firma mancante o non valida. Si possono installare solo plugin firmati con la chiave attendibile.",
     "admin.flash.plugin_uploaded": "Plugin \"{name}\" caricato con successo",
     "admin.flash.privacy_settings_saved": "Impostazioni privacy salvate con successo",
     "admin.flash.profile_updated": "Profilo aggiornato con successo",

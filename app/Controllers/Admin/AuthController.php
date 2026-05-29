@@ -29,6 +29,7 @@ class AuthController extends BaseController
         parent::__construct();
     }
 
+    /** Render the admin login form with a fresh CSRF token and any flash messages. */
     public function showLogin(Request $request, Response $response): Response
     {
         // Redirect to dashboard if already logged in
@@ -52,6 +53,11 @@ class AuthController extends BaseController
         ]);
     }
 
+    /**
+     * Handle an admin login POST: validate CSRF and credentials, regenerate the
+     * session, optionally set a remember-me token, and signal the outcome to the
+     * rate limiter via the X-Auth-Result header (success redirects to /admin).
+     */
     public function login(Request $request, Response $response): Response
     {
         $data = (array)$request->getParsedBody();
@@ -82,7 +88,7 @@ class AuthController extends BaseController
                 'error' => trans('admin.flash.csrf_invalid'),
                 'csrf' => $_SESSION['csrf'],
                 'admin_locale' => $adminLocale
-            ]);
+            ])->withHeader('X-Auth-Result', 'failed');
         }
 
         if ($email === '' || $password === '') {
@@ -90,7 +96,7 @@ class AuthController extends BaseController
                 'error' => trans('admin.flash.email_password_required'),
                 'csrf' => $_SESSION['csrf'] ?? '',
                 'admin_locale' => $adminLocale
-            ]);
+            ])->withHeader('X-Auth-Result', 'failed');
         }
 
         $stmt = $this->db->pdo()->prepare('SELECT id, email, password_hash, role, is_active, first_name, last_name FROM users WHERE LOWER(email) = :email LIMIT 1');
@@ -102,7 +108,7 @@ class AuthController extends BaseController
                 'error' => trans('admin.flash.invalid_credentials'),
                 'csrf' => $_SESSION['csrf'] ?? '',
                 'admin_locale' => $adminLocale
-            ]);
+            ])->withHeader('X-Auth-Result', 'failed');
         }
 
         // Check if user is active
@@ -111,7 +117,7 @@ class AuthController extends BaseController
                 'error' => trans('admin.flash.account_deactivated'),
                 'csrf' => $_SESSION['csrf'] ?? '',
                 'admin_locale' => $adminLocale
-            ]);
+            ])->withHeader('X-Auth-Result', 'failed');
         }
 
         // Check if user has admin role for backend access
@@ -120,7 +126,7 @@ class AuthController extends BaseController
                 'error' => trans('admin.flash.access_denied_admin_only'),
                 'csrf' => $_SESSION['csrf'] ?? '',
                 'admin_locale' => $adminLocale
-            ]);
+            ])->withHeader('X-Auth-Result', 'failed');
         }
 
         // Update last login timestamp
@@ -194,12 +200,14 @@ class AuthController extends BaseController
 
         return $response
             ->withHeader('Location', $this->redirect('/admin'))
+            ->withHeader('X-Auth-Result', 'success')
             ->withStatus(302);
     }
 
     /**
      * Generate and set remember token for persistent login
      */
+    /** Mint a remember-me token, store its SHA-256 hash, and set the cookie. */
     private function setRememberToken(int $userId): void
     {
         try {
@@ -245,6 +253,7 @@ class AuthController extends BaseController
     /**
      * Clear remember token from database and cookie
      */
+    /** Clear the stored remember-me token for the user and expire the cookie. */
     private function clearRememberToken(int $userId): void
     {
         // Clear from database
@@ -265,6 +274,7 @@ class AuthController extends BaseController
         Logger::info('Remember token cleared for user', ['user_id' => $userId], 'auth');
     }
 
+    /** Destroy the admin session, clear the remember-me token, and redirect to login. */
     public function logout(Request $request, Response $response): Response
     {
         // SECURITY: Verify CSRF token for logout
@@ -292,6 +302,7 @@ class AuthController extends BaseController
         return $response->withHeader('Location', $this->redirect('/admin/login'))->withStatus(302);
     }
 
+    /** Update the current admin's profile fields after CSRF validation. */
     public function updateProfile(Request $request, Response $response): Response
     {
         if (empty($_SESSION['admin_id'])) {
@@ -363,6 +374,7 @@ class AuthController extends BaseController
         return $response->withHeader('Location', $this->safeReferer('/admin'))->withStatus(302);
     }
 
+    /** Verify the current password and persist a new Argon2id hash after CSRF checks. */
     public function changePassword(Request $request, Response $response): Response
     {
         if (empty($_SESSION['admin_id'])) {
@@ -435,6 +447,7 @@ class AuthController extends BaseController
         return $response->withHeader('Location', $this->safeReferer('/admin'))->withStatus(302);
     }
 
+    /** Resolve the admin UI locale from session/cookie/settings, defaulting safely. */
     private function getAdminLocale(): string
     {
         try {

@@ -331,35 +331,9 @@ class Updater
         // stream wrappers and is always available afterwards.
         $responseHeaders = $http_response_header;
 
-        // If SSL verification fails, retry without verification (shared hosting fallback)
-        if ($response === false) {
-            $error = error_get_last();
-            $errorMsg = $error['message'] ?? '';
-
-            if (stripos($errorMsg, 'SSL') !== false || stripos($errorMsg, 'certificate') !== false) {
-                $this->debugLog('WARNING', 'SSL verification failed, retrying without verification', [
-                    'url' => $url,
-                    'original_error' => $errorMsg
-                ]);
-
-                $fallbackContext = stream_context_create([
-                    'http' => [
-                        'method' => 'GET',
-                        'header' => $headers,
-                        'timeout' => 30,
-                        'ignore_errors' => true
-                    ],
-                    'ssl' => [
-                        'verify_peer' => false,
-                        'verify_peer_name' => false,
-                    ]
-                ]);
-
-                $response = @file_get_contents($url, false, $fallbackContext);
-
-                $responseHeaders = $http_response_header;
-            }
-        }
+        // SECURITY: no insecure TLS fallback. A failed certificate check must
+        // fail the request — silently disabling verification would let a MITM
+        // serve attacker-controlled data. Genuine failures are handled below.
 
         $this->debugLog('DEBUG', 'HTTP response received', [
             'response_length' => $response !== false ? strlen($response) : 0,
@@ -489,47 +463,9 @@ class Updater
                 ];
             }
 
-            // If SSL verification fails, retry without verification (shared hosting fallback)
-            if ($errno === CURLE_SSL_CERTPROBLEM || $errno === CURLE_SSL_CACERT ||
-                stripos($error, 'SSL') !== false || stripos($error, 'certificate') !== false) {
-                $this->debugLog('WARNING', 'cURL SSL verification failed, retrying without verification', [
-                    'url' => $url,
-                    'original_error' => $error,
-                    'errno' => $errno
-                ]);
-
-                $ch = curl_init($url);
-                curl_setopt_array($ch, [
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_MAXREDIRS => 10,
-                    CURLOPT_TIMEOUT => 300,
-                    CURLOPT_CONNECTTIMEOUT => 30,
-                    CURLOPT_USERAGENT => 'Cimaise-Updater/1.0',
-                    CURLOPT_SSL_VERIFYPEER => false,
-                    CURLOPT_SSL_VERIFYHOST => 0,
-                    CURLOPT_BUFFERSIZE => 1024 * 1024,
-                    CURLOPT_HTTPHEADER => ['Accept: application/octet-stream'],
-                ]);
-
-                $content = curl_exec($ch);
-                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                $error = curl_error($ch);
-                curl_close($ch);
-
-                if ($content !== false && $httpCode >= 200 && $httpCode < 400) {
-                    $this->debugLog('INFO', 'cURL download successful (SSL fallback)', [
-                        'http_code' => $httpCode,
-                        'size_bytes' => strlen($content)
-                    ]);
-                    return [
-                        'success' => true,
-                        'content' => $content,
-                        'error' => null,
-                        'method' => 'curl_ssl_fallback'
-                    ];
-                }
-            }
+            // SECURITY: no insecure TLS fallback on download. A certificate
+            // failure here would allow a MITM to replace the update archive
+            // (full code execution on install), so we never disable verification.
 
             $this->debugLog('WARNING', 'cURL download failed, trying file_get_contents fallback', [
                 'http_code' => $httpCode,
@@ -569,37 +505,8 @@ class Updater
 
         $content = @file_get_contents($url, false, $context);
 
-        // If SSL verification fails, retry without verification (shared hosting fallback)
-        if ($content === false) {
-            $error = error_get_last();
-            $errorMsg = $error['message'] ?? '';
-
-            if (stripos($errorMsg, 'SSL') !== false || stripos($errorMsg, 'certificate') !== false) {
-                $this->debugLog('WARNING', 'file_get_contents SSL verification failed, retrying without verification', [
-                    'url' => $url,
-                    'original_error' => $errorMsg
-                ]);
-
-                $fallbackContext = stream_context_create([
-                    'http' => [
-                        'method' => 'GET',
-                        'header' => [
-                            'User-Agent: Cimaise-Updater/1.0',
-                            'Accept: application/octet-stream'
-                        ],
-                        'timeout' => 300,
-                        'follow_location' => true,
-                        'ignore_errors' => true
-                    ],
-                    'ssl' => [
-                        'verify_peer' => false,
-                        'verify_peer_name' => false,
-                    ]
-                ]);
-
-                $content = @file_get_contents($url, false, $fallbackContext);
-            }
-        }
+        // SECURITY: no insecure TLS fallback (see makeGitHubRequest). A failed
+        // certificate check fails the download rather than trusting a MITM.
 
         if ($content === false) {
             $error = error_get_last();
@@ -653,33 +560,7 @@ class Updater
 
         $response = @file_get_contents($url, false, $context);
 
-        // If SSL verification fails, retry without verification (shared hosting fallback)
-        if ($response === false) {
-            $error = error_get_last();
-            $errorMsg = $error['message'] ?? '';
-
-            if (stripos($errorMsg, 'SSL') !== false || stripos($errorMsg, 'certificate') !== false) {
-                $this->debugLog('WARNING', 'SSL verification failed for releases, retrying without verification', [
-                    'url' => $url,
-                    'original_error' => $errorMsg
-                ]);
-
-                $fallbackContext = stream_context_create([
-                    'http' => [
-                        'method' => 'GET',
-                        'header' => $headers,
-                        'timeout' => 30,
-                        'ignore_errors' => true
-                    ],
-                    'ssl' => [
-                        'verify_peer' => false,
-                        'verify_peer_name' => false,
-                    ]
-                ]);
-
-                $response = @file_get_contents($url, false, $fallbackContext);
-            }
-        }
+        // SECURITY: no insecure TLS fallback (see makeGitHubRequest).
 
         if ($response === false) {
             $this->debugLog('ERROR', 'Cannot fetch releases', [
@@ -723,14 +604,17 @@ class Updater
 
             // Find the source code zip asset or use zipball_url
             $downloadUrl = $release['zipball_url'] ?? null;
+            $expectedDigest = null; // e.g. "sha256:abc..." from the GitHub asset metadata
 
             // Check for custom asset named cimaise-vX.X.X.zip first
             foreach ($release['assets'] ?? [] as $asset) {
                 if (preg_match('/cimaise.*\.zip$/i', $asset['name'])) {
                     $downloadUrl = $asset['browser_download_url'];
+                    $expectedDigest = $asset['digest'] ?? null;
                     $this->debugLog('INFO', 'Found custom asset', [
                         'name' => $asset['name'],
-                        'url' => $downloadUrl
+                        'url' => $downloadUrl,
+                        'digest' => $expectedDigest
                     ]);
                     break;
                 }
@@ -776,6 +660,27 @@ class Updater
 
             if ($fileSize < 1000) {
                 throw new Exception('Update file invalid (too small)');
+            }
+
+            // SECURITY: integrity verification. When the release asset publishes a
+            // digest (GitHub exposes "sha256:..."), the downloaded bytes MUST match
+            // it before we ever extract/install — this is the supply-chain guard
+            // that TLS alone does not provide (e.g. a tampered release artifact).
+            if (is_string($expectedDigest) && str_starts_with($expectedDigest, 'sha256:')) {
+                $expectedHash = strtolower(substr($expectedDigest, strlen('sha256:')));
+                $actualHash = hash('sha256', $fileContent);
+                if (!hash_equals($expectedHash, $actualHash)) {
+                    $this->debugLog('ERROR', 'Update archive digest mismatch', [
+                        'expected' => $expectedHash,
+                        'actual' => $actualHash
+                    ]);
+                    throw new Exception('Update integrity check failed: archive digest mismatch');
+                }
+                $this->debugLog('INFO', 'Update archive digest verified (sha256)', []);
+            } else {
+                $this->debugLog('WARNING', 'No published digest for update asset; integrity rests on TLS only', [
+                    'version' => $version
+                ]);
             }
 
             // Save file
