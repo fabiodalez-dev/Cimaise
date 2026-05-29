@@ -1,0 +1,86 @@
+name: Sign Plugin Archives
+
+# Signs every *.zip asset attached to a release with the vendor Ed25519 key and
+# uploads a detached <asset>.sig next to it. The PHP install path verifies that
+# signature before extracting/running plugin code (review finding H3).
+#
+# Requirements:
+#   - repository secret PLUGIN_SIGNING_KEY = base64 Ed25519 secret key
+#     (generate locally with `php bin/console plugin:keygen`)
+#   - resources/keys/plugin-signing.pub committed (the matching public key)
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag whose .zip assets should be signed'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  sign:
+    name: Sign release ZIP assets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.2 (with sodium)
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: sodium, mbstring, json
+          tools: composer
+
+      - name: Install dependencies
+        run: composer install --no-dev --no-interaction --prefer-dist
+
+      - name: Resolve release tag
+        id: tag
+        # Untrusted github context values are passed via env (never inlined in run:).
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = "release" ]; then
+            printf 'tag=%s\n' "$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          else
+            printf 'tag=%s\n' "$INPUT_TAG" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download .zip assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          mkdir -p _assets
+          gh release download "$TAG" --dir _assets --pattern '*.zip' || echo "No .zip assets found"
+
+      - name: Sign each archive
+        if: ${{ env.PLUGIN_SIGNING_KEY != '' }}
+        env:
+          PLUGIN_SIGNING_KEY: ${{ secrets.PLUGIN_SIGNING_KEY }}
+        run: |
+          shopt -s nullglob
+          for zip in _assets/*.zip; do
+            echo "Signing $zip"
+            php bin/console plugin:sign "$zip" --out "${zip}.sig"
+          done
+
+      - name: Upload signatures
+        if: ${{ env.PLUGIN_SIGNING_KEY != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PLUGIN_SIGNING_KEY: ${{ secrets.PLUGIN_SIGNING_KEY }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          shopt -s nullglob
+          sigs=(_assets/*.sig)
+          if [ ${#sigs[@]} -gt 0 ]; then
+            gh release upload "$TAG" "${sigs[@]}" --clobber
+          fi

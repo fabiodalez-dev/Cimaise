@@ -291,6 +291,9 @@ class UploadController extends BaseController
             [$w, $h] = $info;
             if ($w <= 0 || $h <= 0 || $w > 10000 || $h > 10000)
                 throw new \RuntimeException('Invalid image dimensions');
+            // Decompression-bomb guard before favicon generation decodes the image.
+            if ($w * $h > 40000000)
+                throw new \RuntimeException('Image resolution too high');
 
             $hash = sha1($contents);
             $ext = $allowed[$mime];

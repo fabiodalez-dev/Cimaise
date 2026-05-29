@@ -21,11 +21,17 @@
 </IfModule>
 
 # Security headers (Apache)
+# unset-then-set guarantees a single value even when the PHP middleware already
+# emitted the same header on dynamic responses, while still protecting static files.
 <IfModule mod_headers.c>
-  Header set X-Content-Type-Options "nosniff"
-  Header set X-Frame-Options "DENY"
-  Header set X-XSS-Protection "1; mode=block"
-  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always unset X-Content-Type-Options
+  Header always set X-Content-Type-Options "nosniff"
+  Header always unset X-Frame-Options
+  Header always set X-Frame-Options "DENY"
+  Header always unset X-XSS-Protection
+  Header always set X-XSS-Protection "1; mode=block"
+  Header always unset Referrer-Policy
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>
 
 # Compression (Brotli and Gzip)

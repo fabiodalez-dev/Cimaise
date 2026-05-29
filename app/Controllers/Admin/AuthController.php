@@ -82,7 +82,7 @@ class AuthController extends BaseController
                 'error' => trans('admin.flash.csrf_invalid'),
                 'csrf' => $_SESSION['csrf'],
                 'admin_locale' => $adminLocale
-            ]);
+            ])->withHeader('X-Auth-Result', 'failed');
         }
 
         if ($email === '' || $password === '') {
@@ -90,7 +90,7 @@ class AuthController extends BaseController
                 'error' => trans('admin.flash.email_password_required'),
                 'csrf' => $_SESSION['csrf'] ?? '',
                 'admin_locale' => $adminLocale
-            ]);
+            ])->withHeader('X-Auth-Result', 'failed');
         }
 
         $stmt = $this->db->pdo()->prepare('SELECT id, email, password_hash, role, is_active, first_name, last_name FROM users WHERE LOWER(email) = :email LIMIT 1');
@@ -102,7 +102,7 @@ class AuthController extends BaseController
                 'error' => trans('admin.flash.invalid_credentials'),
                 'csrf' => $_SESSION['csrf'] ?? '',
                 'admin_locale' => $adminLocale
-            ]);
+            ])->withHeader('X-Auth-Result', 'failed');
         }
 
         // Check if user is active
@@ -111,7 +111,7 @@ class AuthController extends BaseController
                 'error' => trans('admin.flash.account_deactivated'),
                 'csrf' => $_SESSION['csrf'] ?? '',
                 'admin_locale' => $adminLocale
-            ]);
+            ])->withHeader('X-Auth-Result', 'failed');
         }
 
         // Check if user has admin role for backend access
@@ -120,7 +120,7 @@ class AuthController extends BaseController
                 'error' => trans('admin.flash.access_denied_admin_only'),
                 'csrf' => $_SESSION['csrf'] ?? '',
                 'admin_locale' => $adminLocale
-            ]);
+            ])->withHeader('X-Auth-Result', 'failed');
         }
 
         // Update last login timestamp
@@ -194,6 +194,7 @@ class AuthController extends BaseController
 
         return $response
             ->withHeader('Location', $this->redirect('/admin'))
+            ->withHeader('X-Auth-Result', 'success')
             ->withStatus(302);
     }
 

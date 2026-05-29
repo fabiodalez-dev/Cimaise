@@ -6,14 +6,17 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use Symfony\Component\Console\Application;
 
-// Check if we're running the install command
+// Commands that must run without a database/container (install, plugin signing).
 $argv = $_SERVER['argv'];
-$isInstallCommand = in_array('install', $argv) || in_array('i', $argv);
+$noDbCommands = ['install', 'i', 'plugin:keygen', 'plugin:sign'];
+$isNoDbCommand = (bool) array_intersect($noDbCommands, $argv);
 
-if ($isInstallCommand) {
-    // For install command, create application without database dependencies
+if ($isNoDbCommand) {
+    // Create the application without database dependencies.
     $cli = new Application('Cimaise CLI', '0.1.0');
     $cli->add(new App\Tasks\InstallCommand());
+    $cli->add(new App\Tasks\PluginKeygenCommand());
+    $cli->add(new App\Tasks\PluginSignCommand());
 } else {
     // For other commands, load container with database
     $container = require __DIR__ . '/../app/Config/bootstrap.php';
@@ -38,6 +41,8 @@ if ($isInstallCommand) {
     $cli->add(new App\Tasks\AnalyticsCleanupCommand($container['db']));
     $cli->add(new App\Tasks\AnalyticsSummarizeCommand($container['db']));
     $cli->add(new App\Tasks\InstallCommand());
+    $cli->add(new App\Tasks\PluginKeygenCommand());
+    $cli->add(new App\Tasks\PluginSignCommand());
 }
 
 $cli->run();

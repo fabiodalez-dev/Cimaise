@@ -3,6 +3,11 @@
 // Import from individual spec files via `import { ... } from './_helpers.js';`.
 
 import { expect } from '@playwright/test';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 export const BASE = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8000';
 export const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@test.com';
@@ -186,4 +191,58 @@ export async function requireAdmin(test, page) {
     if (!ok) {
         test.skip(true, `Admin login failed for ${ADMIN_EMAIL} at ${BASE}`);
     }
+}
+
+/** Remove file-based rate-limit counters so a throttling test does not lock out
+ *  subsequent logins/uploads from the same IP for the whole window. Matches the
+ *  FileBasedRateLimitMiddleware (`login_*`) and RateLimitMiddleware
+ *  (`rate_limit_*`) storage under storage/tmp. Best-effort, never throws. */
+export function clearRateLimitFiles() {
+    const dir = path.join(PROJECT_ROOT, 'storage', 'tmp');
+    try {
+        if (!fs.existsSync(dir)) return;
+        for (const f of fs.readdirSync(dir)) {
+            if (/^(login|rate_limit)_.*\.json$/.test(f)) {
+                try { fs.unlinkSync(path.join(dir, f)); } catch (_e) { /* ignore */ }
+            }
+        }
+    } catch (_e) { /* ignore */ }
+}
+
+/** Read the CSRF token from an album edit page (the admin form always renders a
+ *  hidden input[name="csrf"]). Returns null when unavailable. Reusable across
+ *  any test that needs to POST to a CSRF-protected admin endpoint. */
+export async function getAlbumCsrf(page, albumId) {
+    await page.goto(`${BASE}/admin/albums/${albumId}/edit`);
+    return await page.locator('input[name="csrf"]').first()
+        .getAttribute('value', { timeout: 2000 }).catch(() => null);
+}
+
+/** POST an arbitrary multipart file buffer to the album upload endpoint and
+ *  return the raw Playwright APIResponse (failOnStatusCode disabled) so tests
+ *  can assert on both success and rejection paths. */
+export async function uploadBuffer(page, albumId, { name, mimeType, buffer }, csrf) {
+    return await page.request.post(`${BASE}/admin/albums/${albumId}/upload`, {
+        headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' },
+        multipart: {
+            file: { name, mimeType, buffer },
+            csrf,
+        },
+        failOnStatusCode: false,
+    });
+}
+
+/** Synthesize a solid-color JPEG of the given pixel dimensions inside the page.
+ *  Used to exercise the decompression-bomb / dimension guards with a real
+ *  decodable image whose declared size is what validateImageFile() reads. */
+export async function makeJpegBuffer(page, width, height, color = '#10b981') {
+    const dataUrl = await page.evaluate(({ width, height, color }) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = color;
+        ctx.fillRect(0, 0, width, height);
+        return canvas.toDataURL('image/jpeg', 0.6);
+    }, { width, height, color });
+    return Buffer.from(dataUrl.replace(/^data:image\/jpeg;base64,/, ''), 'base64');
 }

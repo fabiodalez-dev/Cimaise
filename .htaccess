@@ -63,7 +63,7 @@
 </FilesMatch>
 
 # Deny access to sensitive file extensions
-<FilesMatch "\.(env|sqlite|log|sql|bak|old|orig|tmp)$">
+<FilesMatch "\.(env|sqlite|log|sql|bak|backup|old|orig|tmp)$">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>
@@ -74,10 +74,16 @@
 </FilesMatch>
 
 # Security headers
+# unset-then-set guarantees a single header value even when the PHP
+# SecurityHeadersMiddleware already emitted the same header on dynamic responses
+# (avoids duplicate "DENY, DENY"), while still covering Apache-served static files.
 <IfModule mod_headers.c>
-    Header set X-Content-Type-Options "nosniff"
-    Header set X-Frame-Options "DENY"
-    Header set X-XSS-Protection "1; mode=block"
+    Header always unset X-Content-Type-Options
+    Header always set X-Content-Type-Options "nosniff"
+    Header always unset X-Frame-Options
+    Header always set X-Frame-Options "DENY"
+    Header always unset X-XSS-Protection
+    Header always set X-XSS-Protection "1; mode=block"
 </IfModule>
 
 # Disable directory listing

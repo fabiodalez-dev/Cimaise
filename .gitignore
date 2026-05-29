@@ -2,6 +2,12 @@
 .env
 .env.local
 .env.*.local
+.env.backup
+*.backup
+
+# Test artifacts
+test-results/
+.phpunit.result.cache
 
 # Database files (each installation creates its own)
 database/database.sqlite

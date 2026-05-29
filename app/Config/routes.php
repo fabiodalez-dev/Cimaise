@@ -349,14 +349,16 @@ return function (App $app, array $container) {
         $controller = new \App\Controllers\Admin\UploadController($container['db']);
         return $controller->uploadToAlbum($request, $response, $args);
     })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
-        $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
+        $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; })
+        ->add(new RateLimitMiddleware(20, 600)); // 20 uploads per 10 minutes (image processing is resource-intensive)
 
     // Settings: upload site logo
     $app->post('/admin/settings/logo-upload', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Admin\UploadController($container['db']);
         return $controller->uploadSiteLogo($request, $response);
     })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
-        $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
+        $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; })
+        ->add(new RateLimitMiddleware(10, 600)); // 10 logo uploads per 10 minutes
     $app->get('/admin/api/tags', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Admin\ApiController($container['db']);
         return $controller->tags($request, $response);
