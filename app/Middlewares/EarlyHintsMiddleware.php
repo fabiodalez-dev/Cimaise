@@ -135,8 +135,11 @@ class EarlyHintsMiddleware implements MiddlewareInterface
             ];
         }
 
-        // Filter out resources with null integrity (file not found)
-        return array_filter($resources, fn($r) => !isset($r['integrity']) || $r['integrity'] !== null);
+        // Filter out only resources that explicitly carry a null integrity
+        // (file not found). Resources without an integrity key at all (the
+        // font preloads above) must pass through — `isset()` alone would
+        // silently drop them.
+        return array_filter($resources, fn($r) => !array_key_exists('integrity', $r) || $r['integrity'] !== null);
     }
 
     /**

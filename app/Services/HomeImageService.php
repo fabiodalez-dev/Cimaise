@@ -29,12 +29,24 @@ class HomeImageService
     private const MAX_FETCH_LIMIT = 150;
 
     /**
+     * Diversity headroom: how many extra rows to fetch on top of the requested
+     * limit so we have a small pool to enforce album-per-image variety.
+     * 1.5x was chosen instead of the previous 3x — empirically a 50% overhead
+     * is plenty for diversity selection on realistic libraries and avoids
+     * pulling hundreds of unused rows for a 12-image initial render.
+     */
+    private const DIVERSITY_HEADROOM = 1.5;
+
+    /**
      * Calculate optimal fetch limit based on requested limit.
-     * Uses min(limit * 3, MAX_FETCH_LIMIT) to balance album diversity with performance.
+     * Multiplier kept small to avoid reading 150 rows just to display 12.
      */
     private function calculateFetchLimit(int $requestedLimit): int
     {
-        return min($requestedLimit * 3, self::MAX_FETCH_LIMIT);
+        $padded = (int) ceil($requestedLimit * self::DIVERSITY_HEADROOM);
+        // Always fetch at least a few extra rows to avoid degenerate cases on tiny limits
+        $padded = max($padded, $requestedLimit + 6);
+        return min($padded, self::MAX_FETCH_LIMIT);
     }
 
     /**

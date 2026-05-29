@@ -328,92 +328,77 @@ class GalleriesController extends BaseController
     private function getFilteredAlbums(array $filters, ?bool $isAdmin = null, ?bool $nsfwConsent = null): array
     {
         $pdo = $this->db->pdo();
-        
-        // Base query
+
+        // Lazy semi-join strategy: the base query only LEFT JOINs categories for
+        // the primary category display (c.name/c.slug). Each pivot filter is
+        // expressed as an EXISTS subquery — added ONLY when the filter is set —
+        // which avoids the cartesian product + DISTINCT pattern from before
+        // (18 LEFT JOINs always active). Significantly faster as the dataset grows.
         $sql = '
-            SELECT DISTINCT a.*, c.name as category_name, c.slug as category_slug
-            FROM albums a 
-            LEFT JOIN categories c ON c.id = a.category_id 
-            LEFT JOIN album_category ac ON ac.album_id = a.id
-            LEFT JOIN categories cat ON cat.id = ac.category_id
-            LEFT JOIN album_tag at ON at.album_id = a.id
-            LEFT JOIN tags t ON t.id = at.tag_id
-            LEFT JOIN album_camera acam ON acam.album_id = a.id
-            LEFT JOIN cameras cam ON cam.id = acam.camera_id
-            LEFT JOIN album_lens al ON al.album_id = a.id
-            LEFT JOIN lenses l ON l.id = al.lens_id
-            LEFT JOIN album_film af ON af.album_id = a.id
-            LEFT JOIN films f ON f.id = af.film_id
-            LEFT JOIN album_developer ad ON ad.album_id = a.id
-            LEFT JOIN developers d ON d.id = ad.developer_id
-            LEFT JOIN album_lab alab ON alab.album_id = a.id
-            LEFT JOIN labs lab ON lab.id = alab.lab_id
-            LEFT JOIN album_location aloc ON aloc.album_id = a.id
-            LEFT JOIN locations loc ON loc.id = aloc.location_id
+            SELECT a.*, c.name as category_name, c.slug as category_slug
+            FROM albums a
+            LEFT JOIN categories c ON c.id = a.category_id
             WHERE a.is_published = 1
         ';
-        
+
         $params = [];
         $conditions = [];
-        
-        // Apply filters
+
+        // Helper closure to build "EXISTS (SELECT 1 FROM pivot p WHERE p.album_id = a.id AND p.col IN (...))"
+        $existsIn = function (string $sub) use (&$conditions, &$params, $filters) {
+            // intentionally empty placeholder for IDE; real logic uses inline assembly below
+        };
+
+        // Category: match either the primary category (albums.category_id) OR the
+        // many-to-many album_category. Single EXISTS handles both paths.
         if (!empty($filters['category'])) {
-            $placeholders = str_repeat('?,', count($filters['category']) - 1) . '?';
-            $conditions[] = "(cat.id IN ($placeholders) OR c.id IN ($placeholders))";
+            $placeholders = implode(',', array_fill(0, count($filters['category']), '?'));
+            $conditions[] = "(a.category_id IN ($placeholders) OR EXISTS (
+                SELECT 1 FROM album_category ac
+                WHERE ac.album_id = a.id AND ac.category_id IN ($placeholders)
+            ))";
             $params = array_merge($params, $filters['category'], $filters['category']);
         }
-        
-        if (!empty($filters['tags'])) {
-            $placeholders = str_repeat('?,', count($filters['tags']) - 1) . '?';
-            $conditions[] = "t.id IN ($placeholders)";
-            $params = array_merge($params, $filters['tags']);
+
+        // Pivot-only filters: each becomes one EXISTS, added only when active.
+        $pivotFilters = [
+            'tags'       => ['table' => 'album_tag',       'col' => 'tag_id'],
+            'cameras'    => ['table' => 'album_camera',    'col' => 'camera_id'],
+            'lenses'     => ['table' => 'album_lens',      'col' => 'lens_id'],
+            'films'      => ['table' => 'album_film',      'col' => 'film_id'],
+            'developers' => ['table' => 'album_developer', 'col' => 'developer_id'],
+            'labs'       => ['table' => 'album_lab',       'col' => 'lab_id'],
+            'locations'  => ['table' => 'album_location',  'col' => 'location_id'],
+        ];
+        foreach ($pivotFilters as $key => $meta) {
+            if (empty($filters[$key])) {
+                continue;
+            }
+            $placeholders = implode(',', array_fill(0, count($filters[$key]), '?'));
+            $conditions[] = "EXISTS (
+                SELECT 1 FROM {$meta['table']} px
+                WHERE px.album_id = a.id AND px.{$meta['col']} IN ($placeholders)
+            )";
+            $params = array_merge($params, $filters[$key]);
         }
-        
-        if (!empty($filters['cameras'])) {
-            $placeholders = str_repeat('?,', count($filters['cameras']) - 1) . '?';
-            $conditions[] = "cam.id IN ($placeholders)";
-            $params = array_merge($params, $filters['cameras']);
-        }
-        
-        if (!empty($filters['lenses'])) {
-            $placeholders = str_repeat('?,', count($filters['lenses']) - 1) . '?';
-            $conditions[] = "l.id IN ($placeholders)";
-            $params = array_merge($params, $filters['lenses']);
-        }
-        
-        if (!empty($filters['films'])) {
-            $placeholders = str_repeat('?,', count($filters['films']) - 1) . '?';
-            $conditions[] = "f.id IN ($placeholders)";
-            $params = array_merge($params, $filters['films']);
-        }
-        
-        if (!empty($filters['developers'])) {
-            $placeholders = str_repeat('?,', count($filters['developers']) - 1) . '?';
-            $conditions[] = "d.id IN ($placeholders)";
-            $params = array_merge($params, $filters['developers']);
-        }
-        
-        if (!empty($filters['labs'])) {
-            $placeholders = str_repeat('?,', count($filters['labs']) - 1) . '?';
-            $conditions[] = "lab.id IN ($placeholders)";
-            $params = array_merge($params, $filters['labs']);
-        }
-        
-        if (!empty($filters['locations'])) {
-            $placeholders = str_repeat('?,', count($filters['locations']) - 1) . '?';
-            $conditions[] = "loc.id IN ($placeholders)";
-            $params = array_merge($params, $filters['locations']);
-        }
-        
+
         if (!empty($filters['year'])) {
             $yearExpr = $this->db->yearExpression('a.shoot_date');
             $conditions[] = "{$yearExpr} = ?";
             $params[] = (string)$filters['year'];
         }
-        
+
         if (!empty($filters['search'])) {
-            $conditions[] = "(a.title LIKE ? OR a.excerpt LIKE ? OR a.body LIKE ? OR a.slug LIKE ? OR c.name LIKE ? OR cat.name LIKE ? OR t.name LIKE ?)";
+            // Album-text fields + primary category name (inline) + EXISTS on tags
+            // and many-to-many categories. EXISTS keeps the row-count linear in
+            // matches rather than exploding via JOIN duplication.
             $searchTerm = '%' . $filters['search'] . '%';
+            $conditions[] = "(
+                a.title LIKE ? OR a.excerpt LIKE ? OR a.body LIKE ? OR a.slug LIKE ?
+                OR c.name LIKE ?
+                OR EXISTS (SELECT 1 FROM album_category sac JOIN categories scat ON scat.id = sac.category_id WHERE sac.album_id = a.id AND scat.name LIKE ?)
+                OR EXISTS (SELECT 1 FROM album_tag sat JOIN tags st ON st.id = sat.tag_id WHERE sat.album_id = a.id AND st.name LIKE ?)
+            )";
             $params[] = $searchTerm;
             $params[] = $searchTerm;
             $params[] = $searchTerm;
@@ -422,12 +407,11 @@ class GalleriesController extends BaseController
             $params[] = $searchTerm;
             $params[] = $searchTerm;
         }
-        
-        // Add conditions to query
+
         if (!empty($conditions)) {
             $sql .= ' AND ' . implode(' AND ', $conditions);
         }
-        
+
         // Add sorting
         switch ($filters['sort'] ?? 'published_desc') {
             case 'published_asc':
@@ -649,10 +633,9 @@ class GalleriesController extends BaseController
 
     /**
      * Batch enrich multiple albums with cover images, tags, and counts.
-     * Reduces N+1 queries from ~4 per album to 4 total queries.
-     *
-     * @param array $albums Array of album records
-     * @return array Enriched albums
+     * Delegates batch fetching to AlbumEnrichmentService so the SQL stays in
+     * one place — the controller is now responsible only for assembling the
+     * listing-page shape (cover_image / images_count / tags / is_password_protected).
      */
     private function enrichAlbumsBatch(array $albums): array
     {
@@ -660,11 +643,10 @@ class GalleriesController extends BaseController
             return [];
         }
 
-        $pdo = $this->db->pdo();
+        $enrich = new \App\Services\AlbumEnrichmentService($this->db->pdo());
         $albumIds = array_column($albums, 'id');
-        $albumPlaceholders = implode(',', array_fill(0, count($albumIds), '?'));
 
-        // Index albums by ID for easy lookup
+        // Index albums by ID with defaults seeded for the template layer
         $albumsById = [];
         foreach ($albums as $album) {
             $albumsById[$album['id']] = $album;
@@ -673,103 +655,47 @@ class GalleriesController extends BaseController
             $albumsById[$album['id']]['tags'] = [];
         }
 
-        // 1. Batch fetch cover images (explicit cover_image_id)
+        // 1. Explicit covers (those with cover_image_id set)
         $coverImageIds = array_values(array_filter(array_column($albums, 'cover_image_id')));
-        $coverImagesById = [];
-        if (!empty($coverImageIds)) {
-            $coverPlaceholders = implode(',', array_fill(0, count($coverImageIds), '?'));
-            $stmt = $pdo->prepare("
-                SELECT i.*,
-                       iv.path AS preview_path,
-                       blur.path AS blur_path
-                FROM images i
-                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm' AND iv.format = 'jpg'
-                LEFT JOIN image_variants blur ON blur.image_id = i.id AND blur.variant = 'blur'
-                WHERE i.id IN ($coverPlaceholders)
-            ");
-            $stmt->execute($coverImageIds);
-            foreach ($stmt->fetchAll() as $img) {
-                $coverImagesById[$img['id']] = $img;
-            }
-        }
-
-        // Assign explicit covers
-        foreach ($albumsById as $albumId => &$album) {
+        $coverImagesById = $enrich->loadListingCoverImages($coverImageIds);
+        foreach ($albumsById as &$album) {
             if (!empty($album['cover_image_id']) && isset($coverImagesById[$album['cover_image_id']])) {
                 $album['cover_image'] = $coverImagesById[$album['cover_image_id']];
             }
         }
         unset($album);
 
-        // 2. Batch fetch first images for albums without explicit covers
-        $albumsNeedingFallback = array_filter($albumsById, fn($a) => empty($a['cover_image']));
-        if (!empty($albumsNeedingFallback)) {
-            $fallbackIds = array_keys($albumsNeedingFallback);
-            $fallbackPlaceholders = implode(',', array_fill(0, count($fallbackIds), '?'));
-
-            // Get first image per album using window function or subquery
-            $stmt = $pdo->prepare("
-                SELECT i.*,
-                       iv.path AS preview_path,
-                       blur.path AS blur_path
-                FROM images i
-                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm' AND iv.format = 'jpg'
-                LEFT JOIN image_variants blur ON blur.image_id = i.id AND blur.variant = 'blur'
-                WHERE i.album_id IN ($fallbackPlaceholders)
-                  AND i.id = (
-                      SELECT i2.id FROM images i2
-                      WHERE i2.album_id = i.album_id
-                      ORDER BY i2.sort_order ASC, i2.id ASC
-                      LIMIT 1
-                  )
-            ");
-            $stmt->execute($fallbackIds);
-            foreach ($stmt->fetchAll() as $img) {
-                if (isset($albumsById[$img['album_id']]) && empty($albumsById[$img['album_id']]['cover_image'])) {
-                    $albumsById[$img['album_id']]['cover_image'] = $img;
-                }
+        // 2. Fallback covers (first image per album) for those still missing one
+        $needsFallback = array_keys(array_filter($albumsById, fn($a) => empty($a['cover_image'])));
+        $fallbackByAlbum = $enrich->loadFallbackCoverImages($needsFallback);
+        foreach ($fallbackByAlbum as $albumId => $img) {
+            if (isset($albumsById[$albumId]) && empty($albumsById[$albumId]['cover_image'])) {
+                $albumsById[$albumId]['cover_image'] = $img;
             }
         }
 
-        // 3. Batch fetch image counts
-        $stmt = $pdo->prepare("
-            SELECT album_id, COUNT(*) as cnt
-            FROM images
-            WHERE album_id IN ($albumPlaceholders)
-            GROUP BY album_id
-        ");
-        $stmt->execute($albumIds);
-        foreach ($stmt->fetchAll() as $row) {
-            if (isset($albumsById[$row['album_id']])) {
-                $albumsById[$row['album_id']]['images_count'] = (int)$row['cnt'];
-            }
-        }
-
-        // 4. Batch fetch tags
-        $stmt = $pdo->prepare("
-            SELECT at.album_id, t.*
-            FROM tags t
-            JOIN album_tag at ON at.tag_id = t.id
-            WHERE at.album_id IN ($albumPlaceholders)
-            ORDER BY t.name ASC
-        ");
-        $stmt->execute($albumIds);
-        foreach ($stmt->fetchAll() as $tag) {
-            $albumId = $tag['album_id'];
-            unset($tag['album_id']);
+        // 3. Image counts
+        foreach ($enrich->loadImageCounts($albumIds) as $albumId => $cnt) {
             if (isset($albumsById[$albumId])) {
-                $albumsById[$albumId]['tags'][] = $tag;
+                $albumsById[$albumId]['images_count'] = $cnt;
             }
         }
 
-        // Finalize: set password protection flag
+        // 4. Tags
+        foreach ($enrich->loadTags($albumIds) as $albumId => $tagList) {
+            if (isset($albumsById[$albumId])) {
+                $albumsById[$albumId]['tags'] = $tagList;
+            }
+        }
+
+        // Finalize: derive is_password_protected and drop the raw hash
         foreach ($albumsById as &$album) {
             $album['is_password_protected'] = !empty($album['password_hash']);
             unset($album['password_hash']);
         }
         unset($album);
 
-        // Return in original order
+        // Preserve the input order
         $result = [];
         foreach ($albums as $album) {
             $result[] = $albumsById[$album['id']];
@@ -777,91 +703,6 @@ class GalleriesController extends BaseController
         return $result;
     }
 
-    /**
-     * @deprecated Use enrichAlbumsBatch() for better performance
-     */
-    private function enrichAlbum(array $album): array
-    {
-        $pdo = $this->db->pdo();
-
-        // Get cover image with blur variant for NSFW albums
-        if (!empty($album['cover_image_id'])) {
-            $stmt = $pdo->prepare("
-                SELECT i.*,
-                       iv.path AS preview_path,
-                       blur.path AS blur_path
-                FROM images i
-                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm' AND iv.format = 'jpg'
-                LEFT JOIN image_variants blur ON blur.image_id = i.id AND blur.variant = 'blur'
-                WHERE i.id = :id
-            ");
-            $stmt->execute([':id' => $album['cover_image_id']]);
-            $cover = $stmt->fetch();
-            if ($cover) {
-                if (empty($cover['blur_path'])) {
-                    $cover['blur_path'] = $this->fetchBlurPath($pdo, (int)$cover['id']);
-                }
-                $album['cover_image'] = $cover;
-            }
-        }
-
-        // If no cover image, get first image
-        if (empty($album['cover_image'])) {
-            $stmt = $pdo->prepare("
-                SELECT i.*,
-                       iv.path AS preview_path,
-                       blur.path AS blur_path
-                FROM images i
-                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm' AND iv.format = 'jpg'
-                LEFT JOIN image_variants blur ON blur.image_id = i.id AND blur.variant = 'blur'
-                WHERE i.album_id = :album_id
-                ORDER BY i.sort_order ASC, i.id ASC
-                LIMIT 1
-            ");
-            $stmt->execute([':album_id' => $album['id']]);
-            $cover = $stmt->fetch();
-            if ($cover) {
-                if (empty($cover['blur_path'])) {
-                    $cover['blur_path'] = $this->fetchBlurPath($pdo, (int)$cover['id']);
-                }
-                $album['cover_image'] = $cover;
-            }
-        }
-
-        // Get images count
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM images WHERE album_id = :album_id');
-        $stmt->execute([':album_id' => $album['id']]);
-        $album['images_count'] = $stmt->fetchColumn();
-
-        // Get tags
-        $stmt = $pdo->prepare('
-            SELECT t.* FROM tags t
-            JOIN album_tag at ON at.tag_id = t.id
-            WHERE at.album_id = :album_id
-            ORDER BY t.name ASC
-        ');
-        $stmt->execute([':album_id' => $album['id']]);
-        $album['tags'] = $stmt->fetchAll();
-
-        // Add password protection flag (don't expose the hash itself)
-        $album['is_password_protected'] = !empty($album['password_hash']);
-        unset($album['password_hash']);
-
-        return $album;
-    }
-
-    private function fetchBlurPath(\PDO $pdo, int $imageId): ?string
-    {
-        if ($imageId <= 0) {
-            return null;
-        }
-
-        $stmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND variant = 'blur' LIMIT 1");
-        $stmt->execute([':id' => $imageId]);
-        $path = $stmt->fetchColumn();
-
-        return $path !== false ? (string)$path : null;
-    }
 
     /**
      * Validate filter cache structure to prevent cache poisoning.

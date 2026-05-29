@@ -65,14 +65,19 @@ class HelloCimaisePlugin
      */
     public function onAppInit($db, $pluginManager): void
     {
+        // Demo plugin: keep logs out of the hot per-request boot path.
+        // Set HELLO_CIMAISE_VERBOSE=1 in env to re-enable the diagnostic logs.
+        $verbose = (string)($_ENV['HELLO_CIMAISE_VERBOSE'] ?? getenv('HELLO_CIMAISE_VERBOSE') ?: '0') === '1';
+        if (!$verbose) {
+            return;
+        }
+
         error_log("Hello Cimaise: Application initialized!");
 
-        // Example: Check database connection
         if ($db) {
             error_log("Hello Cimaise: Database connected successfully");
         }
 
-        // Example: Get plugin stats
         if (is_object($pluginManager) && method_exists($pluginManager, 'getStats')) {
             $stats = $pluginManager->getStats();
             error_log("Hello Cimaise: Total hooks registered: " . $stats['total_hooks']);

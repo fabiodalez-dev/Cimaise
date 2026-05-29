@@ -336,8 +336,9 @@ class AlbumsController extends BaseController
         }
         try {
             $albumId = (int)$pdo->lastInsertId();
-            // sync categories (pivot)
-            if ($category_id > 0 || !empty($categoryIds)) {
+            // sync categories (pivot) — $category_id is guaranteed > 0 by the
+            // upstream "title or category required" guard.
+            {
                 $cats = array_unique(array_filter(array_map('intval', array_merge([$category_id], $categoryIds))));
                 if ($cats) {
                     $sql = $this->db->insertIgnoreKeyword() . ' INTO album_category(album_id, category_id) VALUES(:a,:c)';
@@ -823,9 +824,10 @@ class AlbumsController extends BaseController
                     $tagStmt->execute([':a'=>$id, ':t'=>$tid]);
                 }
             }
-            // sync categories pivot
+            // sync categories pivot — $category_id is guaranteed > 0 by the
+            // upstream "title or category required" guard.
             $pdo->prepare('DELETE FROM album_category WHERE album_id=:a')->execute([':a'=>$id]);
-            if ($category_id > 0 || !empty($categoryIds)) {
+            {
                 $cats = array_unique(array_filter(array_map('intval', array_merge([$category_id], $categoryIds))));
                 if ($cats) {
                     $sql = $this->db->insertIgnoreKeyword() . ' INTO album_category(album_id, category_id) VALUES(:a,:c)';

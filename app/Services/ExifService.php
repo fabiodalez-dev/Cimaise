@@ -385,10 +385,16 @@ class ExifService
         }
         
         try {
-            if (extension_loaded('imagick')) {
+            // Imagick is opt-out via CIMAISE_DISABLE_IMAGICK=1 (see UploadService).
+            // GD is the safer fallback when ImageMagick segfaults under the
+            // current php-fpm build (macOS Apple Silicon + ImageMagick 7.1.x).
+            $imagickDisabled = filter_var((string)(function_exists('envv') ? envv('CIMAISE_DISABLE_IMAGICK', 'false') : ($_ENV['CIMAISE_DISABLE_IMAGICK'] ?? 'false')), FILTER_VALIDATE_BOOLEAN);
+            if (extension_loaded('imagick') && !$imagickDisabled) {
                 return $this->normalizeWithImagick($imagePath, $orientation);
-            } else {
+            } elseif (extension_loaded('gd')) {
                 return $this->normalizeWithGD($imagePath, $orientation);
+            } else {
+                return false;
             }
         } catch (\Throwable $e) {
             Logger::warning('ExifService: EXIF orientation fix failed', ['error' => $e->getMessage(), 'path' => $imagePath], 'upload');
@@ -795,7 +801,7 @@ class ExifService
             }
             $exposure[] = ['label' => 'Focal Length', 'value' => $focalValue, 'icon' => 'fa-ruler-horizontal'];
         }
-        if (isset($meta['ExposureBiasValue']) && $meta['ExposureBiasValue'] !== null) {
+        if (isset($meta['ExposureBiasValue'])) {
             $bias = $this->formatExposureBias($meta['ExposureBiasValue']);
             if ($bias) {
                 $exposure[] = ['label' => 'Exp. Comp.', 'value' => $bias, 'icon' => 'fa-sliders'];
@@ -807,19 +813,19 @@ class ExifService
 
         // Camera Mode section (program, metering, exposure mode)
         $mode = [];
-        if (isset($meta['ExposureProgram']) && $meta['ExposureProgram'] !== null) {
+        if (isset($meta['ExposureProgram'])) {
             $programName = $this->getExposureProgramName($meta['ExposureProgram']);
             if ($programName) {
                 $mode[] = ['label' => 'Program', 'value' => $programName, 'icon' => 'fa-dial'];
             }
         }
-        if (isset($meta['MeteringMode']) && $meta['MeteringMode'] !== null) {
+        if (isset($meta['MeteringMode'])) {
             $meteringName = $this->getMeteringModeName($meta['MeteringMode']);
             if ($meteringName) {
                 $mode[] = ['label' => 'Metering', 'value' => $meteringName, 'icon' => 'fa-bullseye'];
             }
         }
-        if (isset($meta['ExposureMode']) && $meta['ExposureMode'] !== null) {
+        if (isset($meta['ExposureMode'])) {
             $modeName = $this->getExposureModeName($meta['ExposureMode']);
             if ($modeName) {
                 $mode[] = ['label' => 'Exp. Mode', 'value' => $modeName, 'icon' => 'fa-gear'];
@@ -848,21 +854,21 @@ class ExifService
                 $settings[] = ['label' => 'Date', 'value' => $date->format('d M Y, H:i'), 'icon' => 'fa-calendar'];
             }
         }
-        if (isset($meta['Flash']) && $meta['Flash'] !== null) {
+        if (isset($meta['Flash'])) {
             $flashFired = ($meta['Flash'] & 1) ? 'Yes' : 'No';
             $settings[] = ['label' => 'Flash', 'value' => $flashFired, 'icon' => 'fa-bolt'];
         }
-        if (isset($meta['WhiteBalance']) && $meta['WhiteBalance'] !== null) {
+        if (isset($meta['WhiteBalance'])) {
             $wb = $meta['WhiteBalance'] == 0 ? 'Auto' : 'Manual';
             $settings[] = ['label' => 'White Balance', 'value' => $wb, 'icon' => 'fa-temperature-half'];
         }
-        if (isset($meta['LightSource']) && $meta['LightSource'] !== null && $meta['LightSource'] != 0) {
+        if (isset($meta['LightSource']) && $meta['LightSource'] != 0) {
             $lightName = $this->getLightSourceName($meta['LightSource']);
             if ($lightName) {
                 $settings[] = ['label' => 'Light Source', 'value' => $lightName, 'icon' => 'fa-sun'];
             }
         }
-        if (isset($meta['SceneCaptureType']) && $meta['SceneCaptureType'] !== null) {
+        if (isset($meta['SceneCaptureType'])) {
             $sceneName = $this->getSceneCaptureTypeName($meta['SceneCaptureType']);
             if ($sceneName) {
                 $settings[] = ['label' => 'Scene', 'value' => $sceneName, 'icon' => 'fa-image'];
@@ -971,9 +977,10 @@ class ExifService
             // Write EXIF sub-IFD entries
             $this->writeExifSubIfdEntries($exifIfd, $exifData);
 
-            // Write GPS data if coordinates provided
-            if (isset($exifData['gps_lat']) && isset($exifData['gps_lng']) &&
-                $exifData['gps_lat'] !== null && $exifData['gps_lng'] !== null) {
+            // Write GPS data if coordinates provided.
+            // isset() already treats null as absent, so the explicit !== null
+            // checks were redundant.
+            if (isset($exifData['gps_lat'], $exifData['gps_lng'])) {
                 $this->writeGpsData($ifd0, (float)$exifData['gps_lat'], (float)$exifData['gps_lng']);
             }
 
@@ -998,31 +1005,31 @@ class ExifService
     private function writeIfd0Entries(PelIfd $ifd0, array $data): void
     {
         // Camera Make
-        if (isset($data['exif_make']) && $data['exif_make'] !== null) {
+        if (isset($data['exif_make'])) {
             $this->trySetEntry($ifd0, PelTag::MAKE,
                 new PelEntryAscii(PelTag::MAKE, (string)$data['exif_make']), 'Make');
         }
 
         // Camera Model
-        if (isset($data['exif_model']) && $data['exif_model'] !== null) {
+        if (isset($data['exif_model'])) {
             $this->trySetEntry($ifd0, PelTag::MODEL,
                 new PelEntryAscii(PelTag::MODEL, (string)$data['exif_model']), 'Model');
         }
 
         // Software
-        if (isset($data['software']) && $data['software'] !== null) {
+        if (isset($data['software'])) {
             $this->trySetEntry($ifd0, PelTag::SOFTWARE,
                 new PelEntryAscii(PelTag::SOFTWARE, (string)$data['software']), 'Software');
         }
 
         // Artist
-        if (isset($data['artist']) && $data['artist'] !== null) {
+        if (isset($data['artist'])) {
             $this->trySetEntry($ifd0, PelTag::ARTIST,
                 new PelEntryAscii(PelTag::ARTIST, (string)$data['artist']), 'Artist');
         }
 
         // Copyright (uses special PelEntryCopyright class)
-        if (isset($data['copyright']) && $data['copyright'] !== null) {
+        if (isset($data['copyright'])) {
             $this->trySetEntry($ifd0, PelTag::COPYRIGHT,
                 new PelEntryCopyright((string)$data['copyright']), 'Copyright');
         }
@@ -1034,13 +1041,13 @@ class ExifService
     private function writeExifSubIfdEntries(PelIfd $exifIfd, array $data): void
     {
         // Lens Model (tag 0xA434) - use trySetEntry as PEL may not support this tag
-        if (isset($data['exif_lens_model']) && $data['exif_lens_model'] !== null) {
+        if (isset($data['exif_lens_model'])) {
             $this->trySetEntry($exifIfd, 0xA434,
                 new PelEntryAscii(0xA434, (string)$data['exif_lens_model']), 'LensModel');
         }
 
         // Focal Length (rational)
-        if (isset($data['focal_length']) && $data['focal_length'] !== null) {
+        if (isset($data['focal_length'])) {
             $fl = (float)$data['focal_length'];
             // Store as rational: focal_length * 10 / 10 for one decimal precision
             $this->trySetEntry($exifIfd, PelTag::FOCAL_LENGTH,
@@ -1048,7 +1055,7 @@ class ExifService
         }
 
         // Exposure Bias (signed rational)
-        if (isset($data['exposure_bias']) && $data['exposure_bias'] !== null) {
+        if (isset($data['exposure_bias'])) {
             $bias = (float)$data['exposure_bias'];
             // Store as signed rational with precision of 0.1 EV
             $this->trySetEntry($exifIfd, PelTag::EXPOSURE_BIAS_VALUE,
@@ -1056,73 +1063,73 @@ class ExifService
         }
 
         // Flash (short)
-        if (isset($data['flash']) && $data['flash'] !== null) {
+        if (isset($data['flash'])) {
             $this->trySetEntry($exifIfd, PelTag::FLASH,
                 new PelEntryShort(PelTag::FLASH, (int)$data['flash']), 'Flash');
         }
 
         // White Balance (short)
-        if (isset($data['white_balance']) && $data['white_balance'] !== null) {
+        if (isset($data['white_balance'])) {
             $this->trySetEntry($exifIfd, PelTag::WHITE_BALANCE,
                 new PelEntryShort(PelTag::WHITE_BALANCE, (int)$data['white_balance']), 'WhiteBalance');
         }
 
         // Exposure Program (short)
-        if (isset($data['exposure_program']) && $data['exposure_program'] !== null) {
+        if (isset($data['exposure_program'])) {
             $this->trySetEntry($exifIfd, PelTag::EXPOSURE_PROGRAM,
                 new PelEntryShort(PelTag::EXPOSURE_PROGRAM, (int)$data['exposure_program']), 'ExposureProgram');
         }
 
         // Metering Mode (short)
-        if (isset($data['metering_mode']) && $data['metering_mode'] !== null) {
+        if (isset($data['metering_mode'])) {
             $this->trySetEntry($exifIfd, PelTag::METERING_MODE,
                 new PelEntryShort(PelTag::METERING_MODE, (int)$data['metering_mode']), 'MeteringMode');
         }
 
         // Exposure Mode (short)
-        if (isset($data['exposure_mode']) && $data['exposure_mode'] !== null) {
+        if (isset($data['exposure_mode'])) {
             $this->trySetEntry($exifIfd, PelTag::EXPOSURE_MODE,
                 new PelEntryShort(PelTag::EXPOSURE_MODE, (int)$data['exposure_mode']), 'ExposureMode');
         }
 
         // Color Space (short) - use trySetEntry as we use raw hex tag
-        if (isset($data['color_space']) && $data['color_space'] !== null) {
+        if (isset($data['color_space'])) {
             $this->trySetEntry($exifIfd, PelTag::COLOR_SPACE,
                 new PelEntryShort(PelTag::COLOR_SPACE, (int)$data['color_space']), 'ColorSpace');
         }
 
         // Contrast (short)
-        if (isset($data['contrast']) && $data['contrast'] !== null) {
+        if (isset($data['contrast'])) {
             $this->trySetEntry($exifIfd, PelTag::CONTRAST,
                 new PelEntryShort(PelTag::CONTRAST, (int)$data['contrast']), 'Contrast');
         }
 
         // Saturation (short)
-        if (isset($data['saturation']) && $data['saturation'] !== null) {
+        if (isset($data['saturation'])) {
             $this->trySetEntry($exifIfd, PelTag::SATURATION,
                 new PelEntryShort(PelTag::SATURATION, (int)$data['saturation']), 'Saturation');
         }
 
         // Sharpness (short)
-        if (isset($data['sharpness']) && $data['sharpness'] !== null) {
+        if (isset($data['sharpness'])) {
             $this->trySetEntry($exifIfd, PelTag::SHARPNESS,
                 new PelEntryShort(PelTag::SHARPNESS, (int)$data['sharpness']), 'Sharpness');
         }
 
         // Scene Capture Type (short)
-        if (isset($data['scene_capture_type']) && $data['scene_capture_type'] !== null) {
+        if (isset($data['scene_capture_type'])) {
             $this->trySetEntry($exifIfd, PelTag::SCENE_CAPTURE_TYPE,
                 new PelEntryShort(PelTag::SCENE_CAPTURE_TYPE, (int)$data['scene_capture_type']), 'SceneCaptureType');
         }
 
         // Light Source (short)
-        if (isset($data['light_source']) && $data['light_source'] !== null) {
+        if (isset($data['light_source'])) {
             $this->trySetEntry($exifIfd, PelTag::LIGHT_SOURCE,
                 new PelEntryShort(PelTag::LIGHT_SOURCE, (int)$data['light_source']), 'LightSource');
         }
 
         // DateTimeOriginal (ASCII string in EXIF format)
-        if (isset($data['date_original']) && $data['date_original'] !== null) {
+        if (isset($data['date_original'])) {
             $this->trySetEntry($exifIfd, PelTag::DATE_TIME_ORIGINAL,
                 new PelEntryAscii(PelTag::DATE_TIME_ORIGINAL, (string)$data['date_original']), 'DateTimeOriginal');
         }

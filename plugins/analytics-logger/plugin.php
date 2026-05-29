@@ -62,10 +62,25 @@ class AnalyticsLoggerPlugin
     }
 
     /**
-     * Create plugin tables if not exist
+     * Schema version marker for plugin_analytics_custom_events.
+     * Stored in the global settings table. When the marker equals SCHEMA_VERSION
+     * the DDL block is skipped — this is the hot path on every request boot.
+     */
+    private const SCHEMA_VERSION = '1';
+    private const SCHEMA_SETTING_KEY = 'plugin_analytics_logger_schema';
+
+    /**
+     * Create plugin tables if not exist.
+     * Fast path: when the schema marker matches the current version we return
+     * immediately, avoiding the CREATE TABLE IF NOT EXISTS round-trip on every
+     * request bootstrap.
      */
     private function createTables(): void
     {
+        if ($this->isSchemaCurrent()) {
+            return;
+        }
+
         $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
         if ($driver === 'mysql') {
             $sql = "
@@ -109,6 +124,45 @@ class AnalyticsLoggerPlugin
         // Create indexes (ignore compatibility errors)
         try { $this->db->exec("CREATE INDEX idx_custom_events_session ON plugin_analytics_custom_events(session_id)"); } catch (\Throwable) {}
         try { $this->db->exec("CREATE INDEX idx_custom_events_type ON plugin_analytics_custom_events(event_type)"); } catch (\Throwable) {}
+
+        $this->markSchemaCurrent();
+    }
+
+    /**
+     * Check whether the schema marker already records the current version.
+     * Best-effort: returns false on any DB error (settings table absent during
+     * the very first boot of a fresh install), which forces the DDL to run.
+     */
+    private function isSchemaCurrent(): bool
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT value FROM settings WHERE `key` = ?");
+            $stmt->bindValue(1, self::SCHEMA_SETTING_KEY);
+            $stmt->execute();
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            return $row && isset($row['value']) && (string)$row['value'] === self::SCHEMA_VERSION;
+        } catch (\PDOException) {
+            return false;
+        }
+    }
+
+    /**
+     * Persist the schema marker so subsequent boots take the fast path.
+     */
+    private function markSchemaCurrent(): void
+    {
+        try {
+            $driver = $this->db->getAttribute(\PDO::ATTR_DRIVER_NAME);
+            $sql = $driver === 'sqlite'
+                ? "INSERT OR REPLACE INTO settings (`key`, value) VALUES (?, ?)"
+                : "INSERT INTO settings (`key`, value) VALUES (?, ?) AS new ON DUPLICATE KEY UPDATE value = new.value";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(1, self::SCHEMA_SETTING_KEY);
+            $stmt->bindValue(2, self::SCHEMA_VERSION);
+            $stmt->execute();
+        } catch (\PDOException) {
+            // settings table not yet available - silent skip (will retry next boot)
+        }
     }
 
     /**

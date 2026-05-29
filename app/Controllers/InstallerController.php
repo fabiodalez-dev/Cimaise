@@ -104,7 +104,7 @@ class InstallerController
         
         // Verify CSRF token
         $csrf = (string)($data['csrf'] ?? '');
-        if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+        if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token. Please try again.'];
             return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
         }
@@ -176,7 +176,7 @@ class InstallerController
         
         // Verify CSRF token
         $csrf = (string)($data['csrf'] ?? '');
-        if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+        if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token. Please try again.'];
             return $response->withHeader('Location', $this->basePath . '/install/admin')->withStatus(302);
         }
@@ -246,7 +246,7 @@ class InstallerController
 
         // Verify CSRF token
         $csrf = (string)($data['csrf'] ?? '');
-        if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+        if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token. Please try again.'];
             return $response->withHeader('Location', $this->basePath . '/install/settings')->withStatus(302);
         }
@@ -294,7 +294,7 @@ class InstallerController
                 }
 
                 $imgInfo = @getimagesize($tmpPath);
-                if ($imgInfo === false || ($imgInfo[0] ?? 0) <= 0 || ($imgInfo[1] ?? 0) <= 0) {
+                if ($imgInfo === false || $imgInfo[0] <= 0 || $imgInfo[1] <= 0) {
                     $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Corrupted image file'];
                     return $response->withHeader('Location', $this->basePath . '/install/settings')->withStatus(302);
                 }
@@ -378,7 +378,7 @@ class InstallerController
         
         // Verify CSRF token
         $csrf = (string)($data['csrf'] ?? '');
-        if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+        if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             error_log('runInstall: Invalid CSRF token');
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token. Please try again.'];
             return $response->withHeader('Location', $this->basePath . '/install/confirm')->withStatus(302);
@@ -455,7 +455,7 @@ class InstallerController
 
         // Verify CSRF token
         $csrf = (string)($data['csrf'] ?? '');
-        if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+        if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             $payload = json_encode([
                 'success' => false,
                 'error' => 'Invalid CSRF token'

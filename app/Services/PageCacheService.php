@@ -301,9 +301,11 @@ class PageCacheService
         }
 
         $cacheKey = $this->getCacheKey($type);
+        // Filter expired entries in SQL so callers don't receive a hash for stale cache.
+        // expires_at is stored as UTC via gmdate() in setToDatabase(), so compare against gmdate('Y-m-d H:i:s').
         $stmt = $this->db->query(
-            'SELECT data_hash FROM page_cache WHERE cache_key = ? AND version = ?',
-            [$cacheKey, self::CACHE_VERSION]
+            'SELECT data_hash FROM page_cache WHERE cache_key = ? AND version = ? AND expires_at > ?',
+            [$cacheKey, self::CACHE_VERSION, gmdate('Y-m-d H:i:s')]
         );
         $row = $stmt->fetch();
         $stmt->closeCursor();
@@ -542,18 +544,38 @@ class PageCacheService
         return $stats;
     }
 
+    /**
+     * Sample rate for access stats updates: 1 in N hits is persisted.
+     * Tradeoff: lower stats fidelity in exchange for eliminating the read+write
+     * pattern on every cache hit (which serializes SQLite under load).
+     */
+    private const ACCESS_STATS_SAMPLE_RATE = 100;
+
     private function updateAccessStats(int $id): void
     {
         if ($this->db === null) {
             return;
         }
 
+        // Probabilistic sampling: amortize the write cost across many reads
+        // so cache hits don't take a write lock on every request.
         try {
-            // Use UTC for consistency with gmdate() storage
+            if (\random_int(1, self::ACCESS_STATS_SAMPLE_RATE) !== 1) {
+                return;
+            }
+        } catch (\Throwable) {
+            // If CSPRNG fails, skip the update entirely rather than block the read
+            return;
+        }
+
+        try {
+            // Use UTC for consistency with gmdate() storage.
+            // Increment by the sample rate so the stored count remains an unbiased
+            // estimate of total accesses (E[increment] == 1 hit on average).
             $now = $this->db->isSqlite() ? "datetime('now')" : 'UTC_TIMESTAMP()';
             $this->db->execute(
-                "UPDATE page_cache SET last_accessed_at = {$now}, access_count = access_count + 1 WHERE id = ?",
-                [$id]
+                "UPDATE page_cache SET last_accessed_at = {$now}, access_count = access_count + ? WHERE id = ?",
+                [self::ACCESS_STATS_SAMPLE_RATE, $id]
             );
         } catch (\Throwable $e) {
             // Non-critical, ignore errors

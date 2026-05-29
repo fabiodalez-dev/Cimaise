@@ -83,7 +83,7 @@ class AnalyticsTwigExtension extends AbstractExtension
      */
     public function getCountryName(?string $countryCode): string
     {
-        if (!$countryCode || !is_string($countryCode)) {
+        if (!$countryCode) {
             return 'Unknown';
         }
 
@@ -96,7 +96,7 @@ class AnalyticsTwigExtension extends AbstractExtension
      */
     public function getCountryFlag(?string $countryCode): string
     {
-        if (!$countryCode || !is_string($countryCode)) {
+        if (!$countryCode) {
             return '🌍'; // World emoji as fallback
         }
 

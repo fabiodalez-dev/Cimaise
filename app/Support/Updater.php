@@ -327,9 +327,9 @@ class Updater
         $responseHeaders = [];
         $response = @file_get_contents($url, false, $context);
 
-        if (isset($http_response_header)) {
-            $responseHeaders = $http_response_header;
-        }
+        // $http_response_header is populated by file_get_contents() over HTTP
+        // stream wrappers and is always available afterwards.
+        $responseHeaders = $http_response_header;
 
         // If SSL verification fails, retry without verification (shared hosting fallback)
         if ($response === false) {
@@ -357,9 +357,7 @@ class Updater
 
                 $response = @file_get_contents($url, false, $fallbackContext);
 
-                if (isset($http_response_header)) {
-                    $responseHeaders = $http_response_header;
-                }
+                $responseHeaders = $http_response_header;
             }
         }
 
@@ -1307,7 +1305,7 @@ class Updater
 
             // Cleanup
             $this->cleanup();
-            if ($appBackupPath !== null && is_dir($appBackupPath)) {
+            if (is_dir($appBackupPath)) {
                 $this->deleteDirectory($appBackupPath);
             }
 
@@ -1545,6 +1543,9 @@ class Updater
                 if (is_dir($targetPath)) {
                     $this->debugLog('WARNING', 'Removing directory to replace with file', ['path' => $relativePath]);
                     $this->deleteDirectory($targetPath);
+                    // PHP caches filesystem stats, so deleteDirectory's effect
+                    // is invisible to is_dir() until we evict the cache.
+                    clearstatcache(true, $targetPath);
                     // Verify directory was actually deleted
                     if (is_dir($targetPath)) {
                         $this->debugLog('ERROR', 'Failed to delete directory, attempting force removal', ['path' => $relativePath]);
@@ -2258,7 +2259,7 @@ class Updater
         } finally {
             $this->cleanup();
 
-            if ($lockHandle !== null && \is_resource($lockHandle)) {
+            if (\is_resource($lockHandle)) {
                 flock($lockHandle, LOCK_UN);
                 fclose($lockHandle);
             }

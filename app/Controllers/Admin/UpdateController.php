@@ -72,6 +72,11 @@ class UpdateController extends BaseController
      */
     public function performUpdate(Request $request, Response $response): Response
     {
+        // Reject non-POST requests (defence-in-depth against proxy/method tampering)
+        if ($request->getMethod() !== 'POST') {
+            return $this->jsonResponse($response, ['error' => 'method_not_allowed'], 405);
+        }
+
         // Admin-only access
         if (($_SESSION['admin_role'] ?? '') !== 'admin') {
             return $this->jsonResponse($response, ['error' => 'Access denied'], 403);

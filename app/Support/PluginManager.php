@@ -34,6 +34,13 @@ class PluginManager
     private array $filterCache = [];
 
     /**
+     * In-memory cache of plugin statuses, loaded once per request.
+     * Avoids one DB query per plugin during loadPlugins().
+     * @var array<string, array{is_installed: bool, is_active: bool, installed_at: string|null, version: string|null}>|null
+     */
+    private ?array $statusCache = null;
+
+    /**
      * Database connection
      */
     private ?Database $db = null;
@@ -288,6 +295,10 @@ class PluginManager
             return;
         }
 
+        // Prime the status cache with one bulk SELECT, so the per-plugin loop
+        // below resolves install/active state from memory (was N queries × 2).
+        $this->primeStatusCache();
+
         $plugins = glob($pluginsDir . '/*', GLOB_ONLYDIR);
 
         foreach ($plugins as $pluginPath) {
@@ -417,6 +428,13 @@ class PluginManager
             return null;
         }
 
+        // Serve from primed cache when available (loadPlugins primes it once per request).
+        // Cache miss = not in plugin_status table; an explicit null entry distinguishes
+        // "queried, absent" from "never queried".
+        if ($this->statusCache !== null) {
+            return $this->statusCache[$slug] ?? null;
+        }
+
         try {
             $stmt = $this->db->pdo()->prepare('SELECT * FROM plugin_status WHERE slug = ?');
             $stmt->execute([$slug]);
@@ -435,6 +453,43 @@ class PluginManager
         }
 
         return null;
+    }
+
+    /**
+     * Load all plugin statuses into memory with a single SELECT.
+     * Idempotent: subsequent calls reuse the cached array.
+     */
+    private function primeStatusCache(): void
+    {
+        if ($this->statusCache !== null || !$this->db) {
+            return;
+        }
+
+        $this->statusCache = [];
+        try {
+            $stmt = $this->db->pdo()->query('SELECT slug, is_installed, is_active, installed_at, version FROM plugin_status');
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $this->statusCache[$row['slug']] = [
+                    'is_installed' => (bool)$row['is_installed'],
+                    'is_active' => (bool)$row['is_active'],
+                    'installed_at' => $row['installed_at'],
+                    'version' => $row['version'],
+                ];
+            }
+        } catch (\Throwable $e) {
+            // Table may not exist yet (fresh install before ensurePluginTable runs);
+            // leave $statusCache as empty array so we don't keep retrying.
+            Logger::warning('PluginManager: Failed to prime plugin status cache', ['error' => $e->getMessage()], 'plugin');
+        }
+    }
+
+    /**
+     * Invalidate the in-memory status cache after a write
+     * (install/uninstall/activate/deactivate) so subsequent reads pick up the change.
+     */
+    private function invalidateStatusCache(): void
+    {
+        $this->statusCache = null;
     }
 
     /**
@@ -507,6 +562,7 @@ class PluginManager
                 $pluginPath
             ]);
 
+            $this->invalidateStatusCache();
             return ['success' => true, 'message' => 'Plugin installed successfully'];
         } catch (\Throwable $e) {
             Logger::error('PluginManager: Error installing plugin', ['slug' => $slug, 'error' => $e->getMessage()], 'plugin');
@@ -536,6 +592,7 @@ class PluginManager
             $stmt = $this->db->pdo()->prepare('DELETE FROM plugin_status WHERE slug = ?');
             $stmt->execute([$slug]);
 
+            $this->invalidateStatusCache();
             return ['success' => true, 'message' => 'Plugin uninstalled successfully'];
         } catch (\Throwable $e) {
             Logger::error('PluginManager: Error uninstalling plugin', ['slug' => $slug, 'error' => $e->getMessage()], 'plugin');
@@ -566,6 +623,7 @@ class PluginManager
             ');
             $stmt->execute([$slug]);
 
+            $this->invalidateStatusCache();
             return ['success' => true, 'message' => 'Plugin activated successfully'];
         } catch (\Throwable $e) {
             Logger::error('PluginManager: Error activating plugin', ['slug' => $slug, 'error' => $e->getMessage()], 'plugin');
@@ -598,6 +656,7 @@ class PluginManager
             ');
             $stmt->execute([$slug]);
 
+            $this->invalidateStatusCache();
             return ['success' => true, 'message' => 'Plugin deactivated successfully'];
         } catch (\Throwable $e) {
             Logger::error('PluginManager: Error deactivating plugin', ['slug' => $slug, 'error' => $e->getMessage()], 'plugin');

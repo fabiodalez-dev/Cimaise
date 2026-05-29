@@ -893,7 +893,7 @@ class GalleryController extends BaseController
                     'date_original' => $img['date_original'] ?? null,
                     'artist' => $img['artist'] ?? null,
                     'copyright' => $img['copyright'] ?? null,
-                    'sources' => $sources ?? ['avif'=>[], 'webp'=>[], 'jpg'=>[]],
+                    'sources' => $sources,
                     'fallback_src' => $lightboxUrl ?: $bestUrl,
                     'variants' => []
                 ];
@@ -971,9 +971,13 @@ class GalleryController extends BaseController
     {
         // Fix deeply nested column structures like {"desktop":{"desktop":{"desktop":3}}}
         if (isset($templateSettings['columns']) && is_array($templateSettings['columns'])) {
+            $columnsCfg = [
+                'desktop' => ['max' => 6, 'fallback' => 3],
+                'tablet'  => ['max' => 4, 'fallback' => 2],
+                'mobile'  => ['max' => 2, 'fallback' => 1],
+            ];
             $normalizedColumns = [];
-            
-            foreach (['desktop', 'tablet', 'mobile'] as $device) {
+            foreach ($columnsCfg as $device => $cfg) {
                 if (isset($templateSettings['columns'][$device])) {
                     $value = $templateSettings['columns'][$device];
 
@@ -983,25 +987,11 @@ class GalleryController extends BaseController
                     }
 
                     $intValue = (int)$value;
-                    $isValid = match ($device) {
-                        'desktop' => $intValue >= 1 && $intValue <= 6,
-                        'tablet' => $intValue >= 1 && $intValue <= 4,
-                        'mobile' => $intValue >= 1 && $intValue <= 2,
-                        default => false,
-                    };
-                    if ($isValid) {
-                        $normalizedColumns[$device] = $intValue;
-                    } else {
-                        $normalizedColumns[$device] = match($device) {
-                            'desktop' => 3,
-                            'tablet' => 2,
-                            'mobile' => 1,
-                            default => 3,
-                        };
-                    }
+                    $isValid = $intValue >= 1 && $intValue <= $cfg['max'];
+                    $normalizedColumns[$device] = $isValid ? $intValue : $cfg['fallback'];
                 }
             }
-            
+
             $templateSettings['columns'] = $normalizedColumns;
         }
 

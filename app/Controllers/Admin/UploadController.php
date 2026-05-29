@@ -145,36 +145,104 @@ class UploadController extends BaseController
             // Other approaches (flush, Connection: close) don't actually work.
             // For non-FPM environments, VariantMaintenanceService cron will generate variants.
 
+            // BACKGROUND WORK via shutdown handler — runs AFTER Slim's
+            // ResponseEmitter has flushed the full response (so any
+            // wrapping middleware modifications to headers/body land
+            // exactly as configured), then closes the FCGI connection
+            // and continues with variant generation in the background.
+            //
+            // The previous implementation manually emitted headers from
+            // inside the handler before calling fastcgi_finish_request().
+            // That snapshotted $response BEFORE the middleware chain
+            // (cache middleware, security headers, Vary/ETag) had a
+            // chance to mutate it — those modifications were silently
+            // lost on the FPM path. Letting Slim emit naturally and
+            // deferring the close + work to shutdown closes that race.
             if (function_exists('fastcgi_finish_request') && !empty($meta['id'])) {
-                // Send response to client immediately
-                fastcgi_finish_request();
+                $imageIdForBackground = (int) $meta['id'];
+                $needsBlurForBackground = $needsBlur;
+                $svcForBackground = $svc;
+                $dbForBackground = $this->db;
+                register_shutdown_function(static function () use (
+                    $imageIdForBackground,
+                    $needsBlurForBackground,
+                    $svcForBackground,
+                    $dbForBackground
+                ) {
+                    // F013-D: if the handler bailed with a fatal error
+                    // between register_shutdown_function() and the response
+                    // emitter, the client never saw an image_id and the
+                    // metadata row may be in a broken state — generating
+                    // variants for a record the caller couldn't observe is
+                    // wasted work that can also surface stale data on retry.
+                    // Skip the background work when the response is clearly
+                    // an error (or when an uncaught error is being processed
+                    // right now).
+                    $lastError = error_get_last();
+                    $fatalInProgress = $lastError !== null
+                        && in_array($lastError['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR], true);
+                    $httpStatus = function_exists('http_response_code') ? (int) http_response_code() : 200;
+                    $responseOk = $httpStatus === 0 /* CLI */ || ($httpStatus >= 200 && $httpStatus < 400);
+                    if ($fatalInProgress || !$responseOk) {
+                        Logger::warning('Background variant: skipping, response was not delivered cleanly', [
+                            'image_id' => $imageIdForBackground,
+                            'http_status' => $httpStatus,
+                            'fatal' => $fatalInProgress,
+                        ], 'upload');
+                        return;
+                    }
 
-                // BACKGROUND WORK: Now generate variants (client already has response)
-                ignore_user_abort(true);
-                set_time_limit(300);
-
-                try {
-                    $svc->generateVariantsForImage((int) $meta['id'], false);
-                } catch (\Throwable $variantError) {
-                    Logger::warning('Failed to generate variants in background', [
-                        'image_id' => $meta['id'],
-                        'error' => $variantError->getMessage()
-                    ], 'upload');
-                }
-
-                // Generate blur only if album is NSFW or password-protected
-                if ($needsBlur) {
+                    // Release the PHP session write-lock BEFORE closing the
+                    // FCGI connection. Otherwise the lock stays held for the
+                    // entire variant-generation window (up to 300s) and
+                    // concurrent requests from the same user — additional
+                    // uploads, polling endpoints — block on session acquire.
+                    if (session_status() === PHP_SESSION_ACTIVE) {
+                        @session_write_close();
+                    }
+                    if (function_exists('fastcgi_finish_request')) {
+                        @fastcgi_finish_request();
+                    }
+                    ignore_user_abort(true);
+                    @set_time_limit(300);
+                    // The PDO connection captured by $svc was idle while the
+                    // client downloaded the response, so a server-side
+                    // wait_timeout reaper could have killed it. Issue a cheap
+                    // ping; on failure log and bail — the cron
+                    // VariantMaintenanceService will pick up missing variants
+                    // on its next pass, which is safer than guessing at
+                    // reconnection params here in shutdown context.
                     try {
-                        $svc->generateBlurredVariant((int) $meta['id']);
-                    } catch (\Throwable $blurError) {
-                        Logger::warning('Failed to generate blur for protected album image', [
-                            'image_id' => $meta['id'],
-                            'error' => $blurError->getMessage()
+                        $dbForBackground->pdo()->query('SELECT 1');
+                    } catch (\Throwable $pingError) {
+                        Logger::warning('Background variant: DB ping failed, deferring to cron', [
+                            'image_id' => $imageIdForBackground,
+                            'error' => $pingError->getMessage(),
+                        ], 'upload');
+                        return;
+                    }
+                    try {
+                        $svcForBackground->generateVariantsForImage($imageIdForBackground, false);
+                    } catch (\Throwable $variantError) {
+                        Logger::warning('Failed to generate variants in background', [
+                            'image_id' => $imageIdForBackground,
+                            'error' => $variantError->getMessage(),
                         ], 'upload');
                     }
-                }
+                    if ($needsBlurForBackground) {
+                        try {
+                            $svcForBackground->generateBlurredVariant($imageIdForBackground);
+                        } catch (\Throwable $blurError) {
+                            Logger::warning('Failed to generate blur for protected album image', [
+                                'image_id' => $imageIdForBackground,
+                                'error' => $blurError->getMessage(),
+                            ], 'upload');
+                        }
+                    }
+                });
             }
-            // For non-FPM: Response sent immediately, variants generated later by cron
+            // Non-FPM: ResponseEmitter still flushes the JSON; the cron
+            // VariantMaintenanceService picks up variant generation later.
 
             return $response;
         } catch (\Throwable $e) {

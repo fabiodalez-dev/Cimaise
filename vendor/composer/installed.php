@@ -3,7 +3,7 @@
         'name' => 'fabiodalez-dev/cimaise',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '9785b756e20d7f823646ecf3346c5db5ab11bba7',
+        'reference' => '03c7097fe4677807c8a9ead0188e3d3db29f9273',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -22,7 +22,7 @@
         'fabiodalez-dev/cimaise' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '9785b756e20d7f823646ecf3346c5db5ab11bba7',
+            'reference' => '03c7097fe4677807c8a9ead0188e3d3db29f9273',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -153,6 +153,15 @@
             'install_path' => __DIR__ . '/../phpoption/phpoption',
             'aliases' => array(),
             'dev_requirement' => false,
+        ),
+        'phpstan/phpstan' => array(
+            'pretty_version' => '2.1.55',
+            'version' => '2.1.55.0',
+            'reference' => '9eaac3826ed5e9b8427350a43cac825eeca3f566',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../phpstan/phpstan',
+            'aliases' => array(),
+            'dev_requirement' => true,
         ),
         'phpunit/php-code-coverage' => array(
             'pretty_version' => '10.1.16',

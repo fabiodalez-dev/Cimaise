@@ -85,8 +85,11 @@ for (const tmpl of albumTemplates) {
 // GALLERIES PAGE
 // ============================================================
 test('Galleries page with all albums', async ({ page }) => {
-  test.setTimeout(30000);
-  await page.goto('http://localhost:8000/galleries');
+  // Same rationale as masonry-screenshot.spec.js: when the wider e2e suite
+  // has seeded ~100+ test albums, the galleries listing's lazy-image
+  // waterfall can take well over the default 30s on a busy local dev box.
+  test.setTimeout(90000);
+  await page.goto('http://localhost:8000/galleries', { timeout: 30000 });
   await page.waitForTimeout(2000);
   await loadAllImages(page);
   await page.screenshot({ path: 'test-results/galleries-full.png', fullPage: true });

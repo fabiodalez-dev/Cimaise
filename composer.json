@@ -16,7 +16,8 @@
     "fileeye/pel": "^0.12.0"
   },
   "require-dev": {
-    "phpunit/phpunit": "^10.5"
+    "phpunit/phpunit": "^10.5",
+    "phpstan/phpstan": "^2.0"
   },
   "autoload": {
     "psr-4": {
@@ -27,6 +28,8 @@
     ]
   },
   "scripts": {
-    "test": "phpunit -c phpunit.xml"
+    "test": "phpunit -c phpunit.xml",
+    "phpstan": "phpstan analyse",
+    "analyse": "@phpstan"
   }
 }

@@ -19,9 +19,30 @@ class ImagesGenerateCommand extends Command
 {
     use RegistersImageVariants;
 
+    /** Memoised result of {@see imagickDisabled()} — env vars don't change per-run. */
+    private ?bool $imagickDisabled = null;
+
     public function __construct(private Database $db)
     {
         parent::__construct();
+    }
+
+    /**
+     * Mirrors UploadService::imagickDisabled() but with a per-instance memo.
+     * The CLI runs the same resize paths that segfault on macOS Apple
+     * Silicon under ImageMagick 7.1.x, so the opt-out env flag must be
+     * honored here too — and the flag is parsed once per command run
+     * (the same env stays in effect for the whole CLI invocation).
+     */
+    private function imagickDisabled(): bool
+    {
+        if ($this->imagickDisabled !== null) {
+            return $this->imagickDisabled;
+        }
+        $raw = function_exists('envv')
+            ? envv('CIMAISE_DISABLE_IMAGICK', 'false')
+            : ($_ENV['CIMAISE_DISABLE_IMAGICK'] ?? $_SERVER['CIMAISE_DISABLE_IMAGICK'] ?? 'false');
+        return $this->imagickDisabled = (bool) filter_var((string) $raw, FILTER_VALIDATE_BOOLEAN);
     }
 
     protected function configure(): void
@@ -60,10 +81,11 @@ class ImagesGenerateCommand extends Command
             throw new RuntimeException('Cannot create media directory');
         }
 
-        $imagickOk = class_exists(Imagick::class);
+        $imagickDisabled = $this->imagickDisabled();
+        $imagickOk = class_exists(Imagick::class) && !$imagickDisabled;
         $gdWebpOk = function_exists('imagewebp');
         if (!$imagickOk) {
-            $output->writeln('<comment>Imagick not available, using GD fallbacks.</comment>');
+            $output->writeln('<comment>Imagick not available' . ($imagickDisabled ? ' (disabled via CIMAISE_DISABLE_IMAGICK)' : '') . ', using GD fallbacks.</comment>');
         }
         if (!$gdWebpOk) {
             $output->writeln('<comment>GD WebP support not available.</comment>');
@@ -192,7 +214,7 @@ class ImagesGenerateCommand extends Command
 
     private function resizeWithImagickOrGd(string $src, string $dest, int $targetW, string $format, int $quality): bool
     {
-        if (class_exists(Imagick::class)) {
+        if (class_exists(Imagick::class) && !$this->imagickDisabled()) {
             return $this->resizeWithImagick($src, $dest, $targetW, $format, $quality);
         }
         
@@ -204,7 +226,7 @@ class ImagesGenerateCommand extends Command
         $newW = $targetW; 
         $newH = (int)round($targetW / $ratio);
         
-        $srcImg = match ($info['mime'] ?? '') {
+        $srcImg = match ($info['mime']) {
             'image/jpeg' => @imagecreatefromjpeg($src),
             'image/png' => @imagecreatefrompng($src),
             'image/gif' => @imagecreatefromgif($src),
@@ -247,7 +269,7 @@ class ImagesGenerateCommand extends Command
         $newW = $targetW;
         $newH = (int)round($targetW / $ratio);
         
-        $srcImg = match ($info['mime'] ?? '') {
+        $srcImg = match ($info['mime']) {
             'image/jpeg' => @imagecreatefromjpeg($src),
             'image/png' => @imagecreatefrompng($src),
             'image/gif' => @imagecreatefromgif($src),

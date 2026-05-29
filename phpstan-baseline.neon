@@ -1,0 +1,2701 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Function envv\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Config/bootstrap.php
+
+		-
+			message: '#^Function envv\(\) has parameter \$default with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Config/bootstrap.php
+
+		-
+			message: '#^Function isAppInstalled\(\) has parameter \$db with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Config/routes.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\AlbumsController\:\:attachExisting\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/AlbumsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\AlbumsController\:\:bulkDeleteImages\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/AlbumsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\AlbumsController\:\:delete\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/AlbumsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\AlbumsController\:\:deleteImage\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/AlbumsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\AlbumsController\:\:edit\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/AlbumsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\AlbumsController\:\:formatTemplateSelection\(\) has parameter \$customTemplateId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Controllers/Admin/AlbumsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\AlbumsController\:\:formatTemplateSelection\(\) has parameter \$templateId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Controllers/Admin/AlbumsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\AlbumsController\:\:getAlbumPageTemplates\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/AlbumsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\AlbumsController\:\:normalizeTemplateSelection\(\) has parameter \$rawTemplateId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Controllers/Admin/AlbumsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\AlbumsController\:\:normalizeTemplateSelection\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/AlbumsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\AlbumsController\:\:publish\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/AlbumsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\AlbumsController\:\:reorderImages\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/AlbumsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\AlbumsController\:\:setCover\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/AlbumsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\AlbumsController\:\:unpublish\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/AlbumsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\AlbumsController\:\:update\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/AlbumsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\AlbumsController\:\:updateImageMeta\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/AlbumsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\AlbumsController\:\:updateTags\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/AlbumsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\AnalyticsController\:\:getAlbumsData\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/AnalyticsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\AnalyticsController\:\:validateAndSanitizeAnalyticsData\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/AnalyticsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\AnalyticsController\:\:validateAndSanitizeAnalyticsData\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/AnalyticsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\AnalyticsController\:\:validateDateRange\(\) has parameter \$params with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/AnalyticsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\ApiController\:\:category\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/ApiController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\CacheController\:\:clearType\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/CacheController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\CamerasController\:\:delete\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/CamerasController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\CamerasController\:\:edit\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/CamerasController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\CamerasController\:\:update\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/CamerasController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\CategoriesController\:\:addToFlatHierarchy\(\) has parameter \$byParent with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/CategoriesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\CategoriesController\:\:addToFlatHierarchy\(\) has parameter \$result with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/CategoriesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\CategoriesController\:\:buildFlatHierarchy\(\) has parameter \$rows with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/CategoriesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\CategoriesController\:\:buildFlatHierarchy\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/CategoriesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\CategoriesController\:\:delete\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/CategoriesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\CategoriesController\:\:edit\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/CategoriesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\CategoriesController\:\:update\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/CategoriesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\CommandsController\:\:runCommand\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/CommandsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\CommandsController\:\:runCommand\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/CommandsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\CustomFieldTypesController\:\:delete\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/CustomFieldTypesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\CustomFieldTypesController\:\:edit\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/CustomFieldTypesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\CustomFieldTypesController\:\:update\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/CustomFieldTypesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\CustomFieldValuesController\:\:delete\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/CustomFieldValuesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\CustomFieldValuesController\:\:index\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/CustomFieldValuesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\CustomFieldValuesController\:\:store\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/CustomFieldValuesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\CustomFieldValuesController\:\:updateOrder\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/CustomFieldValuesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\DevelopersController\:\:delete\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/DevelopersController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\DevelopersController\:\:edit\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/DevelopersController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\DevelopersController\:\:update\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/DevelopersController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\DiagnosticsController\:\:runDiagnostics\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/DiagnosticsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\FilmsController\:\:delete\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/FilmsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\FilmsController\:\:edit\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/FilmsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\FilmsController\:\:update\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/FilmsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\FilterSettingsController\:\:getFilterStatistics\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/FilterSettingsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\LabsController\:\:delete\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/LabsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\LabsController\:\:edit\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/LabsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\LabsController\:\:update\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/LabsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\LensesController\:\:delete\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/LensesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\LensesController\:\:edit\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/LensesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\LensesController\:\:update\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/LensesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\LocationsController\:\:delete\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/LocationsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\LocationsController\:\:edit\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/LocationsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\LocationsController\:\:update\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/LocationsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\MediaController\:\:buildExifDataArray\(\) has parameter \$d with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/MediaController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\MediaController\:\:buildExifDataArray\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/MediaController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\MediaController\:\:delete\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/MediaController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\MediaController\:\:getExif\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/MediaController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\MediaController\:\:update\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/MediaController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\MediaController\:\:updateExif\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/MediaController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\PagesController\:\:getFilterSettings\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/PagesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\SocialController\:\:getAvailableSocials\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/SocialController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\SocialController\:\:getDefaultEnabledSocials\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/SocialController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\SocialController\:\:getProfileNetworks\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/SocialController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\TagsController\:\:delete\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/TagsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\TagsController\:\:edit\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/TagsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\TagsController\:\:update\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/TagsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\TemplatesController\:\:delete\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/TemplatesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\TemplatesController\:\:edit\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/TemplatesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\TemplatesController\:\:update\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/TemplatesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\TextsController\:\:delete\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/TextsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\TextsController\:\:edit\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/TextsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\TextsController\:\:getAvailableLanguages\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/TextsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\TextsController\:\:importFromJsonFile\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/TextsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\TextsController\:\:inlineUpdate\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/TextsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\TextsController\:\:update\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/TextsController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\TypographyController\:\:fontInfo\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/TypographyController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\UploadController\:\:uploadToAlbum\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/UploadController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\UsersController\:\:delete\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/UsersController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\UsersController\:\:edit\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/UsersController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\UsersController\:\:toggleActive\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/UsersController.php
+
+		-
+			message: '#^Method App\\Controllers\\Admin\\UsersController\:\:update\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Admin/UsersController.php
+
+		-
+			message: '#^Method App\\Controllers\\BaseController\:\:ensureAlbumCoverImage\(\) has parameter \$album with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/BaseController.php
+
+		-
+			message: '#^Method App\\Controllers\\BaseController\:\:ensureAlbumCoverImage\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/BaseController.php
+
+		-
+			message: '#^Method App\\Controllers\\BaseController\:\:sanitizeAlbumCoverForNsfw\(\) has parameter \$album with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/BaseController.php
+
+		-
+			message: '#^Method App\\Controllers\\BaseController\:\:sanitizeAlbumCoverForNsfw\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/BaseController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\ApiController\:\:albumImages\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/ApiController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\ApiController\:\:enrichAlbum\(\) has parameter \$album with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/ApiController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\ApiController\:\:formatExifForDisplay\(\) has parameter \$exif with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/ApiController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\ApiController\:\:formatExifForDisplay\(\) has parameter \$image with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/ApiController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\ApiController\:\:formatExifForDisplay\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/ApiController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\ApiController\:\:imageExif\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/ApiController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\DownloadController\:\:downloadImage\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/DownloadController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\GalleriesController\:\:buildFilters\(\) has parameter \$params with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/GalleriesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\GalleriesController\:\:buildFilters\(\) has parameter \$settings with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/GalleriesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\GalleriesController\:\:buildFilters\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/GalleriesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\GalleriesController\:\:enrichAlbumsBatch\(\) has parameter \$albums with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/GalleriesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\GalleriesController\:\:enrichAlbumsBatch\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/GalleriesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\GalleriesController\:\:getFilterOptions\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/GalleriesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\GalleriesController\:\:getFilterSettings\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/GalleriesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\GalleriesController\:\:getFilteredAlbums\(\) has parameter \$filters with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/GalleriesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\GalleriesController\:\:getFilteredAlbums\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/GalleriesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\GalleriesController\:\:getPageTexts\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/GalleriesController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\GalleryController\:\:applyTemplateOverrides\(\) has parameter \$template with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/GalleryController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\GalleryController\:\:applyTemplateOverrides\(\) has parameter \$templateSettings with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/GalleryController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\GalleryController\:\:applyTemplateOverrides\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/GalleryController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\GalleryController\:\:getAvailableSocials\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/GalleryController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\GalleryController\:\:normalizeTemplateSettings\(\) has parameter \$templateSettings with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/GalleryController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\GalleryController\:\:normalizeTemplateSettings\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/GalleryController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\MediaController\:\:serveOriginal\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/MediaController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\MediaController\:\:serveProtected\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/MediaController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\MediaController\:\:servePublic\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/MediaController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:album\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:albumTemplate\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:buildSeo\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:category\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:confirmNsfw\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:enrichAlbumsBatch\(\) has parameter \$albums with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:enrichAlbumsBatch\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:filterAlbumsByAccess\(\) has parameter \$albums with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:filterAlbumsByAccess\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:formatExifForDisplay\(\) has parameter \$exif with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:formatExifForDisplay\(\) has parameter \$image with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:formatExifForDisplay\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:formatSourcesForJson\(\) has parameter \$sources with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:formatSourcesForJson\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:getAvailableSocials\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:normalizeTemplateSettings\(\) has parameter \$templateSettings with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:normalizeTemplateSettings\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:processImageSourcesBatch\(\) has parameter \$images with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:processImageSourcesBatch\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:selectBestLightboxVariant\(\) has parameter \$variants with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:selectBestLightboxVariant\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:tag\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\Frontend\\PageController\:\:unlockAlbum\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/Frontend/PageController.php
+
+		-
+			message: '#^Method App\\Controllers\\InstallerController\:\:checkRequirements\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/InstallerController.php
+
+		-
+			message: '#^Method App\\Controllers\\InstallerController\:\:testDatabaseConnection\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/InstallerController.php
+
+		-
+			message: '#^Method App\\Controllers\\InstallerController\:\:testDatabaseConnection\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/InstallerController.php
+
+		-
+			message: '#^Method App\\Controllers\\InstallerController\:\:validateAdminData\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/InstallerController.php
+
+		-
+			message: '#^Method App\\Controllers\\InstallerController\:\:validateAdminData\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Controllers/InstallerController.php
+
+		-
+			message: '#^Property App\\Extensions\\AnalyticsTwigExtension\:\:\$countries type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Extensions/AnalyticsTwigExtension.php
+
+		-
+			message: '#^Property App\\Extensions\\AnalyticsTwigExtension\:\:\$flags type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Extensions/AnalyticsTwigExtension.php
+
+		-
+			message: '#^Method App\\Extensions\\HooksTwigExtension\:\:applyFilter\(\) has parameter \$args with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Extensions/HooksTwigExtension.php
+
+		-
+			message: '#^Method App\\Extensions\\HooksTwigExtension\:\:applyFilter\(\) has parameter \$value with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Extensions/HooksTwigExtension.php
+
+		-
+			message: '#^Method App\\Extensions\\HooksTwigExtension\:\:doAction\(\) has parameter \$args with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Extensions/HooksTwigExtension.php
+
+		-
+			message: '#^Method App\\Extensions\\HooksTwigExtension\:\:renderHook\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Extensions/HooksTwigExtension.php
+
+		-
+			message: '#^Method App\\Extensions\\PerformanceTwigExtension\:\:getResourceHints\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Extensions/PerformanceTwigExtension.php
+
+		-
+			message: '#^Method App\\Extensions\\SecurityTwigExtension\:\:sanitizeNode\(\) has parameter \$allowedAttrs with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Extensions/SecurityTwigExtension.php
+
+		-
+			message: '#^Method App\\Extensions\\SecurityTwigExtension\:\:sanitizeNode\(\) has parameter \$allowedTags with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Extensions/SecurityTwigExtension.php
+
+		-
+			message: '#^Method App\\Extensions\\TranslationTwigExtension\:\:translate\(\) has parameter \$params with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Extensions/TranslationTwigExtension.php
+
+		-
+			message: '#^Method App\\Extensions\\ViteTwigExtension\:\:getPreloadTags\(\) has parameter \$entries with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Extensions/ViteTwigExtension.php
+
+		-
+			message: '#^Method App\\Extensions\\ViteTwigExtension\:\:loadManifest\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Extensions/ViteTwigExtension.php
+
+		-
+			message: '#^Property App\\Extensions\\ViteTwigExtension\:\:\$manifest type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Extensions/ViteTwigExtension.php
+
+		-
+			message: '#^Method App\\Installer\\Installer\:\:collectRequirementErrors\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Installer/Installer.php
+
+		-
+			message: '#^Method App\\Installer\\Installer\:\:collectRequirementErrors\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Installer/Installer.php
+
+		-
+			message: '#^Method App\\Installer\\Installer\:\:configureHtaccess\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Installer/Installer.php
+
+		-
+			message: '#^Method App\\Installer\\Installer\:\:createEnvFile\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Installer/Installer.php
+
+		-
+			message: '#^Method App\\Installer\\Installer\:\:createFirstUser\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Installer/Installer.php
+
+		-
+			message: '#^Method App\\Installer\\Installer\:\:fixPermissionsRecursive\(\) has parameter \$writableDirs with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Installer/Installer.php
+
+		-
+			message: '#^Method App\\Installer\\Installer\:\:fixPermissionsRecursive\(\) has parameter \$writableFiles with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Installer/Installer.php
+
+		-
+			message: '#^Method App\\Installer\\Installer\:\:generateFavicons\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Installer/Installer.php
+
+		-
+			message: '#^Method App\\Installer\\Installer\:\:getExistingTables\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Installer/Installer.php
+
+		-
+			message: '#^Method App\\Installer\\Installer\:\:getPageSettingsForLanguage\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Installer/Installer.php
+
+		-
+			message: '#^Method App\\Installer\\Installer\:\:getRequirementsErrors\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Installer/Installer.php
+
+		-
+			message: '#^Method App\\Installer\\Installer\:\:getRequirementsErrors\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Installer/Installer.php
+
+		-
+			message: '#^Method App\\Installer\\Installer\:\:getRequirementsWarnings\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Installer/Installer.php
+
+		-
+			message: '#^Method App\\Installer\\Installer\:\:install\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Installer/Installer.php
+
+		-
+			message: '#^Method App\\Installer\\Installer\:\:setupDatabase\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Installer/Installer.php
+
+		-
+			message: '#^Method App\\Installer\\Installer\:\:updateSiteSettings\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Installer/Installer.php
+
+		-
+			message: '#^Method App\\Installer\\Installer\:\:verifyRequirements\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Installer/Installer.php
+
+		-
+			message: '#^Property App\\Installer\\Installer\:\:\$config type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Installer/Installer.php
+
+		-
+			message: '#^Method App\\Middlewares\\EarlyHintsMiddleware\:\:buildLinkHeader\(\) has parameter \$resource with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Middlewares/EarlyHintsMiddleware.php
+
+		-
+			message: '#^Method App\\Middlewares\\EarlyHintsMiddleware\:\:getCriticalResources\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Middlewares/EarlyHintsMiddleware.php
+
+		-
+			message: '#^Property App\\Middlewares\\EarlyHintsMiddleware\:\:\$integrityCache type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Middlewares/EarlyHintsMiddleware.php
+
+		-
+			message: '#^Method App\\Middlewares\\FileBasedRateLimitMiddleware\:\:loadAttempts\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Middlewares/FileBasedRateLimitMiddleware.php
+
+		-
+			message: '#^Method App\\Middlewares\\FileBasedRateLimitMiddleware\:\:saveAttempts\(\) has parameter \$attempts with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Middlewares/FileBasedRateLimitMiddleware.php
+
+		-
+			message: '#^Method App\\Repositories\\LocationRepository\:\:create\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Repositories/LocationRepository.php
+
+		-
+			message: '#^Method App\\Repositories\\LocationRepository\:\:getAll\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Repositories/LocationRepository.php
+
+		-
+			message: '#^Method App\\Repositories\\LocationRepository\:\:getById\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Repositories/LocationRepository.php
+
+		-
+			message: '#^Method App\\Repositories\\LocationRepository\:\:getBySlug\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Repositories/LocationRepository.php
+
+		-
+			message: '#^Method App\\Repositories\\LocationRepository\:\:search\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Repositories/LocationRepository.php
+
+		-
+			message: '#^Method App\\Repositories\\LocationRepository\:\:update\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Repositories/LocationRepository.php
+
+		-
+			message: '#^Method App\\Services\\AnalyticsService\:\:dateRangeBounds\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AnalyticsService.php
+
+		-
+			message: '#^Method App\\Services\\AnalyticsService\:\:exportDataAsArray\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AnalyticsService.php
+
+		-
+			message: '#^Method App\\Services\\AnalyticsService\:\:get404Stats\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AnalyticsService.php
+
+		-
+			message: '#^Method App\\Services\\AnalyticsService\:\:getAlbumAccessStats\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AnalyticsService.php
+
+		-
+			message: '#^Method App\\Services\\AnalyticsService\:\:getAlbumPasswordAccessStats\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AnalyticsService.php
+
+		-
+			message: '#^Method App\\Services\\AnalyticsService\:\:getChartsData\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AnalyticsService.php
+
+		-
+			message: '#^Method App\\Services\\AnalyticsService\:\:getDashboardStats\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AnalyticsService.php
+
+		-
+			message: '#^Method App\\Services\\AnalyticsService\:\:getEngagementStats\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AnalyticsService.php
+
+		-
+			message: '#^Method App\\Services\\AnalyticsService\:\:getGeoData\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AnalyticsService.php
+
+		-
+			message: '#^Method App\\Services\\AnalyticsService\:\:getOrCreateSession\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AnalyticsService.php
+
+		-
+			message: '#^Method App\\Services\\AnalyticsService\:\:getPeakHoursData\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AnalyticsService.php
+
+		-
+			message: '#^Method App\\Services\\AnalyticsService\:\:getSetting\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Services/AnalyticsService.php
+
+		-
+			message: '#^Method App\\Services\\AnalyticsService\:\:getSetting\(\) has parameter \$default with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Services/AnalyticsService.php
+
+		-
+			message: '#^Method App\\Services\\AnalyticsService\:\:getTrendComparison\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AnalyticsService.php
+
+		-
+			message: '#^Method App\\Services\\AnalyticsService\:\:parseUserAgent\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AnalyticsService.php
+
+		-
+			message: '#^Method App\\Services\\AnalyticsService\:\:trackEvent\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AnalyticsService.php
+
+		-
+			message: '#^Method App\\Services\\AnalyticsService\:\:trackPageView\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AnalyticsService.php
+
+		-
+			message: '#^Property App\\Services\\AnalyticsService\:\:\$settings type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AnalyticsService.php
+
+		-
+			message: '#^Method App\\Services\\CacheTags\:\:albumRelated\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CacheTags.php
+
+		-
+			message: '#^Method App\\Services\\CacheTags\:\:categoryRelated\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CacheTags.php
+
+		-
+			message: '#^Method App\\Services\\CacheTags\:\:homeRelated\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CacheTags.php
+
+		-
+			message: '#^Method App\\Services\\CacheTags\:\:settingsRelated\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CacheTags.php
+
+		-
+			message: '#^Method App\\Services\\CacheWarmService\:\:buildImageSources\(\) has parameter \$image with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CacheWarmService.php
+
+		-
+			message: '#^Method App\\Services\\CacheWarmService\:\:buildImageSources\(\) has parameter \$variants with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CacheWarmService.php
+
+		-
+			message: '#^Method App\\Services\\CacheWarmService\:\:buildImageSources\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CacheWarmService.php
+
+		-
+			message: '#^Method App\\Services\\CacheWarmService\:\:enrichAlbums\(\) has parameter \$albums with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CacheWarmService.php
+
+		-
+			message: '#^Method App\\Services\\CacheWarmService\:\:enrichAlbums\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CacheWarmService.php
+
+		-
+			message: '#^Method App\\Services\\CacheWarmService\:\:getFilterOptions\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CacheWarmService.php
+
+		-
+			message: '#^Method App\\Services\\CacheWarmService\:\:getFilterSettings\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CacheWarmService.php
+
+		-
+			message: '#^Method App\\Services\\CacheWarmService\:\:processImageSources\(\) has parameter \$image with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CacheWarmService.php
+
+		-
+			message: '#^Method App\\Services\\CacheWarmService\:\:processImageSources\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CacheWarmService.php
+
+		-
+			message: '#^Method App\\Services\\CacheWarmService\:\:processImageSourcesBatch\(\) has parameter \$images with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CacheWarmService.php
+
+		-
+			message: '#^Method App\\Services\\CacheWarmService\:\:processImageSourcesBatch\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CacheWarmService.php
+
+		-
+			message: '#^Method App\\Services\\CacheWarmService\:\:warmAll\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CacheWarmService.php
+
+		-
+			message: '#^Method App\\Services\\CustomFieldService\:\:createFieldType\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CustomFieldService.php
+
+		-
+			message: '#^Method App\\Services\\CustomFieldService\:\:enrichImagesWithCustomFields\(\) has parameter \$images with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CustomFieldService.php
+
+		-
+			message: '#^Method App\\Services\\CustomFieldService\:\:enrichImagesWithCustomFields\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CustomFieldService.php
+
+		-
+			message: '#^Method App\\Services\\CustomFieldService\:\:getAlbumMetadata\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CustomFieldService.php
+
+		-
+			message: '#^Method App\\Services\\CustomFieldService\:\:getAlbumMetadataForForm\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CustomFieldService.php
+
+		-
+			message: '#^Method App\\Services\\CustomFieldService\:\:getAvailableIcons\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CustomFieldService.php
+
+		-
+			message: '#^Method App\\Services\\CustomFieldService\:\:getFieldType\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CustomFieldService.php
+
+		-
+			message: '#^Method App\\Services\\CustomFieldService\:\:getFieldTypeByName\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CustomFieldService.php
+
+		-
+			message: '#^Method App\\Services\\CustomFieldService\:\:getFieldTypes\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CustomFieldService.php
+
+		-
+			message: '#^Method App\\Services\\CustomFieldService\:\:getFieldValues\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CustomFieldService.php
+
+		-
+			message: '#^Method App\\Services\\CustomFieldService\:\:getImageMetadata\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CustomFieldService.php
+
+		-
+			message: '#^Method App\\Services\\CustomFieldService\:\:mergeWithOverride\(\) has parameter \$albumFields with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CustomFieldService.php
+
+		-
+			message: '#^Method App\\Services\\CustomFieldService\:\:mergeWithOverride\(\) has parameter \$imageFields with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CustomFieldService.php
+
+		-
+			message: '#^Method App\\Services\\CustomFieldService\:\:mergeWithOverride\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CustomFieldService.php
+
+		-
+			message: '#^Method App\\Services\\CustomFieldService\:\:propagateToAlbum\(\) has parameter \$values with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CustomFieldService.php
+
+		-
+			message: '#^Method App\\Services\\CustomFieldService\:\:setAlbumMetadata\(\) has parameter \$values with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CustomFieldService.php
+
+		-
+			message: '#^Method App\\Services\\CustomFieldService\:\:setImageMetadata\(\) has parameter \$values with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CustomFieldService.php
+
+		-
+			message: '#^Method App\\Services\\CustomFieldService\:\:updateFieldType\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/CustomFieldService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:cleanString\(\) has parameter \$value with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:convertDMSToDD\(\) has parameter \$dms with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:convertDdToDms\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:convertPelGpsToDd\(\) has parameter \$dms with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:extract\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:extractForLightbox\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:extractGPS\(\) has parameter \$gps with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:extractGPS\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:extractGpsFromPel\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:extractWithNative\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:extractWithPel\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:getExifForEditor\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:getExifOptions\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:getLastWriteWarnings\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:mapToLookups\(\) has parameter \$meta with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:mapToLookups\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:parseLensModel\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:propagateExifToVariants\(\) has parameter \$exifData with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:propagateExifToVariants\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:rationalToFloat\(\) has parameter \$val with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:trySetEntry\(\) has parameter \$entry with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:writeExifSubIfdEntries\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:writeIfd0Entries\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\ExifService\:\:writeToJpeg\(\) has parameter \$exifData with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Property App\\Services\\ExifService\:\:\$lastWriteWarnings type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ExifService.php
+
+		-
+			message: '#^Method App\\Services\\FaviconService\:\:generateFavicons\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/FaviconService.php
+
+		-
+			message: '#^Method App\\Services\\HomeImageService\:\:getAllImages\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/HomeImageService.php
+
+		-
+			message: '#^Method App\\Services\\HomeImageService\:\:getInitialImages\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/HomeImageService.php
+
+		-
+			message: '#^Method App\\Services\\HomeImageService\:\:getMoreImages\(\) has parameter \$excludeAlbumIds with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/HomeImageService.php
+
+		-
+			message: '#^Method App\\Services\\HomeImageService\:\:getMoreImages\(\) has parameter \$excludeImageIds with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/HomeImageService.php
+
+		-
+			message: '#^Method App\\Services\\HomeImageService\:\:getMoreImages\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/HomeImageService.php
+
+		-
+			message: '#^Method App\\Services\\HomeImageService\:\:getMoreMasonryImages\(\) has parameter \$excludeImageIds with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/HomeImageService.php
+
+		-
+			message: '#^Method App\\Services\\HomeImageService\:\:getMoreMasonryImages\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/HomeImageService.php
+
+		-
+			message: '#^Method App\\Services\\HomeImageService\:\:normalizeCategorySlugs\(\) has parameter \$images with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/HomeImageService.php
+
+		-
+			message: '#^Method App\\Services\\HomeImageService\:\:normalizeCategorySlugs\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/HomeImageService.php
+
+		-
+			message: '#^Method App\\Services\\ImageVariantsService\:\:buildResponsiveSources\(\) has parameter \$variants with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ImageVariantsService.php
+
+		-
+			message: '#^Method App\\Services\\ImageVariantsService\:\:buildResponsiveSources\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ImageVariantsService.php
+
+		-
+			message: '#^Method App\\Services\\ImageVariantsService\:\:eagerLoadEquipment\(\) has parameter \$albumIds with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ImageVariantsService.php
+
+		-
+			message: '#^Method App\\Services\\ImageVariantsService\:\:eagerLoadEquipment\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ImageVariantsService.php
+
+		-
+			message: '#^Method App\\Services\\ImageVariantsService\:\:eagerLoadTags\(\) has parameter \$albumIds with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ImageVariantsService.php
+
+		-
+			message: '#^Method App\\Services\\ImageVariantsService\:\:eagerLoadTags\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ImageVariantsService.php
+
+		-
+			message: '#^Method App\\Services\\ImageVariantsService\:\:eagerLoadVariants\(\) has parameter \$imageIds with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ImageVariantsService.php
+
+		-
+			message: '#^Method App\\Services\\ImageVariantsService\:\:eagerLoadVariants\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ImageVariantsService.php
+
+		-
+			message: '#^Method App\\Services\\ImageVariantsService\:\:getBestGridVariant\(\) has parameter \$variants with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ImageVariantsService.php
+
+		-
+			message: '#^Method App\\Services\\ImageVariantsService\:\:getBestGridVariant\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ImageVariantsService.php
+
+		-
+			message: '#^Method App\\Services\\ImageVariantsService\:\:getBestLightboxVariant\(\) has parameter \$variants with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ImageVariantsService.php
+
+		-
+			message: '#^Method App\\Services\\ImageVariantsService\:\:getBestLightboxVariant\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ImageVariantsService.php
+
+		-
+			message: '#^Method App\\Services\\ImagesService\:\:enrichWithMetadata\(\) has parameter \$imagesRows with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/ImagesService.php
+
+		-
+			message: '#^Method App\\Services\\LensfunService\:\:extractFocalLength\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/LensfunService.php
+
+		-
+			message: '#^Method App\\Services\\LensfunService\:\:getCameraMakers\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/LensfunService.php
+
+		-
+			message: '#^Method App\\Services\\LensfunService\:\:getCamerasByMaker\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/LensfunService.php
+
+		-
+			message: '#^Method App\\Services\\LensfunService\:\:getLensMakers\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/LensfunService.php
+
+		-
+			message: '#^Method App\\Services\\LensfunService\:\:getLensesByMaker\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/LensfunService.php
+
+		-
+			message: '#^Method App\\Services\\LensfunService\:\:getStats\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/LensfunService.php
+
+		-
+			message: '#^Method App\\Services\\LensfunService\:\:rebuildCache\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/LensfunService.php
+
+		-
+			message: '#^Method App\\Services\\LensfunService\:\:searchCameras\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/LensfunService.php
+
+		-
+			message: '#^Method App\\Services\\LensfunService\:\:searchLensMakers\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/LensfunService.php
+
+		-
+			message: '#^Method App\\Services\\LensfunService\:\:searchLenses\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/LensfunService.php
+
+		-
+			message: '#^Method App\\Services\\LensfunService\:\:searchMakers\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/LensfunService.php
+
+		-
+			message: '#^Property App\\Services\\LensfunService\:\:\$cameras type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/LensfunService.php
+
+		-
+			message: '#^Property App\\Services\\LensfunService\:\:\$lenses type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/LensfunService.php
+
+		-
+			message: '#^Method App\\Services\\MetadataExtensionService\:\:enrichEntities\(\) has parameter \$entities with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/MetadataExtensionService.php
+
+		-
+			message: '#^Method App\\Services\\MetadataExtensionService\:\:enrichEntities\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/MetadataExtensionService.php
+
+		-
+			message: '#^Method App\\Services\\MetadataExtensionService\:\:enrichEntity\(\) has parameter \$entity with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/MetadataExtensionService.php
+
+		-
+			message: '#^Method App\\Services\\MetadataExtensionService\:\:enrichEntity\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/MetadataExtensionService.php
+
+		-
+			message: '#^Method App\\Services\\MetadataExtensionService\:\:getEntitiesWithExtension\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/MetadataExtensionService.php
+
+		-
+			message: '#^Method App\\Services\\MetadataExtensionService\:\:getExtensions\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/MetadataExtensionService.php
+
+		-
+			message: '#^Method App\\Services\\NavigationService\:\:getNavigationCategories\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/NavigationService.php
+
+		-
+			message: '#^Method App\\Services\\NavigationService\:\:getParentCategoriesForNavigation\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/NavigationService.php
+
+		-
+			message: '#^Property App\\Services\\NavigationService\:\:\$navigationCategoriesCache type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/NavigationService.php
+
+		-
+			message: '#^Property App\\Services\\NavigationService\:\:\$parentCategoriesCache type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/NavigationService.php
+
+		-
+			message: '#^Method App\\Services\\PageCacheService\:\:get\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/PageCacheService.php
+
+		-
+			message: '#^Method App\\Services\\PageCacheService\:\:getFromDatabase\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/PageCacheService.php
+
+		-
+			message: '#^Method App\\Services\\PageCacheService\:\:getFromFile\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/PageCacheService.php
+
+		-
+			message: '#^Method App\\Services\\PageCacheService\:\:getStats\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/PageCacheService.php
+
+		-
+			message: '#^Method App\\Services\\PageCacheService\:\:getStatsFromDatabase\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/PageCacheService.php
+
+		-
+			message: '#^Method App\\Services\\PageCacheService\:\:getStatsFromFiles\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/PageCacheService.php
+
+		-
+			message: '#^Method App\\Services\\PageCacheService\:\:getTags\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/PageCacheService.php
+
+		-
+			message: '#^Method App\\Services\\PageCacheService\:\:invalidateByTags\(\) has parameter \$tags with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/PageCacheService.php
+
+		-
+			message: '#^Method App\\Services\\PageCacheService\:\:migrateFromFiles\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/PageCacheService.php
+
+		-
+			message: '#^Method App\\Services\\PageCacheService\:\:saveTags\(\) has parameter \$tags with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/PageCacheService.php
+
+		-
+			message: '#^Method App\\Services\\PageCacheService\:\:set\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/PageCacheService.php
+
+		-
+			message: '#^Method App\\Services\\PageCacheService\:\:setToDatabase\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/PageCacheService.php
+
+		-
+			message: '#^Method App\\Services\\PageCacheService\:\:setToFile\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/PageCacheService.php
+
+		-
+			message: '#^Method App\\Services\\PageCacheService\:\:setWithTags\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/PageCacheService.php
+
+		-
+			message: '#^Method App\\Services\\PageCacheService\:\:setWithTags\(\) has parameter \$tags with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/PageCacheService.php
+
+		-
+			message: '#^Method App\\Services\\PageCacheService\:\:warm\(\) has parameter \$albumSlugs with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/PageCacheService.php
+
+		-
+			message: '#^Method App\\Services\\PageCacheService\:\:warm\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/PageCacheService.php
+
+		-
+			message: '#^Method App\\Services\\PerformanceService\:\:getPerformanceConfig\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/PerformanceService.php
+
+		-
+			message: '#^Method App\\Services\\PerformanceService\:\:getResourceHints\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/PerformanceService.php
+
+		-
+			message: '#^Method App\\Services\\PerformanceService\:\:getScriptLoadingStrategy\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/PerformanceService.php
+
+		-
+			message: '#^Method App\\Services\\SettingsService\:\:all\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/SettingsService.php
+
+		-
+			message: '#^Method App\\Services\\SettingsService\:\:defaults\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/SettingsService.php
+
+		-
+			message: '#^Method App\\Services\\SettingsService\:\:loadFromDatabase\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/SettingsService.php
+
+		-
+			message: '#^Property App\\Services\\SettingsService\:\:\$cache type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/SettingsService.php
+
+		-
+			message: '#^Method App\\Services\\SitemapService\:\:generate\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/SitemapService.php
+
+		-
+			message: '#^Method App\\Services\\SitemapService\:\:getImageCaption\(\) has parameter \$album with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/SitemapService.php
+
+		-
+			message: '#^Method App\\Services\\SitemapService\:\:getImageCaption\(\) has parameter \$image with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/SitemapService.php
+
+		-
+			message: '#^Method App\\Services\\SitemapService\:\:getImageTitle\(\) has parameter \$album with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/SitemapService.php
+
+		-
+			message: '#^Method App\\Services\\SitemapService\:\:getImageTitle\(\) has parameter \$image with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/SitemapService.php
+
+		-
+			message: '#^Method App\\Services\\SitemapService\:\:getImageUrl\(\) has parameter \$image with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/SitemapService.php
+
+		-
+			message: '#^Method App\\Services\\TemplateService\:\:getCustomGalleryTemplateById\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TemplateService.php
+
+		-
+			message: '#^Method App\\Services\\TemplateService\:\:getCustomGalleryTemplateRows\(\) has parameter \$fields with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TemplateService.php
+
+		-
+			message: '#^Method App\\Services\\TemplateService\:\:getCustomGalleryTemplateRows\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TemplateService.php
+
+		-
+			message: '#^Method App\\Services\\TemplateService\:\:getCustomGalleryTemplates\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TemplateService.php
+
+		-
+			message: '#^Method App\\Services\\TemplateService\:\:getCustomGalleryTemplatesForSwitcher\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TemplateService.php
+
+		-
+			message: '#^Method App\\Services\\TemplateService\:\:getGalleryTemplateById\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TemplateService.php
+
+		-
+			message: '#^Method App\\Services\\TemplateService\:\:getGalleryTemplates\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TemplateService.php
+
+		-
+			message: '#^Method App\\Services\\TemplateService\:\:getGalleryTemplatesForDropdown\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TemplateService.php
+
+		-
+			message: '#^Method App\\Services\\TemplateService\:\:getGalleryTemplatesForSwitcher\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TemplateService.php
+
+		-
+			message: '#^Method App\\Services\\TranslationService\:\:all\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TranslationService.php
+
+		-
+			message: '#^Method App\\Services\\TranslationService\:\:allGrouped\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TranslationService.php
+
+		-
+			message: '#^Method App\\Services\\TranslationService\:\:create\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TranslationService.php
+
+		-
+			message: '#^Method App\\Services\\TranslationService\:\:find\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TranslationService.php
+
+		-
+			message: '#^Method App\\Services\\TranslationService\:\:findByKey\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TranslationService.php
+
+		-
+			message: '#^Method App\\Services\\TranslationService\:\:get\(\) has parameter \$params with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TranslationService.php
+
+		-
+			message: '#^Method App\\Services\\TranslationService\:\:getAvailableLanguages\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TranslationService.php
+
+		-
+			message: '#^Method App\\Services\\TranslationService\:\:getContexts\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TranslationService.php
+
+		-
+			message: '#^Method App\\Services\\TranslationService\:\:getDefaults\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TranslationService.php
+
+		-
+			message: '#^Method App\\Services\\TranslationService\:\:loadFromFile\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TranslationService.php
+
+		-
+			message: '#^Method App\\Services\\TranslationService\:\:search\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TranslationService.php
+
+		-
+			message: '#^Method App\\Services\\TranslationService\:\:update\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TranslationService.php
+
+		-
+			message: '#^Property App\\Services\\TranslationService\:\:\$cache type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TranslationService.php
+
+		-
+			message: '#^Method App\\Services\\TwigGlobalsCache\:\:buildGlobals\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TwigGlobalsCache.php
+
+		-
+			message: '#^Method App\\Services\\TwigGlobalsCache\:\:getDefaults\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TwigGlobalsCache.php
+
+		-
+			message: '#^Method App\\Services\\TwigGlobalsCache\:\:getGlobals\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TwigGlobalsCache.php
+
+		-
+			message: '#^Method App\\Services\\TypographyService\:\:getAllFonts\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TypographyService.php
+
+		-
+			message: '#^Method App\\Services\\TypographyService\:\:getClosestWeight\(\) has parameter \$available with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TypographyService.php
+
+		-
+			message: '#^Method App\\Services\\TypographyService\:\:getCriticalFontsForPreload\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TypographyService.php
+
+		-
+			message: '#^Method App\\Services\\TypographyService\:\:getFontBySlug\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TypographyService.php
+
+		-
+			message: '#^Method App\\Services\\TypographyService\:\:getRequiredFonts\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TypographyService.php
+
+		-
+			message: '#^Method App\\Services\\TypographyService\:\:getTypography\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TypographyService.php
+
+		-
+			message: '#^Method App\\Services\\TypographyService\:\:saveTypography\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/TypographyService.php
+
+		-
+			message: '#^Method App\\Services\\UploadService\:\:generateBlurredVariantsForAlbum\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/UploadService.php
+
+		-
+			message: '#^Method App\\Services\\UploadService\:\:generateVariantsForImage\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/UploadService.php
+
+		-
+			message: '#^Method App\\Services\\UploadService\:\:ingestAlbumUpload\(\) has parameter \$file with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/UploadService.php
+
+		-
+			message: '#^Method App\\Services\\UploadService\:\:ingestAlbumUpload\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/UploadService.php
+
+		-
+			message: '#^Property App\\Services\\UploadService\:\:\$allowed type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/UploadService.php
+
+		-
+			message: '#^Property App\\Services\\UploadService\:\:\$magicNumbers type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/UploadService.php
+
+		-
+			message: '#^Method App\\Services\\VariantMaintenanceService\:\:generateMissingVariants\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/VariantMaintenanceService.php
+
+		-
+			message: '#^Method App\\Services\\VariantMaintenanceService\:\:resolveEnabledFormatsAndVariants\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/VariantMaintenanceService.php
+
+		-
+			message: '#^Method App\\Support\\Database\:\:execute\(\) has parameter \$params with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Database.php
+
+		-
+			message: '#^Method App\\Support\\Database\:\:query\(\) has parameter \$params with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Database.php
+
+		-
+			message: '#^Method App\\Support\\Database\:\:testConnection\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Database.php
+
+		-
+			message: '#^Method App\\Support\\Hooks\:\:applyFilter\(\) has parameter \$args with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Support/Hooks.php
+
+		-
+			message: '#^Method App\\Support\\Hooks\:\:applyFilter\(\) has parameter \$value with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Support/Hooks.php
+
+		-
+			message: '#^Method App\\Support\\Hooks\:\:doAction\(\) has parameter \$args with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Support/Hooks.php
+
+		-
+			message: '#^Method App\\Support\\Logger\:\:critical\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Logger.php
+
+		-
+			message: '#^Method App\\Support\\Logger\:\:debug\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Logger.php
+
+		-
+			message: '#^Method App\\Support\\Logger\:\:error\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Logger.php
+
+		-
+			message: '#^Method App\\Support\\Logger\:\:info\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Logger.php
+
+		-
+			message: '#^Method App\\Support\\Logger\:\:log\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Logger.php
+
+		-
+			message: '#^Method App\\Support\\Logger\:\:sanitizeContext\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Logger.php
+
+		-
+			message: '#^Method App\\Support\\Logger\:\:sanitizeContext\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Logger.php
+
+		-
+			message: '#^Method App\\Support\\Logger\:\:sql\(\) has parameter \$params with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Logger.php
+
+		-
+			message: '#^Method App\\Support\\Logger\:\:warning\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Logger.php
+
+		-
+			message: '#^Method App\\Support\\Logger\:\:writeToDatabase\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Logger.php
+
+		-
+			message: '#^Property App\\Support\\Logger\:\:\$levelMap type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Logger.php
+
+		-
+			message: '#^Property App\\Support\\Logger\:\:\$levelNames type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Logger.php
+
+		-
+			message: '#^Method App\\Support\\PluginManager\:\:activatePlugin\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/PluginManager.php
+
+		-
+			message: '#^Method App\\Support\\PluginManager\:\:deactivatePlugin\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/PluginManager.php
+
+		-
+			message: '#^Method App\\Support\\PluginManager\:\:getAllAvailablePlugins\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/PluginManager.php
+
+		-
+			message: '#^Method App\\Support\\PluginManager\:\:getHooks\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/PluginManager.php
+
+		-
+			message: '#^Method App\\Support\\PluginManager\:\:getInstalledPlugins\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/PluginManager.php
+
+		-
+			message: '#^Method App\\Support\\PluginManager\:\:getPluginStatus\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/PluginManager.php
+
+		-
+			message: '#^Method App\\Support\\PluginManager\:\:getPlugins\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/PluginManager.php
+
+		-
+			message: '#^Method App\\Support\\PluginManager\:\:getStats\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/PluginManager.php
+
+		-
+			message: '#^Method App\\Support\\PluginManager\:\:installPlugin\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/PluginManager.php
+
+		-
+			message: '#^Method App\\Support\\PluginManager\:\:parsePluginMetadata\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/PluginManager.php
+
+		-
+			message: '#^Method App\\Support\\PluginManager\:\:registerPlugin\(\) has parameter \$metadata with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/PluginManager.php
+
+		-
+			message: '#^Method App\\Support\\PluginManager\:\:uninstallPlugin\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/PluginManager.php
+
+		-
+			message: '#^Method App\\Support\\QueryCache\:\:getStats\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/QueryCache.php
+
+		-
+			message: '#^Method App\\Support\\Sanitizer\:\:sanitizeNode\(\) has parameter \$allowedAttributes with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Sanitizer.php
+
+		-
+			message: '#^Method App\\Support\\Sanitizer\:\:sanitizeNode\(\) has parameter \$allowedTags with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Sanitizer.php
+
+		-
+			message: '#^Method App\\Support\\UpdateDownloadResolver\:\:buildCandidates\(\) has parameter \$release with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/UpdateDownloadResolver.php
+
+		-
+			message: '#^Method App\\Support\\Updater\:\:backupMysqlDatabase\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Updater.php
+
+		-
+			message: '#^Method App\\Support\\Updater\:\:backupSqliteDatabase\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Updater.php
+
+		-
+			message: '#^Method App\\Support\\Updater\:\:checkForUpdates\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Updater.php
+
+		-
+			message: '#^Method App\\Support\\Updater\:\:checkRequirements\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Updater.php
+
+		-
+			message: '#^Method App\\Support\\Updater\:\:debugLog\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Updater.php
+
+		-
+			message: '#^Method App\\Support\\Updater\:\:getAllReleases\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Updater.php
+
+		-
+			message: '#^Method App\\Support\\Updater\:\:getChangelog\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Updater.php
+
+		-
+			message: '#^Method App\\Support\\Updater\:\:getLatestRelease\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Updater.php
+
+		-
+			message: '#^Method App\\Support\\Updater\:\:getReleaseByVersion\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Updater.php
+
+		-
+			message: '#^Method App\\Support\\Updater\:\:getUpdateHistory\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Updater.php
+
+		-
+			message: '#^Method App\\Support\\Updater\:\:makeGitHubRequest\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Updater.php
+
+		-
+			message: '#^Method App\\Tasks\\AnalyticsCleanupCommand\:\:getRecordCounts\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Tasks/AnalyticsCleanupCommand.php
+
+		-
+			message: '#^Method App\\Tasks\\AnalyticsCleanupCommand\:\:performCleanup\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Tasks/AnalyticsCleanupCommand.php
+
+		-
+			message: '#^Method App\\Tasks\\ImagesGenerateLQIPCommand\:\:getImagesToProcess\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Tasks/ImagesGenerateLQIPCommand.php
+
+		-
+			message: '#^Method App\\Tasks\\InstallCommand\:\:checkRequirements\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Tasks/InstallCommand.php
+
+		-
+			message: '#^Method App\\Tasks\\InstallCommand\:\:collectInstallationData\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Tasks/InstallCommand.php
+
+		-
+			message: '#^Method App\\Tasks\\InstallCommand\:\:showInstallationSummary\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Tasks/InstallCommand.php
+
+		-
+			message: '#^Method App\\Tasks\\SitemapCommand\:\:generateSitemapXml\(\) has parameter \$urls with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Tasks/SitemapCommand.php
+
+		-
+			message: '#^Function trans\(\) has parameter \$params with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/helpers.php
+
+		-
+			message: '#^Method ImageRating\:\:bulkSetRating\(\) has parameter \$imageIds with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: plugins/image-rating/src/ImageRating.php
+
+		-
+			message: '#^Method ImageRating\:\:getImagesByRating\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: plugins/image-rating/src/ImageRating.php
+
+		-
+			message: '#^Method ImageRating\:\:getStatistics\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: plugins/image-rating/src/ImageRating.php
+
+		-
+			message: '#^Method ImageRating\:\:getTopRated\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: plugins/image-rating/src/ImageRating.php
+
+		-
+			message: '#^Method ImageRating\:\:getUnratedImages\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: plugins/image-rating/src/ImageRating.php
+
+		-
+			message: '#^Function checkRequirements\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: public/installer.php
+
+		-
+			message: '#^Function createSecurityFiles\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: public/installer.php
+
+		-
+			message: '#^Function createSecurityFiles\(\) has parameter \$rootPath with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: public/installer.php
+
+		-
+			message: '#^Function createStorageDirectories\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: public/installer.php
+
+		-
+			message: '#^Function createStorageDirectories\(\) has parameter \$rootPath with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: public/installer.php
+
+		-
+			message: '#^Function getAvailableLanguages\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: public/installer.php
+
+		-
+			message: '#^Function getCurrentUrl\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: public/installer.php
+
+		-
+			message: '#^Function testDatabaseConnection\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: public/installer.php
+
+		-
+			message: '#^Function testDatabaseConnection\(\) has parameter \$config with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: public/installer.php

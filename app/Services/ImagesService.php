@@ -175,7 +175,7 @@ class ImagesService
         $newW = $targetWidth;
         $newH = (int)round($targetWidth / $ratio);
         $src = null;
-        switch ($info['mime'] ?? '') {
+        switch ($info['mime']) {
             case 'image/jpeg': $src = @imagecreatefromjpeg($srcPath); break;
             case 'image/png': $src = @imagecreatefrompng($srcPath); break;
             default: return null;

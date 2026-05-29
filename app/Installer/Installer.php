@@ -36,7 +36,11 @@ class Installer
         foreach ($lines as $line) {
             if (strpos($line, '=') !== false && strpos($line, '#') !== 0) {
                 list($key, $value) = explode('=', $line, 2);
-                $this->config[trim($key)] = trim($value);
+                // F018: values written by createEnvFile() pass through envEscape()
+                // (quoted + backslash-escaped). Apply the inverse here so consumers
+                // (DB_CONNECTION, DB_HOST, credentials, …) compare/use the original
+                // raw values rather than the on-disk quoted+escaped form.
+                $this->config[trim($key)] = $this->envUnescape($value);
             }
         }
 
@@ -706,6 +710,66 @@ class Installer
         return $translations[$language] ?? $translations['en'];
     }
 
+    /**
+     * Escape a value for safe inclusion in a .env file (phpdotenv-compatible).
+     *
+     * F018: Embedded #, whitespace, quotes, $ and CR/LF in user-supplied values
+     * (DB credentials, APP_URL, …) would otherwise corrupt the .env file and
+     * silently parse to defaults via phpdotenv->safeLoad(). Wrap every value
+     * in double quotes and escape special characters so phpdotenv reads the
+     * intended raw string back.
+     */
+    private function envEscape(string $value): string
+    {
+        // Order matters: escape backslashes first so subsequent escapes aren't re-escaped.
+        $escaped = str_replace(
+            ['\\',   '"',   '$',   "\r",  "\n"],
+            ['\\\\', '\\"', '\\$', '\\r', '\\n'],
+            $value
+        );
+        return '"' . $escaped . '"';
+    }
+
+    /**
+     * Reverse envEscape(): strip surrounding double quotes (if any) and undo
+     * the backslash escape sequences applied during write so callers see the
+     * original raw value. Symmetric inverse of envEscape().
+     *
+     * F018 follow-up: without this, readers (isInstalled(), the standalone
+     * installer.php fallback parser) see quoted/backslashed credentials and
+     * either take the wrong branch (e.g. DB_CONNECTION="sqlite" != 'sqlite')
+     * or hand corrupted credentials to PDO.
+     */
+    private function envUnescape(string $value): string
+    {
+        $value = trim($value);
+        if (strlen($value) >= 2 && $value[0] === '"' && substr($value, -1) === '"') {
+            $value = substr($value, 1, -1);
+        }
+        // Single-pass character scan — produces correct decoding for inputs that
+        // contain literal backslash sequences (a value of "\\n" must remain
+        // backslash + 'n', not a newline). Two-step str_replace conflates the
+        // "literal \n" and "encoded \n" cases.
+        $decoded = '';
+        $len = strlen($value);
+        for ($i = 0; $i < $len; $i++) {
+            if ($value[$i] !== '\\' || $i + 1 >= $len) {
+                $decoded .= $value[$i];
+                continue;
+            }
+            $next = $value[++$i];
+            $decoded .= match ($next) {
+                'n' => "\n",
+                'r' => "\r",
+                '"' => '"',
+                '$' => '$',
+                '\\' => '\\',
+                default => '\\' . $next,
+            };
+        }
+        return $decoded;
+    }
+
     private function createEnvFile(array $data): void
     {
         $connection = $data['db_connection'] ?? 'sqlite';
@@ -713,12 +777,13 @@ class Installer
         // Auto-detect APP_URL if not provided
         $appUrl = $data['app_url'] ?? $this->detectAppUrl();
 
-        $envContent = "APP_ENV=production\n";
-        $envContent .= "APP_DEBUG=false\n";
-        $envContent .= "APP_URL=" . $appUrl . "\n";
-        $envContent .= "APP_TIMEZONE=UTC\n\n";
+        // F018: every interpolated user/runtime value passes through envEscape().
+        $envContent  = 'APP_ENV=' . $this->envEscape('production') . "\n";
+        $envContent .= 'APP_DEBUG=' . $this->envEscape('false') . "\n";
+        $envContent .= 'APP_URL=' . $this->envEscape((string)$appUrl) . "\n";
+        $envContent .= 'APP_TIMEZONE=' . $this->envEscape('UTC') . "\n\n";
 
-        $envContent .= "DB_CONNECTION={$connection}\n";
+        $envContent .= 'DB_CONNECTION=' . $this->envEscape((string)$connection) . "\n";
 
         if ($connection === 'sqlite') {
             // Use the actual path where we created the database
@@ -727,40 +792,47 @@ class Installer
             if (str_starts_with($dbPath, $this->rootPath . '/')) {
                 $dbPath = substr($dbPath, strlen($this->rootPath) + 1);
             }
-            $envContent .= "DB_DATABASE={$dbPath}\n";
+            $envContent .= 'DB_DATABASE=' . $this->envEscape((string)$dbPath) . "\n";
         } else {
-            $envContent .= "DB_HOST=" . ($data['db_host'] ?? '127.0.0.1') . "\n";
-            $envContent .= "DB_PORT=" . ($data['db_port'] ?? '3306') . "\n";
-            $envContent .= "DB_DATABASE=" . ($data['db_database'] ?? 'cimaise') . "\n";
-            $envContent .= "DB_USERNAME=" . ($data['db_username'] ?? 'root') . "\n";
-            $envContent .= "DB_PASSWORD=" . ($data['db_password'] ?? '') . "\n";
+            // F019: DB_HOST stays the original hostname for TLS SNI on managed MySQL
+            // (RDS, Cloud SQL, …). If a resolved IP is available, also persist it as
+            // DB_HOST_PINNED_IP so the runtime can connect to the pinned IP and
+            // prevent DNS-rebinding TOCTOU without breaking certificate validation.
+            $envContent .= 'DB_HOST=' . $this->envEscape((string)($data['db_host'] ?? '127.0.0.1')) . "\n";
+            if (!empty($data['db_host_pinned_ip']) && $data['db_host_pinned_ip'] !== ($data['db_host'] ?? null)) {
+                $envContent .= 'DB_HOST_PINNED_IP=' . $this->envEscape((string)$data['db_host_pinned_ip']) . "\n";
+            }
+            $envContent .= 'DB_PORT=' . $this->envEscape((string)($data['db_port'] ?? '3306')) . "\n";
+            $envContent .= 'DB_DATABASE=' . $this->envEscape((string)($data['db_database'] ?? 'cimaise')) . "\n";
+            $envContent .= 'DB_USERNAME=' . $this->envEscape((string)($data['db_username'] ?? 'root')) . "\n";
+            $envContent .= 'DB_PASSWORD=' . $this->envEscape((string)($data['db_password'] ?? '')) . "\n";
             // Use consistent charset/collation (utf8mb4_unicode_ci for MySQL 5.7+ compatibility)
-            $envContent .= "DB_CHARSET=" . ($data['db_charset'] ?? 'utf8mb4') . "\n";
-            $envContent .= "DB_COLLATION=" . ($data['db_collation'] ?? 'utf8mb4_unicode_ci') . "\n";
+            $envContent .= 'DB_CHARSET=' . $this->envEscape((string)($data['db_charset'] ?? 'utf8mb4')) . "\n";
+            $envContent .= 'DB_COLLATION=' . $this->envEscape((string)($data['db_collation'] ?? 'utf8mb4_unicode_ci')) . "\n";
         }
 
         $sessionSecret = bin2hex(random_bytes(32));
-        $envContent .= "\nSESSION_SECRET=" . $sessionSecret . "\n";
+        $envContent .= "\nSESSION_SECRET=" . $this->envEscape($sessionSecret) . "\n";
 
         // Logging configuration
         $envContent .= "\n# Logging Configuration\n";
-        $envContent .= "LOG_CHANNEL=file\n";
-        $envContent .= "LOG_ENABLED=true\n";
-        $envContent .= "LOG_LEVEL=warning\n";
-        $envContent .= "LOG_MAX_FILES=30\n";
-        $envContent .= "LOG_PATH=storage/logs\n";
+        $envContent .= 'LOG_CHANNEL=' . $this->envEscape('file') . "\n";
+        $envContent .= 'LOG_ENABLED=' . $this->envEscape('true') . "\n";
+        $envContent .= 'LOG_LEVEL=' . $this->envEscape('warning') . "\n";
+        $envContent .= 'LOG_MAX_FILES=' . $this->envEscape('30') . "\n";
+        $envContent .= 'LOG_PATH=' . $this->envEscape('storage/logs') . "\n";
 
         // Upload and performance tuning
         $envContent .= "\n# Upload Performance\n";
-        $envContent .= "FAST_UPLOAD=false\n";
-        $envContent .= "SYNC_VARIANTS_ON_UPLOAD=true\n";
+        $envContent .= 'FAST_UPLOAD=' . $this->envEscape('false') . "\n";
+        $envContent .= 'SYNC_VARIANTS_ON_UPLOAD=' . $this->envEscape('true') . "\n";
 
         // Debug flags (all false in production for maximum performance)
         $envContent .= "\n# Debug Flags (disable in production for best performance)\n";
-        $envContent .= "DEBUG_PERFORMANCE=false\n";
-        $envContent .= "DEBUG_REQUESTS=false\n";
-        $envContent .= "DEBUG_SQL=false\n";
-        $envContent .= "DEBUG_TOOLBAR=false\n";
+        $envContent .= 'DEBUG_PERFORMANCE=' . $this->envEscape('false') . "\n";
+        $envContent .= 'DEBUG_REQUESTS=' . $this->envEscape('false') . "\n";
+        $envContent .= 'DEBUG_SQL=' . $this->envEscape('false') . "\n";
+        $envContent .= 'DEBUG_TOOLBAR=' . $this->envEscape('false') . "\n";
 
         $envFilePath = $this->rootPath . '/.env';
         if (file_put_contents($envFilePath, $envContent) === false) {
@@ -1076,7 +1148,9 @@ HTACCESS;
             }
         }
 
-        if ($newContent !== $content && $newContent !== null) {
+        if ($newContent !== $content) {
+            // $newContent is guaranteed string here — the early return at the
+            // top of the function already handled the preg_replace null case.
             if (file_put_contents($htaccessPath, $newContent) === false) {
                 throw new \RuntimeException('Failed to write public/.htaccess file');
             }

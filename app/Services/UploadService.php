@@ -253,7 +253,7 @@ class UploadService
             $previewSize = @getimagesize($preview) ?: [$previewW, 0];
             $replaceKeyword = $this->db->replaceKeyword();
             $pdo->prepare(sprintf('%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)', $replaceKeyword))
-                ->execute([$imageId,'sm','jpg',$relUrl,$previewW,(int)($previewSize[1] ?? 0), (int)filesize($preview)]);
+                ->execute([$imageId,'sm','jpg',$relUrl,$previewW,(int)$previewSize[1], (int)filesize($preview)]);
             $previewRel = $relUrl;
         } else {
             $previewRel = null;
@@ -313,7 +313,7 @@ class UploadService
 
     private function resizeWithImagickOrGd(string $src, string $dest, int $targetW, string $format, int $quality): bool
     {
-        if (class_exists(\Imagick::class)) {
+        if (class_exists(\Imagick::class) && !$this->imagickDisabled()) {
             return $this->resizeWithImagick($src, $dest, $targetW, $format, $quality);
         }
         // GD fallback JPEG only
@@ -322,7 +322,7 @@ class UploadService
         [$w, $h] = $info;
         $ratio = $h > 0 ? $w / $h : 1;
         $newW = $targetW; $newH = (int)round($targetW / $ratio);
-        $srcImg = match ($info['mime'] ?? '') {
+        $srcImg = match ($info['mime']) {
             'image/jpeg' => @imagecreatefromjpeg($src),
             'image/png' => @imagecreatefrompng($src),
             default => null,
@@ -344,7 +344,7 @@ class UploadService
         [$w, $h] = $info;
         $ratio = $h > 0 ? $w / $h : 1;
         $newW = $targetW; $newH = (int)round($targetW / $ratio);
-        $srcImg = match ($info['mime'] ?? '') {
+        $srcImg = match ($info['mime']) {
             'image/jpeg' => @imagecreatefromjpeg($src),
             'image/png' => @imagecreatefrompng($src),
             default => null,
@@ -431,7 +431,7 @@ class UploadService
         $mediaDir = dirname(__DIR__, 2) . '/public/media';
         ImagesService::ensureDir($mediaDir);
 
-        $haveImagick = class_exists(\Imagick::class);
+        $haveImagick = class_exists(\Imagick::class) && !$this->imagickDisabled();
         $stats = ['generated' => 0, 'failed' => 0, 'skipped' => 0];
 
         foreach ($breakpoints as $variant => $targetW) {
@@ -480,7 +480,9 @@ class UploadService
                             $ok = $this->resizeWithGdWebp($originalPath, $destPath, $targetW, (int)($quality['webp'] ?? 75));
                         }
                     }
-                } elseif ($fmt === 'avif' && $haveImagick) {
+                } elseif ($haveImagick) {
+                    // Remaining format: 'avif' (narrowed by the if/elseif chain
+                    // above). Only Imagick can produce AVIF in this codebase.
                     $ok = $this->resizeWithImagick($originalPath, $destPath, $targetW, 'avif', (int)($quality['avif'] ?? 50));
                 }
 
@@ -521,6 +523,17 @@ class UploadService
             UPLOAD_ERR_EXTENSION => 'File upload stopped by extension',
             default => 'Unknown upload error (' . $errorCode . ')'
         };
+    }
+
+    /**
+     * Imagick is opt-out via CIMAISE_DISABLE_IMAGICK=1 — set this when running
+     * under a php-fpm whose Imagick build segfaults on real upload payloads
+     * (macOS / Apple Silicon + ImageMagick 7.1.x is the known offender). GD is
+     * always used as the fallback.
+     */
+    private function imagickDisabled(): bool
+    {
+        return $this->envFlag('CIMAISE_DISABLE_IMAGICK', false);
     }
 
     /**
@@ -597,7 +610,7 @@ class UploadService
 
         // Generate blurred image
         $ok = false;
-        if (class_exists(\Imagick::class)) {
+        if (class_exists(\Imagick::class) && !$this->imagickDisabled()) {
             $ok = $this->generateBlurWithImagick($sourcePath, $destPath);
         } else {
             $ok = $this->generateBlurWithGd($sourcePath, $destPath);
@@ -620,6 +633,11 @@ class UploadService
 
     /**
      * Ensure a generic blur placeholder exists for protected media fallbacks.
+     *
+     * Returns the public URL path on success, or null if GD is unavailable
+     * or the placeholder could not be allocated/written. The installer requires
+     * ext-gd as a core extension, but this runtime guard prevents fatal errors
+     * in misconfigured environments (e.g. Imagick-only PHP builds).
      */
     public function ensureBlurPlaceholder(): ?string
     {
@@ -628,6 +646,21 @@ class UploadService
 
         $placeholderPath = $mediaDir . '/blur-placeholder.jpg';
         if (!is_file($placeholderPath)) {
+            // Runtime GD guard: ensure the extension and required functions are loaded.
+            // If GD is missing, gracefully return null so callers can degrade (CR-12).
+            if (!extension_loaded('gd')
+                || !function_exists('imagecreatetruecolor')
+                || !function_exists('imagecolorallocate')
+                || !function_exists('imagefilledrectangle')
+                || !function_exists('imagejpeg')
+                || !function_exists('imagedestroy')
+            ) {
+                Logger::warning('UploadService: GD extension unavailable, cannot create blur placeholder', [
+                    'path' => $placeholderPath,
+                ], 'upload');
+                return null;
+            }
+
             $image = imagecreatetruecolor(8, 8);
             if ($image === false) {
                 Logger::warning('UploadService: Failed to allocate blur placeholder image', [], 'upload');
@@ -708,7 +741,7 @@ class UploadService
         }
 
         [$w, $h] = $info;
-        $srcImg = match ($info['mime'] ?? '') {
+        $srcImg = match ($info['mime']) {
             'image/jpeg' => @imagecreatefromjpeg($src),
             'image/png' => @imagecreatefrompng($src),
             'image/webp' => @imagecreatefromwebp($src),
@@ -786,6 +819,76 @@ class UploadService
         }
 
         return $stats;
+    }
+
+    /**
+     * Backfill blur variants for all password-protected and NSFW albums that lack them.
+     *
+     * Walks every image belonging to a password-protected or NSFW (published) album and,
+     * if no `blur` variant row exists in image_variants, dispatches generateBlurredVariant
+     * to create one. Idempotent: existing blur variants are skipped (unless $force=true).
+     *
+     * Intended to be wired to a CLI command (e.g. `bin/console images:backfill-blur`) or
+     * an admin-only maintenance route. Not exposed via routing here — see TODO below.
+     *
+     * @param bool $force Regenerate blur variants even if they already exist
+     * @return int Number of blur variants actually generated by this call
+     */
+    public function backfillBlurForProtectedAlbums(bool $force = false): int
+    {
+        // TODO: wire this method to a CLI command (e.g. bin/console images:backfill-blur)
+        // and/or an admin maintenance route so operators can run it on demand after upgrade.
+        $pdo = $this->db->pdo();
+
+        // When $force is true, process every image in protected/NSFW albums so that
+        // existing blur variants can be rebuilt. The non-force path keeps the original
+        // `iv.id IS NULL` filter for an idempotent backfill (CR-11).
+        $sql = $force
+            ? "
+                SELECT i.id AS image_id
+                FROM images i
+                JOIN albums a ON a.id = i.album_id
+                WHERE a.is_published = 1
+                  AND ((a.password_hash IS NOT NULL AND a.password_hash <> '') OR a.is_nsfw = 1)
+            "
+            : "
+                SELECT i.id AS image_id
+                FROM images i
+                JOIN albums a ON a.id = i.album_id
+                LEFT JOIN image_variants iv
+                  ON iv.image_id = i.id AND iv.variant = 'blur'
+                WHERE a.is_published = 1
+                  AND ((a.password_hash IS NOT NULL AND a.password_hash <> '') OR a.is_nsfw = 1)
+                  AND iv.id IS NULL
+            ";
+        $stmt = $pdo->query($sql);
+
+        if ($stmt === false) {
+            Logger::warning('UploadService: backfillBlurForProtectedAlbums query failed', [], 'upload');
+            return 0;
+        }
+
+        $generated = 0;
+        foreach ($stmt as $row) {
+            $imageId = (int)($row['image_id'] ?? 0);
+            if ($imageId <= 0) {
+                continue;
+            }
+
+            try {
+                $result = $this->generateBlurredVariant($imageId, $force);
+                if ($result !== null) {
+                    $generated++;
+                }
+            } catch (\Throwable $e) {
+                Logger::warning('UploadService: backfill blur generation failed', [
+                    'image_id' => $imageId,
+                    'error' => $e->getMessage(),
+                ], 'upload');
+            }
+        }
+
+        return $generated;
     }
 
     /**
@@ -939,7 +1042,7 @@ class UploadService
 
                 // Generate LQIP (tiny with light blur)
                 $ok = false;
-                if (class_exists(\Imagick::class)) {
+                if (class_exists(\Imagick::class) && !$this->imagickDisabled()) {
                     $ok = $this->generateLQIPWithImagick($sourcePath, $destPath);
                 } else {
                     $ok = $this->generateLQIPWithGd($sourcePath, $destPath);
@@ -1039,7 +1142,7 @@ class UploadService
         }
 
         [$w, $h] = $info;
-        $srcImg = match ($info['mime'] ?? '') {
+        $srcImg = match ($info['mime']) {
             'image/jpeg' => @imagecreatefromjpeg($src),
             'image/png' => @imagecreatefrompng($src),
             'image/webp' => @imagecreatefromwebp($src),

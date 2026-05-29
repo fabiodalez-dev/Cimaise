@@ -49,12 +49,40 @@ if (file_exists($markerPath) && file_exists($envPath)) {
                     if ($line === '' || str_starts_with($line, '#')) continue;
                     if (str_contains($line, '=')) {
                         [$key, $val] = explode('=', $line, 2);
-                        $envVars[trim($key)] = trim($val, " \t\n\r\0\x0B\"'");
+                        // F018 follow-up: values are written via envEscape() (quoted +
+                        // backslash-escaped). Use envUnescape() so DB_CONNECTION,
+                        // DB_HOST, credentials, etc. are compared/used as the original
+                        // raw values rather than their on-disk quoted+escaped form.
+                        $envVars[trim($key)] = envUnescape($val);
                     }
                 }
                 $dbConn = $envVars['DB_CONNECTION'] ?? '';
                 if ($dbConn === 'mysql') {
                     $host = $envVars['DB_HOST'] ?? '127.0.0.1';
+                    // F019 follow-up: when DB_HOST_PINNED_IP is set and points to a
+                    // safe IP (not metadata / link-local), use it as the connect
+                    // target so this fallback honors the SSRF/DNS-rebinding pinning
+                    // applied at install time. The hostname is preserved for the
+                    // operator's reference; only the PDO connect IP changes.
+                    $pinnedIp = $envVars['DB_HOST_PINNED_IP'] ?? '';
+                    if ($pinnedIp !== '' && filter_var($pinnedIp, FILTER_VALIDATE_IP) !== false) {
+                        $blocked = [
+                            '169.254.169.254', '100.100.100.200',
+                            '::ffff:169.254.169.254', 'fd00:ec2::254',
+                        ];
+                        $isBlocked = false;
+                        foreach ($blocked as $b) {
+                            if (strcasecmp($pinnedIp, $b) === 0) { $isBlocked = true; break; }
+                        }
+                        if (!$isBlocked
+                            && stripos($pinnedIp, 'fe80:') !== 0
+                            && stripos($pinnedIp, '169.254.') !== 0
+                            && stripos($pinnedIp, 'fd00:ec2:') !== 0
+                            && stripos($pinnedIp, '::ffff:169.254.') !== 0
+                            && stripos($pinnedIp, '::169.254.') !== 0) {
+                            $host = $pinnedIp;
+                        }
+                    }
                     $port = $envVars['DB_PORT'] ?? '3306';
                     $dbName = $envVars['DB_DATABASE'] ?? '';
                     $user = $envVars['DB_USERNAME'] ?? '';
@@ -194,13 +222,79 @@ function getCurrentUrl() {
     if ($basePath === '/' || $basePath === '\\') {
         $basePath = '';
     }
-    
+
     // Remove /public from the path if present (since document root should be public/)
     if (str_ends_with($basePath, '/public')) {
         $basePath = substr($basePath, 0, -7); // Remove '/public'
     }
-    
+
     return $protocol . '://' . $host . $basePath;
+}
+
+/**
+ * Escape a value for safe inclusion in a .env file (phpdotenv-compatible).
+ *
+ * Wraps the value in double quotes and escapes special characters so that
+ * embedded #, whitespace, quotes, dollar signs, backslashes and newlines
+ * cannot corrupt the .env file or be silently lost by phpdotenv->safeLoad().
+ *
+ * NOTE: CR/LF are converted to phpdotenv's literal "\n"/"\r" escape sequences
+ * inside the double-quoted value, which phpdotenv interpolates at load time.
+ *
+ * @param string $value Raw, user-supplied value.
+ * @return string Quoted+escaped value ready to append after `KEY=`.
+ */
+function envEscape(string $value): string {
+    // Order matters: escape backslashes first so subsequent escapes aren't re-escaped.
+    $escaped = str_replace(
+        ['\\',  '"',  '$',  "\r", "\n"],
+        ['\\\\','\\"','\\$','\\r','\\n'],
+        $value
+    );
+    return '"' . $escaped . '"';
+}
+
+/**
+ * Reverse envEscape(): strip surrounding double quotes (if any) and undo the
+ * backslash escape sequences applied during write so callers see the original
+ * raw value. Symmetric inverse of envEscape().
+ *
+ * F018 follow-up: the initial "already installed" parser above reads .env
+ * before any phpdotenv code runs, so it must perform the same unescape that
+ * phpdotenv would do internally — otherwise a MySQL install with escaped
+ * credentials gets reread with corrupted values and the installer reappears
+ * as if the site wasn't installed.
+ *
+ * @param string $value Raw on-disk value (possibly quoted+escaped).
+ * @return string Decoded value matching what envEscape() received.
+ */
+function envUnescape(string $value): string {
+    $value = trim($value);
+    if (strlen($value) >= 2 && $value[0] === '"' && substr($value, -1) === '"') {
+        $value = substr($value, 1, -1);
+    }
+    // Single-pass character scan — produces correct decoding for inputs that
+    // contain literal backslash sequences (a value of "\\n" must remain
+    // backslash + 'n', not a newline). Two-step str_replace conflates the
+    // "literal \n" and "encoded \n" cases.
+    $decoded = '';
+    $len = strlen($value);
+    for ($i = 0; $i < $len; $i++) {
+        if ($value[$i] !== '\\' || $i + 1 >= $len) {
+            $decoded .= $value[$i];
+            continue;
+        }
+        $next = $value[++$i];
+        $decoded .= match ($next) {
+            'n' => "\n",
+            'r' => "\r",
+            '"' => '"',
+            '$' => '$',
+            '\\' => '\\',
+            default => '\\' . $next,
+        };
+    }
+    return $decoded;
 }
 
 // Create required storage directories
@@ -374,6 +468,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (empty($dbConfig['database'])) $errors['db_database'] = 'Database name is required';
             if (empty($dbConfig['username'])) $errors['db_username'] = 'Username is required for MySQL';
 
+            // F018: Reject CR/LF in any value destined for the .env file. While envEscape()
+            // neutralizes them, refusing the request gives the user clearer feedback
+            // and ensures no surprise interpolation in tools that re-read .env.
+            foreach (['username' => 'db_username', 'database' => 'db_database', 'password' => 'db_password'] as $cfgKey => $errKey) {
+                $val = (string)$dbConfig[$cfgKey];
+                if ($val !== '' && (strpos($val, "\n") !== false || strpos($val, "\r") !== false)) {
+                    $errors[$errKey] = 'Line breaks are not allowed in this field.';
+                }
+            }
+
             // C2: SSRF prevention — validate MySQL host
             if (!empty($dbConfig['host'])) {
                 $host = $dbConfig['host'];
@@ -399,21 +503,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Cloud metadata endpoints are already blocked above.
                 $isValidIp = $isValidIp ?? false;
                 $isValidHostname = $isValidHostname ?? false;
-                // DNS resolution check for hostnames — use resolved IP in DSN to prevent TOCTOU
+                // DNS resolution check for hostnames — use resolved IP in DSN to prevent TOCTOU.
+                // Resolve both A (IPv4) and AAAA (IPv6) records: an IPv6-only host has
+                // no A record, so gethostbyname() returns the input unchanged and the
+                // SSRF/DNS-rebinding pinning would not activate.
                 if (empty($errors) && !$isValidIp && $isValidHostname) {
-                    $resolvedIp = gethostbyname($host);
-                    if ($resolvedIp !== $host) {
-                        // Block hostnames that resolve to cloud metadata endpoints
+                    $candidateIps = [];
+                    if (function_exists('dns_get_record')) {
+                        foreach (dns_get_record($host, DNS_A) ?: [] as $rec) {
+                            if (!empty($rec['ip'])) $candidateIps[] = $rec['ip'];
+                        }
+                        foreach (dns_get_record($host, DNS_AAAA) ?: [] as $rec) {
+                            if (!empty($rec['ipv6'])) $candidateIps[] = $rec['ipv6'];
+                        }
+                    }
+                    if (empty($candidateIps)) {
+                        $legacy = gethostbyname($host);
+                        if ($legacy !== $host) $candidateIps[] = $legacy;
+                    }
+                    $safeIp = null;
+                    foreach ($candidateIps as $ip) {
+                        $blockedHere = false;
                         foreach ($blockedPatterns as $blocked) {
-                            if (stripos($resolvedIp, $blocked) !== false) {
-                                $errors['db_host'] = 'This host resolves to a restricted IP address.';
-                                break;
-                            }
+                            if (stripos($ip, $blocked) !== false) { $blockedHere = true; break; }
                         }
-                        if (empty($errors)) {
-                            // Store resolved IP to use in DSN (prevents DNS rebinding TOCTOU)
-                            $dbConfig['resolved_host'] = $resolvedIp;
+                        if ($blockedHere) {
+                            $errors['db_host'] = 'This host resolves to a restricted IP address.';
+                            break;
                         }
+                        if ($safeIp === null) $safeIp = $ip;
+                    }
+                    if (empty($errors) && $safeIp !== null) {
+                        // F019: Store resolved IP separately in DB_HOST_PINNED_IP for
+                        // runtime DNS-rebinding TOCTOU prevention; DB_HOST keeps the
+                        // hostname for TLS SNI on managed MySQL (RDS, Cloud SQL, ...).
+                        $dbConfig['resolved_host'] = $safeIp;
                     }
                 }
             }
@@ -505,12 +629,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $finfo = new finfo(FILEINFO_MIME_TYPE);
                 $mimeType = $finfo->file($_FILES['site_logo']['tmp_name']);
                 if (in_array($mimeType, $allowedTypes, true)) {
-                    // H3: Re-encode via GD to strip embedded payloads + random filename
-                    $srcImage = match($mimeType) {
+                    // H3: Re-encode via GD to strip embedded payloads + random filename.
+                    // The in_array() guard above narrowed $mimeType to png/jpeg/webp,
+                    // so the last arm collapses into default → imagecreatefromwebp().
+                    $srcImage = match ($mimeType) {
                         'image/png' => @imagecreatefrompng($_FILES['site_logo']['tmp_name']),
                         'image/jpeg' => @imagecreatefromjpeg($_FILES['site_logo']['tmp_name']),
-                        'image/webp' => @imagecreatefromwebp($_FILES['site_logo']['tmp_name']),
-                        default => false,
+                        default => @imagecreatefromwebp($_FILES['site_logo']['tmp_name']),
                     };
                     if ($srcImage) {
                         $logoFilename = 'logo_' . bin2hex(random_bytes(8)) . '.png';
@@ -557,27 +682,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             // Create .env file
+            // F018: Every interpolated value passes through envEscape() to neutralize
+            // embedded #/whitespace/quotes/$/CR/LF that would otherwise corrupt the
+            // file and silently parse to defaults via phpdotenv->safeLoad().
             $appUrl = getCurrentUrl();
             $sessionSecret = bin2hex(random_bytes(32));
-            
-            $envContent = "APP_ENV=production\n";
-            $envContent .= "APP_DEBUG=false\n";
-            $envContent .= "APP_URL=$appUrl\n";
-            $envContent .= "APP_TIMEZONE={$settingsData['timezone']}\n\n";
-            
+
+            $envContent  = 'APP_ENV=' . envEscape('production') . "\n";
+            $envContent .= 'APP_DEBUG=' . envEscape('false') . "\n";
+            $envContent .= 'APP_URL=' . envEscape($appUrl) . "\n";
+            $envContent .= 'APP_TIMEZONE=' . envEscape((string)$settingsData['timezone']) . "\n\n";
+
             if ($dbConfig['type'] === 'sqlite') {
-                $envContent .= "DB_CONNECTION=sqlite\n";
-                $envContent .= "DB_DATABASE=database/{$dbConfig['database']}\n";
+                $envContent .= 'DB_CONNECTION=' . envEscape('sqlite') . "\n";
+                $envContent .= 'DB_DATABASE=' . envEscape('database/' . $dbConfig['database']) . "\n";
             } else {
-                $envContent .= "DB_CONNECTION=mysql\n";
-                $envContent .= "DB_HOST={$dbConfig['host']}\n";
-                $envContent .= "DB_PORT={$dbConfig['port']}\n";
-                $envContent .= "DB_DATABASE={$dbConfig['database']}\n";
-                $envContent .= "DB_USERNAME={$dbConfig['username']}\n";
-                $envContent .= "DB_PASSWORD={$dbConfig['password']}\n";
+                $envContent .= 'DB_CONNECTION=' . envEscape('mysql') . "\n";
+                // F019: Keep DB_HOST as the original hostname so TLS hostname-based
+                // certificate validation (SNI) keeps working on managed MySQL (RDS,
+                // Cloud SQL, etc.). Store resolved IP separately in DB_HOST_PINNED_IP
+                // for runtime DNS-rebinding TOCTOU prevention; DB_HOST keeps the
+                // hostname for TLS SNI.
+                $envContent .= 'DB_HOST=' . envEscape((string)$dbConfig['host']) . "\n";
+                if (!empty($dbConfig['resolved_host']) && $dbConfig['resolved_host'] !== $dbConfig['host']) {
+                    $envContent .= 'DB_HOST_PINNED_IP=' . envEscape((string)$dbConfig['resolved_host']) . "\n";
+                }
+                $envContent .= 'DB_PORT=' . envEscape((string)$dbConfig['port']) . "\n";
+                $envContent .= 'DB_DATABASE=' . envEscape((string)$dbConfig['database']) . "\n";
+                $envContent .= 'DB_USERNAME=' . envEscape((string)$dbConfig['username']) . "\n";
+                $envContent .= 'DB_PASSWORD=' . envEscape((string)$dbConfig['password']) . "\n";
             }
-            
-            $envContent .= "\nSESSION_SECRET=$sessionSecret\n";
+
+            $envContent .= "\nSESSION_SECRET=" . envEscape($sessionSecret) . "\n";
             
             if (!file_put_contents($envPath, $envContent)) {
                 throw new Exception('Could not create .env file. Check file permissions.');
@@ -977,7 +1113,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 <div class="step-indicator">
                     <div class="flex justify-between">
-                        <div class="step <?= $step === 'requirements' ? 'active' : ($step !== 'requirements' && $step !== 'database' && $step !== 'admin' && $step !== 'settings' && $step !== 'install' ? '' : 'completed') ?>">
+                        <div class="step <?= $step === 'requirements' ? 'active' : (in_array($step, ['database', 'admin', 'settings', 'install'], true) ? 'completed' : '') ?>">
                             <div class="step-circle">1</div>
                             <div class="text-xs text-center font-medium">Requirements</div>
                         </div>

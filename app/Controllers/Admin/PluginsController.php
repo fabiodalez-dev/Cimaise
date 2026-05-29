@@ -14,10 +14,12 @@ class PluginsController extends BaseController
 {
     private string $pluginsDir;
 
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(Database $db, private Twig $view)
     {
         parent::__construct();
         $this->pluginsDir = dirname(__DIR__, 3) . '/plugins';
+        // $db kept on the signature for DI uniformity but currently unused.
+        unset($db);
     }
 
     /**

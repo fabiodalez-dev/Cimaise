@@ -24,22 +24,51 @@ class CacheMiddleware implements MiddlewareInterface
 
     public function process(Request $request, Handler $handler): Response
     {
-        $response = $handler->handle($request);
-
-        // Get cache settings
         $cacheEnabled = $this->settings->get('performance.cache_enabled', true);
-        if (!$cacheEnabled) {
-            return $response;
-        }
-
-        $path = $request->getUri()->getPath();
         $method = $request->getMethod();
 
-        // Normalize path: strip basePath for subdirectory installations
-        // Boundary check: ensure basePath matches a full segment (e.g. /foo must not match /foobar)
+        // Normalize path: strip basePath for subdirectory installations.
+        // Boundary check ensures basePath matches a full segment
+        // (e.g. /foo must not match /foobar).
+        $path = $request->getUri()->getPath();
         $basePath = rtrim($this->settings->get('site.base_path', ''), '/');
         if ($basePath !== '' && str_starts_with($path, $basePath) && (strlen($path) === strlen($basePath) || $path[strlen($basePath)] === '/')) {
             $path = substr($path, strlen($basePath)) ?: '/';
+        }
+
+        // Early 304 fast path: for cacheable HTML routes (home/galleries/album),
+        // resolve the ETag from the page_cache table BEFORE executing the controller.
+        // When the client's If-None-Match matches, skip rendering entirely.
+        // Only safe for anonymous, non-session-dependent GET/HEAD requests.
+        if (
+            $cacheEnabled
+            && in_array($method, ['GET', 'HEAD'], true)
+            && !$this->isSessionDependent()
+            && !str_starts_with($path, '/admin')
+            && !str_starts_with($path, '/api/')
+        ) {
+            $ifNoneMatch = $request->getHeaderLine('If-None-Match');
+            if ($ifNoneMatch !== '') {
+                $earlyEtag = $this->generateHtmlEtag($path);
+                if ($earlyEtag !== null && $this->matchesEtag($earlyEtag, $ifNoneMatch)) {
+                    // Build a 304 from scratch — no handler invocation, no Twig render.
+                    $emptyBody = new \Slim\Psr7\Stream(fopen('php://temp', 'r+'));
+                    $maxAge = $this->settings->get('performance.html_cache_max_age', 3600);
+                    $notModified = (new \Slim\Psr7\Response())
+                        ->withStatus(304)
+                        ->withBody($emptyBody)
+                        ->withHeader('ETag', $earlyEtag)
+                        ->withHeader('Cache-Control', "public, max-age={$maxAge}, must-revalidate, stale-while-revalidate=60")
+                        ->withHeader('Vary', 'Accept-Encoding');
+                    return $notModified;
+                }
+            }
+        }
+
+        $response = $handler->handle($request);
+
+        if (!$cacheEnabled) {
+            return $response;
         }
 
         // Only cache GET and HEAD requests
@@ -159,8 +188,7 @@ class CacheMiddleware implements MiddlewareInterface
         // Determine cache visibility: use 'private' when the session contains user-specific
         // access control data (password-protected albums, NSFW consent, admin login).
         // This prevents CDN/proxies from serving session-dependent content to other users.
-        $isSessionDependent = session_status() === PHP_SESSION_ACTIVE
-            && (!empty($_SESSION['album_access']) || !empty($_SESSION['nsfw_confirmed']) || !empty($_SESSION['admin_id']));
+        $isSessionDependent = $this->isSessionDependent();
         $visibility = $isSessionDependent ? 'private' : 'public';
 
         // Try to generate ETag from page cache (database or file) if available
@@ -401,7 +429,35 @@ class CacheMiddleware implements MiddlewareInterface
     {
         $maxAge = $this->settings->get('performance.api_cache_max_age', 60); // 1 minute default
 
-        return $response
+        $result = $response
             ->withHeader('Cache-Control', "private, max-age={$maxAge}, stale-while-revalidate=30");
+
+        // Include Vary: Cookie for session-dependent API responses (e.g. /api/album/* that
+        // depend on password unlock, NSFW consent, or admin session). Without this, shared
+        // caches or browser back/forward may serve another session's response.
+        $varyValues = 'Accept-Encoding';
+        if ($this->isSessionDependent()) {
+            $varyValues .= ', Cookie';
+        }
+
+        return $this->addVaryHeader($result, $varyValues);
+    }
+
+    /**
+     * Determine whether the current response is session-dependent.
+     *
+     * Shared by addHtmlCache() and addApiCache() to ensure consistent Vary: Cookie
+     * and cache visibility decisions when the session holds user-specific access
+     * state (password-protected album access, NSFW consent, admin login).
+     */
+    private function isSessionDependent(): bool
+    {
+        return session_status() === PHP_SESSION_ACTIVE
+            && (
+                !empty($_SESSION['album_access'])
+                || !empty($_SESSION['nsfw_confirmed'])
+                || !empty($_SESSION['nsfw_confirmed_global'])
+                || !empty($_SESSION['admin_id'])
+            );
     }
 }

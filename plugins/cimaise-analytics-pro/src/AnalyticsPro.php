@@ -8,6 +8,14 @@ use App\Support\Database;
 
 class AnalyticsPro
 {
+    /**
+     * Schema version marker. Bumped when the table layout changes.
+     * Stored under the SCHEMA_SETTING_KEY in the settings table so subsequent
+     * requests can short-circuit ensureTables() without touching the DDL.
+     */
+    private const SCHEMA_VERSION = '1';
+    private const SCHEMA_SETTING_KEY = 'plugin_analytics_pro_schema';
+
     private Database $db;
     private SettingsService $settings;
     private ?string $ipSalt = null;
@@ -18,8 +26,48 @@ class AnalyticsPro
         $this->db = $db;
         $this->settings = $settings ?? new SettingsService($db);
         if (!self::$tablesEnsured) {
-            $this->ensureTables();
-            self::$tablesEnsured = true;
+            // Persisted marker → skip DDL entirely on the hot boot path
+            if ($this->isSchemaCurrent()) {
+                self::$tablesEnsured = true;
+            } else {
+                $this->ensureTables();
+                $this->markSchemaCurrent();
+                self::$tablesEnsured = true;
+            }
+        }
+    }
+
+    /**
+     * Check the schema marker (best effort — false on any error).
+     */
+    private function isSchemaCurrent(): bool
+    {
+        try {
+            $stmt = $this->db->pdo()->prepare("SELECT value FROM settings WHERE `key` = ?");
+            $stmt->bindValue(1, self::SCHEMA_SETTING_KEY);
+            $stmt->execute();
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            return $row && isset($row['value']) && (string)$row['value'] === self::SCHEMA_VERSION;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * Persist the schema marker after a successful ensureTables() run.
+     */
+    private function markSchemaCurrent(): void
+    {
+        try {
+            $sql = $this->db->isSqlite()
+                ? "INSERT OR REPLACE INTO settings (`key`, value) VALUES (?, ?)"
+                : "INSERT INTO settings (`key`, value) VALUES (?, ?) AS new ON DUPLICATE KEY UPDATE value = new.value";
+            $stmt = $this->db->pdo()->prepare($sql);
+            $stmt->bindValue(1, self::SCHEMA_SETTING_KEY);
+            $stmt->bindValue(2, self::SCHEMA_VERSION);
+            $stmt->execute();
+        } catch (\Throwable) {
+            // settings table absent during install — retry on next boot
         }
     }
 

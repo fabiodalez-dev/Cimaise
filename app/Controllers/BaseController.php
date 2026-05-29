@@ -267,6 +267,7 @@ abstract class BaseController
 
         // Mark as requiring CSS blur fallback if no blur variant exists
         $album['nsfw_needs_css_blur'] = true;
+        $placeholderUrl = $this->blurPlaceholderUrl();
 
         if (!empty($album['cover']) && !empty($album['cover']['variants']) && is_array($album['cover']['variants'])) {
             $blurVariants = array_values(array_filter(
@@ -279,13 +280,26 @@ abstract class BaseController
                 $album['cover']['variants'] = $blurVariants;
                 unset($album['cover']['original_path']);
                 $album['nsfw_needs_css_blur'] = false;
+            } else {
+                // No blur variant: substitute with a static placeholder so the template never
+                // falls back to the full-resolution preview/original for NSFW covers.
+                $album['cover']['variants'] = [[
+                    'variant' => 'blur',
+                    'format' => 'jpg',
+                    'path' => $placeholderUrl,
+                    'width' => null,
+                    'height' => null,
+                ]];
+                unset($album['cover']['original_path']);
+                $album['nsfw_needs_css_blur'] = false;
             }
-            // If no blur variants, keep the cover as-is for CSS blur fallback in template
         }
 
         if (!empty($album['cover_image']) && is_array($album['cover_image'])) {
-            if (empty($album['cover_image']['blur_path']) && !empty($album['cover_image']['preview_path'])) {
-                $album['cover_image']['blur_path'] = $album['cover_image']['preview_path'];
+            if (empty($album['cover_image']['blur_path'])) {
+                // Prefer a real blur if we have one; otherwise fall back to the static placeholder
+                // (never leak preview_path/original_path for NSFW covers).
+                $album['cover_image']['blur_path'] = $placeholderUrl;
             }
             // Don't unset cover_image even without blur - template will apply CSS blur
             if (!empty($album['cover_image']['blur_path'])) {
@@ -304,6 +318,15 @@ abstract class BaseController
     protected function ensureAlbumCoverImage(array $album): array
     {
         if (!empty($album['cover_image']) || empty($album['cover']) || !is_array($album['cover'])) {
+            // Even if cover_image already exists, password-protected albums without a
+            // blur_path must still get a placeholder so _album_card.twig always has a
+            // renderable URL when should_blur_cover is true.
+            if (!empty($album['cover_image']) && is_array($album['cover_image'])) {
+                $needsPlaceholder = !empty($album['is_password_protected']) || !empty($album['is_locked']);
+                if ($needsPlaceholder && empty($album['cover_image']['blur_path'])) {
+                    $album['cover_image']['blur_path'] = $this->blurPlaceholderUrl();
+                }
+            }
             return $album;
         }
 
@@ -331,8 +354,124 @@ abstract class BaseController
             }
         }
 
+        // For password-protected (or locked) albums without a blur variant, fall back to a
+        // static placeholder so listings never expose the full-resolution cover via the
+        // _album_card.twig blur branch.
+        $needsPlaceholder = !empty($album['is_password_protected']) || !empty($album['is_locked']);
+        if ($needsPlaceholder && empty($coverImage['blur_path'])) {
+            $coverImage['blur_path'] = $this->blurPlaceholderUrl();
+        }
+
         $album['cover_image'] = $coverImage;
         return $album;
+    }
+
+    /**
+     * URL path for the static blur placeholder used when a protected album lacks a blur variant.
+     *
+     * Lazily creates an 8x8 gray jpeg at public/media/blur-placeholder.jpg the first time
+     * it is requested (CR-2): without this, the very first page render with a protected cover
+     * would emit a `<img src="/media/blur-placeholder.jpg">` for an asset that doesn't exist
+     * on disk yet (MediaController::generateBlurOnDemand() materialises it only on a /media
+     * request), producing a 404 from serveStaticFile().
+     *
+     * Returned as an absolute server path (starting with `/`) so _album_card.twig will prepend
+     * base_path itself, consistent with how other variant.path values flow through the template.
+     *
+     * If GD is unavailable and the file cannot be created, we still return the canonical URL —
+     * any resulting 404 is preferable to leaking the original cover. Callers/templates should
+     * treat this as a best-effort fallback.
+     */
+    protected function blurPlaceholderUrl(): string
+    {
+        $this->ensureBlurPlaceholderExists();
+        return '/media/blur-placeholder.jpg';
+    }
+
+    /**
+     * Ensure the blur placeholder file exists on disk (CR-2).
+     *
+     * Performs a cheap is_file() check first; only when the file is missing does it
+     * attempt to materialise the 8x8 gray jpeg directly. This mirrors the logic of
+     * UploadService::ensureBlurPlaceholder() but is inlined here because BaseController
+     * does not have any service dependencies injected — and instantiating UploadService
+     * requires a Database, which is owned by the concrete child controllers.
+     *
+     * If GD is unavailable (CR-12), or any write step fails, we degrade silently:
+     * blurPlaceholderUrl() still returns the canonical URL and the caller's template
+     * may emit a 404 image — strictly better than leaking the un-blurred cover.
+     *
+     * The static guard avoids retrying creation on every cover render within a single
+     * request once a successful or failed attempt has been made.
+     */
+    private function ensureBlurPlaceholderExists(): void
+    {
+        static $checked = false;
+        if ($checked) {
+            return;
+        }
+
+        $mediaDir = dirname(__DIR__, 2) . '/public/media';
+        $placeholderPath = $mediaDir . '/blur-placeholder.jpg';
+        if (is_file($placeholderPath)) {
+            $checked = true;
+            return;
+        }
+
+        // Runtime GD guard: if GD is missing we cannot generate a JPEG. Bail out
+        // gracefully so a misconfigured environment doesn't fatal on a page render.
+        if (!extension_loaded('gd')
+            || !function_exists('imagecreatetruecolor')
+            || !function_exists('imagecolorallocate')
+            || !function_exists('imagefilledrectangle')
+            || !function_exists('imagejpeg')
+            || !function_exists('imagedestroy')
+        ) {
+            Logger::warning('BaseController: GD extension unavailable, cannot lazily create blur placeholder', [
+                'path' => $placeholderPath,
+            ], 'frontend');
+            $checked = true;
+            return;
+        }
+
+        try {
+            if (!is_dir($mediaDir) && !@mkdir($mediaDir, 0755, true) && !is_dir($mediaDir)) {
+                Logger::warning('BaseController: failed to create media dir for blur placeholder', [
+                    'dir' => $mediaDir,
+                ], 'frontend');
+                $checked = true;
+                return;
+            }
+
+            $image = imagecreatetruecolor(8, 8);
+            if ($image === false) {
+                Logger::warning('BaseController: failed to allocate blur placeholder image', [], 'frontend');
+                $checked = true;
+                return;
+            }
+
+            $color = imagecolorallocate($image, 120, 120, 120);
+            if ($color !== false) {
+                imagefilledrectangle($image, 0, 0, 7, 7, $color);
+            }
+
+            $saved = imagejpeg($image, $placeholderPath, 60);
+            imagedestroy($image);
+
+            if (!$saved) {
+                Logger::warning('BaseController: failed to write blur placeholder image', [
+                    'path' => $placeholderPath,
+                ], 'frontend');
+            }
+        } catch (\Throwable $e) {
+            Logger::warning('BaseController: exception while lazily creating blur placeholder', [
+                'error' => $e->getMessage(),
+            ], 'frontend');
+        }
+
+        // Mark checked regardless of outcome — avoid retrying on every cover render
+        // for this request. A subsequent request will see the file via is_file().
+        $checked = true;
     }
 
     /**

@@ -518,23 +518,21 @@ class CategoriesController extends BaseController
         ];
         
         $isValidMagic = false;
-        if (isset($magicNumbers[$detectedMime])) {
-            foreach ($magicNumbers[$detectedMime] as $signature) {
-                if ($detectedMime === 'image/webp') {
-                    // WebP has RIFF at start and WEBP at offset 8
-                    if (str_starts_with($fileHeader, 'RIFF') && str_contains($fileHeader, 'WEBP')) {
-                        $isValidMagic = true;
-                        break;
-                    }
-                } else {
-                    if (str_starts_with($fileHeader, $signature)) {
-                        $isValidMagic = true;
-                        break;
-                    }
+        foreach ($magicNumbers[$detectedMime] as $signature) {
+            if ($detectedMime === 'image/webp') {
+                // WebP has RIFF at start and WEBP at offset 8
+                if (str_starts_with($fileHeader, 'RIFF') && str_contains($fileHeader, 'WEBP')) {
+                    $isValidMagic = true;
+                    break;
+                }
+            } else {
+                if (str_starts_with($fileHeader, $signature)) {
+                    $isValidMagic = true;
+                    break;
                 }
             }
         }
-        
+
         if (!$isValidMagic) {
             return false;
         }

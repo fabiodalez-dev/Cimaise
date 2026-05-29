@@ -28,6 +28,18 @@ if (file_exists($root . '/.env')) {
 
 date_default_timezone_set(envv('APP_TIMEZONE', 'UTC'));
 
+// Pre-initialize the C locale BEFORE anything in the request lifecycle can
+// trigger libintl's lazy locale auto-detection. PEL (the EXIF parser used by
+// UploadService/ExifService) calls dgettext() during EXIF reads — on macOS
+// Apple Silicon php-fpm that lookup hits CFPreferences via dispatch_apply
+// and segfaults the worker mid-upload. Forcing the locale here makes every
+// subsequent dgettext() / setlocale() resolve from libc state, never from
+// Core Foundation. Harmless on Linux/Docker because C.UTF-8 is the standard
+// container default; on systems without C.UTF-8 we fall back to POSIX/C.
+if (!getenv('LANG'))   { putenv('LANG=C.UTF-8'); }
+if (!getenv('LC_ALL')) { putenv('LC_ALL=C.UTF-8'); }
+@setlocale(LC_ALL, 'C.UTF-8', 'C.utf8', 'C', 'POSIX');
+
 // Support both MySQL and SQLite - default to SQLite for installer compatibility
 $connection = (string)envv('DB_CONNECTION', 'sqlite');
 if ($connection === 'sqlite') {

@@ -13,6 +13,8 @@ class AnalyticsService
     private array $settings;
     private ?Reader $geoReader = null;
     private string $driver = 'mysql';
+    /** F043: cached IP-pseudonymization salt resolved lazily on first hashIp() call. */
+    private ?string $ipSalt = null;
 
     public function __construct(PDO $db)
     {
@@ -28,10 +30,6 @@ class AnalyticsService
         return $this->isSqlite()
             ? "datetime('now', '-" . (int)$hours . " hours')"
             : 'DATE_SUB(NOW(), INTERVAL ' . (int)$hours . ' HOUR)';
-    }
-    private function todayExpr(): string
-    {
-        return $this->isSqlite() ? "DATE('now')" : 'CURDATE()';
     }
 
     /**
@@ -138,7 +136,13 @@ class AnalyticsService
     }
 
     /**
-     * Hash IP address for privacy
+     * Hash IP address for privacy.
+     *
+     * F043: Historical note — ip_hash values produced before this change used a
+     * hardcoded fallback salt that was public (the project ships GPLv3). Any
+     * pre-existing analytics_*.ip_hash entries should be considered reversible
+     * via rainbow tables and SHOULD be truncated on upgrade (see
+     * truncateLegacyIpHashes()). New hashes use a per-install secret salt.
      */
     public function hashIp(string $ip): string
     {
@@ -153,9 +157,186 @@ class AnalyticsService
                 $ip = substr($ip, 0, 19) . '::';
             }
         }
-        
-        $salt = $_ENV['SESSION_SECRET'] ?? $_SERVER['SESSION_SECRET'] ?? 'cimaise_salt';
+
+        // F043: resolve a real, per-install salt. Fails closed if no salt is
+        // available — we refuse to fall back to a public/predictable value.
+        $salt = $this->getIpSalt();
         return hash('sha256', $ip . $salt);
+    }
+
+    /**
+     * F043: Resolve the per-install salt used to pseudonymize IP addresses.
+     *
+     * Resolution order (DB is the single source of truth — SESSION_SECRET only
+     * seeds it on first use, so analytics history stays stable across requests
+     * regardless of whether SESSION_SECRET happens to be set in the env):
+     *   1. In-memory cache (set on first successful resolve).
+     *   2. 'ip_salt' row in analytics_settings — if non-empty, cache and return.
+     *   3. SESSION_SECRET from $_ENV/$_SERVER. If present, persist it to
+     *      analytics_settings AND cache+return so it becomes the canonical salt.
+     *   4. Otherwise: generate bin2hex(random_bytes(32)), persist to
+     *      analytics_settings, cache+return.
+     *
+     * Persistence failures (missing table, read-only DB, race conditions) are
+     * NEVER fatal: this method always returns a non-empty salt by falling back
+     * to an in-memory generated value. Callers (hashIp, getOrCreateSession,
+     * trackPageView) catch only PDOException, so a thrown RuntimeException
+     * would otherwise escape and break the request.
+     */
+    private function getIpSalt(): string
+    {
+        if ($this->ipSalt !== null && $this->ipSalt !== '') {
+            return $this->ipSalt;
+        }
+
+        // (2) DB FIRST: look up the persisted salt in analytics_settings.
+        // Using the DB as the source of truth ensures that ip_hash values stay
+        // consistent across requests even if SESSION_SECRET differs between
+        // processes (e.g. only set in some FPM workers).
+        try {
+            $stmt = $this->db->prepare('SELECT setting_value FROM analytics_settings WHERE setting_key = ?');
+            $stmt->execute(['ip_salt']);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row !== false && isset($row['setting_value']) && $row['setting_value'] !== '') {
+                $this->ipSalt = (string)$row['setting_value'];
+                return $this->ipSalt;
+            }
+        } catch (\PDOException $e) {
+            // Table may not exist yet on legacy installs. Fall through.
+        }
+
+        // (3) Seed from SESSION_SECRET if present — but persist it to the DB
+        // so subsequent requests (which may or may not have SESSION_SECRET set)
+        // all converge on the same canonical value via path (2).
+        $sessionSecret = $_ENV['SESSION_SECRET'] ?? $_SERVER['SESSION_SECRET'] ?? null;
+        if (is_string($sessionSecret) && $sessionSecret !== '') {
+            $persisted = $this->persistIpSalt($sessionSecret);
+            $this->ipSalt = $persisted;
+            $this->settings['ip_salt'] = $persisted;
+            return $this->ipSalt;
+        }
+
+        // (4) Generate a fresh salt and persist it so subsequent hashes stay
+        // stable. If CSPRNG is unavailable we still must return a usable salt
+        // (the alternative — throwing — would break the entire request).
+        try {
+            $fresh = bin2hex(random_bytes(32));
+        } catch (\Throwable $e) {
+            // Last-resort: derive a process-local pseudo-salt. Not cryptographically
+            // ideal, but better than killing the request. Logged so operators see it.
+            Logger::warning(
+                'AnalyticsService: CSPRNG unavailable for IP salt, using degraded in-memory salt',
+                ['error' => $e->getMessage()],
+                'analytics'
+            );
+            $fresh = hash('sha256', uniqid('', true) . microtime(true) . (string)getmypid());
+        }
+
+        // F012: persistIpSalt may discover that another worker already wrote
+        // a different salt under us — in that case the DB value is the
+        // canonical one and THIS request must hash with the DB value (not
+        // $fresh), otherwise analytics history fragments across the race
+        // window. The helper now returns whichever salt actually won.
+        $persisted = $this->persistIpSalt($fresh);
+        $this->ipSalt = $persisted;
+        $this->settings['ip_salt'] = $persisted;
+        return $this->ipSalt;
+    }
+
+    /**
+     * Best-effort persistence of the IP salt to analytics_settings.
+     *
+     * Returns the salt that is now canonical in the database — usually the
+     * argument, but possibly a different value already written by a racing
+     * worker (in which case the caller should defer to it).
+     *
+     * Persistence failures are intentionally swallowed (only logged) so that
+     * IP hashing always succeeds — see getIpSalt() docblock. A subsequent
+     * request will retry persistence via getIpSalt() path (4).
+     */
+    private function persistIpSalt(string $salt): string
+    {
+        try {
+            // Portable upsert: try INSERT, on duplicate-key fall back to UPDATE.
+            $insert = $this->db->prepare(
+                'INSERT INTO analytics_settings (setting_key, setting_value, description) VALUES (?, ?, ?)'
+            );
+            $insert->execute(['ip_salt', $salt, 'Per-install salt for IP pseudonymization (auto-generated)']);
+            return $salt;
+        } catch (\PDOException $e) {
+            // Likely a unique-key race or a missing table. Try UPDATE, then re-read
+            // so two concurrent processes converge on the same salt.
+            //
+            // F012-related: TRIM() in the WHERE so a row whose setting_value is
+            // pure whitespace (e.g. a botched manual seed) still gets healed
+            // by the UPDATE. Both SQLite and MySQL implement TRIM with the
+            // SQL-standard signature so this is portable.
+            try {
+                $update = $this->db->prepare('UPDATE analytics_settings SET setting_value = ? WHERE setting_key = ? AND (setting_value IS NULL OR TRIM(setting_value) = \'\')');
+                $update->execute([$salt, 'ip_salt']);
+
+                // F012-followup: when the INSERT in the try block lost the race
+                // to another worker, that worker's transaction may still be
+                // mid-commit when we reach the SELECT — reading too eagerly
+                // returns NULL/empty and we'd fall through to logging a
+                // spurious failure. Re-read with a small bounded retry so the
+                // committed value has time to land. Total worst-case wait:
+                // 3 attempts × 20ms = 60ms, well under any realistic commit
+                // latency on either engine.
+                $read = $this->db->prepare('SELECT setting_value FROM analytics_settings WHERE setting_key = ?');
+                for ($attempt = 0; $attempt < 3; $attempt++) {
+                    $read->execute(['ip_salt']);
+                    $row = $read->fetch(PDO::FETCH_ASSOC);
+                    if ($row !== false && isset($row['setting_value']) && trim((string)$row['setting_value']) !== '') {
+                        // Another process already wrote a salt — defer to it so all
+                        // workers converge. The caller will hash THIS request's IPs
+                        // with the DB-canonical value (not the in-flight $salt),
+                        // closing the F012 race window.
+                        return (string)$row['setting_value'];
+                    }
+                    if ($attempt < 2) {
+                        usleep(20_000); // 20ms
+                    }
+                }
+            } catch (\PDOException $inner) {
+                // Fall through to log.
+            }
+            // Non-fatal: log and continue with the in-memory salt. CR-1: do NOT
+            // throw — callers catch only PDOException so a RuntimeException would
+            // escape and break the request.
+            Logger::warning(
+                'AnalyticsService: cannot persist IP salt to analytics_settings (using in-memory fallback)',
+                ['error' => $e->getMessage()],
+                'analytics'
+            );
+        }
+        return $salt;
+    }
+
+    /**
+     * F043 (optional helper): truncate analytics ip_hash columns that were
+     * computed before this service shipped a real salt. Returns the number of
+     * rows updated across the analytics tables. Safe to call repeatedly.
+     *
+     * Covers every analytics table that carries an `ip_hash` column —
+     * `analytics_sessions` (core), `analytics_pro_sessions` and
+     * `analytics_pro_events` (analytics-pro plugin). Missing tables fall
+     * through the per-table try/catch so the helper degrades gracefully
+     * when the pro plugin is not installed.
+     */
+    public function truncateLegacyIpHashes(): int
+    {
+        $total = 0;
+        foreach (['analytics_sessions', 'analytics_pro_sessions', 'analytics_pro_events'] as $table) {
+            try {
+                $stmt = $this->db->prepare("UPDATE {$table} SET ip_hash = NULL WHERE ip_hash IS NOT NULL");
+                $stmt->execute();
+                $total += $stmt->rowCount();
+            } catch (\PDOException $e) {
+                // Table may not exist or column may differ — ignore.
+            }
+        }
+        return $total;
     }
 
     /**

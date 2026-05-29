@@ -1058,7 +1058,13 @@ INSERT INTO settings (key, value, type) VALUES
 ('cache.auto_warm', 'false', 'boolean'),
 ('cache.storage_backend', 'database', 'string'),
 ('cache.compression_enabled', 'true', 'boolean'),
-('cache.compression_level', '6', 'integer');
+('cache.compression_level', '6', 'integer'),
+
+-- Plugin schema markers (pre-seeded so plugin boot skips CREATE TABLE IF NOT EXISTS
+-- on every request — the schema is already part of this fresh install).
+('plugin_image_ratings_schema', '2', 'string'),
+('plugin_analytics_logger_schema', '1', 'string'),
+('plugin_analytics_pro_schema', '1', 'string');
 
 -- Default filter settings
 INSERT INTO filter_settings (setting_key, setting_value, description, sort_order) VALUES
