@@ -376,7 +376,7 @@
         <!-- Search Panel -->
         <div id="header-search-panel" class="border-t border-gray-200 bg-white/95 backdrop-blur-md hidden">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-                <form id="header-search-form" role="search" action="{{ base_path }}/galleries" method="get">
+                <form id="header-search-form" role="search" action="{{ base_path }}/search" method="get">
                     <label for="header-search" class="sr-only">{{ trans('filter.search') }}</label>
                     <div class="header-search-field">
                         <input id="header-search" name="search" type="search" autocomplete="off"
@@ -1005,7 +1005,7 @@
                     const query = input.value.trim();
                     if (syncToFilters()) return;
                     if (!query) return;
-                    window.location.href = `${basePath}/galleries?search=${encodeURIComponent(query)}`;
+                    window.location.href = `${basePath}/search?q=${encodeURIComponent(query)}`;
                 });
 
                 input.addEventListener('input', debounce(() => {

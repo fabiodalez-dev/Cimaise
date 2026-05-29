@@ -307,7 +307,7 @@
 <!-- Desktop Search Panel -->
 <div id="header-search-panel" class="modern-search-panel hidden">
     <div class="modern-search-panel__inner">
-        <form id="header-search-form" class="modern-search-form" role="search" action="{{ base_path }}/galleries" method="get">
+        <form id="header-search-form" class="modern-search-form" role="search" action="{{ base_path }}/search" method="get">
             <label for="header-search" class="sr-only">{{ trans('filter.search') }}</label>
             <div class="modern-search-field">
                 <input id="header-search" name="search" type="search" autocomplete="off"
@@ -784,7 +784,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const query = input.value.trim();
       if (syncToFilters()) return;
       if (!query) return;
-      window.location.href = `${basePath}/galleries?search=${encodeURIComponent(query)}`;
+      window.location.href = `${basePath}/search?q=${encodeURIComponent(query)}`;
     });
 
     input.addEventListener('input', debounce(() => {
