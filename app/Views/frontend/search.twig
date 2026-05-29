@@ -1,0 +1,85 @@
+{% extends 'frontend/_layout.twig' %}
+
+{% block title %}{{ trans('search.heading', {}, 'Search') }}{% if has_query %} — {{ query }}{% endif %} — {{ site_title|default('Portfolio') }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <header class="mb-8">
+    <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">{{ trans('search.heading', {}, 'Search') }}</h1>
+    {% if has_query %}
+      <p class="text-gray-600 mt-2 text-sm sm:text-base">
+        {{ trans('search.results_for', {'query': query}) }}
+        <span class="text-gray-400">· {{ total }}</span>
+      </p>
+    {% endif %}
+  </header>
+
+  {% if not has_query %}
+    <div class="text-center py-20 text-gray-500">
+      <i class="fas fa-search text-2xl mb-3 text-gray-300"></i>
+      <p>{{ trans('search.no_query', {}, 'Type to search albums and photos.') }}</p>
+    </div>
+  {% elseif albums is empty %}
+    <div class="text-center py-20 text-gray-500">
+      <i class="fas fa-search text-2xl mb-3 text-gray-300"></i>
+      <p>{{ trans('search.no_results', {'query': query}) }}</p>
+    </div>
+  {% else %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+      {% for album in albums %}
+        <div class="search-result">
+          {% include 'frontend/_album_card.twig' with {
+            'album': album,
+            'nsfw_consent': nsfw_consent,
+            'is_admin': is_admin
+          } %}
+
+          {% if album.matched_photos is defined and album.matched_photos is not empty %}
+            {% set blur_photos = album.is_nsfw and not (nsfw_consent|default(false)) and not (is_admin|default(false)) %}
+            <div class="mt-3 flex items-center gap-2 flex-wrap">
+              {% for photo in album.matched_photos %}
+                {% set ppath = blur_photos
+                    ? (photo.blur_path|default(photo.preview_path))
+                    : (photo.preview_path|default(photo.blur_path)) %}
+                {% if ppath %}
+                  {% set purl = ppath starts with '/' ? base_path ~ ppath : ppath %}
+                  <a href="{{ base_path }}/album/{{ album.slug }}"
+                     class="block w-14 h-14 rounded-md overflow-hidden bg-gray-100 flex-shrink-0"
+                     title="{{ photo.caption|default(photo.alt_text)|default('') }}">
+                    <img src="{{ purl }}" alt="{{ photo.alt_text|default('') }}" loading="lazy"
+                         class="w-full h-full object-cover{{ blur_photos ? ' blur-md' : '' }}">
+                  </a>
+                {% endif %}
+              {% endfor %}
+              {% if album.matched_photos_extra|default(0) > 0 %}
+                <span class="text-xs text-gray-500">+{{ album.matched_photos_extra }}</span>
+              {% endif %}
+              <span class="text-xs text-gray-400 ml-1">{{ trans('search.matching_photos', {}, 'matching photos') }}</span>
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if total_pages > 1 %}
+      <nav class="mt-12 flex items-center justify-center gap-2" aria-label="{{ trans('search.heading', {}, 'Search') }}">
+        {% if page > 1 %}
+          <a href="{{ base_path }}/search?q={{ query|url_encode }}&page={{ page - 1 }}"
+             class="px-3 py-2 text-sm rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+             rel="prev" aria-label="{{ trans('pagination.previous', {}, 'Previous') }}">
+            <i class="fas fa-arrow-left text-xs"></i>
+          </a>
+        {% endif %}
+        <span class="px-3 py-2 text-sm text-gray-600">{{ page }} / {{ total_pages }}</span>
+        {% if page < total_pages %}
+          <a href="{{ base_path }}/search?q={{ query|url_encode }}&page={{ page + 1 }}"
+             class="px-3 py-2 text-sm rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+             rel="next" aria-label="{{ trans('pagination.next', {}, 'Next') }}">
+            <i class="fas fa-arrow-right text-xs"></i>
+          </a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

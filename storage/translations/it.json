@@ -372,7 +372,10 @@
     "search.clear": "Cancella ricerca",
     "search.no_results": "Nessun risultato trovato per \"{query}\"",
     "search.placeholder": "Cerca...",
-    "search.results_for": "Risultati per \"{query}\""
+    "search.results_for": "Risultati per \"{query}\"",
+    "search.heading": "Ricerca",
+    "search.no_query": "Digita per cercare album e foto.",
+    "search.matching_photos": "foto corrispondenti"
   },
   "settings": {
     "settings.date_format": "Formato Data",

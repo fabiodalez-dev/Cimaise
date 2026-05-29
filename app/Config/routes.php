@@ -263,6 +263,12 @@ return function (App $app, array $container) {
         return $controller->filter($request, $response);
     })->add(new RateLimitMiddleware(30, 60)); // 30 requests per minute for search
 
+    // Full-text search results page (albums + photos)
+    $app->get('/search', function (Request $request, Response $response) use ($container) {
+        $controller = new \App\Controllers\Frontend\SearchController($container['db'], Twig::fromRequest($request));
+        return $controller->index($request, $response);
+    })->add(new RateLimitMiddleware(30, 60)); // 30 requests per minute
+
     // (public API routes are defined near the bottom of this file)
 
     // Admin redirects
