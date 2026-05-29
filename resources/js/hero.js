@@ -3,6 +3,8 @@ import simpleParallax from 'simple-parallax-js';
 function initHeroParallax() {
   const img = document.querySelector('.js-hero-parallax');
   if (!img) return;
+  // Respect reduced-motion: leave the hero image static (no parallax).
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   try {
     // Avoid re-initialization on SPA-like updates
     if (img.dataset.parallaxInit === '1') return;

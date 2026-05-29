@@ -90,10 +90,19 @@ if (typeof window !== 'undefined') {
           if (recalcCount >= 3) clearInterval(recalcInterval) // Stop after ~1.5 seconds
         }, 500)
     
-        // Recalculate when images load
+        // Recalculate when images load.
+        // PERFORMANCE: coalesce bursts of image loads into a single resize per
+        // animation frame (was one lenis.resize() per <img>, causing a storm of
+        // full-page reflows during the initial scroll on image-heavy homes).
+        let recalcRafPending = false
+        const scheduleRecalc = () => {
+          if (recalcRafPending) return
+          recalcRafPending = true
+          requestAnimationFrame(() => { recalcRafPending = false; recalculate() })
+        }
         imageLoadHandler = (e) => {
           if (e.target.tagName === 'IMG') {
-            recalculate()
+            scheduleRecalc()
           }
         }
         document.addEventListener('load', imageLoadHandler, true)

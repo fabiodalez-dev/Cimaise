@@ -13,7 +13,9 @@ export function createFetchPriorityObserver(maxHigh = 3) {
       }
       obs.unobserve(el);
     });
-  }, { rootMargin: '200px 0px 200px 0px', threshold: 0.1 });
+    // Only promote images actually entering the viewport (no 200px pre-margin),
+    // so below-the-fold images don't steal priority/bandwidth from the LCP image.
+  }, { rootMargin: '0px', threshold: 0.1 });
 
   return observer;
 }

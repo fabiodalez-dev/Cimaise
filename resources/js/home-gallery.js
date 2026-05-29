@@ -15,6 +15,15 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
 
   let isMobile = window.innerWidth <= 768;
   let lenis = null;
+  let rafId = null;
+  // Cached measurements (recomputed only on init/resize, not per frame)
+  let cachedMaxScroll = 0;
+  let cachedSectionScrollHeight = 1;
+  const prefersReduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  function stopRaf() {
+    if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+  }
 
   function setupFetchPriorityObserver() {
     if (!('IntersectionObserver' in window)) return;
@@ -27,8 +36,25 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
     images.forEach(img => observer.observe(img));
   }
 
+  // Map scroll position to horizontal translate. Reads only rect.top (changes
+  // with scroll); section height / max scroll are cached. Skips the write when
+  // the section is fully out of view.
+  function updateGallery() {
+    const rect = gallerySection.getBoundingClientRect();
+    if (rect.bottom <= 0 || rect.top >= window.innerHeight) return;
+    const scrollInSection = Math.max(0, -rect.top);
+    const progress = cachedSectionScrollHeight > 0
+      ? Math.min(1, scrollInSection / cachedSectionScrollHeight)
+      : 0;
+    track.style.transform = 'translateX(' + (-progress * cachedMaxScroll) + 'px)';
+  }
+
   function initDesktopGallery() {
     if (isMobile) return;
+
+    // Cancel any previous loop / Lenis before re-init (prevents orphan rAF leak).
+    stopRaf();
+    if (lenis) { lenis.destroy(); lenis = null; }
 
     const trackWidth = track.scrollWidth;
     const windowWidth = window.innerWidth;
@@ -42,10 +68,17 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
     const sectionHeight = (trackWidth - windowWidth) + containerHeight + containerHeight;
     gallerySection.style.height = sectionHeight + 'px';
 
-    const maxScroll = trackWidth - windowWidth;
+    cachedMaxScroll = trackWidth - windowWidth;
+    cachedSectionScrollHeight = sectionHeight - windowHeight;
 
-    // Initialize Lenis
-    if (lenis) lenis.destroy();
+    if (prefersReduced) {
+      // Reduced motion: no smoothing. Still map native scroll to the horizontal
+      // translate so the gallery layout works, just without Lenis inertia.
+      function raf() { updateGallery(); rafId = requestAnimationFrame(raf); }
+      rafId = requestAnimationFrame(raf);
+      updateGallery();
+      return;
+    }
 
     lenis = new Lenis({
       duration: 1.2,
@@ -55,32 +88,23 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
       touchMultiplier: 2
     });
 
-    function updateGallery() {
-      const rect = gallerySection.getBoundingClientRect();
-      const sectionScrollHeight = gallerySection.offsetHeight - window.innerHeight;
-
-      // How far we are into the section
-      const scrollInSection = Math.max(0, -rect.top);
-      const progress = Math.min(1, scrollInSection / sectionScrollHeight);
-
-      const translateX = -progress * maxScroll;
-      track.style.transform = 'translateX(' + translateX + 'px)';
-    }
-
     function raf(time) {
       lenis.raf(time);
       updateGallery();
-      requestAnimationFrame(raf);
+      rafId = requestAnimationFrame(raf);
     }
 
-    requestAnimationFrame(raf);
+    rafId = requestAnimationFrame(raf);
   }
 
   function initMobileGallery() {
     if (!isMobile) return;
 
-    // On mobile, simple Lenis smooth scroll
-    if (lenis) lenis.destroy();
+    stopRaf();
+    if (lenis) { lenis.destroy(); lenis = null; }
+
+    // Reduced motion: fall back to native scrolling (no Lenis).
+    if (prefersReduced) return;
 
     lenis = new Lenis({
       duration: 1,
@@ -90,10 +114,10 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
 
     function raf(time) {
       lenis.raf(time);
-      requestAnimationFrame(raf);
+      rafId = requestAnimationFrame(raf);
     }
 
-    requestAnimationFrame(raf);
+    rafId = requestAnimationFrame(raf);
   }
 
   function init() {
@@ -150,6 +174,7 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
 
   // Cleanup on page unload (for SPA)
   window.addEventListener('beforeunload', function() {
-    if (lenis) lenis.destroy();
+    stopRaf();
+    if (lenis) { lenis.destroy(); lenis = null; }
   });
 })();
