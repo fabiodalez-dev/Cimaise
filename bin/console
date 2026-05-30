@@ -27,6 +27,7 @@ if ($isNoDbCommand) {
     $cli = new Application('Cimaise CLI', '0.1.0');
     
     $cli->add(new App\Tasks\DbTestCommand($container['db']));
+    $cli->add(new App\Tasks\SeedDemoAlbumsCommand($container['db']));
     $cli->add(new App\Tasks\SeedCommand($container['db'], __DIR__ . '/../database/seeds'));
     $cli->add(new App\Tasks\UserCreateCommand($container['db']));
     $cli->add(new App\Tasks\UserUpdateCommand($container['db']));
