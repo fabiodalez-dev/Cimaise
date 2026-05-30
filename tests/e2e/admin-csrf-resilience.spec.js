@@ -76,4 +76,43 @@ test.describe.serial('Admin CSRF resilience', () => {
         });
         expect(token).toMatch(/^[a-f0-9]{64}$/);
     });
+
+    // Regression for the review findings: the interceptor must bind exactly once even
+    // though the admin SPA re-executes layout <script> blocks on every pushState
+    // navigation. A stacked listener would fire N token fetches / N submits per click.
+    test('CSRF-HEAL-04: interceptor binds once across SPA navigations (no stacking)', async () => {
+        await page.goto(`${BASE}/admin/pages`, { waitUntil: 'networkidle' });
+
+        // SPA-navigate a few times (pushState, no full reload) to re-run the layout script.
+        for (const path of ['/admin', '/admin/pages', '/admin/pages/home']) {
+            await page.evaluate((p) => {
+                const link = document.querySelector(`a[href$="${p}"]`);
+                if (link) link.click();
+            }, path);
+            await page.waitForTimeout(400); // let the SPA swap + re-exec scripts settle
+        }
+        await page.waitForLoadState('networkidle');
+
+        // The bind-once guard must hold regardless of how many navigations happened.
+        const boundOnce = await page.evaluate(() => window.__csrfResilienceBound === true);
+        expect(boundOnce).toBe(true);
+
+        // Count token fetches triggered by a single submit: exactly one (one live listener).
+        await page.evaluate(() => {
+            const f = document.getElementById('home-form');
+            if (f) f.querySelector('input[name="csrf"]').value = 'STALE';
+        });
+        let tokenFetches = 0;
+        const onReq = (req) => { if (req.url().includes('/admin/csrf-token')) tokenFetches++; };
+        page.on('request', onReq);
+        const [postResp] = await Promise.all([
+            page.waitForResponse(r => r.url().includes('/admin/pages/home') && r.request().method() === 'POST'),
+            page.click('button[type="submit"][form="home-form"]'),
+        ]);
+        await page.waitForLoadState('networkidle');
+        page.off('request', onReq);
+
+        expect(tokenFetches).toBe(1);              // single listener → single refresh
+        expect(postResp.status()).not.toBe(400);   // and it still self-heals
+    });
 });

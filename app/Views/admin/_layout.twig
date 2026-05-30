@@ -1452,6 +1452,13 @@
     // into every csrf field, then let the submit proceed. Any failure falls back to the
     // original submit, so behaviour is never worse than before.
     (function(){
+      // Bind exactly once. The admin SPA re-executes the fetched page's <script> blocks
+      // (including this layout-level one) on every pushState navigation; without this guard
+      // a fresh capture-phase submit listener would stack on `document` per navigation,
+      // causing N redundant token fetches and re-dispatches per submit.
+      if (window.__csrfResilienceBound) return;
+      window.__csrfResilienceBound = true;
+
       var ENDPOINT = '{{ base_path }}/admin/csrf-token';
 
       function syncTokens(token){
@@ -1487,6 +1494,11 @@
         if (form.dataset.csrfRefreshed === '1') { delete form.dataset.csrfRefreshed; return; }
 
         e.preventDefault();
+        // Swallow this event entirely so the form's own bubble-phase handler (AJAX submit,
+        // data-confirm dialog, etc.) does NOT also fire now. It runs exactly once — on the
+        // re-dispatched event below — with the freshly synced token. Without this, such
+        // forms double-fire (two POSTs, or a confirm() shown twice / "Cancel" ignored).
+        e.stopImmediatePropagation();
         var submitter = e.submitter || null;
         var proceed = function(){
           form.dataset.csrfRefreshed = '1';
