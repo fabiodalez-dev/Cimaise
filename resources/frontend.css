@@ -945,8 +945,10 @@ input[type="search"]::-webkit-search-results-decoration {
     appearance: none;
 }
 
-.header-search-input:focus {
-    outline: none;
+.header-search-input:focus,
+.header-search-input:focus-visible {
+    outline: 2px solid #005fcc;
+    outline-offset: 2px;
     border-color: #d1d5db;
     box-shadow: 0 0 0 1px rgba(156, 163, 175, 0.3);
 }
