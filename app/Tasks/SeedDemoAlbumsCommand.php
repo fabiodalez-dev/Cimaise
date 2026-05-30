@@ -184,6 +184,10 @@ class SeedDemoAlbumsCommand extends Command
             $output->writeln('  seeded album: ' . $title . ' (' . $tag . ')');
         }
 
+        // Invalidate caches: the home + gallery listings are page-cached, so
+        // without this they keep linking to the wiped albums (404s) until expiry.
+        $this->invalidateCaches($output);
+
         $output->writeln('');
         $output->writeln('<info>Done. ' . count($created) . ' albums seeded:</info>');
         foreach ($created as $line) {
@@ -193,6 +197,30 @@ class SeedDemoAlbumsCommand extends Command
         $output->writeln('<comment>Password-protected albums use their TITLE as the password.</comment>');
 
         return Command::SUCCESS;
+    }
+
+    private function invalidateCaches(OutputInterface $output): void
+    {
+        try {
+            (new \App\Services\PageCacheService(new \App\Services\SettingsService($this->db), $this->db))->clearAll();
+        } catch (\Throwable $e) {
+            $output->writeln('  <comment>page cache clear failed: ' . $e->getMessage() . '</comment>');
+        }
+        try {
+            \App\Services\NavigationService::invalidateCache();
+        } catch (\Throwable $e) {
+            // best-effort
+        }
+        // File-based caches (query cache + compiled Twig).
+        foreach (['/storage/tmp/query_cache', '/storage/cache/twig'] as $sub) {
+            $dir = dirname(__DIR__, 2) . $sub;
+            foreach (glob($dir . '/*') ?: [] as $f) {
+                if (is_file($f)) {
+                    @unlink($f); // nosemgrep -- fixed cache dir, not user input
+                }
+            }
+        }
+        $output->writeln('<comment>Caches invalidated (page, navigation, query, twig).</comment>');
     }
 
     /**
