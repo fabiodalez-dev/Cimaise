@@ -1,6 +1,7 @@
 {% extends 'frontend/_layout_modern.twig' %}
 
 {% block styles %}
+{% include 'frontend/_lcp_preload.twig' %}
 <link rel="stylesheet" href="{{ base_path }}/assets/css/home-modern.css">
 <style nonce="{{ csp_nonce() }}">
   /* Fix mega menu duplicate text - second span should be hidden until hover */

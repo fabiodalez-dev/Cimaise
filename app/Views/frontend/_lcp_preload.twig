@@ -1,0 +1,36 @@
+{# Responsive LCP preload for the home gallery.
+
+   The first gallery image is the largest contentful paint. When LQIP is active
+   its real srcset is deferred to data-srcset (JS-loaded), so the HD download
+   would start late; this preload begins it during <head> parse. AVIF is
+   preferred (the <picture> offers it first, so AVIF-capable browsers reuse it),
+   then WebP, then the JPEG fallback. The type= attribute stops browsers that
+   can't decode a format from wasting the preload.
+
+   Expects `all_images` (controller var) and `base_path` in scope. Safe no-op
+   when there are no images. #}
+{% if all_images is defined and all_images|length > 0 %}
+  {% set lcp = all_images|first %}
+  {% set lcp_sizes = '(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw' %}
+  {% set lcp_set = [] %}
+  {% set lcp_type = '' %}
+  {% for src in lcp.sources.avif|default([]) %}
+    {% set s = src is iterable ? (src.url|default('') ~ (src.width ? (' ' ~ src.width ~ 'w') : '')) : src %}
+    {% set u = s|split(' ')|first|default('') %}
+    {% set rest = s|split(' ')|slice(1)|join(' ')|trim %}
+    {% if u != '' %}{% set lcp_set = lcp_set|merge([(u starts with '/' ? base_path ~ u : u) ~ (rest ? ' ' ~ rest : '')]) %}{% set lcp_type = 'image/avif' %}{% endif %}
+  {% endfor %}
+  {% if lcp_set is empty %}
+    {% for src in lcp.sources.webp|default([]) %}
+      {% set s = src is iterable ? (src.url|default('') ~ (src.width ? (' ' ~ src.width ~ 'w') : '')) : src %}
+      {% set u = s|split(' ')|first|default('') %}
+      {% set rest = s|split(' ')|slice(1)|join(' ')|trim %}
+      {% if u != '' %}{% set lcp_set = lcp_set|merge([(u starts with '/' ? base_path ~ u : u) ~ (rest ? ' ' ~ rest : '')]) %}{% set lcp_type = 'image/webp' %}{% endif %}
+    {% endfor %}
+  {% endif %}
+  {% if lcp_set is not empty %}
+  <link rel="preload" as="image" type="{{ lcp_type }}" imagesrcset="{{ lcp_set|join(', ')|e('html') }}" imagesizes="{{ lcp_sizes }}" fetchpriority="high">
+  {% elseif lcp.fallback_src is defined and lcp.fallback_src %}
+  <link rel="preload" as="image" href="{{ (lcp.fallback_src starts with '/' ? base_path ~ lcp.fallback_src : lcp.fallback_src)|e('html') }}" fetchpriority="high">
+  {% endif %}
+{% endif %}
