@@ -246,3 +246,23 @@ export async function makeJpegBuffer(page, width, height, color = '#10b981') {
     }, { width, height, color });
     return Buffer.from(dataUrl.replace(/^data:image\/jpeg;base64,/, ''), 'base64');
 }
+
+/** Read a CSRF token from any admin page that renders the hidden field. */
+export async function adminCsrf(page, url = null) {
+    if (url) await page.goto(url);
+    return await page.locator('input[name="csrf"]').first()
+        .getAttribute('value', { timeout: 2000 }).catch(() => null);
+}
+
+/** Publish an album by id (admin). Returns true on success. Best-effort. */
+export async function publishAlbum(page, albumId) {
+    if (!albumId) return false;
+    const csrf = await adminCsrf(page, `${BASE}/admin/albums/${albumId}/edit`);
+    if (!csrf) return false;
+    const r = await page.request.post(`${BASE}/admin/albums/${albumId}/publish`, {
+        headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' },
+        form: { csrf },
+        failOnStatusCode: false,
+    }).catch(() => null);
+    return !!(r && r.ok());
+}
