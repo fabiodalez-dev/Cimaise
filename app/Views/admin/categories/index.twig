@@ -887,8 +887,12 @@
       document.getElementById('cat-name').focus();
     });
     
-    // Initialize drag system
-    document.addEventListener('DOMContentLoaded', function() {
+    // Initialize the drag system + page handlers. Runs immediately when the DOM
+    // is already parsed — this is the case when the admin SPA re-executes this
+    // inline script after an innerHTML content swap, where DOMContentLoaded has
+    // long since fired and a DOMContentLoaded listener would never run. On a
+    // normal full page load it still waits for DOMContentLoaded.
+    function initCategoriesPage() {
       initCategorySortable();
       setupImageUpload();
       setupFormValidation();
@@ -912,7 +916,27 @@
           }
         });
       });
-    });
+    }
+    // Bulletproof bootstrap. DOMContentLoaded is unreliable here: on a normal load
+    // the listener timing races SortableJS, and after an admin SPA innerHTML swap
+    // the re-executed inline script registers a DOMContentLoaded listener that can
+    // never fire (the event is long past). So poll until the DOM nodes and Sortable
+    // are present, then initialise once. initCategorySortable() is idempotent.
+    (function bootstrapCategories() {
+      let tries = 0;
+      (function attempt() {
+        const ready = document.getElementById('categories-container')
+          && document.getElementById('root-list')
+          && typeof Sortable !== 'undefined';
+        if (ready) {
+          initCategoriesPage();
+          return;
+        }
+        if (++tries < 60) {
+          setTimeout(attempt, 100); // up to ~6s for the deferred admin bundle
+        }
+      })();
+    })();
     
     // Enhanced image upload with drag & drop
     function setupImageUpload() {
