@@ -15,6 +15,22 @@ class FilterSettingsController extends BaseController
         parent::__construct();
     }
 
+    /**
+     * Filter settings drive the /galleries listing (filter bar + grid layout),
+     * which is page-cached, so any change must drop the galleries + home caches
+     * or the old layout sticks until expiry. Best-effort.
+     */
+    private function invalidateGalleryCaches(): void
+    {
+        try {
+            $cache = new \App\Services\PageCacheService(new \App\Services\SettingsService($this->db), $this->db);
+            $cache->invalidateGalleries();
+            $cache->invalidateHome();
+        } catch (\Throwable $e) {
+            // best-effort: never block the save on a cache error
+        }
+    }
+
 
     public function index(Request $request, Response $response): Response
     {
@@ -108,12 +124,13 @@ class FilterSettingsController extends BaseController
             }
             
             $pdo->commit();
-            
+            $this->invalidateGalleryCaches();
+
             $_SESSION['flash'] = [
                 'type' => 'success',
                 'message' => 'Filter settings updated successfully!'
             ];
-            
+
         } catch (\Exception $e) {
             $pdo->rollBack();
             $_SESSION['flash'] = [
@@ -204,6 +221,7 @@ class FilterSettingsController extends BaseController
             }
 
             $pdo->commit();
+            $this->invalidateGalleryCaches();
 
             $_SESSION['flash'] = [
                 'type' => 'success',
