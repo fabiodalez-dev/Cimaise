@@ -347,11 +347,35 @@ class TemplatesController extends BaseController
                 ':libs' => json_encode($libs),
                 ':id' => $id
             ]);
+            $this->invalidateTemplateCaches((int) $id);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.template_updated')];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic')];
         }
         return $response->withHeader('Location', $this->redirect('/admin/templates'))->withStatus(302);
+    }
+
+    /**
+     * A template defines the gallery layout for every album that uses it, and
+     * album/gallery pages are page-cached. Drop the caches of the affected
+     * albums plus the galleries + home listings so the new layout shows at once.
+     */
+    private function invalidateTemplateCaches(int $templateId): void
+    {
+        try {
+            $cache = new \App\Services\PageCacheService(new \App\Services\SettingsService($this->db), $this->db);
+            $cache->invalidateGalleries();
+            $cache->invalidateHome();
+            $stmt = $this->db->pdo()->prepare('SELECT slug FROM albums WHERE template_id = ?');
+            $stmt->execute([$templateId]);
+            foreach ($stmt->fetchAll(\PDO::FETCH_COLUMN) as $slug) {
+                if (is_string($slug) && $slug !== '') {
+                    $cache->invalidateAlbum($slug);
+                }
+            }
+        } catch (\Throwable $e) {
+            // best-effort
+        }
     }
 
     // Deleting templates is disabled
