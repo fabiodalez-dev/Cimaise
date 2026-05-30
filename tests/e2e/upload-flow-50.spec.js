@@ -308,10 +308,13 @@ test('T27 uploaded image variants have expected widths', async ({ page }) => {
     const buf = await makeTestImage(page, { label: 'C27', width: 2000, height: 1500 });
     const r = await uploadImage(page, id, buf, { name: 'c27.jpg' });
     expect(r.ok).toBe(true);
-    // sm variant should be reachable
+    // sm variant should be reachable and carry real image bytes. Assert on the
+    // downloaded body, not the Content-Length header: Apache/mod_php serves media
+    // chunked (no Content-Length) in this environment, while production uses
+    // X-Sendfile which does send it. The body is the environment-robust signal.
     const sm = await page.request.get(`${BASE}/media/${r.body.id}_sm.jpg`);
     expect(sm.ok()).toBe(true);
-    expect(Number(sm.headers()['content-length'] || '0')).toBeGreaterThan(0);
+    expect((await sm.body()).byteLength).toBeGreaterThan(0);
     await deleteAlbum(page, id);
 });
 
@@ -321,10 +324,14 @@ test('T28 large image is downscaled in variants', async ({ page }) => {
     const buf = await makeTestImage(page, { label: 'C28', width: 4000, height: 3000 });
     const r = await uploadImage(page, id, buf, { name: 'c28.jpg' });
     expect(r.ok).toBe(true);
-    // sm should be smaller in bytes than the original upload buffer for a 4000x3000 source
+    // sm should be smaller in bytes than the original upload buffer for a 4000x3000 source.
+    // Measure the downloaded body (the Content-Length header is absent under the
+    // dev server's chunked media streaming, which made this assertion pass vacuously).
     const sm = await page.request.get(`${BASE}/media/${r.body.id}_sm.jpg`);
     expect(sm.ok()).toBe(true);
-    expect(Number(sm.headers()['content-length'] || '0')).toBeLessThan(buf.length);
+    const smBytes = (await sm.body()).byteLength;
+    expect(smBytes).toBeGreaterThan(0);
+    expect(smBytes).toBeLessThan(buf.length);
     await deleteAlbum(page, id);
 });
 
