@@ -2,6 +2,7 @@
 {% import "frontend/_lqip_macros.twig" as lqip %}
 
 {% block styles %}
+{% include 'frontend/_lcp_preload.twig' %}
 {{ lqip.lqip_styles()|raw }}
 <style nonce="{{ csp_nonce() }}">
 /* Reset only for gallery wall */
