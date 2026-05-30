@@ -394,36 +394,74 @@
 </div>
 
 <script nonce="{{ csp_nonce() }}">
-// Live preview functionality
-document.addEventListener('DOMContentLoaded', function() {
-    updateGridPreview();
-    
-    // Update preview when grid settings change
-    document.querySelectorAll('select[name^="grid_"], input[name="grid_gap"]').forEach(element => {
-        element.addEventListener('change', updateGridPreview);
-    });
-    
-    // Preview button functionality
-    document.getElementById('preview-settings').addEventListener('click', function() {
-        // Open galleries page in new tab with current settings (for real preview)
-        window.open('{{ base_path }}/galleries', '_blank');
-    });
-});
+// Live preview: render real album covers in the configured grid so changing the
+// desktop columns / gap actually reflects how /galleries will look.
+(function () {
+    const basePath = '{{ base_path|e('js') }}';
+    let previewCovers = [];
 
-function updateGridPreview() {
-    const desktopCols = document.querySelector('select[name="grid_columns_desktop"]').value;
-    const gap = document.querySelector('input[name="grid_gap"]:checked').value;
-    
-    let gapSize;
-    switch(gap) {
-        case 'small': gapSize = '0.5rem'; break;
-        case 'large': gapSize = '1rem'; break;
-        default: gapSize = '0.75rem';
+    document.addEventListener('DOMContentLoaded', function () {
+        loadPreviewCovers().finally(updateGridPreview);
+
+        document.querySelectorAll('select[name^="grid_"], input[name="grid_gap"]').forEach(function (el) {
+            el.addEventListener('change', updateGridPreview);
+        });
+
+        const previewBtn = document.getElementById('preview-settings');
+        if (previewBtn) {
+            previewBtn.addEventListener('click', function () {
+                window.open(basePath + '/galleries', '_blank');
+            });
+        }
+    });
+
+    function loadPreviewCovers() {
+        return fetch(basePath + '/galleries/filter', { headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (d) {
+                previewCovers = ((d && d.albums) || [])
+                    .map(function (a) { return a.cover_image && (a.cover_image.preview_path || a.cover_image.blur_path); })
+                    .filter(Boolean)
+                    .map(function (p) { return p.charAt(0) === '/' ? basePath + p : p; })
+                    .slice(0, 12);
+            })
+            .catch(function () { previewCovers = []; });
     }
-    
-    const previewGrid = document.getElementById('preview-grid');
-    previewGrid.style.gridTemplateColumns = `repeat(${Math.min(desktopCols, 3)}, 1fr)`;
-    previewGrid.style.gap = gapSize;
-}
+
+    function updateGridPreview() {
+        const desktopSel = document.querySelector('select[name="grid_columns_desktop"]');
+        const grid = document.getElementById('preview-grid');
+        if (!desktopSel || !grid) return;
+
+        const cols = Math.max(1, parseInt(desktopSel.value, 10) || 3);
+        const gapRadio = document.querySelector('input[name="grid_gap"]:checked');
+        const gap = gapRadio ? gapRadio.value : 'normal';
+        // Match the gap the frontend /galleries actually applies.
+        const gapSize = gap === 'small' ? '1rem' : (gap === 'large' ? '2rem' : '1.5rem');
+
+        grid.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
+        grid.style.gap = gapSize;
+
+        // Two rows of cells matching the column count.
+        const cellCount = cols * 2;
+        grid.innerHTML = '';
+        for (let i = 0; i < cellCount; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'aspect-[4/3] bg-gray-200 rounded-lg overflow-hidden';
+            const src = previewCovers.length ? previewCovers[i % previewCovers.length] : null;
+            if (src) {
+                const img = document.createElement('img');
+                img.src = src;
+                img.loading = 'lazy';
+                img.className = 'w-full h-full object-cover';
+                img.addEventListener('error', function () { img.remove(); cell.classList.add('animate-pulse'); });
+                cell.appendChild(img);
+            } else {
+                cell.classList.add('animate-pulse');
+            }
+            grid.appendChild(cell);
+        }
+    }
+})();
 </script>
 {% endblock %}
