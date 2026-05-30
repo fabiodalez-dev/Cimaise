@@ -82,8 +82,14 @@ class CommandsController extends BaseController
             throw new \RuntimeException("Console script not executable: $consolePath");
         }
 
+        // Resolve a usable PHP CLI binary. The web-server user's PATH frequently
+        // lacks one — exec("php ...") then fails with "php: command not found"
+        // (exit 127) — and under mod_php PHP_BINARY points at the web SAPI, not a
+        // CLI. So probe explicit locations instead of trusting bare "php".
+        $phpBinary = $this->resolvePhpBinary();
+
         // Build command (M11: escape paths to prevent injection)
-        $cmd = "php " . escapeshellarg($consolePath) . " " . escapeshellarg($command);
+        $cmd = escapeshellarg($phpBinary) . " " . escapeshellarg($consolePath) . " " . escapeshellarg($command);
         
         // Add arguments safely
         foreach ($args as $key => $value) {
@@ -113,7 +119,10 @@ class CommandsController extends BaseController
         $exitCode = 0;
         $output = [];
         
-        exec($cmd, $output, $exitCode);
+        // $cmd is built only from an allow-listed command name (see $allowedCommands),
+        // a resolved PHP binary path and console path, all passed through
+        // escapeshellarg(); option keys are validated against /^[a-zA-Z0-9-]+$/.
+        exec($cmd, $output, $exitCode); // nosemgrep
         
         $duration = round(microtime(true) - $startTime, 2);
         
@@ -124,5 +133,48 @@ class CommandsController extends BaseController
             'duration' => $duration,
             'command' => $command
         ];
+    }
+
+    /**
+     * Resolve a usable PHP CLI binary for exec().
+     *
+     * Order: explicit override (PHP_CLI_BINARY env) -> the running binary when it
+     * is actually a php CLI (guarded, since mod_php exposes the web SAPI here) ->
+     * common absolute install paths (the web-server user's PATH is often empty)
+     * -> bare "php" as a last resort.
+     */
+    private function resolvePhpBinary(): string
+    {
+        $override = getenv('PHP_CLI_BINARY');
+        if (!is_string($override) || $override === '') {
+            $override = $_ENV['PHP_CLI_BINARY'] ?? '';
+        }
+        if (is_string($override) && $override !== '' && @is_executable($override)) {
+            return $override;
+        }
+
+        // Only trust the running binary when it is an actual CLI (php, php8.4, ...).
+        // Under FPM/mod_php PHP_BINARY is php-fpm/php-cgi, which cannot run scripts.
+        if (defined('PHP_BINARY') && @is_executable(PHP_BINARY)
+            && preg_match('/^php(\d+(\.\d+)*)?$/', basename(PHP_BINARY)) === 1) {
+            return PHP_BINARY;
+        }
+
+        $candidates = [
+            '/opt/homebrew/bin/php',
+            '/usr/local/bin/php',
+            '/usr/bin/php',
+            '/opt/homebrew/opt/php/bin/php',
+            '/usr/local/opt/php/bin/php',
+            '/opt/cpanel/ea-php83/root/usr/bin/php',
+            '/opt/cpanel/ea-php84/root/usr/bin/php',
+        ];
+        foreach ($candidates as $candidate) {
+            if (@is_executable($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return 'php';
     }
 }
