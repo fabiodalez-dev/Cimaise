@@ -643,8 +643,57 @@ class MediaController extends BaseController
             return $response->withStatus(403);
         }
 
-        // Access granted - serve the file
+        // Access granted. If the variant file is not on disk yet (deferred
+        // generation has not run — e.g. Apache/mod_php without fastcgi_finish_request
+        // and without the VariantMaintenanceService cron), generate it on demand so
+        // the URL is never a dead 404. With FPM the variant already exists, so this
+        // never fires there.
+        $this->ensureVariantGenerated($imageId, $variant, $path);
+
         return $this->serveStaticFile($request, $response, $path);
+    }
+
+    /** Variant sizes that can be (re)generated on demand from the original. */
+    private const ON_DEMAND_VARIANTS = ['sm', 'md', 'lg', 'xl', 'xxl'];
+
+    /**
+     * Lazily generate the responsive variants for an image when the requested
+     * file is missing. Idempotent and best-effort: generateVariantsForImage()
+     * skips variants that already exist, and any failure is logged, not fatal
+     * (serveStaticFile then returns its normal 404).
+     */
+    private function ensureVariantGenerated(int $imageId, string $variant, string $relativePath): void
+    {
+        if (!\in_array($variant, self::ON_DEMAND_VARIANTS, true)) {
+            return; // blur / unknown handled elsewhere
+        }
+        if ($this->variantFileExists($relativePath)) {
+            return;
+        }
+        try {
+            $this->uploadService->generateVariantsForImage($imageId);
+        } catch (\Throwable $e) {
+            Logger::warning('MediaController: on-demand variant generation failed', [
+                'image_id' => $imageId,
+                'variant' => $variant,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /** True if the variant file already exists under public/media/. */
+    private function variantFileExists(string $relativePath): bool
+    {
+        $cleanRel = ltrim($relativePath, '/');
+        if (str_starts_with($cleanRel, 'media/')) {
+            $cleanRel = substr($cleanRel, strlen('media/'));
+        }
+        // Reject traversal before touching the filesystem; treat a bad path as
+        // "exists" so we never attempt generation for it.
+        if ($cleanRel === '' || str_contains($cleanRel, '..')) {
+            return true;
+        }
+        return is_file(dirname(__DIR__, 3) . '/public/media/' . $cleanRel);
     }
 
     /**
