@@ -1048,7 +1048,16 @@
           }
           
           const html = await response.text();
-          
+
+          // Keep CSRF fields in sync with the live session token after navigation.
+          // CsrfMiddleware echoes the current token on every response; use it for free.
+          try {
+            const freshToken = response.headers.get('X-CSRF-Token');
+            if (freshToken && typeof window.syncCsrfTokens === 'function') {
+              window.syncCsrfTokens(freshToken);
+            }
+          } catch (e) {}
+
           // Extract content from the response (assuming it's a full page)
           const parser = new DOMParser();
           const doc = parser.parseFromString(html, 'text/html');
@@ -1429,6 +1438,66 @@
         } catch(e){}
         return origLog.apply(console, arguments);
       };
+    })();
+  </script>
+  <script nonce="{{ csp_nonce() }}">
+    // CSRF token resilience for the admin panel.
+    //
+    // Admin forms are rendered with the session CSRF token baked into a hidden field.
+    // When that token later rotates (remember-me re-auth, re-login in another tab,
+    // session garbage collection) the baked token goes stale, and a normal submit dies
+    // with a hard "Invalid CSRF token" 400 — losing the user's input with no recovery
+    // path except a manual reload. We make submits self-healing: right before any admin
+    // POST form is sent, fetch the token currently valid for this session and write it
+    // into every csrf field, then let the submit proceed. Any failure falls back to the
+    // original submit, so behaviour is never worse than before.
+    (function(){
+      var ENDPOINT = '{{ base_path }}/admin/csrf-token';
+
+      function syncTokens(token){
+        if (!token || typeof token !== 'string') return;
+        document.querySelectorAll('input[name="csrf"]').forEach(function(i){ i.value = token; });
+        try { window.__csrfToken = token; } catch (e) {}
+      }
+      // Expose so the SPA navigation code can sync from the X-CSRF-Token response header.
+      window.syncCsrfTokens = syncTokens;
+
+      function fetchToken(){
+        return fetch(ENDPOINT, {
+          headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+          cache: 'no-store',
+          credentials: 'same-origin'
+        }).then(function(r){
+          if (!r.ok) return null;
+          var ct = r.headers.get('Content-Type') || '';
+          if (ct.indexOf('application/json') === -1) return null; // redirected to login etc.
+          return r.json().then(function(d){ return (d && d.token) ? d.token : null; });
+        }).catch(function(){ return null; });
+      }
+
+      // Capture phase so we run before the form's own (or the SPA's delegated) submit
+      // handlers and can refresh the token they are about to read/send. A one-shot flag
+      // prevents recursion when we re-dispatch the submit. Forms are only ever dispatched
+      // a real `submit` event after passing constraint validation, so re-dispatch is safe.
+      document.addEventListener('submit', function(e){
+        var form = e.target;
+        if (!(form instanceof HTMLFormElement)) return;
+        if ((form.getAttribute('method') || 'get').toLowerCase() !== 'post') return;
+        if (!form.querySelector('input[name="csrf"]')) return;
+        if (form.dataset.csrfRefreshed === '1') { delete form.dataset.csrfRefreshed; return; }
+
+        e.preventDefault();
+        var submitter = e.submitter || null;
+        var proceed = function(){
+          form.dataset.csrfRefreshed = '1';
+          if (typeof form.requestSubmit === 'function') {
+            submitter ? form.requestSubmit(submitter) : form.requestSubmit();
+          } else {
+            form.submit();
+          }
+        };
+        fetchToken().then(syncTokens).then(proceed, proceed);
+      }, true);
     })();
   </script>
   <script nonce="{{ csp_nonce() }}" type="module" src="{{ vite_asset('admin.js') }}"></script>

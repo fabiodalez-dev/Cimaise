@@ -368,6 +368,20 @@ return function (App $app, array $container) {
     })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
         $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
 
+    // Current CSRF token for the logged-in session. Admin forms rendered earlier can
+    // go stale when the session token rotates (remember-me re-auth, re-login, session GC);
+    // the admin JS refreshes the hidden csrf field from here right before submitting so a
+    // stale token self-heals instead of returning a hard "Invalid CSRF token" 400.
+    // GET only (never CSRF-validated) and behind AuthMiddleware, so it always returns the
+    // token currently valid for this session.
+    $app->get('/admin/csrf-token', function (Request $request, Response $response) {
+        $response->getBody()->write((string)json_encode(['token' => $_SESSION['csrf'] ?? '']));
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
+
     // Upload + API
     $app->post('/admin/albums/{id}/upload', function (Request $request, Response $response, array $args) use ($container) {
         $controller = new \App\Controllers\Admin\UploadController($container['db']);
