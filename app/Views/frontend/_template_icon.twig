@@ -1,0 +1,22 @@
+{# Distinct switcher icon per gallery template (FA6). Keyed by template id for the
+   built-in (1-7) and seeded custom (1001+) templates, with a layout-based fallback
+   for any future/unknown template. Shared by gallery / gallery_hero / _gallery_runtime
+   so the icons never drift apart. #}
+{% macro icon(template) %}
+{%- set map = {
+  1: 'fa-table-cells', 2: 'fa-table-columns', 3: 'fa-newspaper', 4: 'fa-grip-vertical',
+  5: 'fa-table-cells-large', 6: 'fa-square', 7: 'fa-arrows-left-right',
+  1001: 'fa-camera-retro', 1002: 'fa-shapes', 1003: 'fa-border-all', 1004: 'fa-closed-captioning',
+  1005: 'fa-clone', 1006: 'fa-bars-staggered', 1007: 'fa-grip-lines', 1015: 'fa-water'
+} -%}
+{%- set ic = map[template.id] | default(null) -%}
+{%- if ic is null -%}
+  {%- set lay = template.settings.layout | default('grid') -%}
+  {%- if lay == 'magazine' -%}{%- set ic = 'fa-newspaper' -%}
+  {%- elseif lay == 'masonry' -%}{%- set ic = 'fa-table-columns' -%}
+  {%- elseif lay == 'dense_grid' -%}{%- set ic = 'fa-table-cells-large' -%}
+  {%- else -%}{%- set ic = 'fa-table-cells' -%}
+  {%- endif -%}
+{%- endif -%}
+<i class="fas {{ ic }}"></i>
+{%- endmacro %}
