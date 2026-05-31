@@ -60,6 +60,9 @@
             fireChanged();
         },
         _reject: function (categoryId) {
+            // 'essential' is a required cookie category and cannot be disabled — keep it
+            // consistent with getCategoryConsent('essential'), which always returns true.
+            if (categoryId === 'essential') return;
             consent[categoryId] = false;
             persist();
             fireChanged();
@@ -72,7 +75,8 @@
             return consent[categoryId] === true;
         },
         setCategoryConsent: function (categoryId, value) {
-            consent[categoryId] = !!value;
+            // 'essential' stays granted regardless of the requested value.
+            consent[categoryId] = (categoryId === 'essential') ? true : !!value;
             persist();
             fireChanged();
         }
