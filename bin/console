@@ -11,7 +11,7 @@ use Symfony\Component\Console\Application;
 // value that happens to equal a command name can't skip the container bootstrap.
 $argv = $_SERVER['argv'];
 $command = $argv[1] ?? '';
-$noDbCommands = ['install', 'i', 'plugin:keygen', 'plugin:sign'];
+$noDbCommands = ['install', 'i', 'plugin:keygen', 'plugin:sign', 'db:template'];
 $isNoDbCommand = in_array($command, $noDbCommands, true);
 
 if ($isNoDbCommand) {
@@ -20,6 +20,7 @@ if ($isNoDbCommand) {
     $cli->add(new App\Tasks\InstallCommand());
     $cli->add(new App\Tasks\PluginKeygenCommand());
     $cli->add(new App\Tasks\PluginSignCommand());
+    $cli->add(new App\Tasks\DbTemplateCommand());
 } else {
     // For other commands, load container with database
     $container = require __DIR__ . '/../app/Config/bootstrap.php';
@@ -47,6 +48,7 @@ if ($isNoDbCommand) {
     $cli->add(new App\Tasks\InstallCommand());
     $cli->add(new App\Tasks\PluginKeygenCommand());
     $cli->add(new App\Tasks\PluginSignCommand());
+    $cli->add(new App\Tasks\DbTemplateCommand());
 }
 
 $cli->run();
