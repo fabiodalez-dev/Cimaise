@@ -9,10 +9,10 @@
 // Safety: the suite captures every field's original value up front and restores it
 // in afterAll, so running it never leaves the dev site in a changed/broken state.
 // Risky live-effect toggles (maintenance, recaptcha enable) are persistence-only.
-// One documented exception: the recaptcha key fields are write-sticky (the controller
-// keeps the stored value on an empty submit and never echoes the secret back), so they
-// cannot be blanked through the form. If recaptcha was unconfigured, the run leaves an
-// inert test site key with recaptcha still disabled; a configured key restores cleanly.
+// The reCAPTCHA key fields are excluded from the persistence loop on purpose: they are
+// write-sticky (empty submit keeps the stored value, the secret is never echoed back),
+// so they cannot be blanked through the form and would leave residue. Their coupling is
+// covered residue-free by CONFLICT-recaptcha, which sets no keys.
 //
 // Inter-setting conflicts are accounted for (the controller couples some fields):
 //   • Breakpoints sm<md<lg<xl<xxl — a non-ascending set makes the controller REJECT
@@ -85,8 +85,11 @@ const SETTINGS = [
   { field: 'pwa_theme_color', type: 'text', a: '#123456', b: '#abcdef' },
   { field: 'pwa_background_color', type: 'text', a: '#654321', b: '#fedcba' },
 
-  // --- reCAPTCHA (persistence only; key format must be [A-Za-z0-9_-]) ---
-  { field: 'recaptcha_site_key', type: 'text', a: 'qaSiteKey_AAA111', b: 'qaSiteKey_BBB222' },
+  // NB: reCAPTCHA keys are intentionally NOT in this persistence loop. They are
+  // write-sticky (the controller keeps the stored value on an empty submit and never
+  // echoes the secret back), so the afterAll restore can't blank them — testing them
+  // here would leave residue in the DB. Their coupling is covered residue-free by the
+  // CONFLICT-recaptcha test below, which sets no keys at all.
 
   // --- Maintenance (persistence only — never assert the live lockout) ---
   { field: 'maintenance_title', type: 'text', a: 'QA Down A', b: 'QA Down B' },
