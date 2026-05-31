@@ -281,12 +281,22 @@ test.describe.serial('Admin settings — every setting persists + functions', ()
   // above already prove it saves as designed; a frontend-effect assertion here would be
   // template-dependent and misleading, so it is intentionally omitted.
 
-  // Note: html_cache_max_age feeds CacheMiddleware.addHtmlCache(), but on the home the
-  // visible Cache-Control stays `max-age=300` regardless of the setting — a separate
-  // caching layer (page cache / session cache limiter) caps the advertised header. So a
-  // frontend assertion here would be environment-dependent rather than a clean signal
-  // of this setting. Its two persistence tests above prove it saves as designed; the
-  // header discrepancy is tracked separately (see the run summary), not asserted here.
+  // With page caching enabled, html_cache_max_age must drive the public HTML
+  // Cache-Control (CacheMiddleware.addHtmlCache). This was previously defeated on
+  // Apache by a mod_expires `text/html` rule in public/.htaccess that overwrote the
+  // header with a fixed max-age=300 — now removed so PHP owns dynamic-HTML caching.
+  test('EFFECT-html_cache_max_age: drives the public HTML Cache-Control', async () => {
+    await gotoSettings(page);
+    await setField(page, 'cache_enabled', 'checkbox', true);
+    await setField(page, 'html_cache_max_age', 'number', '1234');
+    await saveAndReload(page);
+    await clearCache(page);
+    const { ctx, page: anon } = await openFrontend(page);
+    const resp = await anon.goto(`${BASE}/?cb=${Date.now()}`);
+    const cc = resp ? (resp.headers()['cache-control'] || '') : '';
+    expect(cc).toMatch(/max-age=1234/);
+    await ctx.close();
+  });
 
   // ---- Inter-setting conflicts (settings that constrain each other) ----
 

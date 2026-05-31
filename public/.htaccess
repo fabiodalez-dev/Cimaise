@@ -54,10 +54,11 @@
 # Cache control for static assets
 <IfModule mod_expires.c>
   ExpiresActive On
-  ExpiresDefault "access plus 1 month"
-
-  # HTML - Short cache
-  ExpiresByType text/html "access plus 5 minutes"
+  # No ExpiresDefault and no `ExpiresByType text/html` on purpose: dynamic HTML
+  # Cache-Control is owned by the PHP app (CacheMiddleware, which honours the
+  # performance.html_cache_max_age setting). An ExpiresDefault or a text/html rule
+  # here would run in Apache's fixup phase and overwrite that header with a fixed
+  # max-age, silently defeating the setting. mod_expires below only covers static assets.
 
   # CSS and JavaScript - 1 year
   ExpiresByType text/css "access plus 1 year"
