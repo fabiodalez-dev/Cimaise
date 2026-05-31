@@ -47,7 +47,7 @@
     </span>
   </a>
   {% endfor %}
-  <div class="show-count"><span id="show-cur">01</span> / {{ '%02d'|format(slides|length) }}</div>
+  <div class="show-count" aria-live="polite" aria-atomic="true"><span id="show-cur">01</span> / {{ '%02d'|format(slides|length) }}</div>
   <button class="show-nav show-prev" type="button" aria-label="{{ trans('common.previous')|default('Previous') }}">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   <button class="show-nav show-next" type="button" aria-label="{{ trans('common.next')|default('Next') }}">
