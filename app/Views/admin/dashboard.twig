@@ -33,7 +33,7 @@
           method: 'POST',
           headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json', 'X-CSRF-Token': {{ csrf|json_encode|raw }} },
           credentials: 'same-origin'
-        }).then(function(r){ return r.ok ? r.json() : null; })
+        }).then(function(r){ if (!r.ok) throw new Error('cache-clear-failed'); return r.json(); })
           .then(function(d){ if (msg) { msg.className = 'text-sm text-green-600'; msg.textContent = (d && d.message) ? d.message : '{{ trans('admin.dashboard.cache_done')|e('js') }}'; } })
           .catch(function(){ if (msg) { msg.className = 'text-sm text-red-600'; msg.textContent = 'Error'; } })
           .then(function(){ btn.disabled = false; setTimeout(function(){ if (msg) msg.textContent = ''; }, 4000); });

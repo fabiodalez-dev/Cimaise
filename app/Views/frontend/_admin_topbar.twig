@@ -84,10 +84,13 @@
   {# Visitor preview mode — minimal banner with a way out. #}
   <div class="cm-guestbar" role="status">
     <span>{{ trans('adminbar.guest_mode')|default('Stai navigando come visitatore') }}</span>
-    <a id="cm-exit-guest" href="{{ base_path }}/admin/exit-guest-view">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg>
-      {{ trans('adminbar.exit_guest')|default('Esci dalla modalità') }}
-    </a>
+    <form method="post" action="{{ base_path }}/admin/exit-guest-view" id="cm-exit-guest-form">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button type="submit" id="cm-exit-guest">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg>
+        {{ trans('adminbar.exit_guest')|default('Esci dalla modalità') }}
+      </button>
+    </form>
   </div>
 {% else %}
   <div class="cm-adminbar" role="navigation" aria-label="{{ trans('adminbar.label')|default('Admin bar') }}">
@@ -134,10 +137,13 @@
     </div>
 
     <div class="cm-grp">
-      <a id="cm-view-guest" href="{{ base_path }}/admin/view-as-guest" class="cm-accent" title="{{ trans('adminbar.view_as_guest')|default('Vedi come visitatore') }}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-        <span class="cm-label">{{ trans('adminbar.view_as_guest')|default('Vedi come visitatore') }}</span>
-      </a>
+      <form method="post" action="{{ base_path }}/admin/view-as-guest" id="cm-view-guest-form">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button type="submit" id="cm-view-guest" class="cm-accent" title="{{ trans('adminbar.view_as_guest')|default('Vedi come visitatore') }}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span class="cm-label">{{ trans('adminbar.view_as_guest')|default('Vedi come visitatore') }}</span>
+        </button>
+      </form>
       <button type="button" id="cm-flush-cache" class="cm-accent" title="{{ trans('adminbar.clear_cache')|default('Svuota cache') }}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 3v5h-5" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 21v-5h5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span class="cm-label">{{ trans('adminbar.clear_cache')|default('Svuota cache') }}</span>
@@ -160,11 +166,12 @@
     document.body.classList.add('has-admin-bar');
     var here = encodeURIComponent(location.pathname + location.search);
 
-    // Carry the current page as the return target for the view-as / exit toggles.
-    var vg = document.getElementById('cm-view-guest');
-    if (vg) vg.href = vg.href.split('?')[0] + '?return=' + here;
-    var eg = document.getElementById('cm-exit-guest');
-    if (eg) eg.href = eg.href.split('?')[0] + '?return=' + here;
+    // Carry the current page as the return target for the view-as / exit toggles
+    // (now POST forms, CSRF-protected). The return stays in the form action's query.
+    var vgf = document.getElementById('cm-view-guest-form');
+    if (vgf) vgf.action = vgf.action.split('?')[0] + '?return=' + here;
+    var egf = document.getElementById('cm-exit-guest-form');
+    if (egf) egf.action = egf.action.split('?')[0] + '?return=' + here;
 
     var btn = document.getElementById('cm-flush-cache');
     var toast = document.getElementById('cm-cache-toast');
@@ -181,7 +188,7 @@
           method: 'POST',
           headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json', 'X-CSRF-Token': {{ csrf|json_encode|raw }} },
           credentials: 'same-origin'
-        }).then(function(r){ return r.ok ? r.json() : null; })
+        }).then(function(r){ if (!r.ok) throw new Error('cache-clear-failed'); return r.json(); })
           .then(function(d){ showToast((d && d.message) ? d.message : '{{ trans('adminbar.cache_cleared')|default('Cache svuotata')|e('js') }}', true); })
           .catch(function(){ showToast('{{ trans('adminbar.cache_error')|default('Errore svuotamento cache')|e('js') }}', false); })
           .then(function(){ btn.disabled = false; });

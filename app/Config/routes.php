@@ -395,12 +395,14 @@ return function (App $app, array $container) {
         $return = '/' . ltrim($return, '/'); // same-origin path, never protocol-relative
         return $response->withHeader('Location', $return)->withStatus(302); // nosemgrep: $return sanitised to a same-origin path above
     };
-    $app->get('/admin/view-as-guest', function (Request $request, Response $response) use ($guestReturn) {
+    // POST + CSRF (global CsrfMiddleware) — these mutate server-side session state,
+    // so a state-changing GET would be CSRF-able. The return target stays in the query.
+    $app->post('/admin/view-as-guest', function (Request $request, Response $response) use ($guestReturn) {
         $_SESSION['view_as_guest'] = true;
         return $guestReturn($request, $response);
     })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
         $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
-    $app->get('/admin/exit-guest-view', function (Request $request, Response $response) use ($guestReturn) {
+    $app->post('/admin/exit-guest-view', function (Request $request, Response $response) use ($guestReturn) {
         unset($_SESSION['view_as_guest']);
         return $guestReturn($request, $response);
     })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {

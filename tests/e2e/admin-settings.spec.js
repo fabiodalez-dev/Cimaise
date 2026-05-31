@@ -9,6 +9,10 @@
 // Safety: the suite captures every field's original value up front and restores it
 // in afterAll, so running it never leaves the dev site in a changed/broken state.
 // Risky live-effect toggles (maintenance, recaptcha enable) are persistence-only.
+// One documented exception: the recaptcha key fields are write-sticky (the controller
+// keeps the stored value on an empty submit and never echoes the secret back), so they
+// cannot be blanked through the form. If recaptcha was unconfigured, the run leaves an
+// inert test site key with recaptcha still disabled; a configured key restores cleanly.
 //
 // Inter-setting conflicts are accounted for (the controller couples some fields):
 //   • Breakpoints sm<md<lg<xl<xxl — a non-ascending set makes the controller REJECT
@@ -330,20 +334,21 @@ test.describe.serial('Admin settings — every setting persists + functions', ()
     expect(await readField(page, 'site_copyright', 'text')).toBe('QA coexist OK');
   });
 
-  // recaptcha.enabled is coupled to its keys: it can only stay ON when both keys are
-  // present. Supplying both keys + enabling must persist enabled=true.
-  test('CONFLICT-recaptcha: enable persists only when both keys are supplied', async () => {
+  // recaptcha.enabled is coupled to its keys: the controller refuses to enable it
+  // unless BOTH keys are present, so enabling while the secret is missing is forced
+  // back off (with the keys-required flash). We assert that enforcement.
+  //
+  // It touches only recaptcha_enabled (which ends false, its default) — no keys — so it
+  // leaves zero residue. That matters because the recaptcha key fields are write-sticky:
+  // the controller keeps the stored value on an empty submit and never echoes the secret
+  // back, so neither key can be blanked through the form. A positive coupling test would
+  // therefore persist a secret nothing could clear (the residue CodeRabbit flagged).
+  test('CONFLICT-recaptcha: enabling without a secret key is refused', async () => {
     await gotoSettings(page);
-    await setField(page, 'recaptcha_site_key', 'text', 'qaSiteKey_coupling');
-    await setField(page, 'recaptcha_secret_key', 'text', 'qaSecretKey_coupling');
     await setField(page, 'recaptcha_enabled', 'checkbox', true);
-    await saveAndReload(page);
-    expect(await readField(page, 'recaptcha_enabled', 'checkbox')).toBe(true);
-
-    // Turn it back off so the dev site keeps recaptcha disabled.
-    await gotoSettings(page);
-    await setField(page, 'recaptcha_enabled', 'checkbox', false);
-    await saveAndReload(page);
+    // No secret stored or supplied → controller forces enabled=false and flashes the
+    // keys-required error, so the save is intentionally "not ok".
+    await saveAndReload(page, { expectOk: false });
     expect(await readField(page, 'recaptcha_enabled', 'checkbox')).toBe(false);
   });
 });
