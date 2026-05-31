@@ -451,8 +451,10 @@ class PageController extends BaseController
             // CSS columns reflow ALL items when appending, causing jarring visual shifts.
             // Loading everything upfront provides stable, predictable layout.
             // Use limit=0 to get all unique images without the infinite loop duplication.
-            // If masonry_max_images is set, use it as a cap (but still no duplication).
-            $masonryMaxImages = $homeSettings['masonry_max_images'] ?? 0;
+            // masonry_max_images is a masonry-only cap (its admin control lives in the
+            // masonry panel), so apply it ONLY to masonry — otherwise a value set while
+            // masonry was active would silently truncate the other grid templates.
+            $masonryMaxImages = $homeTemplate === 'masonry' ? ($homeSettings['masonry_max_images'] ?? 0) : 0;
             $imageResult = $homeImageService->getAllImages($masonryMaxImages, $includeNsfw);
             $shownImageIds = array_column($imageResult['images'], 'id');
             $shownAlbumIds = array_values(array_unique(array_column($imageResult['images'], 'album_id')));

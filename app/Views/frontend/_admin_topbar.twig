@@ -63,12 +63,14 @@
     background: #7a4d00; color: #ffedcf; font-size: 13px; font-weight: 500;
     font-family: Inter, system-ui, sans-serif; border-bottom: 1px solid #000;
   }
-  .cm-guestbar a {
+  .cm-guestbar form { margin: 0; display: inline-flex; }
+  .cm-guestbar a, .cm-guestbar button {
     color: #fff; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
     padding: 5px 11px; border: 1px solid rgba(255,255,255,.4); border-radius: 5px;
+    background: transparent; font: inherit; line-height: 1; cursor: pointer;
     transition: background .15s ease;
   }
-  .cm-guestbar a:hover { background: rgba(255,255,255,.14); }
+  .cm-guestbar a:hover, .cm-guestbar button:hover { background: rgba(255,255,255,.14); }
   .cm-guestbar svg { width: 15px; height: 15px; }
 
   @media (max-width: 760px) {
