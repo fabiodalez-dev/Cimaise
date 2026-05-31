@@ -304,7 +304,7 @@ class PageController extends BaseController
 
         // Allow template override via query parameter (for demo/preview)
         $queryParams = $request->getQueryParams();
-        $validTemplates = ['classic', 'modern', 'parallax', 'masonry', 'snap', 'gallery'];
+        $validTemplates = ['classic', 'modern', 'parallax', 'masonry', 'snap', 'gallery', 'editorial', 'justified', 'slideshow', 'split', 'bento', 'filmstrip'];
         $templateOverride = isset($queryParams['template']) && in_array($queryParams['template'], $validTemplates, true)
             ? $queryParams['template']
             : null;
@@ -441,9 +441,12 @@ class PageController extends BaseController
         // Use HomeImageService for reusable fetch logic
         $homeImageService = new \App\Services\HomeImageService($this->db);
 
-        // Masonry template: load images without album diversity
-        // Other templates: use album diversity for variety
-        if ($homeTemplate === 'masonry') {
+        // Full-grid templates load ALL unique images (no album-diversity looping, which
+        // repeats photos). The new editorial/justified/slideshow/split/bento/filmstrip
+        // templates are grid layouts like masonry, so they share this unique-image path
+        // to avoid duplicate photos. Classic/modern/parallax/snap/gallery keep diversity.
+        $gridTemplates = ['masonry', 'editorial', 'justified', 'slideshow', 'split', 'bento', 'filmstrip'];
+        if (in_array($homeTemplate, $gridTemplates, true)) {
             // Masonry: load ALL unique images at once (no progressive loading, no looping/duplicates)
             // CSS columns reflow ALL items when appending, causing jarring visual shifts.
             // Loading everything upfront provides stable, predictable layout.
@@ -526,6 +529,12 @@ class PageController extends BaseController
             'masonry' => 'frontend/home_masonry.twig',
             'snap' => 'frontend/home_snap.twig',
             'gallery' => 'frontend/home_gallery.twig',
+            'editorial' => 'frontend/home_editorial.twig',
+            'justified' => 'frontend/home_justified.twig',
+            'slideshow' => 'frontend/home_slideshow.twig',
+            'split' => 'frontend/home_split.twig',
+            'bento' => 'frontend/home_bento.twig',
+            'filmstrip' => 'frontend/home_filmstrip.twig',
         ];
         $templateFile = $templateMap[$homeTemplate] ?? 'frontend/home.twig';
 
@@ -1218,6 +1227,7 @@ class PageController extends BaseController
 
         // Gallery meta mapped from album for consistency with gallery view
         $galleryMeta = [
+            'id' => (int) $album['id'],
             'title' => $album['title'],
             'category' => ['name' => $album['category_name'], 'slug' => $album['category_slug']],
             'categories' => $cats,

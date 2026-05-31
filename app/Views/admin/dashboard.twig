@@ -9,6 +9,38 @@
     <a href="{{ base_path }}/admin/albums/create" class="btn-primary"><i class="fas fa-plus mr-2"></i>{{ trans('admin.dashboard.new_album') }}</a>
   </div>
 
+  {# Quick actions toolbar #}
+  <div class="card p-4 mb-6">
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="text-sm font-semibold text-gray-500 mr-2">{{ trans('admin.dashboard.quick_actions') }}</span>
+      <a href="{{ base_path }}/" target="_blank" rel="noopener" class="btn-secondary"><i class="fas fa-external-link-alt mr-2"></i>{{ trans('admin.dashboard.view_site') }}</a>
+      <a href="{{ base_path }}/admin/media" class="btn-secondary"><i class="fas fa-images mr-2"></i>{{ trans('admin.sidebar.gallery') }}</a>
+      <a href="{{ base_path }}/admin/pages" class="btn-secondary"><i class="fas fa-file-alt mr-2"></i>{{ trans('admin.sidebar.pages') }}</a>
+      <a href="{{ base_path }}/admin/typography" class="btn-secondary"><i class="fas fa-font mr-2"></i>{{ trans('admin.sidebar.typography') }}</a>
+      <a href="{{ base_path }}/admin/settings" class="btn-secondary"><i class="fas fa-cog mr-2"></i>{{ trans('admin.sidebar.settings') }}</a>
+      <button type="button" id="dash-flush-cache" class="btn-secondary ml-auto"><i class="fas fa-broom mr-2"></i>{{ trans('admin.dashboard.clear_cache') }}</button>
+      <span id="dash-cache-msg" class="text-sm text-green-600" role="status" aria-live="polite"></span>
+    </div>
+  </div>
+  <script nonce="{{ csp_nonce() }}">
+    (function(){
+      var btn = document.getElementById('dash-flush-cache');
+      var msg = document.getElementById('dash-cache-msg');
+      if (!btn) return;
+      btn.addEventListener('click', function(){
+        btn.disabled = true; if (msg) { msg.className = 'text-sm text-gray-500'; msg.textContent = '…'; }
+        fetch('{{ base_path }}/admin/cache/clear', {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json', 'X-CSRF-Token': {{ csrf|json_encode|raw }} },
+          credentials: 'same-origin'
+        }).then(function(r){ if (!r.ok) throw new Error('cache-clear-failed'); return r.json(); })
+          .then(function(d){ if (msg) { msg.className = 'text-sm text-green-600'; msg.textContent = (d && d.message) ? d.message : '{{ trans('admin.dashboard.cache_done')|e('js') }}'; } })
+          .catch(function(){ if (msg) { msg.className = 'text-sm text-red-600'; msg.textContent = 'Error'; } })
+          .then(function(){ btn.disabled = false; setTimeout(function(){ if (msg) msg.textContent = ''; }, 4000); });
+      });
+    })();
+  </script>
+
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     <a class="card p-6 hover:bg-gray-50 transition" href="{{ base_path }}/admin/albums">
       <div class="flex items-center justify-between">

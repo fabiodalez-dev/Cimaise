@@ -85,6 +85,11 @@ class SeedDemoAlbumsCommand extends Command
             $output->writeln('<error>No stock photos available (download failed and no --stock-dir).</error>');
             return Command::FAILURE;
         }
+        // Assign pool photos WITHOUT replacement (shuffled + sequential pointer) so the
+        // same image is never reused — two identical photos must never appear together.
+        shuffle($pool);
+        $poolPtr = 0;
+        $poolCount = count($pool);
 
         $categoryIds = $pdo->query('SELECT id FROM categories')->fetchAll(PDO::FETCH_COLUMN) ?: [];
         if (empty($categoryIds)) {
@@ -120,10 +125,14 @@ class SeedDemoAlbumsCommand extends Command
             $passwordHash = $isPwd ? password_hash($title, PASSWORD_ARGON2ID) : null;
             $categoryId = (int) $categoryIds[array_rand($categoryIds)];
 
+            // Vary the gallery form per album for visual variety, and enable the
+            // frontend template switcher (otherwise the switch bar above the photos
+            // stays hidden — allow_template_switch defaults to 0).
+            $albumTemplateId = ($i % 7) + 1;
             $albumStmt = $pdo->prepare(
                 'INSERT INTO albums (title, slug, category_id, excerpt, body, is_published, published_at,
-                                     is_nsfw, password_hash, show_date, sort_order, template_id)
-                 VALUES (:t, :s, :c, :e, :b, 1, :pa, :nsfw, :ph, 1, :o, 2)'
+                                     is_nsfw, password_hash, show_date, sort_order, template_id, allow_template_switch)
+                 VALUES (:t, :s, :c, :e, :b, 1, :pa, :nsfw, :ph, 1, :o, :tpl, 1)'
             );
             $albumStmt->execute([
                 ':t' => $title,
@@ -135,6 +144,7 @@ class SeedDemoAlbumsCommand extends Command
                 ':nsfw' => $isNsfw,
                 ':ph' => $passwordHash,
                 ':o' => $i,
+                ':tpl' => $albumTemplateId,
             ]);
             $albumId = (int) $pdo->lastInsertId();
 
@@ -148,7 +158,12 @@ class SeedDemoAlbumsCommand extends Command
 
             $coverId = null;
             for ($j = 0; $j < $photosPer; $j++) {
-                $srcFile = $pool[array_rand($pool)];
+                // No replacement: stop adding to this album once the unique pool runs out,
+                // rather than repeating an image (a smaller-but-unique album is preferable).
+                if ($poolPtr >= $poolCount) {
+                    break;
+                }
+                $srcFile = $pool[$poolPtr++];
                 $hash = bin2hex(random_bytes(16));
                 $dest = $storageDir . '/' . $hash . '.jpg';
                 if (!@copy($srcFile, $dest)) {
@@ -259,31 +274,61 @@ class SeedDemoAlbumsCommand extends Command
     {
         if (is_string($stockDir) && is_dir($stockDir)) {
             $files = glob(rtrim($stockDir, '/') . '/*.{jpg,jpeg,JPG,JPEG}', GLOB_BRACE) ?: [];
-            $output->writeln('<comment>Using ' . count($files) . ' local stock photos from ' . $stockDir . '</comment>');
-            return array_values(array_filter($files, 'is_file'));
+            // Dedup local files by content hash so identical photos can't both be used.
+            $unique = [];
+            $seen = [];
+            foreach ($files as $f) {
+                if (!is_file($f)) {
+                    continue;
+                }
+                $h = md5_file($f);
+                if ($h === false || isset($seen[$h])) {
+                    continue;
+                }
+                $seen[$h] = true;
+                $unique[] = $f;
+            }
+            $output->writeln('<comment>Using ' . count($unique) . ' unique local stock photos from ' . $stockDir . '</comment>');
+            return $unique;
         }
 
-        // Download a pool from Lorem Picsum (no API key). Reuse across albums.
-        $poolSize = min(max(20, (int) ceil($count / 3)), 60);
+        // Download ONE unique image per needed slot from Lorem Picsum (no API key).
+        // Unique seeds usually yield distinct content; we additionally dedup by content
+        // hash, so two identical photos can never enter the library (and therefore can
+        // never render adjacent on the home or inside an album).
+        $target = min(max($count, 1), 200);
         $dir = sys_get_temp_dir() . '/cimaise-stock';
         @mkdir($dir, 0775, true);
-        $output->writeln('<comment>Downloading ' . $poolSize . ' stock photos from Lorem Picsum…</comment>');
+        $output->writeln('<comment>Downloading ' . $target . ' unique stock photos from Lorem Picsum…</comment>');
 
         $sizes = [[1200, 800], [1600, 1067], [1080, 1350], [1500, 1000], [1000, 1500]];
         $files = [];
-        for ($i = 1; $i <= $poolSize; $i++) {
-            [$w, $h] = $sizes[$i % count($sizes)];
-            $path = $dir . '/stock-' . $i . '.jpg';
-            $url = 'https://picsum.photos/seed/cimaise-' . $i . '/' . $w . '/' . $h;
+        $seenHashes = [];
+        $seed = 0;
+        $maxAttempts = $target * 4;
+        while (count($files) < $target && $seed < $maxAttempts) {
+            $seed++;
+            [$w, $h] = $sizes[$seed % count($sizes)];
+            $url = 'https://picsum.photos/seed/cimaise-' . $seed . '/' . $w . '/' . $h;
             $data = $this->httpGet($url);
-            if ($data !== null && strlen($data) > 5000) {
-                file_put_contents($path, $data);
-                if (@getimagesize($path) !== false) {
-                    $files[] = $path;
-                }
+            if ($data === null || strlen($data) <= 5000) {
+                continue;
             }
+            $contentHash = md5($data);
+            if (isset($seenHashes[$contentHash])) {
+                continue; // identical content already downloaded — skip
+            }
+            $path = $dir . '/stock-' . $seed . '.jpg';
+            file_put_contents($path, $data);
+            if (@getimagesize($path) === false) {
+                // $path is fully server-constructed ($dir + integer $seed), no user input.
+                @unlink($path); // nosemgrep: path is server-controlled, not user-supplied
+                continue;
+            }
+            $seenHashes[$contentHash] = true;
+            $files[] = $path;
         }
-        $output->writeln('  got ' . count($files) . ' stock photos');
+        $output->writeln('  got ' . count($files) . ' unique stock photos');
         return $files;
     }
 

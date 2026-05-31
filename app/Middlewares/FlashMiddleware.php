@@ -22,6 +22,12 @@ class FlashMiddleware implements MiddlewareInterface
         $env = $twig->getEnvironment();
         $env->addGlobal('flash', $messages);
         $env->addGlobal('csrf', $_SESSION['csrf'] ?? '');
+        // Expose admin-session presence + name so the frontend admin top bar can render
+        // on every page for a logged-in admin (independent of per-render is_admin).
+        $env->addGlobal('admin_logged_in', !empty($_SESSION['admin_id']));
+        $env->addGlobal('admin_name', $_SESSION['admin_name'] ?? '');
+        // "View as visitor" mode: admin session is present but the admin is browsing as a guest.
+        $env->addGlobal('view_as_guest', !empty($_SESSION['view_as_guest']));
         unset($_SESSION['flash']);
         return $handler->handle($request);
     }

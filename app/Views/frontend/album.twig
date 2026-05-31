@@ -1002,7 +1002,12 @@ function initMasonryPortfolio(containerOrSelector) {
         ? document.querySelector(containerOrSelector)
         : containerOrSelector || document.querySelector('.masonry-portfolio-grid');
 
-    if (!grid || typeof Masonry === 'undefined' || typeof imagesLoaded === 'undefined') return null;
+    if (!grid) return null;
+    // Pure-CSS columns variant: the layout is done entirely in CSS (no overlaps/gaps),
+    // so skip Masonry.js entirely — running it here would absolutely-position the items
+    // and re-introduce the very overlaps this replaced.
+    if (grid.dataset.cssColumns === '1') return null;
+    if (typeof Masonry === 'undefined' || typeof imagesLoaded === 'undefined') return null;
     if (grid._masonryPortfolioInitialized) return grid._masonryPortfolioInstance;
 
     const gapH = parseInt(grid.dataset.gapH || '16', 10);
@@ -1032,6 +1037,14 @@ function initMasonryPortfolio(containerOrSelector) {
             if (item) item.classList.add('is-loaded');
         }
         grid._masonryPortfolioInstance.layout();
+    }).on('always', function() {
+        // Final relayout once EVERY image has its real dimensions, on the next two
+        // frames, to clear gaps/overlaps left by laying out before images were sized.
+        requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+                if (grid._masonryPortfolioInstance) grid._masonryPortfolioInstance.layout();
+            });
+        });
     });
 
     if (!grid._masonryPortfolioResizeHandler) {

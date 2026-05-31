@@ -1,0 +1,70 @@
+{% extends "frontend/_layout.twig" %}
+{% import "frontend/_lqip_macros.twig" as lqip %}
+{% import "frontend/_home_photo.twig" as photo %}
+
+{% block styles %}
+{% include 'frontend/_lcp_preload.twig' %}
+{{ lqip.lqip_styles()|raw }}
+<style nonce="{{ csp_nonce() }}">
+  .justified-wrap { padding: 0 4px; }
+  @media (min-width: 1024px) { .justified-wrap { padding: 0 12px; } }
+  .justified-head { text-align: center; padding: 3.5rem 1rem 2rem; }
+  .justified-head h1 { font-size: clamp(1.6rem, 3.5vw, 2.5rem); font-weight: 700; letter-spacing: -.02em; color: #111827; }
+  .dark .justified-head h1 { color: #f9fafb; }
+  .justified-head p { margin-top: .6rem; color: #6b7280; }
+  /* Pure-CSS justified rows: flex-grow proportional to aspect ratio fills each row width. */
+  .justified { display: flex; flex-wrap: wrap; gap: 6px; }
+  .justified a { position: relative; display: block; height: 170px; overflow: hidden; background: #f3f4f6;
+    flex-grow: calc(var(--ar) * 100); flex-basis: calc(var(--ar) * 170px); }
+  .dark .justified a { background: #1f2937; }
+  @media (min-width: 768px)  { .justified a { height: 230px; flex-basis: calc(var(--ar) * 230px); } }
+  @media (min-width: 1280px) { .justified a { height: 280px; flex-basis: calc(var(--ar) * 280px); } }
+  .justified img { width: 100%; height: 100%; object-fit: cover; display: block;
+    transition: transform .5s cubic-bezier(.16,1,.3,1), filter .3s ease; }
+  .justified a:hover img { transform: scale(1.05); }
+  .justified a::after { content: ""; position: absolute; inset: 0; background: rgba(17,24,39,.0); transition: background .3s ease; }
+  .justified a:hover::after { background: rgba(17,24,39,.18); }
+  .justified .cap { position: absolute; left: 10px; bottom: 8px; right: 10px; z-index: 2; color: #fff;
+    font-size: .8rem; font-weight: 600; opacity: 0; transform: translateY(6px);
+    transition: opacity .3s ease, transform .3s cubic-bezier(.16,1,.3,1); text-shadow: 0 1px 4px rgba(0,0,0,.5); }
+  .justified a:hover .cap, .justified a:focus-within .cap { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) { .justified img, .justified .cap, .justified a::after { transition: none; } .justified a:hover img { transform: none; } }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include 'frontend/home/_preloader.twig' %}
+{{ do_action('frontend_home_before', {base_path: base_path}) }}
+{% include 'frontend/home/_website_jsonld.twig' %}
+
+{% if all_images|length > 0 %}
+<div class="justified-wrap">
+  {% if home_settings.hero_title %}
+  <header class="justified-head">
+    <h1>{{ home_settings.hero_title|e }}</h1>
+    {% if home_settings.hero_subtitle %}<p>{{ home_settings.hero_subtitle|e }}</p>{% endif %}
+  </header>
+  {% endif %}
+  <div class="justified">
+    {% for image in all_images %}
+    {% set ar = (image.width|default(800) / max(1, image.height|default(600)))|round(3) %}
+    <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}" style="--ar: {{ ar }};">
+      {{ photo.picture(image, base_path, '40vw', loop.index0, 6, '', '') }}
+      <span class="cap">{{ image.title|default(image.album_title|default(''))|e }}</span>
+    </a>
+    {% endfor %}
+    {# trailing flexible spacer so the last row left-aligns instead of stretching #}
+    <span style="flex-grow: 10; height: 0;"></span>
+  </div>
+  {% include 'frontend/home/_more_cta.twig' %}
+</div>
+{% else %}
+{% include 'frontend/home/_empty_state.twig' %}
+{% endif %}
+
+{{ do_action('frontend_home_after', {base_path: base_path}) }}
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">{{ lqip.lqip_script()|raw }}</script>
+{% endblock %}

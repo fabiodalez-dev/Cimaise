@@ -253,7 +253,8 @@
   },
   "home": {
     "home.scroll_to_explore": "Scroll to explore",
-    "home.masonry_loading": "Loading more photos..."
+    "home.masonry_loading": "Loading more photos...",
+    "home.view_all_galleries": "View all galleries"
   },
   "home_gallery": {
     "home_gallery.empty_text": "Check back soon for new content.",
@@ -412,5 +413,30 @@
     "tag.no_albums_title": "No albums with this tag yet",
     "tag.related_tags": "Related Tags"
   },
-  "template.not_available": "Template not available."
+  "template.not_available": "Template not available.",
+  "common": {
+    "common.previous": "Previous",
+    "common.next": "Next"
+  },
+  "adminbar": {
+    "adminbar.label": "Admin bar",
+    "adminbar.dashboard": "Backend",
+    "adminbar.edit_album": "Edit album",
+    "adminbar.new_album": "New album",
+    "adminbar.clear_cache": "Clear cache",
+    "adminbar.logout": "Log out",
+    "adminbar.cache_cleared": "Cache cleared",
+    "adminbar.cache_error": "Cache clear failed",
+    "adminbar.quick_links": "Quick links",
+    "adminbar.view_as_guest": "View as visitor",
+    "adminbar.guest_mode": "You are browsing as a visitor",
+    "adminbar.exit_guest": "Exit visitor mode",
+    "adminbar.media": "Media",
+    "adminbar.albums": "Albums",
+    "adminbar.categories": "Categories",
+    "adminbar.pages": "Pages",
+    "adminbar.appearance": "Appearance",
+    "adminbar.settings": "Settings",
+    "adminbar.seo": "SEO"
+  }
 }

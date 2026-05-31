@@ -226,34 +226,15 @@ class HomeImageService
         $stmt->execute();
         $images = $this->normalizeCategorySlugs($stmt->fetchAll(\PDO::FETCH_ASSOC));
 
-        // Calculate if we need to loop (only if we didn't get enough images)
-        if ($limit > 0 && count($images) < $limit) {
-            $needed = $limit - count($images);
-            
-            // To loop, we essentially fetch from the beginning again.
-            // Since getAllImages starts from the beginning anyway, we just fetch top N again.
-            // Note: This simple looping strategy works for a single wraparound.
-            // If needed > total_db_images, we might return duplicates.
-            
-            // However, we must ensure we actually HAVE images in the DB to avoid infinite loops in logic
-            if (count($images) > 0) {
-                 // Reuse the same query logic (fetching from top)
-                 // We can just slice the existing result if we have enough, or re-query if we really need to.
-                 // Optimization: If we fetched ALL images (count < limit implies we exhausted DB), 
-                 // we can just append duplicates from the start of $images array.
-                 
-                 $pool = $images;
-                 while ($needed > 0) {
-                     $batchSize = min($needed, count($pool));
-                     if ($batchSize === 0) {
-                         break;
-                     }
-                     $batch = array_slice($pool, 0, $batchSize);
-                     $images = array_merge($images, $batch);
-                     $needed -= count($batch);
-                 }
-            }
+        // NOTE: deliberately NO wrap-around padding here. This method is the unique-image
+        // path for the home grid templates (masonry/editorial/justified/bento/...), so it
+        // must never repeat a photo to reach `limit`. If fewer unique images exist than
+        // `limit`, callers simply get all of them. Dedup by id as a hard guarantee.
+        $byId = [];
+        foreach ($images as $img) {
+            $byId[$img['id']] = $img;
         }
+        $images = array_values($byId);
 
         // Get total count of UNIQUE images
         $countStmt = $pdo->prepare("
@@ -268,11 +249,72 @@ class HomeImageService
         $countStmt->execute();
         $totalImages = (int) $countStmt->fetchColumn();
 
+        // Spread images out so two photos from the same album are never adjacent on the
+        // home grid (the DB order groups an album's images together, which looks like
+        // repeated/identical photos). Applies to every home template that uses this path.
+        $images = $this->interleaveByAlbum($images);
+
         return [
             'images' => $images,
             'totalImages' => $totalImages,
-            'hasMore' => $limit > 0 && $totalImages > 0, // No limit means everything is already loaded
+            'hasMore' => $limit > 0 && $totalImages > count($images), // more remain only if not all loaded
         ];
+    }
+
+    /**
+     * Reorder images so consecutive items come from different albums where possible.
+     * Greedy "most-remaining-first, never repeat the previous album" scheduling — the
+     * standard way to spread a multiset apart and minimise same-album adjacency.
+     *
+     * @param array<int,array<string,mixed>> $images
+     * @return array<int,array<string,mixed>>
+     */
+    private function interleaveByAlbum(array $images): array
+    {
+        if (count($images) < 3) {
+            return $images;
+        }
+
+        /** @var array<int|string,array<int,array<string,mixed>>> $buckets */
+        $buckets = [];
+        foreach ($images as $img) {
+            $buckets[$img['album_id'] ?? 0][] = $img;
+        }
+        if (count($buckets) < 2) {
+            return $images;
+        }
+
+        $result = [];
+        $lastAlbum = null;
+        $remaining = count($images);
+        while ($remaining > 0) {
+            $pick = null;
+            $pickCount = -1;
+            foreach ($buckets as $aid => $items) {
+                $n = count($items);
+                if ($n === 0 || $aid === $lastAlbum) {
+                    continue;
+                }
+                if ($n > $pickCount) {
+                    $pickCount = $n;
+                    $pick = $aid;
+                }
+            }
+            // Only the previous album still has items — unavoidable, place it.
+            if ($pick === null) {
+                foreach ($buckets as $aid => $items) {
+                    if (count($items) > 0) {
+                        $pick = $aid;
+                        break;
+                    }
+                }
+            }
+            $result[] = array_shift($buckets[$pick]);
+            $lastAlbum = $pick;
+            $remaining--;
+        }
+
+        return $result;
     }
 
     /**

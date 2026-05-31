@@ -1,0 +1,76 @@
+{% extends "frontend/_layout.twig" %}
+{% import "frontend/_lqip_macros.twig" as lqip %}
+{% import "frontend/_home_photo.twig" as photo %}
+
+{% block styles %}
+{% include 'frontend/_lcp_preload.twig' %}
+{{ lqip.lqip_styles()|raw }}
+<style nonce="{{ csp_nonce() }}">
+  .editorial { max-width: 1400px; margin: 0 auto; padding: 0 1rem; }
+  @media (min-width: 1024px) { .editorial { padding: 0 2.5rem; } }
+  .editorial-masthead { padding: 4rem 0 2.5rem; border-bottom: 1px solid #e6e7eb; margin-bottom: 2.5rem; }
+  .dark .editorial-masthead { border-color: #27272a; }
+  .editorial-kicker { font-size: .72rem; letter-spacing: .22em; text-transform: uppercase; color: #d70261; font-weight: 600; }
+  .editorial-title { font-size: clamp(2rem, 5vw, 3.75rem); line-height: 1.05; font-weight: 700; letter-spacing: -.02em; color: #111827; margin-top: .75rem; }
+  .dark .editorial-title { color: #f9fafb; }
+  .editorial-sub { margin-top: 1rem; max-width: 60ch; color: #4b5563; font-size: 1.05rem; line-height: 1.7; }
+  .dark .editorial-sub { color: #9ca3af; }
+  .editorial-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5rem; }
+  @media (max-width: 640px) { .editorial-grid { gap: .75rem; } .editorial-cell { grid-column: span 12 !important; } }
+  .editorial-cell { position: relative; overflow: hidden; background: #f3f4f6; }
+  .dark .editorial-cell { background: #1f2937; }
+  .editorial-cell img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .6s cubic-bezier(.16,1,.3,1); }
+  .editorial-cell:hover img { transform: scale(1.04); }
+  .editorial-cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 1.25rem 1rem .9rem; color: #fff;
+    background: rgba(17,24,39,.55); opacity: 0; transform: translateY(8px);
+    transition: opacity .3s ease-out, transform .3s cubic-bezier(.16,1,.3,1); }
+  .editorial-cell:hover .editorial-cap, .editorial-cell:focus-within .editorial-cap { opacity: 1; transform: none; }
+  .editorial-cap .t { font-size: .95rem; font-weight: 600; letter-spacing: -.01em; }
+  .editorial-cap .k { font-size: .68rem; letter-spacing: .18em; text-transform: uppercase; color: #f59ec5; }
+  @media (prefers-reduced-motion: reduce) { .editorial-cell img, .editorial-cap { transition: none; } .editorial-cell:hover img { transform: none; } }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include 'frontend/home/_preloader.twig' %}
+{{ do_action('frontend_home_before', {base_path: base_path}) }}
+{% include 'frontend/home/_website_jsonld.twig' %}
+
+{% if all_images|length > 0 %}
+{# 12-col rhythm: rows sum to 12 so the grid tiles; a full-width band every 7th item. #}
+{% set spans = [8, 4, 4, 8, 6, 6, 12] %}
+{% set aspects = ['16/10', '3/4', '3/4', '16/10', '4/3', '4/3', '21/9'] %}
+<section class="editorial">
+  <header class="editorial-masthead">
+    <p class="editorial-kicker">{{ home_settings.albums_subtitle|default(site_title)|e }}</p>
+    <h1 class="editorial-title">{{ home_settings.hero_title|default(trans('home.hero_title'))|e }}</h1>
+    {% if home_settings.hero_subtitle %}<p class="editorial-sub">{{ home_settings.hero_subtitle|e }}</p>{% endif %}
+  </header>
+
+  <div class="editorial-grid">
+    {% for image in all_images %}
+    {% set p = loop.index0 % 7 %}
+    <a class="editorial-cell" style="grid-column: span {{ spans[p] }}; aspect-ratio: {{ aspects[p] }};"
+       href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}">
+      {% set sizes = '(min-width: 1024px) ' ~ (spans[p] * 8) ~ 'vw, 100vw' %}
+      {{ photo.picture(image, base_path, sizes, loop.index0, 6, '', '') }}
+      <span class="editorial-cap">
+        <span class="k">{{ image.album_title|default('')|e }}</span>
+        <span class="t">{{ image.title|default(image.album_title|default(''))|e }}</span>
+      </span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+{% include 'frontend/home/_more_cta.twig' %}
+{% else %}
+{% include 'frontend/home/_empty_state.twig' %}
+{% endif %}
+
+{{ do_action('frontend_home_after', {base_path: base_path}) }}
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">{{ lqip.lqip_script()|raw }}</script>
+{% endblock %}

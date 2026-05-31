@@ -218,42 +218,7 @@
     <div id="template-switcher" class="hidden md:inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-md p-1 shadow-sm" style="opacity: 0; transform: translateX(20px);">
       {% for template in available_templates %}
         <button type="button" class="tpl-switch px-2 py-1 rounded {{ template.id == current_template_id ? 'bg-black text-white' : 'text-neutral-700 hover:bg-neutral-100' }}" data-template-id="{{ template.id }}" data-album-ref="{{ album_ref }}" title="{{ template.name }}" aria-label="{{ template.name }}">
-          {% if template.slug == 'gallery-wall-scroll' %}
-            <i class="fas fa-arrows-left-right"></i>
-          {% elseif template.settings.layout == 'masonry_fit' %}
-            <i class="fas fa-expand-arrows-alt"></i>
-          {% elseif template.settings.layout == 'slideshow' and 'swiper' in template.libs %}
-            <i class="fas fa-play-circle"></i>
-          {% elseif template.settings.layout == 'slideshow' %}
-            <i class="fas fa-images"></i>
-          {% elseif template.settings.layout == 'grid' and template.settings.spacing == 'large' %}
-            <i class="fas fa-border-none"></i>
-          {% elseif template.settings.layout == 'mosaic' %}
-            <i class="fas fa-puzzle-piece"></i>
-          {% elseif template.settings.layout == 'carousel' %}
-            <i class="fas fa-arrows-alt-h"></i>
-          {% elseif template.settings.layout == 'polaroid' %}
-            <i class="fas fa-camera-retro"></i>
-          {% elseif template.settings.layout == 'fullscreen' %}
-            <i class="fas fa-expand"></i>
-          {% elseif template.settings.layout == 'grid' %}
-            {% if template.settings.masonry %}
-              <i class="fas fa-grip-vertical"></i>
-            {% else %}
-              {% set tpl_desktop_cols = template.settings.columns.desktop|default(3) %}
-              {% if tpl_desktop_cols <= 2 %}
-                <i class="fas fa-pause"></i>
-              {% elseif tpl_desktop_cols == 3 %}
-                <i class="fas fa-th"></i>
-              {% elseif tpl_desktop_cols >= 5 %}
-                <i class="fas fa-grip-horizontal"></i>
-              {% else %}
-                <i class="fas fa-th"></i>
-              {% endif %}
-            {% endif %}
-          {% else %}
-            <i class="fas fa-th"></i>
-          {% endif %}
+          {% import 'frontend/_template_icon.twig' as TplIcon %}{{ TplIcon.icon(template) }}
         </button>
       {% endfor %}
     </div>
@@ -486,7 +451,9 @@
       ? document.querySelector(containerOrSelector)
       : containerOrSelector || document.querySelector('.masonry-portfolio-grid');
 
-    if (!grid || typeof Masonry === 'undefined' || typeof imagesLoaded === 'undefined') return null;
+    if (!grid) return null;
+    if (grid.dataset && grid.dataset.cssColumns === '1') return null;
+    if (typeof Masonry === 'undefined' || typeof imagesLoaded === 'undefined') return null;
     if (grid._masonryPortfolioInitialized) return grid._masonryPortfolioInstance;
 
     const gapH = parseInt(grid.dataset.gapH || '16', 10);

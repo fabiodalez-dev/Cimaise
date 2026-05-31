@@ -1,0 +1,199 @@
+{# WordPress-style admin top bar — shown on the frontend ONLY for a logged-in admin.
+   Gated by the admin_logged_in global (FlashMiddleware), so it appears on every page.
+   When view_as_guest is active it collapses to a slim "visitor mode" banner. #}
+{% if admin_logged_in|default(false) %}
+<style nonce="{{ csp_nonce() }}">
+  :root { --cmab-h: 38px; }
+  body.has-admin-bar { padding-top: var(--cmab-h); }
+  body.has-admin-bar #main-header { top: var(--cmab-h); }
+  body.has-admin-bar #categories-mega-menu { top: calc(80px + var(--cmab-h)) !important; }
+
+  .cm-adminbar {
+    position: fixed; top: 0; left: 0; right: 0; height: var(--cmab-h); z-index: 100000;
+    display: flex; align-items: stretch; justify-content: space-between;
+    background: #1f2430; color: #e5e7eb; font-size: 13px; line-height: 1;
+    border-bottom: 1px solid #000; -webkit-font-smoothing: antialiased;
+    font-family: Inter, system-ui, sans-serif;
+  }
+  .cm-adminbar a, .cm-adminbar button {
+    display: inline-flex; align-items: center; gap: 7px; padding: 0 13px;
+    color: #e5e7eb; text-decoration: none; background: none; border: 0; cursor: pointer;
+    height: 100%; white-space: nowrap; transition: background .15s ease, color .15s ease;
+    font: inherit;
+  }
+  .cm-adminbar a:hover, .cm-adminbar button:hover { background: #2a3040; color: #fff; }
+  .cm-adminbar .cm-grp { display: flex; align-items: stretch; }
+  .cm-adminbar svg { width: 16px; height: 16px; flex: 0 0 16px; }
+  .cm-adminbar .cm-brand { font-weight: 600; color: #fff; }
+  .cm-adminbar .cm-brand .dot { width: 8px; height: 8px; border-radius: 9999px; background: #d70261; }
+  .cm-adminbar .cm-accent:hover { color: #f59ec5; }
+  .cm-adminbar .cm-name {
+    display: inline-flex; align-items: center; gap: 7px; height: 100%;
+    padding: 0 6px 0 14px; margin-left: 2px; color: #aeb6c4; font-weight: 500;
+    border-left: 1px solid rgba(0,0,0,.45); pointer-events: none;
+  }
+  .cm-adminbar form { display: inline-flex; height: 100%; margin: 0; }
+  .cm-adminbar .cm-caret { width: 12px; height: 12px; opacity: .7; margin-left: -2px; }
+
+  /* Quick-links dropdown (hover + keyboard/touch focus) */
+  .cm-dd { position: relative; display: flex; align-items: stretch; }
+  .cm-dd-menu {
+    position: absolute; top: 100%; left: 0; min-width: 210px; z-index: 100002;
+    background: #232936; border: 1px solid #000; border-top: 0; padding: 6px 0;
+    box-shadow: 0 14px 34px rgba(0,0,0,.35);
+    opacity: 0; visibility: hidden; transform: translateY(-4px);
+    transition: opacity .15s ease, transform .15s ease, visibility .15s;
+  }
+  .cm-dd:hover .cm-dd-menu, .cm-dd:focus-within .cm-dd-menu { opacity: 1; visibility: visible; transform: none; }
+  .cm-dd-menu a { height: 34px; width: 100%; color: #cdd3de; font-weight: 400; }
+  .cm-dd-menu a:hover { background: #2f3646; color: #fff; }
+
+  #cm-cache-toast {
+    position: fixed; top: calc(var(--cmab-h) + 10px); right: 14px; z-index: 100001;
+    background: #111827; color: #fff; font-size: 13px; padding: 9px 14px; border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.25); opacity: 0; transform: translateY(-6px);
+    transition: opacity .2s ease, transform .2s ease; pointer-events: none;
+  }
+  #cm-cache-toast.show { opacity: 1; transform: none; }
+
+  /* Visitor-mode banner */
+  .cm-guestbar {
+    position: fixed; top: 0; left: 0; right: 0; height: var(--cmab-h); z-index: 100000;
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    background: #7a4d00; color: #ffedcf; font-size: 13px; font-weight: 500;
+    font-family: Inter, system-ui, sans-serif; border-bottom: 1px solid #000;
+  }
+  .cm-guestbar a {
+    color: #fff; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 11px; border: 1px solid rgba(255,255,255,.4); border-radius: 5px;
+    transition: background .15s ease;
+  }
+  .cm-guestbar a:hover { background: rgba(255,255,255,.14); }
+  .cm-guestbar svg { width: 15px; height: 15px; }
+
+  @media (max-width: 760px) {
+    .cm-adminbar .cm-label { display: none; }
+    .cm-adminbar a, .cm-adminbar button { padding: 0 11px; }
+    .cm-adminbar .cm-brand .cm-label { display: inline; }
+    .cm-dd-menu a .cm-label { display: inline; }
+  }
+  @media print { .cm-adminbar, .cm-guestbar, #cm-cache-toast { display: none !important; } body.has-admin-bar { padding-top: 0; } }
+</style>
+
+{% if view_as_guest|default(false) %}
+  {# Visitor preview mode — minimal banner with a way out. #}
+  <div class="cm-guestbar" role="status">
+    <span>{{ trans('adminbar.guest_mode')|default('Stai navigando come visitatore') }}</span>
+    <form method="post" action="{{ base_path }}/admin/exit-guest-view" id="cm-exit-guest-form">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button type="submit" id="cm-exit-guest">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg>
+        {{ trans('adminbar.exit_guest')|default('Esci dalla modalità') }}
+      </button>
+    </form>
+  </div>
+{% else %}
+  <div class="cm-adminbar" role="navigation" aria-label="{{ trans('adminbar.label')|default('Admin bar') }}">
+    <div class="cm-grp">
+      <a href="{{ base_path }}/admin" class="cm-brand" title="{{ site_title }}">
+        <span class="dot" aria-hidden="true"></span><span class="cm-label">{{ site_title|default('Cimaise') }}</span>
+      </a>
+      <a href="{{ base_path }}/admin" title="{{ trans('adminbar.dashboard')|default('Backend') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span class="cm-label">{{ trans('adminbar.dashboard')|default('Backend') }}</span>
+      </a>
+      {% if album is defined and album.id is defined and album.id %}
+      <a href="{{ base_path }}/admin/albums/{{ album.id }}/edit" title="{{ trans('adminbar.edit_album')|default('Modifica album') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="cm-label">{{ trans('adminbar.edit_album')|default('Modifica album') }}</span>
+      </a>
+      {% endif %}
+      <a href="{{ base_path }}/admin/albums/create" title="{{ trans('adminbar.new_album')|default('Nuovo album') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+        <span class="cm-label">{{ trans('adminbar.new_album')|default('Nuovo album') }}</span>
+      </a>
+      {# Quick links dropdown #}
+      <div class="cm-dd">
+        <button type="button" aria-haspopup="true" title="{{ trans('adminbar.quick_links')|default('Link rapido') }}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/></svg>
+          <span class="cm-label">{{ trans('adminbar.quick_links')|default('Link rapido') }}</span>
+          <svg class="cm-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="cm-dd-menu" role="menu">
+          {% set quick = [
+            {url: '/admin/media',      key: 'media'},
+            {url: '/admin/albums',     key: 'albums'},
+            {url: '/admin/categories', key: 'categories'},
+            {url: '/admin/pages',      key: 'pages'},
+            {url: '/admin/typography', key: 'appearance'},
+            {url: '/admin/seo',        key: 'seo'},
+            {url: '/admin/settings',   key: 'settings'}
+          ] %}
+          {% for q in quick %}
+          <a href="{{ base_path }}{{ q.url }}" role="menuitem">{{ trans('adminbar.' ~ q.key)|default(q.key) }}</a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="cm-grp">
+      <form method="post" action="{{ base_path }}/admin/view-as-guest" id="cm-view-guest-form">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button type="submit" id="cm-view-guest" class="cm-accent" title="{{ trans('adminbar.view_as_guest')|default('Vedi come visitatore') }}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span class="cm-label">{{ trans('adminbar.view_as_guest')|default('Vedi come visitatore') }}</span>
+        </button>
+      </form>
+      <button type="button" id="cm-flush-cache" class="cm-accent" title="{{ trans('adminbar.clear_cache')|default('Svuota cache') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 3v5h-5" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 21v-5h5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="cm-label">{{ trans('adminbar.clear_cache')|default('Svuota cache') }}</span>
+      </button>
+      {% if admin_name %}<span class="cm-name cm-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0" stroke-linecap="round"/></svg>{{ admin_name }}</span>{% endif %}
+      <form method="post" action="{{ base_path }}/admin/logout">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button type="submit" title="{{ trans('adminbar.logout')|default('Esci') }}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 17l5-5-5-5M21 12H9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="cm-label">{{ trans('adminbar.logout')|default('Esci') }}</span>
+        </button>
+      </form>
+    </div>
+  </div>
+  <div id="cm-cache-toast" role="status" aria-live="polite"></div>
+{% endif %}
+
+<script nonce="{{ csp_nonce() }}">
+  (function(){
+    document.body.classList.add('has-admin-bar');
+    var here = encodeURIComponent(location.pathname + location.search);
+
+    // Carry the current page as the return target for the view-as / exit toggles
+    // (now POST forms, CSRF-protected). The return stays in the form action's query.
+    var vgf = document.getElementById('cm-view-guest-form');
+    if (vgf) vgf.action = vgf.action.split('?')[0] + '?return=' + here;
+    var egf = document.getElementById('cm-exit-guest-form');
+    if (egf) egf.action = egf.action.split('?')[0] + '?return=' + here;
+
+    var btn = document.getElementById('cm-flush-cache');
+    var toast = document.getElementById('cm-cache-toast');
+    if (btn && toast) {
+      var showToast = function(msg, ok){
+        toast.textContent = msg;
+        toast.style.background = ok ? '#111827' : '#7f1d1d';
+        toast.classList.add('show');
+        setTimeout(function(){ toast.classList.remove('show'); }, 2600);
+      };
+      btn.addEventListener('click', function(){
+        btn.disabled = true;
+        fetch('{{ base_path }}/admin/cache/clear', {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json', 'X-CSRF-Token': {{ csrf|json_encode|raw }} },
+          credentials: 'same-origin'
+        }).then(function(r){ if (!r.ok) throw new Error('cache-clear-failed'); return r.json(); })
+          .then(function(d){ showToast((d && d.message) ? d.message : '{{ trans('adminbar.cache_cleared')|default('Cache svuotata')|e('js') }}', true); })
+          .catch(function(){ showToast('{{ trans('adminbar.cache_error')|default('Errore svuotamento cache')|e('js') }}', false); })
+          .then(function(){ btn.disabled = false; });
+      });
+    }
+  })();
+</script>
+{% endif %}

@@ -31,8 +31,24 @@ abstract class BaseController
         return $basePath;
     }
 
+    /**
+     * Build a redirect Location value confined to this site (defense-in-depth, CWE-601).
+     *
+     * Every caller passes an internal, literal-prefixed path (e.g. "/album/$slug"),
+     * so this is normally already same-origin. This method additionally guarantees it:
+     * it strips CR/LF/NUL (header-injection), forces a leading slash, and collapses any
+     * run of leading slashes to one — so the result can never become a protocol-relative
+     * ("//evil.com") or absolute ("https://evil.com") destination regardless of input.
+     */
     protected function redirect(string $path): string
     {
+        $path = str_replace(["\r", "\n", "\0"], '', $path);
+        // Reject absolute URLs (scheme://...) — keep only the path-and-query portion.
+        if (preg_match('#^[a-z][a-z0-9+.\-]*://#i', $path)) {
+            $path = '/';
+        }
+        // Force exactly one leading slash (blocks "//host" protocol-relative redirects).
+        $path = '/' . ltrim($path, '/');
         return $this->basePath . $path;
     }
 
@@ -73,7 +89,10 @@ abstract class BaseController
     protected function isAdmin(): bool
     {
         $this->ensureSession();
-        return !empty($_SESSION['admin_id']);
+        // "View as visitor": an admin can temporarily browse the frontend as a guest
+        // (NSFW gates, no edit links, no admin treatment) without logging out. The admin
+        // session (admin_id) is preserved so /admin and the exit toggle still work.
+        return !empty($_SESSION['admin_id']) && empty($_SESSION['view_as_guest']);
     }
 
     /**

@@ -1,0 +1,101 @@
+{% extends "frontend/_layout.twig" %}
+{% import "frontend/_lqip_macros.twig" as lqip %}
+{% import "frontend/_home_photo.twig" as photo %}
+
+{% block styles %}
+{% include 'frontend/_lcp_preload.twig' %}
+{{ lqip.lqip_styles()|raw }}
+<style nonce="{{ csp_nonce() }}">
+  .show { position: relative; width: 100%; height: clamp(520px, 92svh, 1200px); overflow: hidden; background: #0b0b0c; }
+  .show-slide { position: absolute; inset: 0; opacity: 0; transition: opacity 1s ease-in-out; }
+  .show-slide.is-active { opacity: 1; }
+  .show-slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .show-scrim { position: absolute; left: 0; right: 0; bottom: 0; height: 40%; pointer-events: none;
+    background: rgba(11,11,12,.45); -webkit-mask-image: linear-gradient(to top, #000 35%, transparent);
+            mask-image: linear-gradient(to top, #000 35%, transparent); }
+  .show-cap { position: absolute; left: clamp(1rem,5vw,4rem); bottom: clamp(1.5rem,6vh,4rem); z-index: 3; max-width: 40ch; }
+  .show-cap .k { font-size: .72rem; letter-spacing: .2em; text-transform: uppercase; color: #f59ec5; font-weight: 600; }
+  .show-cap .t { display: block; margin-top: .4rem; color: #fff; font-size: clamp(1.5rem,4vw,2.75rem); font-weight: 700; letter-spacing: -.02em; line-height: 1.1; text-shadow: 0 2px 12px rgba(0,0,0,.4); }
+  .show-count { position: absolute; top: clamp(1rem,4vh,2rem); right: clamp(1rem,5vw,3rem); z-index: 3; color: rgba(255,255,255,.85); font-size: .8rem; letter-spacing: .15em; font-variant-numeric: tabular-nums; }
+  .show-nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 4; width: 48px; height: 48px;
+    display: flex; align-items: center; justify-content: center; color: #fff; background: rgba(0,0,0,.28);
+    border: 0; cursor: pointer; transition: background .2s ease; }
+  .show-nav:hover { background: rgba(215,2,97,.85); }
+  .show-prev { left: clamp(.5rem,2vw,1.25rem); } .show-next { right: clamp(.5rem,2vw,1.25rem); }
+  .show-dots { position: absolute; bottom: clamp(1rem,4vh,2rem); left: 50%; transform: translateX(-50%); z-index: 4; display: flex; gap: 8px; }
+  .show-dot { width: 8px; height: 8px; border-radius: 9999px; background: rgba(255,255,255,.4); border: 0; cursor: pointer; padding: 0; transition: background .2s, transform .2s; }
+  .show-dot.is-active { background: #d70261; transform: scale(1.25); }
+  @media (prefers-reduced-motion: reduce) { .show-slide { transition: none; } }
+</style>
+{% endblock %}
+
+{% block content %}
+{{ do_action('frontend_home_before', {base_path: base_path}) }}
+{% include 'frontend/home/_website_jsonld.twig' %}
+
+{% if all_images|length > 0 %}
+{% set slides = all_images|slice(0, 15) %}
+<section class="show" id="slideshow" aria-roledescription="carousel" aria-label="{{ home_settings.hero_title|default(site_title)|e('html_attr') }}">
+  {% for image in slides %}
+  <a class="show-slide{% if loop.first %} is-active{% endif %}" href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}"
+     role="group" aria-roledescription="slide" aria-label="{{ loop.index }} / {{ slides|length }}"{% if not loop.first %} aria-hidden="true"{% endif %}>
+    {{ photo.picture(image, base_path, '100vw', loop.index0, 3, '', '') }}
+    <span class="show-scrim"></span>
+    <span class="show-cap">
+      <span class="k">{{ image.album_title|default('')|e }}</span>
+      <span class="t">{{ image.title|default(image.album_title|default(home_settings.hero_title))|e }}</span>
+    </span>
+  </a>
+  {% endfor %}
+  <div class="show-count"><span id="show-cur">01</span> / {{ '%02d'|format(slides|length) }}</div>
+  <button class="show-nav show-prev" type="button" aria-label="{{ trans('common.previous')|default('Previous') }}">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <button class="show-nav show-next" type="button" aria-label="{{ trans('common.next')|default('Next') }}">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <div class="show-dots" role="tablist">
+    {% for image in slides %}<button class="show-dot{% if loop.first %} is-active{% endif %}" type="button" role="tab" aria-label="{{ loop.index }}"></button>{% endfor %}
+  </div>
+</section>
+{% else %}
+{% include 'frontend/home/_empty_state.twig' %}
+{% endif %}
+
+{{ do_action('frontend_home_after', {base_path: base_path}) }}
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">{{ lqip.lqip_script()|raw }}</script>
+<script nonce="{{ csp_nonce() }}">
+(function(){
+  var root = document.getElementById('slideshow');
+  if (!root) return;
+  var slides = Array.prototype.slice.call(root.querySelectorAll('.show-slide'));
+  var dots   = Array.prototype.slice.call(root.querySelectorAll('.show-dot'));
+  var cur    = document.getElementById('show-cur');
+  if (slides.length < 2) return;
+  var i = 0, timer = null;
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function show(n){
+    i = (n + slides.length) % slides.length;
+    slides.forEach(function(s,k){ var a = k===i; s.classList.toggle('is-active', a); s.setAttribute('aria-hidden', a?'false':'true'); });
+    dots.forEach(function(d,k){ d.classList.toggle('is-active', k===i); });
+    if (cur) cur.textContent = ('0'+(i+1)).slice(-2);
+  }
+  function next(){ show(i+1); } function prev(){ show(i-1); }
+  function start(){ if (reduce) return; stop(); timer = setInterval(next, 5000); }
+  function stop(){ if (timer) { clearInterval(timer); timer = null; } }
+  root.querySelector('.show-next').addEventListener('click', function(e){ e.preventDefault(); next(); start(); });
+  root.querySelector('.show-prev').addEventListener('click', function(e){ e.preventDefault(); prev(); start(); });
+  dots.forEach(function(d,k){ d.addEventListener('click', function(){ show(k); start(); }); });
+  root.addEventListener('mouseenter', stop); root.addEventListener('mouseleave', start);
+  document.addEventListener('keydown', function(e){
+    // Ignore arrow keys while the user is typing or interacting with a control,
+    // so the global listener never hijacks inputs / other widgets.
+    var a = document.activeElement;
+    if (a && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) return;
+    if (e.key==='ArrowRight'){ next(); start(); } else if (e.key==='ArrowLeft'){ prev(); start(); }
+  });
+  start();
+})();
+</script>
+{% endblock %}

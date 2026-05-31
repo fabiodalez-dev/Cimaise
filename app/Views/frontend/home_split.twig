@@ -1,0 +1,106 @@
+{% extends "frontend/_layout.twig" %}
+{% import "frontend/_lqip_macros.twig" as lqip %}
+{% import "frontend/_home_photo.twig" as photo %}
+
+{% block styles %}
+{% include 'frontend/_lcp_preload.twig' %}
+{{ lqip.lqip_styles()|raw }}
+<style nonce="{{ csp_nonce() }}">
+  .split { display: block; }
+  .split-media { display: none; }
+  @media (min-width: 1024px) {
+    .split { display: grid; grid-template-columns: 1fr 1fr; }
+    .split-media { display: block; position: sticky; top: 0; height: 100svh; background: #0b0b0c; overflow: hidden; }
+    .split-media img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity .4s ease; }
+    .split-list { padding: 0; }
+    .split-item .thumb { display: none; }
+  }
+  .split-list { padding: 0 1rem; }
+  .split-head { padding: 3rem 0 1.5rem; }
+  .split-head .k { font-size: .72rem; letter-spacing: .2em; text-transform: uppercase; color: #d70261; font-weight: 600; }
+  .split-head h1 { font-size: clamp(1.7rem,3vw,2.6rem); font-weight: 700; letter-spacing: -.02em; color: #111827; margin-top: .5rem; }
+  .dark .split-head h1 { color: #f9fafb; }
+  .split-item { display: block; padding: 1rem 0; border-bottom: 1px solid #e6e7eb; transition: padding-left .25s cubic-bezier(.16,1,.3,1); }
+  .dark .split-item { border-color: #27272a; }
+  .split-item:hover, .split-item.is-active { padding-left: .75rem; }
+  .split-item .thumb { width: 100%; aspect-ratio: 16/10; overflow: hidden; background: #f3f4f6; margin-bottom: .75rem; }
+  .split-item .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .split-item .row { display: flex; align-items: baseline; gap: .75rem; }
+  .split-item .idx { font-size: .75rem; color: #9ca3af; font-variant-numeric: tabular-nums; min-width: 2ch; }
+  .split-item .ttl { font-size: 1.1rem; font-weight: 600; color: #1f2937; letter-spacing: -.01em; transition: color .2s ease; }
+  .dark .split-item .ttl { color: #e5e7eb; }
+  .split-item:hover .ttl, .split-item.is-active .ttl { color: #d70261; }
+  .split-item .sub { font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: #9ca3af; }
+  @media (prefers-reduced-motion: reduce){ .split-item, .split-media img { transition: none; } }
+</style>
+{% endblock %}
+
+{% block content %}
+{{ do_action('frontend_home_before', {base_path: base_path}) }}
+{% include 'frontend/home/_website_jsonld.twig' %}
+
+{% if all_images|length > 0 %}
+{% set items = all_images|slice(0, 24) %}
+{# sources.jpg entries are srcset strings ("/media/x_xxl.jpg 3840w") — take the URL only. #}
+{% set first_raw = items[0].sources.jpg|default([])|last %}
+{% set first_full = first_raw ? (first_raw|split(' ')|first) : items[0].fallback_src %}
+<div class="split">
+  <div class="split-media" aria-hidden="true">
+    <img id="split-preview" src="{{ (first_full starts with '/' ? base_path ~ first_full : first_full)|e('html_attr') }}" alt="" width="1200" height="800">
+  </div>
+  <div class="split-list">
+    <header class="split-head">
+      <p class="k">{{ home_settings.albums_subtitle|default(site_title)|e }}</p>
+      <h1>{{ home_settings.hero_title|default(trans('home.hero_title'))|e }}</h1>
+    </header>
+    {% for image in items %}
+    {% set full_raw = image.sources.jpg|default([])|last %}
+    {% set full = full_raw ? (full_raw|split(' ')|first) : image.fallback_src %}
+    <a class="split-item" href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}"
+       data-full="{{ (full starts with '/' ? base_path ~ full : full)|e('html_attr') }}">
+      <span class="thumb">{{ photo.picture(image, base_path, '100vw', loop.index0, 4, '', '') }}</span>
+      <span class="row">
+        <span class="idx">{{ '%02d'|format(loop.index) }}</span>
+        <span>
+          <span class="ttl block">{{ image.title|default(image.album_title|default(''))|e }}</span>
+          {% if image.album_title %}<span class="sub">{{ image.album_title|e }}</span>{% endif %}
+        </span>
+      </span>
+    </a>
+    {% endfor %}
+    {% include 'frontend/home/_more_cta.twig' %}
+  </div>
+</div>
+{% else %}
+{% include 'frontend/home/_empty_state.twig' %}
+{% endif %}
+
+{{ do_action('frontend_home_after', {base_path: base_path}) }}
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">{{ lqip.lqip_script()|raw }}</script>
+<script nonce="{{ csp_nonce() }}">
+(function(){
+  var preview = document.getElementById('split-preview');
+  if (!preview || !window.matchMedia('(min-width: 1024px)').matches) return;
+  var items = Array.prototype.slice.call(document.querySelectorAll('.split-item'));
+  function setActive(el){
+    var full = el.getAttribute('data-full'); if (!full) return;
+    if (preview.getAttribute('src') !== full) preview.setAttribute('src', full);
+    items.forEach(function(i){ i.classList.toggle('is-active', i===el); });
+  }
+  items.forEach(function(el){
+    el.addEventListener('mouseenter', function(){ setActive(el); });
+    el.addEventListener('focus', function(){ setActive(el); });
+  });
+  // Update the sticky preview to whichever item is centred while scrolling.
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){ if (en.isIntersecting) setActive(en.target); });
+    }, { rootMargin: '-45% 0px -45% 0px', threshold: 0 });
+    items.forEach(function(el){ io.observe(el); });
+  }
+})();
+</script>
+{% endblock %}

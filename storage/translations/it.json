@@ -253,7 +253,8 @@
   },
   "home": {
     "home.scroll_to_explore": "Scorri per esplorare",
-    "home.masonry_loading": "Caricamento altre foto..."
+    "home.masonry_loading": "Caricamento altre foto...",
+    "home.view_all_galleries": "Vedi tutte le gallerie"
   },
   "home_gallery": {
     "home_gallery.empty_text": "Torna presto per nuovi contenuti.",
@@ -412,5 +413,30 @@
     "tag.no_albums_title": "Nessun album con questo tag",
     "tag.related_tags": "Tag Correlati"
   },
-  "template.not_available": "Template non disponibile."
+  "template.not_available": "Template non disponibile.",
+  "common": {
+    "common.previous": "Precedente",
+    "common.next": "Successivo"
+  },
+  "adminbar": {
+    "adminbar.label": "Barra admin",
+    "adminbar.dashboard": "Backend",
+    "adminbar.edit_album": "Modifica album",
+    "adminbar.new_album": "Nuovo album",
+    "adminbar.clear_cache": "Svuota cache",
+    "adminbar.logout": "Esci",
+    "adminbar.cache_cleared": "Cache svuotata",
+    "adminbar.cache_error": "Errore svuotamento cache",
+    "adminbar.quick_links": "Link rapido",
+    "adminbar.view_as_guest": "Vedi come visitatore",
+    "adminbar.guest_mode": "Stai navigando come visitatore",
+    "adminbar.exit_guest": "Esci dalla modalità",
+    "adminbar.media": "Galleria",
+    "adminbar.albums": "Album",
+    "adminbar.categories": "Categorie",
+    "adminbar.pages": "Pagine",
+    "adminbar.appearance": "Aspetto",
+    "adminbar.settings": "Impostazioni",
+    "adminbar.seo": "SEO"
+  }
 }

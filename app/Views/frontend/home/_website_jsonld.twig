@@ -1,0 +1,19 @@
+{# WebSite JSON-LD + SearchAction — shared by home templates (matches home_masonry.twig). #}
+{% set search_url_template = base_path ~ '/' ~ (galleries_slug|default('galleries')) ~ '?q={search_term_string}' %}
+<script type="application/ld+json" nonce="{{ csp_nonce() }}">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": {{ site_title|default('Portfolio')|json_encode|raw }},
+  "url": {{ (canonical_url|default(current_url))|json_encode|raw }},
+  {% if meta_description %}"description": {{ meta_description|json_encode|raw }},{% endif %}
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": {{ search_url_template|json_encode|raw }}
+    },
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>

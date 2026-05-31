@@ -1,0 +1,72 @@
+{% extends "frontend/_layout.twig" %}
+{% import "frontend/_lqip_macros.twig" as lqip %}
+{% import "frontend/_home_photo.twig" as photo %}
+
+{% block styles %}
+{% include 'frontend/_lcp_preload.twig' %}
+{{ lqip.lqip_styles()|raw }}
+<style nonce="{{ csp_nonce() }}">
+  .bento-wrap { max-width: 1500px; margin: 0 auto; padding: 2rem 1rem; }
+  @media (min-width: 1024px){ .bento-wrap { padding: 3rem 2rem; } }
+  .bento-head { text-align: center; margin-bottom: 2rem; }
+  .bento-head h1 { font-size: clamp(1.7rem,3.5vw,2.6rem); font-weight: 700; letter-spacing: -.02em; color: #111827; }
+  .dark .bento-head h1 { color: #f9fafb; }
+  .bento-head p { margin-top: .5rem; color: #6b7280; }
+  .bento { display: grid; gap: .75rem; grid-template-columns: repeat(2, 1fr); grid-auto-rows: 46vw; grid-auto-flow: dense; }
+  @media (min-width: 640px){ .bento { grid-template-columns: repeat(3, 1fr); grid-auto-rows: 30vw; gap: 1rem; } }
+  @media (min-width: 1024px){ .bento { grid-template-columns: repeat(4, 1fr); grid-auto-rows: 200px; } }
+  .bento-tile { position: relative; overflow: hidden; background: #f3f4f6; }
+  .dark .bento-tile { background: #1f2937; }
+  .bento-tile img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .6s cubic-bezier(.16,1,.3,1); }
+  .bento-tile:hover img { transform: scale(1.06); }
+  .bento-tile::before { content: ""; position: absolute; inset: 0; z-index: 1; background: rgba(17,24,39,0); transition: background .3s ease; }
+  .bento-tile:hover::before { background: rgba(17,24,39,.22); }
+  .bento-cap { position: absolute; left: .85rem; bottom: .7rem; right: .85rem; z-index: 2; color: #fff; opacity: 0; transform: translateY(6px);
+    transition: opacity .3s ease, transform .3s cubic-bezier(.16,1,.3,1); text-shadow: 0 1px 6px rgba(0,0,0,.5); }
+  .bento-tile:hover .bento-cap, .bento-tile:focus-within .bento-cap { opacity: 1; transform: none; }
+  .bento-cap .t { font-size: .92rem; font-weight: 600; }
+  .bento-cap .k { display: block; font-size: .66rem; letter-spacing: .16em; text-transform: uppercase; color: #f59ec5; }
+  @media (prefers-reduced-motion: reduce){ .bento-tile img, .bento-cap { transition: none; } .bento-tile:hover img { transform: none; } }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include 'frontend/home/_preloader.twig' %}
+{{ do_action('frontend_home_before', {base_path: base_path}) }}
+{% include 'frontend/home/_website_jsonld.twig' %}
+
+{% if all_images|length > 0 %}
+{% set cspan = [2, 1, 1, 2, 1, 1, 1, 2] %}
+{% set rspan = [2, 1, 1, 1, 2, 1, 1, 1] %}
+<div class="bento-wrap">
+  {% if home_settings.hero_title %}
+  <header class="bento-head">
+    <h1>{{ home_settings.hero_title|e }}</h1>
+    {% if home_settings.hero_subtitle %}<p>{{ home_settings.hero_subtitle|e }}</p>{% endif %}
+  </header>
+  {% endif %}
+  <div class="bento">
+    {% for image in all_images %}
+    {% set p = loop.index0 % 8 %}
+    <a class="bento-tile" style="grid-column: span {{ cspan[p] }}; grid-row: span {{ rspan[p] }};"
+       href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}">
+      {{ photo.picture(image, base_path, (cspan[p] == 2 ? '50vw' : '25vw'), loop.index0, 6, '', '') }}
+      <span class="bento-cap">
+        <span class="k">{{ image.album_title|default('')|e }}</span>
+        <span class="t">{{ image.title|default(image.album_title|default(''))|e }}</span>
+      </span>
+    </a>
+    {% endfor %}
+  </div>
+  {% include 'frontend/home/_more_cta.twig' %}
+</div>
+{% else %}
+{% include 'frontend/home/_empty_state.twig' %}
+{% endif %}
+
+{{ do_action('frontend_home_after', {base_path: base_path}) }}
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">{{ lqip.lqip_script()|raw }}</script>
+{% endblock %}

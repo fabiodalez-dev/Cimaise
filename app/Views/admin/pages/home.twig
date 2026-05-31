@@ -121,6 +121,33 @@
                   <i class="fas fa-check-circle text-black"></i>
                 </div>
               </label>
+              {# Visual properties only; labels come from translations (admin scope). #}
+              {% set new_templates = {
+                'editorial':  {icon: 'fa-newspaper',      color: '#7c3aed'},
+                'justified':  {icon: 'fa-align-justify',  color: '#0ea5e9'},
+                'slideshow':  {icon: 'fa-film',           color: '#111827'},
+                'split':      {icon: 'fa-table-columns',  color: '#ea580c'},
+                'bento':      {icon: 'fa-border-all',     color: '#0d9488'},
+                'filmstrip':  {icon: 'fa-clapperboard',   color: '#be123c'}
+              } %}
+              {% for tname, t in new_templates %}
+              <label class="relative flex flex-col cursor-pointer rounded-lg border-2 p-4 transition-all home-template-option {{ settings['home.template']|default('classic') == tname ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-300' }}" data-template="{{ tname }}">
+                <input type="radio" name="home_template" value="{{ tname }}" class="sr-only" {{ settings['home.template']|default('classic') == tname ? 'checked' : '' }}>
+                <div class="flex items-center gap-3 mb-2">
+                  <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background-color:{{ t.color }}">
+                    <i class="fas {{ t.icon }} text-white text-sm"></i>
+                  </div>
+                  <div>
+                    <span class="font-semibold text-gray-900">{{ trans('admin.pages.home.template_' ~ tname) }}</span>
+                    <span class="block text-xs text-gray-500">{{ trans('admin.pages.home.template_' ~ tname ~ '_subtitle') }}</span>
+                  </div>
+                </div>
+                <p class="text-xs text-gray-600">{{ trans('admin.pages.home.template_' ~ tname ~ '_desc') }}</p>
+                <div class="absolute top-2 right-2 template-check {{ settings['home.template']|default('classic') == tname ? '' : 'hidden' }}">
+                  <i class="fas fa-check-circle text-black"></i>
+                </div>
+              </label>
+              {% endfor %}
             </div>
           </div>
         </div>
@@ -235,7 +262,9 @@
         </div>
 
         <!-- ========== CLASSIC HOME SETTINGS ========== -->
-        <div id="classic-home-settings" class="{{ settings['home.template']|default('classic') != 'classic' ? 'hidden' : '' }}">
+        {# Hero/title fields are shared by classic + the new hero-based templates. #}
+        {% set hero_based = ['classic', 'editorial', 'justified', 'slideshow', 'split', 'bento', 'filmstrip'] %}
+        <div id="classic-home-settings" class="{{ settings['home.template']|default('classic') not in hero_based ? 'hidden' : '' }}">
           <div class="card">
             <div class="p-6">
               <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
@@ -582,8 +611,10 @@
           const thisCheck = this.querySelector('.template-check');
           if (thisCheck) thisCheck.classList.remove('hidden');
 
-          // Toggle settings and info visibility based on template
-          if (classicSettings) classicSettings.classList.toggle('hidden', template !== 'classic');
+          // Toggle settings and info visibility based on template.
+          // Hero/title fields are shared by classic + the new hero-based templates.
+          const heroBased = ['classic', 'editorial', 'justified', 'slideshow', 'split', 'bento', 'filmstrip'];
+          if (classicSettings) classicSettings.classList.toggle('hidden', !heroBased.includes(template));
           if (masonrySettings) masonrySettings.classList.toggle('hidden', template !== 'masonry');
           if (classicInfo) classicInfo.classList.toggle('hidden', template !== 'classic');
           if (modernInfo) modernInfo.classList.toggle('hidden', template !== 'modern');
