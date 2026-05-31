@@ -738,15 +738,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // The sqlite DB filename is the fixed constant 'database.sqlite' (set in
                 // the database step), so build the path from a literal — no user input.
                 $targetDbPath = $rootPath . '/database/database.sqlite';
-                if (is_file($targetDbPath)) {
-                    @unlink($targetDbPath); // safe: constant path under /database
+                if (is_file($targetDbPath) && !@unlink($targetDbPath)) { // constant path under /database
+                    throw new Exception('Could not remove the existing database file. Check permissions.');
                 }
                 $schemaFile = $rootPath . '/database/schema.sqlite.sql';
                 if (!is_file($schemaFile)) {
                     throw new Exception('SQLite schema file not found.');
                 }
                 $schemaSql = file_get_contents($schemaFile);
-                if ($schemaSql === false || $schemaSql === '') {
+                if ($schemaSql === false || trim($schemaSql) === '') {
                     throw new Exception('Could not read SQLite schema file.');
                 }
                 $pdo = new PDO('sqlite:' . $targetDbPath);
@@ -897,6 +897,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'gallery.default_template_id' => $settingsData['gallery_template_id'],
                 'performance.cache_enabled' => $cacheVal,
                 'performance.compression_enabled' => $compressionVal,
+                // Distinct cache.* namespace read by PageCacheService and the admin
+                // Cache page (performance.* is the admin Settings page / CacheMiddleware
+                // toggle). Seed both from the install choice so the two cache subsystems
+                // start aligned with what the user selected.
+                'cache.pages_enabled' => $cacheVal,
+                'cache.compression_enabled' => $compressionVal,
             ];
 
             // Handle logo
