@@ -1227,6 +1227,7 @@ class PageController extends BaseController
 
         // Gallery meta mapped from album for consistency with gallery view
         $galleryMeta = [
+            'id' => (int) $album['id'],
             'title' => $album['title'],
             'category' => ['name' => $album['category_name'], 'slug' => $album['category_slug']],
             'categories' => $cats,

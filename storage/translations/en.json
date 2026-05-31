@@ -417,5 +417,15 @@
   "common": {
     "common.previous": "Previous",
     "common.next": "Next"
+  },
+  "adminbar": {
+    "adminbar.label": "Admin bar",
+    "adminbar.dashboard": "Backend",
+    "adminbar.edit_album": "Edit album",
+    "adminbar.new_album": "New album",
+    "adminbar.clear_cache": "Clear cache",
+    "adminbar.logout": "Log out",
+    "adminbar.cache_cleared": "Cache cleared",
+    "adminbar.cache_error": "Cache clear failed"
   }
 }

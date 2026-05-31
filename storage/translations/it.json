@@ -417,5 +417,15 @@
   "common": {
     "common.previous": "Precedente",
     "common.next": "Successivo"
+  },
+  "adminbar": {
+    "adminbar.label": "Barra admin",
+    "adminbar.dashboard": "Backend",
+    "adminbar.edit_album": "Modifica album",
+    "adminbar.new_album": "Nuovo album",
+    "adminbar.clear_cache": "Svuota cache",
+    "adminbar.logout": "Esci",
+    "adminbar.cache_cleared": "Cache svuotata",
+    "adminbar.cache_error": "Errore svuotamento cache"
   }
 }

@@ -228,7 +228,8 @@
         }
     </style>
 </head>
-<body>
+<body class="{% if admin_logged_in|default(false) %}has-admin-bar{% endif %}">
+    {% include 'frontend/_admin_topbar.twig' %}
     <!-- First-Visit Preloader Curtain -->
     <div id="preloader-curtain" class="preloader-curtain preloader-hidden" aria-hidden="true">
         <div class="preloader-content">
