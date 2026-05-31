@@ -26,7 +26,6 @@ header('Expires: 0');
 $rootPath = dirname(__DIR__);
 $dbPath = $rootPath . '/database/database.sqlite';
 $envPath = $rootPath . '/.env';
-$templateDbPath = $rootPath . '/database/template.sqlite';
 
 // Check if already installed
 $installed = false;
@@ -174,7 +173,7 @@ function checkRequirements() {
         'writable_database' => is_writable($rootPath . '/database'),
         'writable_root' => is_writable($rootPath),
         'writable_public' => is_writable($rootPath . '/public'),
-        'template_db_exists' => file_exists($rootPath . '/database/template.sqlite')
+        'schema_file_exists' => file_exists($rootPath . '/database/schema.sqlite.sql')
     ];
     
     // Check if we can create storage directories
@@ -711,9 +710,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $envContent .= 'DB_DATABASE=' . envEscape((string)$dbConfig['database']) . "\n";
                 $envContent .= 'DB_USERNAME=' . envEscape((string)$dbConfig['username']) . "\n";
                 $envContent .= 'DB_PASSWORD=' . envEscape((string)$dbConfig['password']) . "\n";
+                $envContent .= 'DB_CHARSET=' . envEscape('utf8mb4') . "\n";
+                $envContent .= 'DB_COLLATION=' . envEscape('utf8mb4_unicode_ci') . "\n";
             }
 
             $envContent .= "\nSESSION_SECRET=" . envEscape($sessionSecret) . "\n";
+
+            // Logging (parity with .env.example and the CLI installer so the Logger is
+            // fully configured rather than relying on envv() fallbacks).
+            $envContent .= "\nLOG_CHANNEL=" . envEscape('file') . "\n";
+            $envContent .= 'LOG_ENABLED=' . envEscape('true') . "\n";
+            $envContent .= 'LOG_LEVEL=' . envEscape('warning') . "\n";
+            $envContent .= 'LOG_MAX_FILES=' . envEscape('30') . "\n";
+            $envContent .= 'LOG_PATH=' . envEscape('storage/logs') . "\n";
             
             if (!file_put_contents($envPath, $envContent)) {
                 throw new Exception('Could not create .env file. Check file permissions.');
@@ -723,12 +732,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Set up database
             if ($dbConfig['type'] === 'sqlite') {
-                // Use template.sqlite
-                $targetDbPath = $rootPath . '/database/' . $dbConfig['database'];
-                if (!copy($templateDbPath, $targetDbPath)) {
-                    throw new Exception('Could not copy template database.');
+                // Build the SQLite database from schema.sqlite.sql — the single source
+                // of truth (same file the CLI installer runs). Avoids relying on a
+                // pre-built template.sqlite binary that can silently go stale.
+                // The sqlite DB filename is the fixed constant 'database.sqlite' (set in
+                // the database step), so build the path from a literal — no user input.
+                $targetDbPath = $rootPath . '/database/database.sqlite';
+                if (is_file($targetDbPath) && !@unlink($targetDbPath)) { // constant path under /database
+                    throw new Exception('Could not remove the existing database file. Check permissions.');
+                }
+                $schemaFile = $rootPath . '/database/schema.sqlite.sql';
+                if (!is_file($schemaFile)) {
+                    throw new Exception('SQLite schema file not found.');
+                }
+                $schemaSql = file_get_contents($schemaFile);
+                if ($schemaSql === false || trim($schemaSql) === '') {
+                    throw new Exception('Could not read SQLite schema file.');
                 }
                 $pdo = new PDO('sqlite:' . $targetDbPath);
+                $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                // SQLite executes a full multi-statement script in one exec() call.
+                $pdo->exec($schemaSql);
             } else {
                 // MySQL setup
                 $testResult = testDatabaseConnection($dbConfig);
@@ -873,6 +897,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'gallery.default_template_id' => $settingsData['gallery_template_id'],
                 'performance.cache_enabled' => $cacheVal,
                 'performance.compression_enabled' => $compressionVal,
+                // Distinct cache.* namespace read by PageCacheService and the admin
+                // Cache page (performance.* is the admin Settings page / CacheMiddleware
+                // toggle). Seed both from the install choice so the two cache subsystems
+                // start aligned with what the user selected.
                 'cache.pages_enabled' => $cacheVal,
                 'cache.compression_enabled' => $compressionVal,
             ];
@@ -1233,12 +1261,12 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                             </div>
                             
                             <div class="requirement-check">
-                                <div class="check-icon <?= $requirements['template_db_exists'] ? 'success' : 'error' ?>">
-                                    <i class="fas fa-<?= $requirements['template_db_exists'] ? 'check' : 'times' ?>"></i>
+                                <div class="check-icon <?= $requirements['schema_file_exists'] ? 'success' : 'error' ?>">
+                                    <i class="fas fa-<?= $requirements['schema_file_exists'] ? 'check' : 'times' ?>"></i>
                                 </div>
                                 <div class="flex-1">
-                                    <div class="font-medium">Template Database</div>
-                                    <div class="text-sm text-gray-500">Pre-configured database template</div>
+                                    <div class="font-medium">Database Schema</div>
+                                    <div class="text-sm text-gray-500">SQLite schema file present</div>
                                 </div>
                             </div>
                             
