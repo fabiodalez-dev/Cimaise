@@ -121,13 +121,14 @@
                   <i class="fas fa-check-circle text-black"></i>
                 </div>
               </label>
+              {# Visual properties only; labels come from translations (admin scope). #}
               {% set new_templates = {
-                'editorial':  {icon: 'fa-newspaper',      color: '#7c3aed', title: 'Editoriale', sub: 'Rivista asimmetrica',        desc: 'Layout magazine: apertura grande e griglia a 12 colonne con campiture variabili.'},
-                'justified':  {icon: 'fa-align-justify',  color: '#0ea5e9', title: 'Giustificato', sub: 'Righe a piena larghezza',  desc: 'Righe giustificate che riempiono la larghezza preservando le proporzioni.'},
-                'slideshow':  {icon: 'fa-film',           color: '#111827', title: 'Slideshow', sub: 'Schermo intero cinematografico', desc: 'Una foto alla volta a tutto schermo, dissolvenza automatica, frecce e tastiera.'},
-                'split':      {icon: 'fa-table-columns',  color: '#ea580c', title: 'Split', sub: 'Schermo diviso',                  desc: 'Media fisso a sinistra che cambia scorrendo l’indice a destra; su mobile si impila.'},
-                'bento':      {icon: 'fa-border-all',     color: '#0d9488', title: 'Bento', sub: 'Mosaico a riquadri',              desc: 'Griglia bento con riquadri di dimensioni diverse e riempimento automatico.'},
-                'filmstrip':  {icon: 'fa-clapperboard',   color: '#be123c', title: 'Pellicola', sub: 'Provino a contatto 35mm',    desc: 'Strisce orizzontali stile pellicola con scorrimento e dentellatura.'}
+                'editorial':  {icon: 'fa-newspaper',      color: '#7c3aed'},
+                'justified':  {icon: 'fa-align-justify',  color: '#0ea5e9'},
+                'slideshow':  {icon: 'fa-film',           color: '#111827'},
+                'split':      {icon: 'fa-table-columns',  color: '#ea580c'},
+                'bento':      {icon: 'fa-border-all',     color: '#0d9488'},
+                'filmstrip':  {icon: 'fa-clapperboard',   color: '#be123c'}
               } %}
               {% for tname, t in new_templates %}
               <label class="relative flex flex-col cursor-pointer rounded-lg border-2 p-4 transition-all home-template-option {{ settings['home.template']|default('classic') == tname ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-300' }}" data-template="{{ tname }}">
@@ -137,11 +138,11 @@
                     <i class="fas {{ t.icon }} text-white text-sm"></i>
                   </div>
                   <div>
-                    <span class="font-semibold text-gray-900">{{ t.title }}</span>
-                    <span class="block text-xs text-gray-500">{{ t.sub }}</span>
+                    <span class="font-semibold text-gray-900">{{ trans('admin.pages.home.template_' ~ tname) }}</span>
+                    <span class="block text-xs text-gray-500">{{ trans('admin.pages.home.template_' ~ tname ~ '_subtitle') }}</span>
                   </div>
                 </div>
-                <p class="text-xs text-gray-600">{{ t.desc }}</p>
+                <p class="text-xs text-gray-600">{{ trans('admin.pages.home.template_' ~ tname ~ '_desc') }}</p>
                 <div class="absolute top-2 right-2 template-check {{ settings['home.template']|default('classic') == tname ? '' : 'hidden' }}">
                   <i class="fas fa-check-circle text-black"></i>
                 </div>

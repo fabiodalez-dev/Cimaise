@@ -2496,6 +2496,24 @@
     "errors.500.back_dashboard": "Back to Dashboard",
     "errors.500.back_home": "Back to Home",
     "errors.500.message": "Sorry, something went wrong on our end. Please try again later.",
-    "errors.500.title": "Server Error"
+    "errors.500.title": "Server Error",
+    "admin.pages.home.template_editorial": "Editorial",
+    "admin.pages.home.template_editorial_subtitle": "Asymmetric magazine",
+    "admin.pages.home.template_editorial_desc": "Magazine layout: large opener and a 12-column grid with varied spans.",
+    "admin.pages.home.template_justified": "Justified",
+    "admin.pages.home.template_justified_subtitle": "Full-width rows",
+    "admin.pages.home.template_justified_desc": "Justified rows that fill the width while preserving aspect ratios.",
+    "admin.pages.home.template_slideshow": "Slideshow",
+    "admin.pages.home.template_slideshow_subtitle": "Fullscreen cinematic",
+    "admin.pages.home.template_slideshow_desc": "One photo at a time, fullscreen, auto crossfade, arrows and keyboard.",
+    "admin.pages.home.template_split": "Split",
+    "admin.pages.home.template_split_subtitle": "Split screen",
+    "admin.pages.home.template_split_desc": "Fixed media on the left that changes as you scroll the index on the right; stacks on mobile.",
+    "admin.pages.home.template_bento": "Bento",
+    "admin.pages.home.template_bento_subtitle": "Tile mosaic",
+    "admin.pages.home.template_bento_desc": "Bento grid with varied tile sizes and automatic fill.",
+    "admin.pages.home.template_filmstrip": "Filmstrip",
+    "admin.pages.home.template_filmstrip_subtitle": "35mm contact sheet",
+    "admin.pages.home.template_filmstrip_desc": "Horizontal film-style strips with scrolling and sprocket holes."
   }
 }

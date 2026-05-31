@@ -23,12 +23,17 @@
   {% set img_height = image.height|default(600) %}
   {% set eager_n = eager|default(5) %}
   {% set use_lqip = idx >= eager_n and image.lqip_placeholder %}
+  {# In the LQIP branch the <img> is deferred via data-src, so the <source> srcsets
+     must also be deferred as data-srcset — otherwise the browser downloads the HD
+     sources immediately and LQIP saves nothing. The LQIP runtime promotes
+     source[data-srcset] -> srcset on load. #}
+  {% set srcset_attr = use_lqip ? 'data-srcset' : 'srcset' %}
   <picture>
     {% if webp_sources|length > 0 %}
-    <source type="image/webp" sizes="{{ sizes }}" srcset="{% for src in webp_sources %}{{ base_path }}{{ src }}{% if not loop.last %}, {% endif %}{% endfor %}">
+    <source type="image/webp" sizes="{{ sizes }}" {{ srcset_attr }}="{% for src in webp_sources %}{{ base_path }}{{ src }}{% if not loop.last %}, {% endif %}{% endfor %}">
     {% endif %}
     {% if jpg_sources|length > 0 %}
-    <source type="image/jpeg" sizes="{{ sizes }}" srcset="{% for src in jpg_sources %}{{ base_path }}{{ src }}{% if not loop.last %}, {% endif %}{% endfor %}">
+    <source type="image/jpeg" sizes="{{ sizes }}" {{ srcset_attr }}="{% for src in jpg_sources %}{{ base_path }}{{ src }}{% if not loop.last %}, {% endif %}{% endfor %}">
     {% endif %}
     <img
       {% if use_lqip %}src="{{ image.lqip_placeholder }}" data-src="{{ img_url|e('html_attr') }}"{% else %}src="{{ img_url|e('html_attr') }}"{% endif %}

@@ -88,7 +88,13 @@
   root.querySelector('.show-prev').addEventListener('click', function(e){ e.preventDefault(); prev(); start(); });
   dots.forEach(function(d,k){ d.addEventListener('click', function(){ show(k); start(); }); });
   root.addEventListener('mouseenter', stop); root.addEventListener('mouseleave', start);
-  document.addEventListener('keydown', function(e){ if (e.key==='ArrowRight'){ next(); start(); } else if (e.key==='ArrowLeft'){ prev(); start(); } });
+  document.addEventListener('keydown', function(e){
+    // Ignore arrow keys while the user is typing or interacting with a control,
+    // so the global listener never hijacks inputs / other widgets.
+    var a = document.activeElement;
+    if (a && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) return;
+    if (e.key==='ArrowRight'){ next(); start(); } else if (e.key==='ArrowLeft'){ prev(); start(); }
+  });
   start();
 })();
 </script>
