@@ -133,6 +133,17 @@ Customizable About page with bio text and contact form. Portrait placeholder, ri
 
 ## Admin Panel
 
+### Admin Top Bar
+
+A WordPress-style bar that appears across the front end while you're logged in:
+
+- **Back to Backend** — Jump to the dashboard from any public page
+- **Context Edit** — One-click edit of the album you're currently viewing
+- **View as Visitor** — Preview the site exactly as a logged-out guest sees it
+- **Clear Cache** — Flush the page cache without leaving the front end
+- **Quick Links** — Dropdown shortcuts to media, albums, pages, settings and more
+- **CSRF-Protected** — View/exit actions and cache flush run as authenticated POSTs
+
 ### Category Hierarchy Management
 
 Organize your portfolio with nested categories and drag-and-drop reordering:
@@ -211,7 +222,7 @@ You've spent hours in the darkroom, days on location, years perfecting your craf
 
 ---
 
-## 6 Home Page Templates
+## 12 Home Page Templates
 
 Choose the homepage layout that matches your style:
 
@@ -299,7 +310,85 @@ Choose the homepage layout that matches your style:
 
 ---
 
-**Switch templates anytime** from Admin → Pages → Home Page. No content migration needed.
+### 7. Editorial
+
+**The magazine layout.** A 12-column editorial grid that mixes large feature images with smaller supporting shots, like a printed photo spread.
+
+- **12-Column Grid** — Asymmetric, magazine-style composition
+- **Aspect-Aware Tiles** — Every image keeps its natural proportions
+- **Feature + Supporting Mix** — Hero shots alongside smaller frames
+- **Unique Images** — No duplicates, each photo shown once
+
+*Ideal for: Editorial shooters, photojournalists, storytelling portfolios.*
+
+---
+
+### 8. Justified Rows
+
+**The justified grid.** Full-width rows of uniform height and varying widths, the classic gallery layout that fills every line edge to edge.
+
+- **Justified Rows** — Flickr / Google-Photos style row packing
+- **Uniform Row Height** — Clean, even horizontal rhythm
+- **Edge-to-Edge** — No wasted whitespace
+- **Aspect-Preserving** — Widths follow each image's ratio
+
+*Ideal for: High-volume galleries, archives, mixed-orientation sets.*
+
+---
+
+### 9. Slideshow
+
+**The cinematic slideshow.** A full-screen, auto-advancing slideshow that turns your homepage into a projected reel.
+
+- **Full-Screen Slides** — One image at a time, edge to edge
+- **Auto-Advance + Manual Nav** — Prev/next arrows, dot indicators, counter
+- **Caption & Scrim** — Album title over a subtle gradient
+- **Reduced-Motion Aware** — Honors `prefers-reduced-motion`
+
+*Ideal for: Single-series showcases, exhibitions, statement homepages.*
+
+---
+
+### 10. Split
+
+**The split-screen.** A balanced two-column grid that pairs images side by side in a calm, symmetrical rhythm.
+
+- **Two-Column Grid** — Equal halves for a steady cadence
+- **Consistent Framing** — Uniform tiles keep the layout composed
+- **Hover Details** — Album info appears on hover
+- **Responsive Stack** — Collapses to one column on mobile
+
+*Ideal for: Diptych-minded shooters, paired series, clean minimal portfolios.*
+
+---
+
+### 11. Bento
+
+**The mosaic.** A bento-box grid where tiles of different sizes pack densely into a playful, magazine-cover mosaic.
+
+- **Dense Auto-Flow Grid** — Tiles fill the gaps automatically
+- **Mixed Tile Sizes** — Large and small frames interleaved
+- **Compact Composition** — Maximum images, minimal gaps
+- **Unique Images** — Each photo shown once
+
+*Ideal for: Eclectic bodies of work, lifestyle shooters, busy portfolios.*
+
+---
+
+### 12. Filmstrip
+
+**The contact sheet.** A horizontal, snap-scrolling filmstrip that evokes a roll of film or a contact sheet.
+
+- **Horizontal Scroll** — Move sideways through the frames
+- **Scroll-Snap** — Frames lock into place as you scroll
+- **Contact-Sheet Feel** — A continuous strip of images
+- **Touch-Friendly** — Natural on trackpads and touchscreens
+
+*Ideal for: Film photographers, sequence-based work, behind-the-scenes reels.*
+
+---
+
+**Switch templates anytime** from Admin → Pages → Home Page. No content migration needed. Preview any template live with `?template=<name>` (e.g. `?template=bento`).
 
 ---
 
@@ -593,7 +682,7 @@ Cimaise focuses on what photographers actually need:
 - **Template Selection** — 6 gallery templates per album
 - **Column Configuration** — Desktop (1-6), Tablet (1-4), Mobile (1-2)
 - **Lightbox Options** — Zoom, loop, keyboard navigation, share buttons
-- **Home Page Layout** — 6 templates, switchable anytime
+- **Home Page Layout** — 12 templates, switchable anytime
 
 ### Image Handling
 - **Format Enable/Disable** — Turn off AVIF if your host doesn't support it
@@ -609,7 +698,7 @@ Cimaise focuses on what photographers actually need:
 
 ### Frontend & Theming
 - **Dark Mode** — One-click toggle to invert all frontend colors for a dark theme
-  - Applies to all 6 home pages, galleries, albums, and login page
+  - Applies to all 12 home pages, galleries, albums, and login page
   - Near-black (#0a0a0a, #171717) and near-white (#fafafa) for optimal contrast
   - Smooth 0.3s transitions when switching modes
   - Admin panel always stays in light mode for clarity
@@ -641,7 +730,7 @@ Cimaise includes a plugin system for extending functionality:
 
 Perfect for demo sites and client presentations. Let visitors experience all home page templates without accessing admin.
 
-- **Template Switcher** — Dropdown in header lets visitors switch between all 6 home templates
+- **Template Switcher** — Dropdown in header lets visitors switch between all 12 home templates
 - **Live Preview** — Instant template switching without page reload
 - **Demo Banner** — Shows demo credentials in admin panel
 - **Password Protection** — Prevents users from changing admin password
@@ -1004,6 +1093,8 @@ Interactive prompts guide you through the same setup without a browser.
 php bin/console install              # Interactive installer
 php bin/console migrate              # Run database migrations
 php bin/console seed                 # Seed default templates and categories
+php bin/console db:template          # Rebuild database/template.sqlite from the schema
+php bin/console db:template --check  # Verify the template matches the schema (CI guard)
 php bin/console user:create          # Create admin user
 php bin/console images:generate      # Generate all image variants
 php bin/console nsfw:generate-blur   # Generate blur variants for protected albums
@@ -1138,7 +1229,7 @@ The sync script:
 - Injects demo mode detection (`DEMO_MODE` constant)
 
 Demo features:
-- **Template Switcher** — Visitors can switch between all 6 home templates via dropdown
+- **Template Switcher** — Visitors can switch between all 12 home templates via dropdown
 - **Demo Banner** — Shows demo credentials in admin panel
 - **Password Change Block** — Prevents users from locking themselves out
 - **24-Hour Reset** — Cron script resets demo to clean state daily
