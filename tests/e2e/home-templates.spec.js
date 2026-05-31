@@ -47,6 +47,19 @@ test.describe('Home templates (x6)', () => {
             const seen = new Set(ids);
             // Allow the slideshow/split which intentionally slice; just assert no id repeats.
             expect(seen.size).toBe(ids.length);
+
+            // No two photos from the SAME album may be adjacent (album interleave).
+            const albums = await page.evaluate(() => {
+                const out = [];
+                document.querySelectorAll('a[href*="/album/"]').forEach((a) => {
+                    const m = (a.getAttribute('href') || '').match(/\/album\/([a-z0-9-]+)/i);
+                    if (m && !a.id) out.push(m[1]); // skip the split sticky-preview link (no id anyway)
+                });
+                return out;
+            });
+            let adjacent = 0;
+            for (let i = 1; i < albums.length; i++) if (albums[i] === albums[i - 1]) adjacent++;
+            expect(adjacent).toBe(0);
         });
     }
 });

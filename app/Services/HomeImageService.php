@@ -268,11 +268,72 @@ class HomeImageService
         $countStmt->execute();
         $totalImages = (int) $countStmt->fetchColumn();
 
+        // Spread images out so two photos from the same album are never adjacent on the
+        // home grid (the DB order groups an album's images together, which looks like
+        // repeated/identical photos). Applies to every home template that uses this path.
+        $images = $this->interleaveByAlbum($images);
+
         return [
             'images' => $images,
             'totalImages' => $totalImages,
             'hasMore' => $limit > 0 && $totalImages > 0, // No limit means everything is already loaded
         ];
+    }
+
+    /**
+     * Reorder images so consecutive items come from different albums where possible.
+     * Greedy "most-remaining-first, never repeat the previous album" scheduling — the
+     * standard way to spread a multiset apart and minimise same-album adjacency.
+     *
+     * @param array<int,array<string,mixed>> $images
+     * @return array<int,array<string,mixed>>
+     */
+    private function interleaveByAlbum(array $images): array
+    {
+        if (count($images) < 3) {
+            return $images;
+        }
+
+        /** @var array<int|string,array<int,array<string,mixed>>> $buckets */
+        $buckets = [];
+        foreach ($images as $img) {
+            $buckets[$img['album_id'] ?? 0][] = $img;
+        }
+        if (count($buckets) < 2) {
+            return $images;
+        }
+
+        $result = [];
+        $lastAlbum = null;
+        $remaining = count($images);
+        while ($remaining > 0) {
+            $pick = null;
+            $pickCount = -1;
+            foreach ($buckets as $aid => $items) {
+                $n = count($items);
+                if ($n === 0 || $aid === $lastAlbum) {
+                    continue;
+                }
+                if ($n > $pickCount) {
+                    $pickCount = $n;
+                    $pick = $aid;
+                }
+            }
+            // Only the previous album still has items — unavoidable, place it.
+            if ($pick === null) {
+                foreach ($buckets as $aid => $items) {
+                    if (count($items) > 0) {
+                        $pick = $aid;
+                        break;
+                    }
+                }
+            }
+            $result[] = array_shift($buckets[$pick]);
+            $lastAlbum = $pick;
+            $remaining--;
+        }
+
+        return $result;
     }
 
     /**
