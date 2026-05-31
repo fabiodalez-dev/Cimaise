@@ -253,7 +253,8 @@
   },
   "home": {
     "home.scroll_to_explore": "Scroll to explore",
-    "home.masonry_loading": "Loading more photos..."
+    "home.masonry_loading": "Loading more photos...",
+    "home.view_all_galleries": "View all galleries"
   },
   "home_gallery": {
     "home_gallery.empty_text": "Check back soon for new content.",
@@ -412,5 +413,9 @@
     "tag.no_albums_title": "No albums with this tag yet",
     "tag.related_tags": "Related Tags"
   },
-  "template.not_available": "Template not available."
+  "template.not_available": "Template not available.",
+  "common": {
+    "common.previous": "Previous",
+    "common.next": "Next"
+  }
 }

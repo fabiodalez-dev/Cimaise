@@ -121,6 +121,32 @@
                   <i class="fas fa-check-circle text-black"></i>
                 </div>
               </label>
+              {% set new_templates = {
+                'editorial':  {icon: 'fa-newspaper',      color: '#7c3aed', title: 'Editoriale', sub: 'Rivista asimmetrica',        desc: 'Layout magazine: apertura grande e griglia a 12 colonne con campiture variabili.'},
+                'justified':  {icon: 'fa-align-justify',  color: '#0ea5e9', title: 'Giustificato', sub: 'Righe a piena larghezza',  desc: 'Righe giustificate che riempiono la larghezza preservando le proporzioni.'},
+                'slideshow':  {icon: 'fa-film',           color: '#111827', title: 'Slideshow', sub: 'Schermo intero cinematografico', desc: 'Una foto alla volta a tutto schermo, dissolvenza automatica, frecce e tastiera.'},
+                'split':      {icon: 'fa-table-columns',  color: '#ea580c', title: 'Split', sub: 'Schermo diviso',                  desc: 'Media fisso a sinistra che cambia scorrendo l’indice a destra; su mobile si impila.'},
+                'bento':      {icon: 'fa-border-all',     color: '#0d9488', title: 'Bento', sub: 'Mosaico a riquadri',              desc: 'Griglia bento con riquadri di dimensioni diverse e riempimento automatico.'},
+                'filmstrip':  {icon: 'fa-clapperboard',   color: '#be123c', title: 'Pellicola', sub: 'Provino a contatto 35mm',    desc: 'Strisce orizzontali stile pellicola con scorrimento e dentellatura.'}
+              } %}
+              {% for tname, t in new_templates %}
+              <label class="relative flex flex-col cursor-pointer rounded-lg border-2 p-4 transition-all home-template-option {{ settings['home.template']|default('classic') == tname ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-300' }}" data-template="{{ tname }}">
+                <input type="radio" name="home_template" value="{{ tname }}" class="sr-only" {{ settings['home.template']|default('classic') == tname ? 'checked' : '' }}>
+                <div class="flex items-center gap-3 mb-2">
+                  <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background-color:{{ t.color }}">
+                    <i class="fas {{ t.icon }} text-white text-sm"></i>
+                  </div>
+                  <div>
+                    <span class="font-semibold text-gray-900">{{ t.title }}</span>
+                    <span class="block text-xs text-gray-500">{{ t.sub }}</span>
+                  </div>
+                </div>
+                <p class="text-xs text-gray-600">{{ t.desc }}</p>
+                <div class="absolute top-2 right-2 template-check {{ settings['home.template']|default('classic') == tname ? '' : 'hidden' }}">
+                  <i class="fas fa-check-circle text-black"></i>
+                </div>
+              </label>
+              {% endfor %}
             </div>
           </div>
         </div>
@@ -235,7 +261,9 @@
         </div>
 
         <!-- ========== CLASSIC HOME SETTINGS ========== -->
-        <div id="classic-home-settings" class="{{ settings['home.template']|default('classic') != 'classic' ? 'hidden' : '' }}">
+        {# Hero/title fields are shared by classic + the new hero-based templates. #}
+        {% set hero_based = ['classic', 'editorial', 'justified', 'slideshow', 'split', 'bento', 'filmstrip'] %}
+        <div id="classic-home-settings" class="{{ settings['home.template']|default('classic') not in hero_based ? 'hidden' : '' }}">
           <div class="card">
             <div class="p-6">
               <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
@@ -582,8 +610,10 @@
           const thisCheck = this.querySelector('.template-check');
           if (thisCheck) thisCheck.classList.remove('hidden');
 
-          // Toggle settings and info visibility based on template
-          if (classicSettings) classicSettings.classList.toggle('hidden', template !== 'classic');
+          // Toggle settings and info visibility based on template.
+          // Hero/title fields are shared by classic + the new hero-based templates.
+          const heroBased = ['classic', 'editorial', 'justified', 'slideshow', 'split', 'bento', 'filmstrip'];
+          if (classicSettings) classicSettings.classList.toggle('hidden', !heroBased.includes(template));
           if (masonrySettings) masonrySettings.classList.toggle('hidden', template !== 'masonry');
           if (classicInfo) classicInfo.classList.toggle('hidden', template !== 'classic');
           if (modernInfo) modernInfo.classList.toggle('hidden', template !== 'modern');

@@ -120,10 +120,14 @@ class SeedDemoAlbumsCommand extends Command
             $passwordHash = $isPwd ? password_hash($title, PASSWORD_ARGON2ID) : null;
             $categoryId = (int) $categoryIds[array_rand($categoryIds)];
 
+            // Vary the gallery form per album for visual variety, and enable the
+            // frontend template switcher (otherwise the switch bar above the photos
+            // stays hidden — allow_template_switch defaults to 0).
+            $albumTemplateId = ($i % 7) + 1;
             $albumStmt = $pdo->prepare(
                 'INSERT INTO albums (title, slug, category_id, excerpt, body, is_published, published_at,
-                                     is_nsfw, password_hash, show_date, sort_order, template_id)
-                 VALUES (:t, :s, :c, :e, :b, 1, :pa, :nsfw, :ph, 1, :o, 2)'
+                                     is_nsfw, password_hash, show_date, sort_order, template_id, allow_template_switch)
+                 VALUES (:t, :s, :c, :e, :b, 1, :pa, :nsfw, :ph, 1, :o, :tpl, 1)'
             );
             $albumStmt->execute([
                 ':t' => $title,
@@ -135,6 +139,7 @@ class SeedDemoAlbumsCommand extends Command
                 ':nsfw' => $isNsfw,
                 ':ph' => $passwordHash,
                 ':o' => $i,
+                ':tpl' => $albumTemplateId,
             ]);
             $albumId = (int) $pdo->lastInsertId();
 

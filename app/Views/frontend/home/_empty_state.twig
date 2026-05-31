@@ -1,0 +1,8 @@
+{# Shared empty state for home templates. #}
+<div class="min-h-[60vh] flex items-center justify-center">
+  <div class="text-center px-4">
+    <i class="fas fa-images text-6xl text-gray-300 mb-6"></i>
+    <h2 class="text-2xl font-semibold text-gray-800 mb-2">{{ home_settings.empty_title|default(trans('home.empty_title'))|e }}</h2>
+    <p class="text-gray-600">{{ home_settings.empty_text|default(trans('home.empty_text'))|e }}</p>
+  </div>
+</div>

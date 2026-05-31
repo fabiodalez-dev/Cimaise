@@ -486,7 +486,9 @@
       ? document.querySelector(containerOrSelector)
       : containerOrSelector || document.querySelector('.masonry-portfolio-grid');
 
-    if (!grid || typeof Masonry === 'undefined' || typeof imagesLoaded === 'undefined') return null;
+    if (!grid) return null;
+    if (grid.dataset && grid.dataset.cssColumns === '1') return null;
+    if (typeof Masonry === 'undefined' || typeof imagesLoaded === 'undefined') return null;
     if (grid._masonryPortfolioInitialized) return grid._masonryPortfolioInstance;
 
     const gapH = parseInt(grid.dataset.gapH || '16', 10);
