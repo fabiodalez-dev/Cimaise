@@ -236,18 +236,24 @@ class HomeImageService
         }
         $images = array_values($byId);
 
-        // Get total count of UNIQUE images
-        $countStmt = $pdo->prepare("
-            SELECT COUNT(*)
-            FROM images i
-            JOIN albums a ON a.id = i.album_id
-            WHERE a.is_published = 1
-              AND (:include_nsfw = 1 OR a.is_nsfw = 0)
-              AND (a.password_hash IS NULL OR a.password_hash = '')
-        ");
-        $countStmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
-        $countStmt->execute();
-        $totalImages = (int) $countStmt->fetchColumn();
+        // Total count of UNIQUE images. With no limit we already fetched everything, so
+        // count($images) IS the total — skip the extra COUNT round-trip (the common path
+        // for grid templates). Only query when a cap was applied.
+        if ($limit > 0) {
+            $countStmt = $pdo->prepare("
+                SELECT COUNT(*)
+                FROM images i
+                JOIN albums a ON a.id = i.album_id
+                WHERE a.is_published = 1
+                  AND (:include_nsfw = 1 OR a.is_nsfw = 0)
+                  AND (a.password_hash IS NULL OR a.password_hash = '')
+            ");
+            $countStmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
+            $countStmt->execute();
+            $totalImages = (int) $countStmt->fetchColumn();
+        } else {
+            $totalImages = count($images);
+        }
 
         // Spread images out so two photos from the same album are never adjacent on the
         // home grid (the DB order groups an album's images together, which looks like
@@ -310,6 +316,9 @@ class HomeImageService
                 }
             }
             $result[] = array_shift($buckets[$pick]);
+            if (empty($buckets[$pick])) {
+                unset($buckets[$pick]); // drop drained buckets so the scan stays ~O(n)
+            }
             $lastAlbum = $pick;
             $remaining--;
         }

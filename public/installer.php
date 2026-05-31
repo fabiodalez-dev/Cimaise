@@ -613,7 +613,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!in_array($settingsData['admin_language'], $validLangCodes, true)) $settingsData['admin_language'] = 'en';
         if (!in_array($settingsData['timezone'], $validTimezones, true)) $settingsData['timezone'] = 'UTC';
         if (!in_array($settingsData['date_format'], ['Y-m-d', 'd-m-Y', 'm/d/Y'], true)) $settingsData['date_format'] = 'Y-m-d';
-        if (!in_array($settingsData['home_template'], ['classic', 'masonry', 'hero', 'gallery'], true)) $settingsData['home_template'] = 'classic';
+        // Must match PageController's valid home templates (no 'hero' — not a real template).
+        $validHomeTemplates = ['classic', 'modern', 'parallax', 'masonry', 'snap', 'gallery', 'editorial', 'justified', 'slideshow', 'split', 'bento', 'filmstrip'];
+        if (!in_array($settingsData['home_template'], $validHomeTemplates, true)) $settingsData['home_template'] = 'classic';
         if (!in_array($settingsData['gallery_template_id'], ['1','2','3','4','5','6','7'], true)) $settingsData['gallery_template_id'] = '4';
 
         // Handle logo upload
@@ -1602,10 +1604,26 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Homepage Template</label>
                                     <select name="home_template" class="form-input w-full">
-                                        <option value="classic" <?= ($settingsFormData['home_template'] ?? 'classic') === 'classic' ? 'selected' : '' ?>>Classic (Albums grid)</option>
-                                        <option value="masonry" <?= ($settingsFormData['home_template'] ?? '') === 'masonry' ? 'selected' : '' ?>>Masonry (Photo wall)</option>
-                                        <option value="hero" <?= ($settingsFormData['home_template'] ?? '') === 'hero' ? 'selected' : '' ?>>Hero (Full-screen hero + albums)</option>
-                                        <option value="gallery" <?= ($settingsFormData['home_template'] ?? '') === 'gallery' ? 'selected' : '' ?>>Gallery (Scrollable photo gallery)</option>
+                                        <?php
+                                        $homeTemplates = [
+                                            'classic'   => 'Classic (Hero + albums grid)',
+                                            'modern'    => 'Modern (Sidebar + grid)',
+                                            'parallax'  => 'Parallax (Three-column scroll)',
+                                            'masonry'   => 'Masonry (Photo wall)',
+                                            'snap'      => 'Snap Albums (Split scroll)',
+                                            'gallery'   => 'Gallery Wall (Horizontal scroll)',
+                                            'editorial' => 'Editorial (Magazine grid)',
+                                            'justified' => 'Justified Rows',
+                                            'slideshow' => 'Slideshow (Full-screen)',
+                                            'split'     => 'Split (Two-column)',
+                                            'bento'     => 'Bento (Mosaic)',
+                                            'filmstrip' => 'Filmstrip (Contact sheet)',
+                                        ];
+                                        $selectedHome = $settingsFormData['home_template'] ?? 'classic';
+                                        foreach ($homeTemplates as $val => $label):
+                                        ?>
+                                        <option value="<?= $val ?>" <?= $selectedHome === $val ? 'selected' : '' ?>><?= htmlspecialchars($label, ENT_QUOTES) ?></option>
+                                        <?php endforeach; ?>
                                     </select>
                                     <div class="text-sm text-gray-500 mt-1">Layout for the homepage</div>
                                 </div>
