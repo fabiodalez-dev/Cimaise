@@ -92,9 +92,13 @@ class DbTemplateCommand extends Command
             // Regenerate: rebuild straight into the template path.
             @unlink($this->templatePath);
             $this->buildFrom($sql, $this->templatePath);
+            $tableCount = count(array_filter(
+                array_keys($freshShape['objects']),
+                static fn(string $k): bool => str_starts_with($k, 'table ')
+            ));
             $output->writeln(sprintf(
                 '<info>Regenerated template.sqlite</info> (%d tables, %d settings).',
-                count($freshShape['tables']),
+                $tableCount,
                 count($freshShape['settings'])
             ));
             return Command::SUCCESS;
@@ -115,43 +119,64 @@ class DbTemplateCommand extends Command
     }
 
     /**
-     * Logical fingerprint of a DB: sorted user-table names + sorted settings keys.
-     * Binary comparison is useless (SQLite files differ byte-wise), so we compare
-     * the structure and seeded settings that actually matter.
+     * Logical fingerprint of a DB. Binary comparison is useless (SQLite files differ
+     * byte-wise), so we compare what actually matters for a CI/release guard:
+     *  - every schema OBJECT's normalized DDL (tables incl. columns/constraints,
+     *    indexes, triggers, views) from sqlite_master.sql — catches column/index/
+     *    constraint drift, not just renamed tables;
+     *  - the seeded settings as key => value — catches changed seed VALUES, not just
+     *    added/removed keys.
      *
-     * @return array{tables: list<string>, settings: list<string>}
+     * @return array{objects: array<string,string>, settings: array<string,string>}
      */
     private function shape(PDO $pdo): array
     {
-        $tables = $pdo->query(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
-        )->fetchAll(PDO::FETCH_COLUMN);
-
-        $settings = [];
-        if (in_array('settings', $tables, true)) {
-            $settings = $pdo->query('SELECT `key` FROM settings ORDER BY `key`')->fetchAll(PDO::FETCH_COLUMN);
+        $objects = [];
+        $rows = $pdo->query(
+            "SELECT type, name, sql FROM sqlite_master
+             WHERE name NOT LIKE 'sqlite_%' AND sql IS NOT NULL
+             ORDER BY type, name"
+        )->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($rows as $r) {
+            $objects[(string) $r['type'] . ' ' . (string) $r['name']] = $this->normalizeSql((string) $r['sql']);
         }
 
-        return [
-            'tables' => array_map('strval', $tables),
-            'settings' => array_map('strval', $settings),
-        ];
+        $settings = [];
+        if (array_key_exists('table settings', $objects)) {
+            $rows = $pdo->query('SELECT `key`, `value` FROM settings ORDER BY `key`')->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($rows as $row) {
+                $settings[(string) $row['key']] = (string) $row['value'];
+            }
+        }
+
+        return ['objects' => $objects, 'settings' => $settings];
+    }
+
+    /** Collapse whitespace so reformatting is ignored but real DDL changes are not. */
+    private function normalizeSql(string $sql): string
+    {
+        return trim((string) preg_replace('/\s+/', ' ', $sql));
     }
 
     /**
-     * @param array{tables: list<string>, settings: list<string>} $fresh
-     * @param array{tables: list<string>, settings: list<string>} $current
+     * @param array{objects: array<string,string>, settings: array<string,string>} $fresh
+     * @param array{objects: array<string,string>, settings: array<string,string>} $current
      * @return list<string> human-readable drift descriptions (empty when in sync)
      */
     private function diff(array $fresh, array $current): array
     {
         $out = [];
-        foreach (['tables', 'settings'] as $kind) {
-            foreach (array_diff($fresh[$kind], $current[$kind]) as $missing) {
-                $out[] = "missing {$kind} entry in template: {$missing}";
+        foreach (['objects' => 'object', 'settings' => 'setting'] as $kind => $label) {
+            foreach (array_diff_key($fresh[$kind], $current[$kind]) as $name => $_) {
+                $out[] = "missing {$label} in template: {$name}";
             }
-            foreach (array_diff($current[$kind], $fresh[$kind]) as $extra) {
-                $out[] = "stale {$kind} entry in template (not in schema): {$extra}";
+            foreach (array_diff_key($current[$kind], $fresh[$kind]) as $name => $_) {
+                $out[] = "stale {$label} in template (not in schema): {$name}";
+            }
+            foreach ($fresh[$kind] as $name => $value) {
+                if (array_key_exists($name, $current[$kind]) && $current[$kind][$name] !== $value) {
+                    $out[] = $kind === 'objects' ? "DDL differs for {$name}" : "seed value differs for setting {$name}";
+                }
             }
         }
         return $out;
