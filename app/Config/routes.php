@@ -382,6 +382,30 @@ return function (App $app, array $container) {
     })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
         $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
 
+    // "View as visitor" toggle: lets a logged-in admin browse the frontend as a guest
+    // (isAdmin() returns false while $_SESSION['view_as_guest'] is set) without logging
+    // out. Returns to a same-origin path only (scheme stripped, leading slashes collapsed).
+    $guestReturn = function (Request $request, Response $response): Response {
+        $params = $request->getQueryParams();
+        $return = is_string($params['return'] ?? null) ? $params['return'] : '/';
+        $return = str_replace(["\r", "\n", "\0"], '', $return);
+        if (preg_match('#^[a-z][a-z0-9+.\-]*://#i', $return)) {
+            $return = '/';
+        }
+        $return = '/' . ltrim($return, '/'); // same-origin path, never protocol-relative
+        return $response->withHeader('Location', $return)->withStatus(302); // nosemgrep: $return sanitised to a same-origin path above
+    };
+    $app->get('/admin/view-as-guest', function (Request $request, Response $response) use ($guestReturn) {
+        $_SESSION['view_as_guest'] = true;
+        return $guestReturn($request, $response);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
+    $app->get('/admin/exit-guest-view', function (Request $request, Response $response) use ($guestReturn) {
+        unset($_SESSION['view_as_guest']);
+        return $guestReturn($request, $response);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
+
     // Upload + API
     $app->post('/admin/albums/{id}/upload', function (Request $request, Response $response, array $args) use ($container) {
         $controller = new \App\Controllers\Admin\UploadController($container['db']);

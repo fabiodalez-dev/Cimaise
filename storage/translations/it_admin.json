@@ -2514,6 +2514,10 @@
     "admin.pages.home.template_bento_desc": "Griglia bento con riquadri di dimensioni diverse e riempimento automatico.",
     "admin.pages.home.template_filmstrip": "Pellicola",
     "admin.pages.home.template_filmstrip_subtitle": "Provino a contatto 35mm",
-    "admin.pages.home.template_filmstrip_desc": "Strisce orizzontali stile pellicola con scorrimento e dentellatura."
+    "admin.pages.home.template_filmstrip_desc": "Strisce orizzontali stile pellicola con scorrimento e dentellatura.",
+    "admin.dashboard.quick_actions": "Azioni rapide",
+    "admin.dashboard.view_site": "Vedi sito",
+    "admin.dashboard.clear_cache": "Svuota cache",
+    "admin.dashboard.cache_done": "Cache svuotata"
   }
 }

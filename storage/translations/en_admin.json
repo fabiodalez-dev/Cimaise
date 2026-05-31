@@ -2514,6 +2514,10 @@
     "admin.pages.home.template_bento_desc": "Bento grid with varied tile sizes and automatic fill.",
     "admin.pages.home.template_filmstrip": "Filmstrip",
     "admin.pages.home.template_filmstrip_subtitle": "35mm contact sheet",
-    "admin.pages.home.template_filmstrip_desc": "Horizontal film-style strips with scrolling and sprocket holes."
+    "admin.pages.home.template_filmstrip_desc": "Horizontal film-style strips with scrolling and sprocket holes.",
+    "admin.dashboard.quick_actions": "Quick actions",
+    "admin.dashboard.view_site": "View site",
+    "admin.dashboard.clear_cache": "Clear cache",
+    "admin.dashboard.cache_done": "Cache cleared"
   }
 }

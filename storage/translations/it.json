@@ -426,6 +426,17 @@
     "adminbar.clear_cache": "Svuota cache",
     "adminbar.logout": "Esci",
     "adminbar.cache_cleared": "Cache svuotata",
-    "adminbar.cache_error": "Errore svuotamento cache"
+    "adminbar.cache_error": "Errore svuotamento cache",
+    "adminbar.quick_links": "Link rapido",
+    "adminbar.view_as_guest": "Vedi come visitatore",
+    "adminbar.guest_mode": "Stai navigando come visitatore",
+    "adminbar.exit_guest": "Esci dalla modalità",
+    "adminbar.media": "Galleria",
+    "adminbar.albums": "Album",
+    "adminbar.categories": "Categorie",
+    "adminbar.pages": "Pagine",
+    "adminbar.appearance": "Aspetto",
+    "adminbar.settings": "Impostazioni",
+    "adminbar.seo": "SEO"
   }
 }

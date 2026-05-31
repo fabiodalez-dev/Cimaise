@@ -89,7 +89,10 @@ abstract class BaseController
     protected function isAdmin(): bool
     {
         $this->ensureSession();
-        return !empty($_SESSION['admin_id']);
+        // "View as visitor": an admin can temporarily browse the frontend as a guest
+        // (NSFW gates, no edit links, no admin treatment) without logging out. The admin
+        // session (admin_id) is preserved so /admin and the exit toggle still work.
+        return !empty($_SESSION['admin_id']) && empty($_SESSION['view_as_guest']);
     }
 
     /**

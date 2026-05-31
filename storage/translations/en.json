@@ -426,6 +426,17 @@
     "adminbar.clear_cache": "Clear cache",
     "adminbar.logout": "Log out",
     "adminbar.cache_cleared": "Cache cleared",
-    "adminbar.cache_error": "Cache clear failed"
+    "adminbar.cache_error": "Cache clear failed",
+    "adminbar.quick_links": "Quick links",
+    "adminbar.view_as_guest": "View as visitor",
+    "adminbar.guest_mode": "You are browsing as a visitor",
+    "adminbar.exit_guest": "Exit visitor mode",
+    "adminbar.media": "Media",
+    "adminbar.albums": "Albums",
+    "adminbar.categories": "Categories",
+    "adminbar.pages": "Pages",
+    "adminbar.appearance": "Appearance",
+    "adminbar.settings": "Settings",
+    "adminbar.seo": "SEO"
   }
 }
