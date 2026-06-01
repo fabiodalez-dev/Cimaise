@@ -87,6 +87,7 @@
     "ctp.upload.error_slug_exists": "A template with slug '{slug}' already exists. Each template must have a unique slug in metadata.json",
     "ctp.upload.error_temp_dir": "Unable to create temporary directory",
     "ctp.upload.error_open_zip": "Unable to open ZIP file",
+    "ctp.upload.error_unsafe_zip": "The ZIP contains unsafe entries (symlinks or path traversal) and was rejected",
     "ctp.upload.error_metadata_not_found": "Template '{folder}': metadata.json not found",
     "ctp.upload.error_metadata_invalid": "Template '{folder}': metadata.json is invalid",
     "ctp.upload.error_slug_exists_skip": "Template '{slug}': slug already exists, skipped",

@@ -369,7 +369,35 @@ HTACCESS;
 HTACCESS;
         file_put_contents($publicHtaccess, $publicHtaccessContent);
     }
-    
+
+    // 2b. Block direct web access to the installer once setup is complete.
+    // installer.php already self-guards (redirects home when installed), but this adds
+    // an Apache-level 403 as defense-in-depth so the installer can't even be reached or
+    // fingerprinted afterwards. It belongs in public/.htaccess because that is the
+    // document root that actually serves installer.php. Idempotent via a marker comment.
+    if (file_exists($publicHtaccess)) {
+        $publicContent = (string)file_get_contents($publicHtaccess);
+        if (strpos($publicContent, '# Block installer after setup') === false) {
+            $installerBlock = <<<'HTACCESS'
+
+
+# Block installer after setup
+<IfModule mod_authz_core.c>
+    <FilesMatch "^installer\.php$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+<IfModule !mod_authz_core.c>
+    <FilesMatch "^installer\.php$">
+        Order Allow,Deny
+        Deny from all
+    </FilesMatch>
+</IfModule>
+HTACCESS;
+            file_put_contents($publicHtaccess, $publicContent . $installerBlock, LOCK_EX);
+        }
+    }
+
     // M6: Apache 2.2 + 2.4 compatible deny-all blocks
     $denyAllContent = <<<'HTACCESS'
 # Deny all access (Apache 2.4+)
