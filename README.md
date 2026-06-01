@@ -803,9 +803,9 @@ Your portfolio is your livelihood. Cimaise takes security seriously:
 
 ### Attack Prevention
 - **SQL Injection** — 100% prepared statements, no exceptions
-- **XSS Attacks** — Automatic output escaping in all templates
-- **CSRF Protection** — Every form has a unique token
-- **Rate Limiting** — Login attempts, API calls, form submissions
+- **XSS Attacks** — Automatic output escaping in all templates (including JSON-LD structured data, encoded via `json_encode`)
+- **CSRF Protection** — Every form has a unique token, with self-healing recovery on expired sessions
+- **Rate Limiting** — Login attempts, API calls, form submissions; the limiter records outcomes from an internal header rather than localized page text, so throttling never breaks after a translation change
 
 ### Authentication
 - **Argon2id Hashing** — The most secure password algorithm available
@@ -826,7 +826,15 @@ All image requests go through PHP validation:
 - Password-protected albums require session authentication
 - NSFW content requires age confirmation
 - Path traversal attacks blocked
-- Only image MIME types served
+- Only image MIME types served (magic-byte cross-check, not just the extension)
+- **Cache visibility is access-aware** — variants of a password-protected album are served with `Cache-Control: private` so shared caches (corporate proxies, CDNs) never hand them to a visitor who hasn't passed the gate; open gallery images stay `public` for aggressive CDN caching
+- Downloads are gated by the album's `allow_downloads` flag end-to-end (original, protected and public paths)
+
+### Upload & Installer Hardening
+- **Plugin & template ZIPs** are scanned before extraction and rejected if they contain absolute paths, `..` traversal, or symlink entries — closing the zip-slip / symlink-escape class of attacks
+- **Signed plugins** — when a signing key is configured, plugin uploads must carry a valid Ed25519 detached signature (libsodium) or are refused before extraction
+- **The installer self-disables** after setup: it redirects away once installed, and writes an Apache rule denying direct web access to `installer.php` so it can't be reached or fingerprinted afterwards
+- **No insecure TLS fallback** anywhere — the updater verifies the release asset's SHA-256 digest before installing and never disables certificate verification
 
 ---
 
@@ -853,7 +861,8 @@ Smart cache headers maximize repeat-visit performance:
 
 | Asset Type | Cache Duration | Strategy |
 |------------|----------------|----------|
-| Images (JPEG, WebP, AVIF) | 1 year | Immutable (versioned filenames) |
+| Public images (JPEG, WebP, AVIF) | 1 year | `public`, immutable (versioned filenames) |
+| Protected-album images | 1 year | `private`, immutable (never cached by shared proxies/CDNs) |
 | CSS & JavaScript | 1 year | Immutable (Vite hashed builds) |
 | Fonts | 1 year | Immutable |
 | HTML pages | 5 minutes | Must-revalidate |
