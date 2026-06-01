@@ -109,10 +109,14 @@ class SitemapCommand extends Command
         }
         
         // Albums
+        // Exclude password-protected and NSFW albums: their slugs are access-controlled
+        // and must not be advertised to search engines / visitors via the sitemap.
         $stmt = $pdo->prepare('
             SELECT slug, updated_at, published_at
             FROM albums
             WHERE is_published = 1
+              AND (password_hash IS NULL OR LENGTH(password_hash) = 0)
+              AND (is_nsfw = 0 OR is_nsfw IS NULL)
             ORDER BY published_at DESC
         ');
         $stmt->execute();

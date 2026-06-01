@@ -487,23 +487,8 @@ class SettingsController extends BaseController
             if ($content !== false) {
                 return $content;
             }
-
-            // Retry without SSL verification (fallback for misconfigured servers)
-            Logger::warning('SSL verification failed for file_get_contents, retrying without verification', ['url' => $url], 'app');
-            $contextNoSsl = stream_context_create([
-                'http' => [
-                    'timeout' => 30,
-                    'user_agent' => 'Cimaise/1.0',
-                ],
-                'ssl' => [
-                    'verify_peer' => false,
-                    'verify_peer_name' => false,
-                ],
-            ]);
-            $content = @file_get_contents($url, false, $contextNoSsl);
-            if ($content !== false) {
-                return $content;
-            }
+            // No insecure fallback: a failed TLS verification must abort, not retry
+            // with peer verification disabled (that would allow MITM of the XML).
         }
 
         // Fallback to cURL
@@ -527,29 +512,8 @@ class SettingsController extends BaseController
                 return $content;
             }
 
-            // Retry cURL without SSL verification
-            if ($error && str_contains(strtolower($error), 'ssl')) {
-                Logger::warning('SSL verification failed for cURL, retrying without verification', ['url' => $url, 'error' => $error], 'app');
-                $ch = curl_init();
-                curl_setopt_array($ch, [
-                    CURLOPT_URL => $url,
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_MAXREDIRS => 3,
-                    CURLOPT_TIMEOUT => 30,
-                    CURLOPT_USERAGENT => 'Cimaise/1.0',
-                    CURLOPT_SSL_VERIFYPEER => false,
-                    CURLOPT_SSL_VERIFYHOST => 0,
-                ]);
-                $content = curl_exec($ch);
-                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                $error = curl_error($ch);
-                curl_close($ch);
-
-                if ($content !== false && $httpCode === 200) {
-                    return $content;
-                }
-            }
+            // No insecure fallback: a TLS failure aborts rather than retrying with
+            // peer verification disabled (fix the CA bundle instead).
 
             if ($error) {
                 Logger::warning('cURL download failed', ['url' => $url, 'error' => $error, 'http_code' => $httpCode], 'app');

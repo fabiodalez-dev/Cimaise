@@ -84,18 +84,17 @@ function safeLocalStorageSet(key, value) {
           'X-Requested-With': 'XMLHttpRequest'
         },
         body: 'csrf={{ csrf|e('js') }}&nsfw_confirmed=1'
-      }).then(() => {
-        // Hide gate and reload to show NSFW content
+      }).then((resp) => {
+        // Only reveal content if the server actually stored consent. A non-2xx
+        // (e.g. CSRF-rejected / expired session) must NOT be treated as success.
+        if (!resp.ok) { throw new Error('nsfw consent rejected'); }
         gate.classList.remove('active');
         document.documentElement.classList.remove('nsfw-gate-active');
         document.body.classList.remove('nsfw-gate-active');
         window.location.reload();
       }).catch(() => {
-        // Even if server fails, hide gate (localStorage is set)
-        gate.classList.remove('active');
-        document.documentElement.classList.remove('nsfw-gate-active');
-        document.body.classList.remove('nsfw-gate-active');
-        window.location.reload();
+        // Consent was not stored server-side: keep the gate visible instead of
+        // reloading straight back into the gate.
       });
     });
   }

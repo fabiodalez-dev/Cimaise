@@ -322,7 +322,7 @@ class MediaController extends BaseController
 
         // Get image and album info
         $stmt = $pdo->prepare('
-            SELECT i.id, i.album_id, a.password_hash, a.is_nsfw, a.is_published
+            SELECT i.id, i.album_id, a.password_hash, a.is_nsfw, a.is_published, a.allow_downloads
             FROM images i
             JOIN albums a ON a.id = i.album_id
             WHERE i.id = :id
@@ -377,7 +377,12 @@ class MediaController extends BaseController
                     return $response->withStatus(404);
                 }
             } else {
-                // For non-blur variants, fallback to original
+                // For non-blur variants, fallback to original — but never hand the
+                // full-resolution original to a viewer of a downloads-disabled album
+                // (that would bypass allow_downloads while a variant is still pending).
+                if (!$this->isAdmin() && empty($row['allow_downloads'])) {
+                    return $response->withStatus(403);
+                }
                 $origStmt = $pdo->prepare('SELECT original_path FROM images WHERE id = :id');
                 $origStmt->execute([':id' => $imageId]);
                 $origPath = $origStmt->fetchColumn();
@@ -597,7 +602,7 @@ class MediaController extends BaseController
         // Get image and album info
         $pdo = $this->db->pdo();
         $stmt = $pdo->prepare('
-            SELECT i.id, i.album_id, a.password_hash, a.is_nsfw, a.is_published
+            SELECT i.id, i.album_id, a.password_hash, a.is_nsfw, a.is_published, a.allow_downloads
             FROM images i
             JOIN albums a ON a.id = i.album_id
             WHERE i.id = :id
