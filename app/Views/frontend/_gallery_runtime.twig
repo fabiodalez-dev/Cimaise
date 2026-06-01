@@ -669,12 +669,28 @@ function loadTemplateAssets(assets) {
     });
 }
 
+// Global guard so that ONLY the most recently clicked template applies its result.
+// The per-button switchInProgress flag below debounces a single button, but switching
+// between two different buttons quickly fires two concurrent fetches that both mutate
+// window.templateSettings and the gallery DOM — and the slower (stale) one would
+// otherwise clobber the one the user actually wants. A monotonically increasing token
+// plus an AbortController makes superseded switches no-ops.
+let __tplSwitchToken = 0;
+let __tplSwitchAbort = null;
+
 document.addEventListener('click', function(event) {
     const el = event.target.closest('.tpl-switch');
     if (!el) return;
     if (el.tagName === 'A') event.preventDefault();
     if (el.dataset.switchInProgress === '1') return;
     el.dataset.switchInProgress = '1';
+
+    // Supersede any in-flight switch (different button) so it cannot clobber this one.
+    if (__tplSwitchAbort) { try { __tplSwitchAbort.abort(); } catch (_) {} }
+    __tplSwitchAbort = new AbortController();
+    const __myToken = ++__tplSwitchToken;
+    // Defensive: never leave a previously-clicked button stuck as "in progress".
+    document.querySelectorAll('.tpl-switch').forEach(function (b) { if (b !== el) { delete b.dataset.switchInProgress; } });
 
     const galleryContainer = document.getElementById('images-gallery');
     const scrollY = window.scrollY;
@@ -706,12 +722,14 @@ document.addEventListener('click', function(event) {
 
     const fetchUrl = `${window.basePath}/api/gallery/template?album=${encodeURIComponent(albumRef)}&template=${encodeURIComponent(templateId)}`;
 
-    fetch(fetchUrl, { headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' } })
+    fetch(fetchUrl, { headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' }, signal: __tplSwitchAbort.signal })
         .then(r => {
             if (!r.ok) throw new Error('HTTP ' + r.status);
             return r.text();
         })
         .then(html => {
+            // A newer switch superseded this one — drop the stale result entirely.
+            if (__myToken !== __tplSwitchToken) return;
             // STEP 2: Parse settings and strip script tag from response HTML
             // Use data-cimaise-tpl attribute to find OUR script (immune to extension injection)
             let parsedHtml = html;
@@ -1134,6 +1152,9 @@ document.addEventListener('click', function(event) {
             });
         })
         .catch(err => {
+            // Aborted (superseded) or stale: do NOT restore — that would revert the
+            // gallery to THIS fetch's old content and clobber the newer template.
+            if ((err && err.name === 'AbortError') || __myToken !== __tplSwitchToken) return;
             console.error('Template switch error:', err);
             galleryContainer.className = originalClasses;
             galleryContainer.innerHTML = originalContent;
