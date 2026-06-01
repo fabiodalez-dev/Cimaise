@@ -1293,9 +1293,15 @@ class AlbumsController extends BaseController
             $variantStmt->execute([(int)$r['id']]);
             foreach ($variantStmt->fetchAll() ?: [] as $v) { $files[] = $v['path']; }
         }
+        // Only operate on IDs that actually belong to this album (the scoped SELECT above
+        // already filtered them) — never delete variants of images from other albums.
+        $validIds = array_map(static fn($r): int => (int) $r['id'], $rows);
         $pdo->beginTransaction();
         try {
-            $pdo->prepare('DELETE FROM image_variants WHERE image_id IN (' . $in . ')')->execute($ids);
+            if ($validIds !== []) {
+                $inValid = implode(',', array_fill(0, count($validIds), '?'));
+                $pdo->prepare('DELETE FROM image_variants WHERE image_id IN (' . $inValid . ')')->execute($validIds);
+            }
             $pdo->prepare('UPDATE albums SET cover_image_id=NULL WHERE id=? AND cover_image_id IN (' . $in . ')')
                 ->execute(array_merge([$albumId], $ids));
             $pdo->prepare('DELETE FROM images WHERE album_id=? AND id IN (' . $in . ')')->execute(array_merge([$albumId], $ids));
@@ -1334,6 +1340,19 @@ class AlbumsController extends BaseController
         $rowStmt->execute([':id'=>$sourceId]);
         $src = $rowStmt->fetch();
         if (!$src) return $response->withStatus(404);
+
+        // Don't re-home a protected (password/NSFW) source image into a less-protected
+        // album — the duplicated row points at the same original file and would expose it.
+        $flagsStmt = $pdo->prepare('SELECT is_nsfw, password_hash FROM albums WHERE id = :id');
+        $flagsStmt->execute([':id' => (int) $src['album_id']]);
+        $srcAlbum = $flagsStmt->fetch();
+        $flagsStmt->execute([':id' => $albumId]);
+        $tgtAlbum = $flagsStmt->fetch();
+        $isProtected = static fn($a): bool => $a && ((int) $a['is_nsfw'] === 1 || !empty($a['password_hash']));
+        if ($isProtected($srcAlbum) && !$isProtected($tgtAlbum)) {
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => trans('admin.flash.error_generic')]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(403);
+        }
 
         // Check for duplicates: same file_hash already in this album
         $dupStmt = $pdo->prepare('SELECT id FROM images WHERE album_id = :album AND file_hash = :hash LIMIT 1');

@@ -514,6 +514,12 @@ class PluginManager
             return ['success' => false, 'message' => 'Database not available'];
         }
 
+        // Confine the slug to a single plugin directory name — no path traversal.
+        $slug = basename($slug);
+        if (!preg_match('/^[a-z0-9][a-z0-9_-]*$/i', $slug)) {
+            return ['success' => false, 'message' => 'Invalid plugin slug'];
+        }
+
         $pluginPath = $pluginsDir . '/' . $slug;
         $pluginFile = $pluginPath . '/plugin.php';
 
@@ -577,6 +583,12 @@ class PluginManager
     {
         if (!$this->db) {
             return ['success' => false, 'message' => 'Database not available'];
+        }
+
+        // Confine the slug to a single plugin directory name — no path traversal.
+        $slug = basename($slug);
+        if (!preg_match('/^[a-z0-9][a-z0-9_-]*$/i', $slug)) {
+            return ['success' => false, 'message' => 'Invalid plugin slug'];
         }
 
         try {

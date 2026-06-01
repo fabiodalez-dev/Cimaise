@@ -438,6 +438,9 @@ class AuthController extends BaseController
             ]);
 
             AuthMiddleware::invalidateVerification();
+            // Revoke any persistent remember-me token so a previously stolen cookie
+            // cannot survive a password change.
+            $this->clearRememberToken((int) $_SESSION['admin_id']);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.password_changed')];
         } catch (\Throwable $e) {
             Logger::error('AuthController::changePassword error', ['error' => $e->getMessage()], 'admin');
