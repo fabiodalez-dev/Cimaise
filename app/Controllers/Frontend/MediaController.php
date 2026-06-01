@@ -655,7 +655,9 @@ class MediaController extends BaseController
         // never fires there.
         $this->ensureVariantGenerated($imageId, $variant, $path);
 
-        return $this->serveStaticFile($request, $response, $path);
+        // For password-protected albums, mark the (access-granted) variant `private`
+        // so shared caches don't serve it to users who never passed the gate.
+        return $this->serveStaticFile($request, $response, $path, $isPasswordProtected);
     }
 
     /** Variant sizes that can be (re)generated on demand from the original. */
@@ -704,8 +706,12 @@ class MediaController extends BaseController
     /**
      * Helper to serve a static file from public/media/
      */
-    private function serveStaticFile(Request $request, Response $response, string $relativePath): Response
+    private function serveStaticFile(Request $request, Response $response, string $relativePath, bool $isProtected = false): Response
     {
+        // Password-gated content must not be stored by SHARED caches (proxies, CDNs)
+        // that would then serve it to other users without re-checking the gate.
+        // Public gallery images stay `public` so a CDN can cache them aggressively.
+        $cacheVisibility = $isProtected ? 'private' : 'public';
         $root = dirname(__DIR__, 3);
         // Accept either "1_blur.jpg" or "media/1_blur.jpg"
         $cleanRel = ltrim($relativePath, '/');
@@ -742,7 +748,7 @@ class MediaController extends BaseController
             return $response
                 ->withStatus(304)
                 ->withHeader('ETag', $etag)
-                ->withHeader('Cache-Control', 'public, max-age=' . self::PUBLIC_CACHE_SECONDS . ', immutable');
+                ->withHeader('Cache-Control', $cacheVisibility . ', max-age=' . self::PUBLIC_CACHE_SECONDS . ', immutable');
         }
 
         $streamed = $this->streamFile($response, $realPath, $detectedMime);
@@ -750,9 +756,10 @@ class MediaController extends BaseController
             return $response->withStatus(500);
         }
 
-        // Cache headers for public images: aggressive 1-year cache (variants have unique filenames)
+        // Aggressive 1-year cache (variants have unique filenames); visibility is
+        // `private` for password-gated content, `public` for open gallery images.
         return $streamed
-            ->withHeader('Cache-Control', 'public, max-age=' . self::PUBLIC_CACHE_SECONDS . ', immutable')
+            ->withHeader('Cache-Control', $cacheVisibility . ', max-age=' . self::PUBLIC_CACHE_SECONDS . ', immutable')
             ->withHeader('ETag', $etag);
     }
 

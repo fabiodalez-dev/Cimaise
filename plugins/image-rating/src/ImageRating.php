@@ -57,7 +57,7 @@ class ImageRating
             $sql = "
                 CREATE TABLE IF NOT EXISTS plugin_image_ratings (
                     image_id INT NOT NULL,
-                    rating INT NOT NULL,
+                    rating INT NOT NULL CHECK(rating >= 0 AND rating <= 5),
                     rated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     rated_by INT NOT NULL DEFAULT 0,
                     UNIQUE KEY uniq_image_rated_by (image_id, rated_by),

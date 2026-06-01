@@ -126,6 +126,11 @@ class TemplateUploadService
             rmdir($tempDir);
             return ['success' => false, 'error' => $this->t('ctp.upload.error_open_zip')];
         }
+        if ($this->zipHasUnsafeEntries($zip)) {
+            $zip->close();
+            $this->cleanup($tempDir);
+            return ['success' => false, 'error' => $this->t('ctp.upload.error_unsafe_zip')];
+        }
         $zip->extractTo($tempDir);
         $zip->close();
 
@@ -217,6 +222,11 @@ class TemplateUploadService
         if ($zip->open($zipPath) !== true) {
             $this->cleanup($tempDir);
             return ['success' => false, 'error' => $this->t('ctp.upload.error_open_zip')];
+        }
+        if ($this->zipHasUnsafeEntries($zip)) {
+            $zip->close();
+            $this->cleanup($tempDir);
+            return ['success' => false, 'error' => $this->t('ctp.upload.error_unsafe_zip')];
         }
         $zip->extractTo($tempDir);
         $zip->close();
@@ -441,6 +451,49 @@ class TemplateUploadService
     }
 
     /**
+     * Reject ZIPs that could escape the extraction directory.
+     *
+     * ZipArchive::extractTo() writes symlink entries as real symlinks and follows
+     * them for subsequent entries, so a crafted archive ("evil -> /etc" + "evil/x")
+     * can write outside the temp dir. Absolute paths and ".." segments are the
+     * classic zip-slip vector. We scan every entry BEFORE extracting and bail if
+     * any is unsafe — extractTo offers no per-entry guard of its own.
+     *
+     * @param ZipArchive $zip An already-opened archive.
+     */
+    private function zipHasUnsafeEntries(ZipArchive $zip): bool
+    {
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = $zip->getNameIndex($i);
+            if ($name === false) {
+                return true;
+            }
+
+            // Absolute paths (Unix or Windows) and path traversal.
+            if (
+                str_starts_with($name, '/')
+                || str_starts_with($name, '\\')
+                || preg_match('#^[A-Za-z]:#', $name) === 1
+                || preg_match('#(^|[/\\\\])\.\.([/\\\\]|$)#', $name) === 1
+            ) {
+                return true;
+            }
+
+            // Symlink entries: the Unix file type lives in the high 16 bits of the
+            // external attributes; S_IFLNK == 0xA000.
+            $opsys = 0;
+            $attr = 0;
+            if ($zip->getExternalAttributesIndex($i, $opsys, $attr)) {
+                if ($opsys === ZipArchive::OPSYS_UNIX && (($attr >> 16) & 0xF000) === 0xA000) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Estrae il ZIP nella directory di destinazione
      */
     private function extractZip(string $zipPath, string $extractPath): bool
@@ -454,6 +507,12 @@ class TemplateUploadService
 
         $zip = new ZipArchive();
         if ($zip->open($zipPath) !== true) {
+            return false;
+        }
+
+        // Reject symlink / path-traversal entries before extracting (zip-slip guard).
+        if ($this->zipHasUnsafeEntries($zip)) {
+            $zip->close();
             return false;
         }
 

@@ -804,6 +804,16 @@ HTML;
             exit;
         }
 
+        // The demo user logs in with PUBLIC credentials, so it must never be able to
+        // trigger a destructive wipe+reseed. This guard lives here (not in
+        // BLOCKED_ENDPOINTS) on purpose: handleSeedEndpoint runs at hook priority 3,
+        // BEFORE blockRestrictedEndpoints (priority 5), and exits — so the shared
+        // blocklist would never get a chance to stop it.
+        if (($_SESSION['admin_email'] ?? '') === self::DEMO_EMAIL) {
+            $this->sendJsonResponse(['success' => false, 'error' => 'Seeding is disabled for the demo user.'], 403);
+            exit;
+        }
+
         // Validate CSRF token (check for empty tokens first to prevent edge cases)
         $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
         $sessionToken = $_SESSION['csrf'] ?? '';
