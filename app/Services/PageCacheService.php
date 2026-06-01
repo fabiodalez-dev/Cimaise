@@ -422,14 +422,14 @@ class PageCacheService
                 // MySQL UPSERT
                 $this->db->execute(
                     'INSERT INTO page_cache (cache_key, cache_type, related_id, version, data, data_hash, size_bytes, is_compressed, created_at, expires_at, access_count)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0) AS src
                      ON DUPLICATE KEY UPDATE
-                         data = VALUES(data),
-                         data_hash = VALUES(data_hash),
-                         size_bytes = VALUES(size_bytes),
-                         is_compressed = VALUES(is_compressed),
-                         created_at = VALUES(created_at),
-                         expires_at = VALUES(expires_at),
+                         data = src.data,
+                         data_hash = src.data_hash,
+                         size_bytes = src.size_bytes,
+                         is_compressed = src.is_compressed,
+                         created_at = src.created_at,
+                         expires_at = src.expires_at,
                          access_count = 0',
                     [$cacheKey, $cacheType, $relatedId, self::CACHE_VERSION, $compressedData, $dataHash, $sizeBytes, $isCompressed ? 1 : 0, $now, $expiresAt]
                 );

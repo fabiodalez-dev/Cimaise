@@ -67,8 +67,8 @@ class MetadataExtensionService
         if ($driver === 'mysql') {
             $stmt = $this->db->prepare('
                 INSERT INTO metadata_extensions (entity_type, entity_id, extension_key, extension_value, plugin_id, updated_at)
-                VALUES (?, ?, ?, ?, ?, NOW())
-                ON DUPLICATE KEY UPDATE extension_value = VALUES(extension_value), updated_at = NOW()
+                VALUES (?, ?, ?, ?, ?, NOW()) AS src
+                ON DUPLICATE KEY UPDATE extension_value = src.extension_value, updated_at = NOW()
             ');
         } else {
             // SQLite
