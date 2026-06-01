@@ -252,6 +252,8 @@ class UploadController extends BaseController
 
             return $response;
         } catch (\Throwable $e) {
+            // Don't leave the staged upload behind in storage/tmp when ingest fails.
+            \App\Services\UploadService::safeUnlink($tmpPath);
             $response->getBody()->write(json_encode(['ok' => false, 'error' => $e->getMessage()]));
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
