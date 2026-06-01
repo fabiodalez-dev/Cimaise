@@ -135,7 +135,7 @@ body {
     "@type": "SearchAction",
     "target": {
       "@type": "EntryPoint",
-      "urlTemplate": "{{ base_path }}/{{ galleries_slug|default('galleries') }}?q={search_term_string}"
+      "urlTemplate": {{ (base_path ~ '/' ~ galleries_slug|default('galleries') ~ '?q={search_term_string}')|json_encode|raw }}
     },
     "query-input": "required name=search_term_string"
   }

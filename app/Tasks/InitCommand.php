@@ -151,7 +151,8 @@ class InitCommand extends Command
         $consolePath = dirname(__DIR__, 2) . '/bin/console';
         
         if ($password) {
-            $cmd = "php $consolePath user:create " . escapeshellarg($email) . " --password=" . escapeshellarg($password);
+            // user:create takes the password as a positional argument, not a --password option.
+            $cmd = "php $consolePath user:create " . escapeshellarg($email) . " " . escapeshellarg($password);
         } else {
             $cmd = "php $consolePath user:create " . escapeshellarg($email);
         }

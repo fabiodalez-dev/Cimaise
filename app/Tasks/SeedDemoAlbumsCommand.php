@@ -51,7 +51,8 @@ class SeedDemoAlbumsCommand extends Command
             ->addOption('nsfw', null, InputOption::VALUE_OPTIONAL, 'How many albums are NSFW', '2')
             ->addOption('password', null, InputOption::VALUE_OPTIONAL, 'How many albums are password-protected (password = title)', '2')
             ->addOption('stock-dir', null, InputOption::VALUE_OPTIONAL, 'Use local .jpg files from this directory instead of downloading')
-            ->addOption('keep', null, InputOption::VALUE_NONE, 'Do not wipe existing albums first');
+            ->addOption('keep', null, InputOption::VALUE_NONE, 'Do not wipe existing albums first')
+            ->addOption('force', 'f', InputOption::VALUE_NONE, 'Skip the confirmation prompt before wiping existing albums');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -69,6 +70,20 @@ class SeedDemoAlbumsCommand extends Command
 
         // --- 1. Wipe only the albums (+ their media files) ------------------
         if (!$keep) {
+            // Destructive: this deletes EVERY album (and cascades to images/variants).
+            // Require explicit confirmation (or --force) so it can't nuke a real site by accident.
+            if (!$input->getOption('force')) {
+                $question = new \Symfony\Component\Console\Question\ConfirmationQuestion(
+                    '<error>This will DELETE ALL existing albums and their media files. Continue? [y/N] </error>',
+                    false
+                );
+                /** @var \Symfony\Component\Console\Helper\QuestionHelper $helper */
+                $helper = $this->getHelper('question');
+                if (!$helper->ask($input, $output, $question)) {
+                    $output->writeln('Aborted. (use --keep to seed without wiping, or --force to skip this prompt)');
+                    return Command::SUCCESS;
+                }
+            }
             $output->writeln('<comment>Wiping existing albums…</comment>');
             $mediaFiles = array_merge(
                 $pdo->query('SELECT path FROM image_variants')->fetchAll(PDO::FETCH_COLUMN) ?: [],

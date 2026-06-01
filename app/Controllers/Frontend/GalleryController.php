@@ -557,7 +557,8 @@ class GalleryController extends BaseController
         $templateCustomCss = '';
         $templateCustomJs = '';
         $templateCustomTwig = '';
-        if (!empty($template['is_custom']) && !empty($template['custom_id'])) {
+        if (!empty($template['is_custom']) && !empty($template['custom_id'])
+            && class_exists(\CustomTemplatesPro\Services\TemplateIntegrationService::class)) {
             $integration = new \CustomTemplatesPro\Services\TemplateIntegrationService($this->db);
             $templateCustomCss = $integration->loadTemplateCSS((int)$template['id'], $this->basePath);
             $templateCustomJs = $integration->loadTemplateJS((int)$template['id'], $this->basePath);

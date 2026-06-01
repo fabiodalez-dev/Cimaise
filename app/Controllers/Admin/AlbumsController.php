@@ -681,7 +681,7 @@ class AlbumsController extends BaseController
         $pdo->beginTransaction();
 
         // Get old album data to detect protection status changes (NSFW or password) and slug changes
-        $oldAlbum = $pdo->prepare('SELECT slug, is_nsfw, password_hash FROM albums WHERE id = ?');
+        $oldAlbum = $pdo->prepare('SELECT slug, is_nsfw, password_hash, published_at FROM albums WHERE id = ?');
         $oldAlbum->execute([$id]);
         $oldAlbumData = $oldAlbum->fetch(\PDO::FETCH_ASSOC) ?: [];
         $oldAlbumSlug = $oldAlbumData['slug'] ?? null;
@@ -748,7 +748,11 @@ class AlbumsController extends BaseController
             return $response->withHeader('Location', $this->redirect('/admin/albums/'.$id.'/edit'))->withStatus(302);
         }
         $slug = $slug !== '' ? \App\Support\Str::slug($slug) : \App\Support\Str::slug($title);
-        $published_at = $is_published ? (date('Y-m-d H:i:s')) : null;
+        // Preserve the original publication timestamp when re-saving an already-published
+        // album; only stamp "now" the first time it becomes published.
+        $published_at = $is_published
+            ? (!empty($oldAlbumData['published_at']) ? (string) $oldAlbumData['published_at'] : date('Y-m-d H:i:s'))
+            : null;
 
         // Ensure unique slug by appending numeric suffix if needed (exclude current album)
         $baseSlug = $slug;

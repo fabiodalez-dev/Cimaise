@@ -64,8 +64,11 @@ class CompatSmokeCommand extends Command
             $pdo->prepare($keyword . ' INTO album_developer(album_id, developer_id) VALUES(:a,:x)')->execute([':a' => $albumId, ':x' => $developerId]);
             $pdo->prepare($keyword . ' INTO album_lab(album_id, lab_id) VALUES(:a,:x)')->execute([':a' => $albumId, ':x' => $labId]);
 
-            $pdo->commit();
-            $output->writeln('<info>Smoke OK</info>: pivots inserted with keyword [' . $keyword . ']');
+            // Roll back: this is a read-only smoke test. The inserts only prove the
+            // portable INSERT IGNORE/OR IGNORE syntax executes — we must not leave
+            // throwaway "*_smoke_*" rows (album, category, tags, equipment) behind.
+            $pdo->rollBack();
+            $output->writeln('<info>Smoke OK</info>: pivots inserted with keyword [' . $keyword . '] (rolled back, no data persisted)');
             return Command::SUCCESS;
         } catch (\Throwable $e) {
             $pdo->rollBack();
