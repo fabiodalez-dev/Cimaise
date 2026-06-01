@@ -647,7 +647,7 @@ class Installer
                 $stmt->execute([$key, $encodedValue, $type]);
             } else {
                 $stmt = $this->db->pdo()->prepare(
-                    'INSERT INTO settings (`key`, `value`, `type`, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW()) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`), updated_at = NOW()'
+                    'INSERT INTO settings (`key`, `value`, `type`, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW()) AS src ON DUPLICATE KEY UPDATE `value` = src.`value`, updated_at = NOW()'
                 );
                 $stmt->execute([$key, $encodedValue, $type]);
             }
