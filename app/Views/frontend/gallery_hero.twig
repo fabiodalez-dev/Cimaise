@@ -988,6 +988,11 @@
       document.body.appendChild(script);
     });
   }
+  // Global guard: only the most recently clicked template may apply its result.
+  // Switching between two buttons quickly fires concurrent fetches; without this the
+  // slower (stale) one clobbers the template the user actually selected.
+  let __tplSwitchToken = 0;
+  let __tplSwitchAbort = null;
   // Delegated handler for template switches (AJAX) with class update
   document.addEventListener('click', function(event) {
     const el = event.target.closest('.tpl-switch');
@@ -995,6 +1000,10 @@
     event.preventDefault();
     if (el.dataset.switchInProgress === '1') return;
     el.dataset.switchInProgress = '1';
+    if (__tplSwitchAbort) { try { __tplSwitchAbort.abort(); } catch (_) {} }
+    __tplSwitchAbort = new AbortController();
+    const __myToken = ++__tplSwitchToken;
+    document.querySelectorAll('.tpl-switch').forEach(function (b) { if (b !== el) { delete b.dataset.switchInProgress; } });
     const galleryContainer = document.getElementById('images-gallery');
     const templateId = el.getAttribute('data-template-id') || (new URL(el.href, window.location.origin)).searchParams.get('template');
     const albumRef = el.getAttribute('data-album-ref') || window.location.pathname.split('/').pop();
@@ -1008,12 +1017,14 @@
     document.querySelectorAll('.tpl-switch').forEach(btn => { btn.classList.remove('bg-black','text-white'); btn.classList.add('text-neutral-700','hover:bg-neutral-100'); });
     el.classList.remove('text-neutral-700','hover:bg-neutral-100'); el.classList.add('bg-black','text-white');
     const fetchUrl = `${basePath}/api/gallery/template?album=${encodeURIComponent(albumRef)}&template=${encodeURIComponent(templateId)}`;
-    fetch(fetchUrl, { headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' } })
+    fetch(fetchUrl, { headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' }, signal: __tplSwitchAbort.signal })
       .then(r => {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.text();
       })
       .then(html => {
+        // A newer switch superseded this one — drop the stale result.
+        if (__myToken !== __tplSwitchToken) return;
         // Use data-cimaise-tpl attribute to find OUR script (immune to extension injection)
         let parsedHtml = html;
         const parser = new DOMParser();
@@ -1298,6 +1309,9 @@
         }, 50);
       })
       .catch(err => {
+        // Aborted (superseded) or stale: do NOT restore — that would revert to this
+        // fetch's old content and clobber the newer template the user selected.
+        if ((err && err.name === 'AbortError') || __myToken !== __tplSwitchToken) return;
         console.error('Template switch error:', err);
         galleryContainer.innerHTML = original;
         galleryContainer.classList.remove('tpl-switching');
