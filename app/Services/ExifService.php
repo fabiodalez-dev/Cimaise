@@ -238,10 +238,21 @@ class ExifService
             return null;
         }
 
-        // Each DMS component is [numerator, denominator]
-        $degrees = is_array($dms[0]) ? ($dms[0][0] / $dms[0][1]) : (float)$dms[0];
-        $minutes = is_array($dms[1]) ? ($dms[1][0] / $dms[1][1]) : (float)$dms[1];
-        $seconds = is_array($dms[2]) ? ($dms[2][0] / $dms[2][1]) : (float)$dms[2];
+        // Each DMS component is [numerator, denominator]. A crafted JPEG can carry a
+        // [n, 0] rational; guard the denominator to avoid a fatal DivisionByZeroError.
+        $toFloat = static function ($c): ?float {
+            if (is_array($c)) {
+                $den = (float) ($c[1] ?? 0);
+                return $den !== 0.0 ? (float) ($c[0] ?? 0) / $den : null;
+            }
+            return (float) $c;
+        };
+        $degrees = $toFloat($dms[0]);
+        $minutes = $toFloat($dms[1]);
+        $seconds = $toFloat($dms[2]);
+        if ($degrees === null || $minutes === null || $seconds === null) {
+            return null;
+        }
 
         $dd = $degrees + ($minutes / 60) + ($seconds / 3600);
 
@@ -390,13 +401,18 @@ class ExifService
     private function convertDMSToDD(array $dms, string $ref): ?float
     {
         if (count($dms) < 3) return null;
-        
-        $dd = $this->rationalToFloat($dms[0]) + 
-              ($this->rationalToFloat($dms[1]) / 60) + 
-              ($this->rationalToFloat($dms[2]) / 3600);
-        
+
+        // Any unparseable component must abort, not coerce null->0 (which would store a
+        // bogus but valid-looking 0,0 coordinate in the Gulf of Guinea).
+        $deg = $this->rationalToFloat($dms[0]);
+        $min = $this->rationalToFloat($dms[1]);
+        $sec = $this->rationalToFloat($dms[2]);
+        if ($deg === null || $min === null || $sec === null) return null;
+
+        $dd = $deg + ($min / 60) + ($sec / 3600);
+
         if (in_array($ref, ['S', 'W'])) $dd *= -1;
-        
+
         return $dd;
     }
 
@@ -428,6 +444,9 @@ class ExifService
 
     private function normalizeWithImagick(string $path, int $orientation): bool
     {
+        // Apply the same decompression-bomb resource caps the upload path uses before
+        // decoding here (this method also runs pre-variant-generation on upload).
+        \App\Services\UploadService::applyImagickLimits();
         $imagick = new \Imagick($path);
         
         switch ($orientation) {
@@ -477,7 +496,11 @@ class ExifService
             2 => imageflip($image, IMG_FLIP_HORIZONTAL) ? $image : null,
             3 => imagerotate($image, 180, 0),
             4 => imageflip($image, IMG_FLIP_VERTICAL) ? $image : null,
+            // 5 (transpose) and 7 (transverse) are rotate + horizontal flip combos that
+            // were previously dropped to `default`, leaving the image stored un-rotated.
+            5 => $this->gdRotateThenFlipH($image, -90),
             6 => imagerotate($image, -90, 0),
+            7 => $this->gdRotateThenFlipH($image, 90),
             8 => imagerotate($image, 90, 0),
             default => $image
         };
@@ -495,8 +518,26 @@ class ExifService
         
         imagedestroy($rotated);
         if ($rotated !== $image) imagedestroy($image);
-        
+
         return $success;
+    }
+
+    /**
+     * EXIF orientations 5 (transpose) and 7 (transverse) are rotate + horizontal-flip
+     * combinations with no single GD primitive: rotate, then mirror horizontally.
+     * Returns the new resource (flip is in place) or null on failure.
+     */
+    private function gdRotateThenFlipH(\GdImage $image, int $angle): ?\GdImage
+    {
+        $rotated = imagerotate($image, $angle, 0);
+        if (!$rotated) {
+            return null;
+        }
+        if (imageflip($rotated, IMG_FLIP_HORIZONTAL)) {
+            return $rotated;
+        }
+        imagedestroy($rotated);
+        return null;
     }
 
     public function mapToLookups(array $meta): array

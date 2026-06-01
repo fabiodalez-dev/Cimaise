@@ -35,7 +35,7 @@ class UploadService
      * exhaust host memory/disk during decode. Static + idempotent; safe to call
      * before every Imagick instantiation. No-op when the extension is absent.
      */
-    private static function applyImagickLimits(): void
+    public static function applyImagickLimits(): void
     {
         if (!class_exists('\Imagick')) {
             return;
@@ -51,7 +51,7 @@ class UploadService
      * (storage/, system temp, or the public media tree). Prevents a tainted
      * path from ever reaching unlink() outside these roots (CWE-22 hardening).
      */
-    private static function safeUnlink(string $path): bool
+    public static function safeUnlink(string $path): bool
     {
         $real = realpath($path);
         if ($real === false) {
@@ -258,7 +258,7 @@ class UploadService
             ':exif'=> json_encode($exif, JSON_UNESCAPED_SLASHES),
             ':cam'=> $map['camera_id'],
             ':lens'=> $map['lens_id'],
-            ':iso'=> isset($exif['ISOSpeedRatings']) ? (int)$exif['ISOSpeedRatings'] : null,
+            ':iso'=> isset($exif['ISOSpeedRatings']) ? (int)(is_array($exif['ISOSpeedRatings']) ? ($exif['ISOSpeedRatings'][0] ?? 0) : $exif['ISOSpeedRatings']) : null,
             ':sh'=> $exifSvc->formatShutterSpeed($exif['ExposureTime'] ?? null),
             ':ap'=> $exif['FNumber'] ?? null,
             ':s'=>0,
