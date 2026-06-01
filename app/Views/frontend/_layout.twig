@@ -227,7 +227,7 @@
     {% set filtered_parent_categories = parent_categories|default([])|filter(c => c.albums_count > 0 or c.children|filter(ch => ch.albums_count > 0)|length > 0) %}
 
     <!-- Header -->
-    <header class="border-b border-gray-200 sticky top-0 bg-white/95 backdrop-blur-md z-50 transition-all duration-300" id="main-header">
+    <header class="border-b border-gray-200 sticky top-0 bg-white/95 backdrop-blur-md z-50" id="main-header">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center py-5">
                 <!-- Left: Logo and Desktop Navigation -->
@@ -1216,6 +1216,11 @@
         // Enhanced header scroll behavior with smooth transitions
         let lastScroll = 0;
         const header = document.querySelector('#main-header');
+        // Promote the header to its own compositor layer so sliding it on scroll
+        // doesn't repaint (and flicker) the photos underneath. Set once, not per frame.
+        if (header) {
+            header.style.willChange = 'transform';
+        }
         let ticking = false;
         
         function updateHeader() {
@@ -1228,40 +1233,37 @@
             const currentScroll = window.pageYOffset;
             const hasGsap = typeof gsap !== 'undefined';
 
-            if (currentScroll > lastScroll && currentScroll > 100) {
-                // Scrolling down
-                if (hasGsap) {
-                    gsap.to(header, {
-                        y: -100,
-                        duration: 0.3,
-                        ease: "power2.out"
-                    });
-                } else {
-                    header.style.transform = 'translateY(-100px)';
+            // Hysteresis: ignore tiny scroll jitter (common with trackpads / momentum)
+            // so the header doesn't rapidly toggle hide/show — that toggling was the
+            // white "flicker bar" over the photos. Only react to deltas > 8px.
+            const delta = currentScroll - lastScroll;
+            if (Math.abs(delta) > 8) {
+                if (delta > 0 && currentScroll > 100) {
+                    // Scrolling down — hide
+                    if (hasGsap) {
+                        gsap.to(header, { y: -100, duration: 0.3, ease: "power2.out" });
+                    } else {
+                        header.style.transition = 'transform 0.3s ease';
+                        header.style.transform = 'translateY(-100px)';
+                    }
+                } else if (delta < 0) {
+                    // Scrolling up — show
+                    if (hasGsap) {
+                        gsap.to(header, { y: 0, duration: 0.3, ease: "power2.out" });
+                    } else {
+                        header.style.transition = 'transform 0.3s ease';
+                        header.style.transform = 'translateY(0)';
+                    }
                 }
-            } else {
-                // Scrolling up or at top
-                if (hasGsap) {
-                    gsap.to(header, {
-                        y: 0,
-                        duration: 0.3,
-                        ease: "power2.out"
-                    });
-                } else {
-                    header.style.transform = 'translateY(0)';
-                }
+                lastScroll = currentScroll;
             }
-            
-            // Add/remove backdrop blur based on scroll
-            if (currentScroll > 50) {
-                header.style.backdropFilter = 'blur(20px)';
-                header.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
-            } else {
-                header.style.backdropFilter = 'blur(10px)';
-                header.style.backgroundColor = 'rgba(255, 255, 255, 0.90)';
-            }
-            
-            lastScroll = currentScroll;
+
+            // NOTE: backdrop blur / background are set once via the static Tailwind
+            // classes (bg-white/95 backdrop-blur-md). They are deliberately NOT
+            // re-assigned on every scroll frame: animating backdrop-filter forced a
+            // full re-rasterization of the blurred region each frame, which is what
+            // produced the white flicker bar across the photos while scrolling.
+
             ticking = false;
         }
         
