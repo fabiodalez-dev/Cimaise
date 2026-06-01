@@ -247,28 +247,40 @@ class RateLimitMiddleware implements MiddlewareInterface
         $statusCode = $response->getStatusCode();
         $isDownloadEndpoint = $keyIdentifier === 'download_image';
 
-        // For login pages: check response body for error message (supports multiple languages)
-        // Skip body reading for download endpoints to avoid buffering large files in memory
-        if (!$isDownloadEndpoint) {
-            $body = (string)$response->getBody();
-            // Rewind stream so downstream can read body (if seekable)
-            if ($response->getBody()->isSeekable()) {
-                $response->getBody()->rewind();
-            } else {
-                // Recreate body for non-seekable streams
-                $stream = fopen('php://temp', 'r+');
-                fwrite($stream, $body);
-                rewind($stream);
-                $response = $response->withBody(new \Slim\Psr7\Stream($stream));
-            }
-            if ($statusCode === 200 && (
-                str_contains($body, 'Credenziali non valide') ||
-                str_contains($body, 'Invalid credentials') ||
-                str_contains($body, 'Login failed') ||
-                str_contains($body, 'Account disattivato') ||
-                str_contains($body, 'Account disabled')
-            )) {
+        // Login outcome is signalled by AuthController via the X-Auth-Result header
+        // (robust against translations); only fall back to scanning the localized
+        // response body when that header is absent. Body buffering is confined to the
+        // login endpoint — every other route would otherwise pay the cost of fully
+        // buffering its response (potentially large admin/gallery HTML) for a check
+        // that never applies to it. Download endpoints never inspect the body at all.
+        if ($keyIdentifier === 'login' && !$isDownloadEndpoint) {
+            $authResult = $response->getHeaderLine('X-Auth-Result');
+            if ($authResult === 'failed') {
                 $isFailedAttempt = true;
+            } elseif ($authResult === 'success') {
+                $isSuccessfulAuth = true;
+            } elseif ($authResult === '' && $statusCode === 200) {
+                // Legacy fallback for handlers that don't emit X-Auth-Result.
+                $body = (string)$response->getBody();
+                // Rewind stream so downstream can read body (if seekable)
+                if ($response->getBody()->isSeekable()) {
+                    $response->getBody()->rewind();
+                } else {
+                    // Recreate body for non-seekable streams
+                    $stream = fopen('php://temp', 'r+');
+                    fwrite($stream, $body);
+                    rewind($stream);
+                    $response = $response->withBody(new \Slim\Psr7\Stream($stream));
+                }
+                if (
+                    str_contains($body, 'Credenziali non valide') ||
+                    str_contains($body, 'Invalid credentials') ||
+                    str_contains($body, 'Login failed') ||
+                    str_contains($body, 'Account disattivato') ||
+                    str_contains($body, 'Account disabled')
+                ) {
+                    $isFailedAttempt = true;
+                }
             }
         }
 

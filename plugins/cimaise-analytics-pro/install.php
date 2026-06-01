@@ -10,12 +10,22 @@ use App\Support\Database;
 
 return function (Database $db): array {
     try {
-        if (!$db->pdo()) {
-            return [
-                'success' => false,
-                'message' => 'Database connection not available'
-            ];
-        }
+        // Database::pdo() returns a live PDO or throws — a failed connection is
+        // caught by the surrounding catch (Throwable) below.
+
+        // PluginManager runs install.php BEFORE plugin.php, so AnalyticsPro::ensureTables()
+        // hasn't necessarily created this table yet — create it here so seeding can't fail.
+        $db->pdo()->exec($db->isSqlite()
+            ? 'CREATE TABLE IF NOT EXISTS analytics_pro_funnels (
+                   id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, description TEXT,
+                   steps TEXT NOT NULL, is_active INTEGER DEFAULT 1,
+                   created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)'
+            : 'CREATE TABLE IF NOT EXISTS analytics_pro_funnels (
+                   id INT UNSIGNED NOT NULL AUTO_INCREMENT, name VARCHAR(190) NOT NULL, description TEXT NULL,
+                   steps TEXT NOT NULL, is_active TINYINT(1) DEFAULT 1,
+                   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                   PRIMARY KEY (id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
 
         // Default funnels (compatible with both SQLite and MySQL)
         $insertSql = $db->isSqlite()
