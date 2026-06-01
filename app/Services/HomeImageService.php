@@ -109,7 +109,20 @@ class HomeImageService
         $stmt->execute();
         $rawImages = $this->normalizeCategorySlugs($stmt->fetchAll(\PDO::FETCH_ASSOC));
 
-        $totalImages = count($rawImages);
+        // True library size: the fetch above is LIMIT-capped, so count($rawImages) would
+        // under-report the total and produce a wrong total_images / a spurious load-more
+        // spinner for small libraries. Count with the same predicates, no limit.
+        $countStmt = $pdo->prepare("
+            SELECT COUNT(*)
+            FROM images i
+            JOIN albums a ON a.id = i.album_id
+            WHERE a.is_published = 1
+              AND (:include_nsfw = 1 OR a.is_nsfw = 0)
+              AND (a.password_hash IS NULL OR a.password_hash = '')
+        ");
+        $countStmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
+        $countStmt->execute();
+        $totalImages = (int) $countStmt->fetchColumn();
 
         // Group by album
         $imagesByAlbum = [];

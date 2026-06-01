@@ -213,19 +213,17 @@ class CacheWarmService
         $homeImageService = new HomeImageService($this->db);
         $includeNsfw = false; // Public cache = no NSFW
 
-        if ($homeTemplate === 'masonry') {
-            $masonryMaxImages = $homeSettings['masonry_max_images'] ?? 0;
-            $initialLimit = 40;
-            if ($masonryMaxImages > 0) {
-                $initialLimit = min($initialLimit, $masonryMaxImages);
-            }
-            $imageResult = $homeImageService->getAllImages($initialLimit, $includeNsfw);
+        // Mirror PageController::home() exactly so the warmed cache matches the live
+        // render: every full-grid template loads ALL unique images at once (no
+        // progressive loading), with masonry_max_images applied only to masonry.
+        $gridTemplates = ['masonry', 'editorial', 'justified', 'slideshow', 'split', 'bento', 'filmstrip'];
+        if (in_array($homeTemplate, $gridTemplates, true)) {
+            $masonryMaxImages = $homeTemplate === 'masonry' ? ($homeSettings['masonry_max_images'] ?? 0) : 0;
+            $imageResult = $homeImageService->getAllImages($masonryMaxImages, $includeNsfw);
             $shownImageIds = array_column($imageResult['images'], 'id');
-            $shownAlbumIds = array_unique(array_column($imageResult['images'], 'album_id'));
+            $shownAlbumIds = array_values(array_unique(array_column($imageResult['images'], 'album_id')));
             $totalImagesCount = $imageResult['totalImages'];
-            $hasMoreImages = $masonryMaxImages > 0
-                ? $masonryMaxImages > count($imageResult['images'])
-                : $totalImagesCount > count($imageResult['images']);
+            $hasMoreImages = false;
         } else {
             $initialLimit = 20;
             $imageResult = $homeImageService->getInitialImages($initialLimit, $includeNsfw);
