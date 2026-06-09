@@ -276,6 +276,40 @@
     <script id="custom-js-essential" nonce="{{ csp_nonce() }}">{{ custom_js_essential|raw }}</script>
     {% endif %}
 
+    <!-- Dark mode toggle wiring: flips the `dark` class on <html> and persists the
+         visitor's choice to localStorage (overrides the admin site default). The
+         pre-paint script in <head> applies the stored choice on subsequent loads.
+         The modern home renders the toggle in BOTH the mobile and desktop headers,
+         so bind EVERY [data-theme-toggle] (no duplicate id) and keep them in sync. -->
+    <script nonce="{{ csp_nonce() }}">
+    (function(){
+        var toggles = document.querySelectorAll('[data-theme-toggle]');
+        if (!toggles.length) return;
+        var root = document.documentElement;
+        var labels = { dark: '{{ trans('theme.toggle_dark')|e('js') }}', light: '{{ trans('theme.toggle_light')|e('js') }}' };
+        function sync(){
+            var isDark = root.classList.contains('dark');
+            toggles.forEach(function(btn){
+                var iconDark = btn.querySelector('[data-theme-icon="dark"]');
+                var iconLight = btn.querySelector('[data-theme-icon="light"]');
+                if (iconDark) iconDark.classList.toggle('hidden', isDark);
+                if (iconLight) iconLight.classList.toggle('hidden', !isDark);
+                btn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+                // Label reflects the action the button performs next.
+                btn.setAttribute('aria-label', isDark ? labels.light : labels.dark);
+            });
+        }
+        sync();
+        toggles.forEach(function(btn){
+            btn.addEventListener('click', function(){
+                var isDark = root.classList.toggle('dark');
+                try { localStorage.setItem('cimaise-theme', isDark ? 'dark' : 'light'); } catch(e){}
+                sync();
+            });
+        });
+    })();
+    </script>
+
     {% block scripts %}{% endblock %}
 
     {# Block right-click on images for non-admin users #}
