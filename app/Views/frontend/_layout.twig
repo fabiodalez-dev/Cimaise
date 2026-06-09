@@ -208,6 +208,20 @@
     </style>
     {% endif %}
 
+    <style nonce="{{ csp_nonce() }}">
+        /* Theme toggle icon visibility is driven entirely by the resolved
+           <html>.dark state (set pre-paint from localStorage), so the correct
+           icon shows on first paint even when the visitor's stored choice
+           differs from the server default — and so the FontAwesome `.fas`
+           rule (loaded after the `.hidden` utility, same specificity) can't
+           override it. The toggle wiring only syncs aria-pressed/aria-label.
+           Light: moon (switch-to-dark). Dark: sun (switch-to-light). */
+        [data-theme-icon="light"] { display: none !important; }
+        [data-theme-icon="dark"] { display: inline-block !important; }
+        html.dark [data-theme-icon="dark"] { display: none !important; }
+        html.dark [data-theme-icon="light"] { display: inline-block !important; }
+    </style>
+
     {% if page_custom_css is defined and page_custom_css %}
     {{ page_custom_css|raw }}
     {% endif %}
@@ -550,13 +564,11 @@
         var btn = document.getElementById('theme-toggle');
         if (!btn) return;
         var root = document.documentElement;
-        var iconDark = btn.querySelector('[data-theme-icon="dark"]');
-        var iconLight = btn.querySelector('[data-theme-icon="light"]');
         var labels = { dark: '{{ trans('theme.toggle_dark')|e('js') }}', light: '{{ trans('theme.toggle_light')|e('js') }}' };
+        // Icon visibility is driven by the html.dark CSS rules above; sync only
+        // updates the accessible state (aria-pressed/aria-label) on theme change.
         function sync(){
             var isDark = root.classList.contains('dark');
-            if (iconDark) iconDark.classList.toggle('hidden', isDark);
-            if (iconLight) iconLight.classList.toggle('hidden', !isDark);
             btn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
             // Label reflects the action the button performs next.
             btn.setAttribute('aria-label', isDark ? labels.light : labels.dark);
