@@ -136,15 +136,15 @@ if (document.readyState === 'loading') {
             <input type="hidden" name="csrf" value="{{ csrf }}">
             <div>
               <label for="contact-name" class="block text-sm mb-1">{{ trans('contact.name') }}</label>
-              <input type="text" id="contact-name" name="name" autocomplete="name" required class="w-full border border-neutral-300 rounded px-3 py-2">
+              <input type="text" id="contact-name" name="name" autocomplete="name" required class="w-full border border-neutral-300 rounded px-3 py-2 dark:bg-neutral-900 dark:text-neutral-200">
             </div>
             <div>
               <label for="contact-email" class="block text-sm mb-1">{{ trans('contact.email') }}</label>
-              <input type="email" id="contact-email" name="email" autocomplete="email" required class="w-full border border-neutral-300 rounded px-3 py-2">
+              <input type="email" id="contact-email" name="email" autocomplete="email" required class="w-full border border-neutral-300 rounded px-3 py-2 dark:bg-neutral-900 dark:text-neutral-200">
             </div>
             <div class="md:col-span-2">
               <label for="contact-message" class="block text-sm mb-1">{{ trans('contact.message') }}</label>
-              <textarea id="contact-message" name="message" rows="5" required class="w-full border border-neutral-300 rounded px-3 py-2"></textarea>
+              <textarea id="contact-message" name="message" rows="5" required class="w-full border border-neutral-300 rounded px-3 py-2 dark:bg-neutral-900 dark:text-neutral-200"></textarea>
             </div>
             <div>
               <button type="submit" class="bg-black text-white px-5 py-2 rounded hover:bg-neutral-800 transition-colors">{{ trans('contact.send') }}</button>
@@ -153,7 +153,7 @@ if (document.readyState === 'loading') {
         </div>
       </div>
       <div class="lg:col-span-1 order-1 lg:order-2">
-        <div class="max-w-md ml-auto bg-neutral-100 overflow-hidden border border-neutral-200">
+        <div class="max-w-md ml-auto bg-neutral-100 overflow-hidden border border-neutral-200 dark:bg-neutral-800 dark:border-neutral-700">
           {% if about_photo_url %}
             <img src="{% if about_photo_url starts with '/' %}{{ base_path }}{{ about_photo_url }}{% else %}{{ about_photo_url }}{% endif %}" alt="{{ trans('about.portrait_alt')|e('html_attr') }}" class="w-full h-auto object-cover" loading="lazy" data-about-photo="1"/>
           {% else %}
