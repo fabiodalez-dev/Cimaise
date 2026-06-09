@@ -364,9 +364,10 @@
                           <i class="fas fa-search text-sm"></i>
                       </button>
                       <!-- Dark Mode Toggle -->
-                      <button id="theme-toggle" type="button" class="flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 focus:outline-none transition-colors duration-200" aria-label="{{ trans('theme.toggle_dark') }}" aria-pressed="false">
-                          <i class="fas fa-moon text-sm" data-theme-icon="dark"></i>
-                          <i class="fas fa-sun text-sm hidden" data-theme-icon="light"></i>
+                      {% set _dark_default = dark_mode|default(false) %}
+                      <button id="theme-toggle" type="button" class="flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 focus:outline-none transition-colors duration-200" aria-label="{{ _dark_default ? trans('theme.toggle_light') : trans('theme.toggle_dark') }}" aria-pressed="{{ _dark_default ? 'true' : 'false' }}">
+                          <i class="fas fa-moon text-sm{{ _dark_default ? ' hidden' : '' }}" data-theme-icon="dark" aria-hidden="true"></i>
+                          <i class="fas fa-sun text-sm{{ _dark_default ? '' : ' hidden' }}" data-theme-icon="light" aria-hidden="true"></i>
                       </button>
                     </div>
 

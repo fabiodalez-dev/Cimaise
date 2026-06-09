@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="{{ lang|default('it')|e('html_attr') }}" class="no-js{% if dark_mode|default(false) %} dark{% endif %}">
 <head>
-    <!-- Apply the visitor's saved theme before paint (overrides admin default; avoids FOUC). -->
-    <script nonce="{{ csp_nonce() }}">(function(){var d=document.documentElement;try{var t=localStorage.getItem('cimaise-theme');if(t==='dark'){d.classList.add('dark');}else if(t==='light'){d.classList.remove('dark');}}catch(e){}})();</script>
+    <!-- Flag JS availability + apply the visitor's saved theme before paint (overrides admin default; avoids FOUC). -->
+    <script nonce="{{ csp_nonce() }}">(function(){var d=document.documentElement;d.classList.remove('no-js');d.classList.add('js');try{var t=localStorage.getItem('cimaise-theme');if(t==='dark'){d.classList.add('dark');}else if(t==='light'){d.classList.remove('dark');}}catch(e){}})();</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page_title|e }}</title>
