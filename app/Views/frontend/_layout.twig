@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="{{ lang|default('it')|e('html_attr') }}" class="no-js{% if dark_mode|default(false) %} dark{% endif %}">
 <head>
-    <!-- JS flag class on <html> for no-JS fallbacks -->
-    <script nonce="{{ csp_nonce() }}">(function(){ document.documentElement.classList.remove('no-js'); document.documentElement.classList.add('js'); window.__showExifInLightbox = {{ lightbox_show_exif ? 'true' : 'false' }}; })();</script>
+    <!-- JS flag class on <html> for no-JS fallbacks + visitor theme (runs before paint to avoid FOUC) -->
+    <script nonce="{{ csp_nonce() }}">(function(){ var d=document.documentElement; d.classList.remove('no-js'); d.classList.add('js'); window.__showExifInLightbox = {{ lightbox_show_exif ? 'true' : 'false' }}; try{ var t=localStorage.getItem('cimaise-theme'); if(t==='dark'){d.classList.add('dark');} else if(t==='light'){d.classList.remove('dark');} }catch(e){} })();</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page_title|default(site_title|default('Cimaise'))|e }}</title>
@@ -363,6 +363,11 @@
                       <button id="mobile-search-toggle" class="md:hidden flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 focus:outline-none transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="header-search-panel" aria-expanded="false">
                           <i class="fas fa-search text-sm"></i>
                       </button>
+                      <!-- Dark Mode Toggle -->
+                      <button id="theme-toggle" type="button" class="flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 focus:outline-none transition-colors duration-200" aria-label="{{ trans('theme.toggle_dark') }}" aria-pressed="false">
+                          <i class="fas fa-moon text-sm" data-theme-icon="dark"></i>
+                          <i class="fas fa-sun text-sm hidden" data-theme-icon="light"></i>
+                      </button>
                     </div>
 
                     <!-- Mobile Menu Button - Aligned with Logo -->
@@ -535,6 +540,34 @@
             </div>
         </div>
     </header>
+
+    <!-- Dark mode toggle wiring: flips the `dark` class on <html> and persists the
+         visitor's choice to localStorage (overrides the admin site default). The
+         pre-paint script in <head> applies the stored choice on subsequent loads. -->
+    <script nonce="{{ csp_nonce() }}">
+    (function(){
+        var btn = document.getElementById('theme-toggle');
+        if (!btn) return;
+        var root = document.documentElement;
+        var iconDark = btn.querySelector('[data-theme-icon="dark"]');
+        var iconLight = btn.querySelector('[data-theme-icon="light"]');
+        var labels = { dark: '{{ trans('theme.toggle_dark')|e('js') }}', light: '{{ trans('theme.toggle_light')|e('js') }}' };
+        function sync(){
+            var isDark = root.classList.contains('dark');
+            if (iconDark) iconDark.classList.toggle('hidden', isDark);
+            if (iconLight) iconLight.classList.toggle('hidden', !isDark);
+            btn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+            // Label reflects the action the button performs next.
+            btn.setAttribute('aria-label', isDark ? labels.light : labels.dark);
+        }
+        sync();
+        btn.addEventListener('click', function(){
+            var isDark = root.classList.toggle('dark');
+            try { localStorage.setItem('cimaise-theme', isDark ? 'dark' : 'light'); } catch(e){}
+            sync();
+        });
+    })();
+    </script>
 
     <!-- Main content -->
     <main>

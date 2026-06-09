@@ -17,6 +17,10 @@
     "about.missing_bio": "Aggiungi il testo della tua bio da Admin → Pagine.",
     "about.portrait_alt": "Ritratto"
   },
+  "theme": {
+    "theme.toggle_dark": "Passa al tema scuro",
+    "theme.toggle_light": "Passa al tema chiaro"
+  },
   "album": {
     "album.camera": "Fotocamera",
     "album.date": "Data",

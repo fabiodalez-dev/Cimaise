@@ -17,6 +17,10 @@
     "about.missing_bio": "Add your bio text from admin → Pages.",
     "about.portrait_alt": "Portrait"
   },
+  "theme": {
+    "theme.toggle_dark": "Switch to dark theme",
+    "theme.toggle_light": "Switch to light theme"
+  },
   "album": {
     "album.camera": "Camera",
     "album.date": "Date",

@@ -75,7 +75,7 @@ For maximum protection, combine both. Visitors must confirm their age AND enter 
 
 <img src="screenshot/Dark Mode Category Archive.jpg" alt="Dark Mode" width="800">
 
-One-click toggle inverts all frontend colors for a dark theme. Near-black backgrounds (#0a0a0a) with near-white text (#fafafa) for optimal contrast. Applies to all home pages, galleries, albums, and login. Smooth 0.3s transitions when switching modes.
+A sun/moon button in the header lets every visitor switch to a dark theme with one click. The choice is saved per browser (localStorage) and applied before the page paints, so there's no flash of the wrong theme on the next visit; the admin sets the site-wide default theme from Settings. Near-black backgrounds (#0a0a0a) with near-white text (#fafafa) for optimal contrast, applied across all home pages, galleries, albums, and login, with smooth 0.3s transitions when switching.
 
 ### Category & Tag Archives
 
@@ -697,8 +697,10 @@ Cimaise focuses on what photographers actually need:
 - **i18n System** — Easy to add new languages via JSON files
 
 ### Frontend & Theming
-- **Dark Mode** — One-click toggle to invert all frontend colors for a dark theme
-  - Applies to all 12 home pages, galleries, albums, and login page
+- **Dark Mode** — One-click visitor toggle (sun/moon button in the header) that inverts all frontend colors
+  - Each visitor's choice persists in their browser (localStorage) and is applied before first paint, so there is no flash of the wrong theme
+  - The admin sets the **site-wide default** theme from Settings; the visitor toggle overrides it per browser
+  - Applies to all 12 home pages, galleries, albums, and the login page
   - Near-black (#0a0a0a, #171717) and near-white (#fafafa) for optimal contrast
   - Smooth 0.3s transitions when switching modes
   - Admin panel always stays in light mode for clarity
