@@ -1,5 +1,8 @@
 {% extends "frontend/_layout.twig" %}
-{% set needs_masonry = true %}
+{# Vendor Masonry+imagesLoaded only when the masonry layout renders it, or when
+   the template switcher is enabled (it swaps layouts client-side without a
+   reload, so a runtime switch to masonry needs the library already loaded). #}
+{% set needs_masonry = template_settings.layout|default('grid') == 'masonry' or (available_templates|default([])|length > 0) %}
 
 {% block content %}
 {# NSFW Age Gate - shown if album is NSFW and user hasn't confirmed (skip for admins) #}

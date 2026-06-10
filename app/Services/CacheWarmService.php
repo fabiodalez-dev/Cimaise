@@ -895,10 +895,17 @@ class CacheWarmService
                 $sources[$format][] = $path . ' ' . (int) $variant['width'] . 'w';
             }
 
-            // Find best fallback from variants for initial grid display
-            // Prefer smallest public variant by width for faster initial load
+            // Find best fallback from variants for initial grid display.
+            // Prefer the smallest public JPG so fallback_src matches the
+            // image/jpeg type declared in templates and JSON-LD; only when no
+            // JPG variant exists fall back to the smallest of any format.
+            // IMPORTANT: keep this loop byte-identical to the one in
+            // PageController::processImageSourcesBatch — warmed and
+            // request-built page_cache entries must produce the same data_hash.
             $fallbackUrl = $image['original_path'] ?? '';
             $bestWidth = PHP_INT_MAX;
+            $bestJpgUrl = null;
+            $bestJpgWidth = PHP_INT_MAX;
             foreach ($variants as $variant) {
                 $path = (string) ($variant['path'] ?? '');
                 $w = (int) ($variant['width'] ?? 0);
@@ -911,6 +918,14 @@ class CacheWarmService
                     $bestWidth = $w;
                     $fallbackUrl = $path;
                 }
+                $fmt = strtolower((string) ($variant['format'] ?? ''));
+                if (($fmt === 'jpg' || $fmt === 'jpeg') && $w < $bestJpgWidth) {
+                    $bestJpgWidth = $w;
+                    $bestJpgUrl = $path;
+                }
+            }
+            if ($bestJpgUrl !== null) {
+                $fallbackUrl = $bestJpgUrl;
             }
 
             // LQIP placeholder for instant perceived loading (public albums only)
