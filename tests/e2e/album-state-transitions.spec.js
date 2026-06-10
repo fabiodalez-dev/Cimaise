@@ -29,7 +29,7 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
 
   /** Upload a canvas-based test image and set it as cover */
   async function uploadAndSetCover(page, albumId, label, color) {
-    await page.goto(`${BASE}/admin/albums/${albumId}/edit`);
+    await page.goto(`${BASE}/admin/albums/${albumId}/edit`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#uppy', { timeout: 5000 });
 
     const result = await page.evaluate(async ({ albumId, base, label, color }) => {
@@ -67,7 +67,7 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
 
   /** Clear all caches via admin panel */
   async function clearCaches(page) {
-    await page.goto(`${BASE}/admin/cache`);
+    await page.goto(`${BASE}/admin/cache`, { waitUntil: 'domcontentloaded' });
     const clearForm = page.locator('form[action$="/admin/cache/clear-everything"]');
     await clearForm.locator('button[type="submit"]').click();
     await page.waitForLoadState('networkidle');
@@ -75,24 +75,29 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
 
   /** Toggle NSFW flag on an album via the edit form */
   async function toggleNsfw(page, albumId, enable) {
-    await page.goto(`${BASE}/admin/albums/${albumId}/edit`);
+    await page.goto(`${BASE}/admin/albums/${albumId}/edit`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('form#album-form', { timeout: 5000 });
 
     const nsfwBox = page.locator('input[name="is_nsfw"]');
     await nsfwBox.scrollIntoViewIfNeeded();
     if (enable && !(await nsfwBox.isChecked())) {
       await nsfwBox.check({ force: true });
+      await page.waitForTimeout(400); // settle: toggle triggers section re-render
     } else if (!enable && (await nsfwBox.isChecked())) {
       await nsfwBox.uncheck({ force: true });
+      await page.waitForTimeout(400); // settle: toggle triggers section re-render
     }
 
-    await page.click('button[type="submit"][form="album-form"]');
-    await page.waitForURL(ADMIN_ALBUMS_LIST_RE, { timeout: 15000 });
+    await page.click('button[type=\"submit\"][form=\"album-form\"]');
+    // Poll the URL instead of waiting for a navigation event: the admin
+    // CSRF-refresh handler swallows and re-dispatches the submit, and the
+    // resulting navigation can slip past waitForURL's event window.
+    await expect(page).toHaveURL(ADMIN_ALBUMS_LIST_RE, { timeout: 15000 });
   }
 
   /** Add a password to an album via the edit form (album must have no password) */
   async function setPassword(page, albumId, password) {
-    await page.goto(`${BASE}/admin/albums/${albumId}/edit`);
+    await page.goto(`${BASE}/admin/albums/${albumId}/edit`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('form#album-form', { timeout: 5000 });
 
     // Click the "Add Password" button to reveal the form
@@ -107,12 +112,15 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
 
     // Click save — triggers handleSavePassword() which calls form.submit()
     await page.click('#save-add-btn');
-    await page.waitForURL(ADMIN_ALBUMS_LIST_RE, { timeout: 15000 });
+    // Poll the URL instead of waiting for a navigation event: the admin
+    // CSRF-refresh handler swallows and re-dispatches the submit, and the
+    // resulting navigation can slip past waitForURL's event window.
+    await expect(page).toHaveURL(ADMIN_ALBUMS_LIST_RE, { timeout: 15000 });
   }
 
   /** Remove password from an album via the edit form (album must have a password) */
   async function removePassword(page, albumId) {
-    await page.goto(`${BASE}/admin/albums/${albumId}/edit`);
+    await page.goto(`${BASE}/admin/albums/${albumId}/edit`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('form#album-form', { timeout: 5000 });
 
     // Handle the confirm() dialog that removePassword triggers
@@ -123,13 +131,15 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     const removeBtn = page.locator('#remove-password-btn');
     await removeBtn.scrollIntoViewIfNeeded();
     await removeBtn.click();
-
-    await page.waitForURL(ADMIN_ALBUMS_LIST_RE, { timeout: 15000 });
+    // Poll the URL instead of waiting for a navigation event: the admin
+    // CSRF-refresh handler swallows and re-dispatches the submit, and the
+    // resulting navigation can slip past waitForURL's event window.
+    await expect(page).toHaveURL(ADMIN_ALBUMS_LIST_RE, { timeout: 15000 });
   }
 
   /** Set NSFW + add password in a single form submission */
   async function setNsfwAndPassword(page, albumId, password) {
-    await page.goto(`${BASE}/admin/albums/${albumId}/edit`);
+    await page.goto(`${BASE}/admin/albums/${albumId}/edit`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('form#album-form', { timeout: 5000 });
 
     // Check NSFW first
@@ -137,6 +147,7 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     await nsfwBox.scrollIntoViewIfNeeded();
     if (!(await nsfwBox.isChecked())) {
       await nsfwBox.check({ force: true });
+      await page.waitForTimeout(400); // settle: toggle triggers section re-render
     }
 
     // Add password — the save-add-btn triggers form.submit() which includes the NSFW checkbox
@@ -149,12 +160,15 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     await passwordInput.fill(password);
 
     await page.click('#save-add-btn');
-    await page.waitForURL(ADMIN_ALBUMS_LIST_RE, { timeout: 15000 });
+    // Poll the URL instead of waiting for a navigation event: the admin
+    // CSRF-refresh handler swallows and re-dispatches the submit, and the
+    // resulting navigation can slip past waitForURL's event window.
+    await expect(page).toHaveURL(ADMIN_ALBUMS_LIST_RE, { timeout: 15000 });
   }
 
   /** Remove password while keeping NSFW (remove-password auto-submits entire form) */
   async function removePasswordKeepNsfw(page, albumId) {
-    await page.goto(`${BASE}/admin/albums/${albumId}/edit`);
+    await page.goto(`${BASE}/admin/albums/${albumId}/edit`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('form#album-form', { timeout: 5000 });
 
     // Verify NSFW is currently checked (we want to keep it)
@@ -169,8 +183,7 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     const removeBtn = page.locator('#remove-password-btn');
     await removeBtn.scrollIntoViewIfNeeded();
     await removeBtn.click();
-
-    await page.waitForURL(ADMIN_ALBUMS_LIST_RE, { timeout: 15000 });
+    await expect(page).toHaveURL(ADMIN_ALBUMS_LIST_RE, { timeout: 15000 });
   }
 
   /**
@@ -300,15 +313,15 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     test.setTimeout(120000);
 
     // Login
-    await admin.goto(`${BASE}/admin/login`);
+    await admin.goto(`${BASE}/admin/login`, { waitUntil: 'domcontentloaded' });
     await admin.fill('input[name="email"]', ADMIN_EMAIL);
     await admin.fill('input[name="password"]', ADMIN_PASSWORD);
     await admin.click('button[type="submit"]');
-    await admin.waitForURL(ADMIN_DASHBOARD_RE, { timeout: 10000 });
+    await expect(admin).toHaveURL(ADMIN_DASHBOARD_RE, { timeout: 10000 });
     await admin.screenshot({ path: path.join(SCREENSHOTS, '00-login.png'), fullPage: true });
 
     // Create album (regular, published, no NSFW, no password)
-    await admin.goto(`${BASE}/admin/albums/create`);
+    await admin.goto(`${BASE}/admin/albums/create`, { waitUntil: 'domcontentloaded' });
     await admin.waitForSelector('form#album-form', { timeout: 5000 });
     await admin.fill('input[name="title"]', ALBUM_NAME);
     await admin.fill('textarea[name="excerpt"]', `State transition test album: ${ALBUM_NAME}`);
@@ -316,19 +329,28 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     const nsfwBox = admin.locator('input[name="is_nsfw"]');
     await nsfwBox.scrollIntoViewIfNeeded();
     if (await nsfwBox.isChecked()) await nsfwBox.uncheck({ force: true });
+    await admin.waitForTimeout(400); // settle: toggle triggers section re-render
 
-    await admin.click('button[type="submit"][form="album-form"]');
-    await admin.waitForURL(ADMIN_ALBUMS_LIST_RE, { timeout: 15000 });
+    await admin.click('button[type=\"submit\"][form=\"album-form\"]');
+    // Poll the URL instead of waiting for a navigation event: the admin
+    // CSRF-refresh handler swallows and re-dispatches the submit, and the
+    // resulting navigation can slip past waitForURL's event window.
+    await expect(admin).toHaveURL(ADMIN_ALBUMS_LIST_RE, { timeout: 15000 });
 
     // Get album ID from list
-    await admin.goto(`${BASE}/admin/albums`);
+    // The post-submit redirect already landed on /admin/albums (waitForURL above).
+    // Re-navigating to the same URL races the still-loading page ("interrupted
+    // by another navigation"); only navigate if we are somewhere else.
+    if (!/\/admin\/albums\/?(\?.*)?$/.test(admin.url())) {
+      await admin.goto(`${BASE}/admin/albums`, { waitUntil: 'domcontentloaded' });
+    }
     const link = admin.locator(`a:has-text("${ALBUM_NAME}")`).first();
     const href = await link.getAttribute('href');
     albumId = href?.match(/\/albums\/(\d+)/)?.[1];
     expect(albumId).toBeTruthy();
 
     // Get slug from edit page
-    await admin.goto(`${BASE}/admin/albums/${albumId}/edit`);
+    await admin.goto(`${BASE}/admin/albums/${albumId}/edit`, { waitUntil: 'domcontentloaded' });
     albumSlug = await admin.locator('input[name="slug"]').inputValue();
     console.log(`Test album created: id=${albumId} slug=${albumSlug}`);
 
