@@ -341,7 +341,7 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     // The post-submit redirect already landed on /admin/albums (waitForURL above).
     // Re-navigating to the same URL races the still-loading page ("interrupted
     // by another navigation"); only navigate if we are somewhere else.
-    if (!/\/admin\/albums\/?(\?.*)?$/.test(admin.url())) {
+    if (!ADMIN_ALBUMS_LIST_RE.test(admin.url())) {
       await admin.goto(`${BASE}/admin/albums`, { waitUntil: 'domcontentloaded' });
     }
     const link = admin.locator(`a:has-text("${ALBUM_NAME}")`).first();
