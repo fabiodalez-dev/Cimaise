@@ -4,8 +4,10 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const BASE = 'http://localhost:8000';
+const BASE = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8000';
 const SCREENSHOTS = 'test-results/screenshots-complete';
+const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@test.com';
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'TestPass123!';
 const ts = Date.now();
 
 // Unique album names to avoid collision with previous runs
@@ -121,7 +123,8 @@ test.describe.serial('NSFW & Password — complete verification', () => {
   // ─── setup & teardown ─────────────────────────────────────────────
 
   test.beforeAll(async () => {
-    browser = await chromium.launch({ headless: false, slowMo: 150 });
+    const isCI = !!process.env.CI;
+    browser = await chromium.launch({ headless: isCI, slowMo: isCI ? 0 : 150 });
     adminCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     admin = await adminCtx.newPage();
   });
@@ -135,8 +138,8 @@ test.describe.serial('NSFW & Password — complete verification', () => {
 
   test('Login to admin', async () => {
     await admin.goto(`${BASE}/admin/login`, { waitUntil: 'domcontentloaded' });
-    await admin.fill('input[name="email"]', 'admin@test.com');
-    await admin.fill('input[name="password"]', 'TestPass123!');
+    await admin.fill('input[name="email"]', ADMIN_EMAIL);
+    await admin.fill('input[name="password"]', ADMIN_PASSWORD);
     await admin.click('button[type="submit"]');
     // Poll the URL instead of waiting for a navigation event: the admin
     // CSRF-refresh handler swallows and re-dispatches the submit, and the
@@ -251,8 +254,6 @@ test.describe.serial('NSFW & Password — complete verification', () => {
     await pg.goto(`${BASE}/?template=masonry`);
     await pg.waitForTimeout(2000);
     await pg.screenshot({ path: `${SCREENSHOTS}/12-home-masonry-anon.png`, fullPage: true });
-
-    const html = await pg.content();
 
     // Images link to /album/{slug} — check which album slugs appear
     const regLink = pg.locator(`a[href*="/album/${regularSlug}"]`);
