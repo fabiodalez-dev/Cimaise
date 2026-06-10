@@ -141,7 +141,9 @@ jobs:
             releases/cimaise-v${{ steps.version.outputs.VERSION }}.zip.sha256
             releases/RELEASE_NOTES-v${{ steps.version.outputs.VERSION }}.md
           draft: false
-          prerelease: false
+          # Pinakes rule: hyphenated versions (1.5.0-rc.1) are prereleases, so
+          # /releases/latest never resolves to them and stable installs are safe.
+          prerelease: ${{ contains(steps.version.outputs.VERSION, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
