@@ -151,7 +151,15 @@ return function (App $app, array $container) {
             new \App\Services\UploadService($container['db'])
         );
         return $controller->servePublic($request, $response, $args);
-    })->add(new RateLimitMiddleware(200, 60)); // 200 requests per minute (higher for public media)
+    });
+    // NOTE: intentionally NOT rate limited (M1). RateLimitMiddleware does a
+    // flock()ed read-modify-write of a per-IP JSON file, which serialized every
+    // image request from the same visitor. Public variants are cheap static
+    // streams; the expensive path (on-demand variant generation) is protected by
+    // a per-image lock in MediaController::ensureVariantGenerated() and only
+    // generates the single requested variant. Enumeration-sensitive routes
+    // (/media/protected/*) above keep their 100 req/min limiter. If needed,
+    // rate-limit /media/ at the Apache level (mod_ratelimit / mod_evasive).
 
     $app->get('/album/{slug}', function (Request $request, Response $response, array $args) use ($container) {
         $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));

@@ -122,7 +122,8 @@ class InstallerController
                 return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
             }
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Database connection failed: ' . $e->getMessage()];
+            error_log('processDatabaseConfig: Database connection failed: ' . $e->getMessage());
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Database connection failed. Check your credentials and try again.'];
             return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
         }
     }
@@ -374,7 +375,7 @@ class InstallerController
         }
         
         $data = (array)$request->getParsedBody();
-        error_log('runInstall: Received data: ' . print_r($data, true));
+        error_log('runInstall: Received data: ' . print_r($this->redactSensitiveData($data), true));
         
         // Verify CSRF token
         $csrf = (string)($data['csrf'] ?? '');
@@ -392,7 +393,7 @@ class InstallerController
                 $_SESSION['install_settings_config']
             );
             
-            error_log('runInstall: Starting installation process with data: ' . print_r($installData, true));
+            error_log('runInstall: Starting installation process with data: ' . print_r($this->redactSensitiveData($installData), true));
             
             // Run installation
             $result = $this->installer->install($installData);
@@ -415,9 +416,25 @@ class InstallerController
         } catch (\Throwable $e) {
             error_log('runInstall: Installation failed: ' . $e->getMessage());
             error_log('runInstall: Stack trace: ' . $e->getTraceAsString());
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Installation failed: ' . $e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Installation failed. Check the server error log for details and try again.'];
             return $response->withHeader('Location', $this->basePath . '/install/confirm')->withStatus(302);
         }
+    }
+
+    /**
+     * Redact sensitive values (passwords) from config data before logging
+     *
+     * @param array<array-key, mixed> $data
+     * @return array<array-key, mixed>
+     */
+    private function redactSensitiveData(array $data): array
+    {
+        foreach ($data as $key => $value) {
+            if (is_string($key) && stripos($key, 'password') !== false) {
+                $data[$key] = '***REDACTED***';
+            }
+        }
+        return $data;
     }
 
     /**
@@ -507,9 +524,10 @@ class InstallerController
             return $response->withHeader('Content-Type', 'application/json');
 
         } catch (\Throwable $e) {
+            error_log('testMySQLConnection: Database connection failed: ' . $e->getMessage());
             $payload = json_encode([
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => 'Database connection failed. Check your credentials and try again.'
             ]);
             $response->getBody()->write($payload !== false ? $payload : '{"success":false}');
             return $response->withHeader('Content-Type', 'application/json');
@@ -569,7 +587,8 @@ class InstallerController
             
             return ['success' => true];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => $e->getMessage()];
+            error_log('testDatabaseConnection: Database connection failed: ' . $e->getMessage());
+            return ['success' => false, 'error' => 'Database connection failed. Check your credentials and try again.'];
         }
     }
     

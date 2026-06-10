@@ -1031,7 +1031,7 @@
                         suggestController.abort();
                     }
                     suggestController = new AbortController();
-                    fetch(`${basePath}/galleries/filter?search=${encodeURIComponent(query)}`, {
+                    fetch(`${basePath}/galleries/filter?search=${encodeURIComponent(query)}&limit=6`, {
                         method: 'GET',
                         headers: { 'Accept': 'application/json' },
                         signal: suggestController.signal

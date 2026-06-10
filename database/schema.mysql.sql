@@ -181,15 +181,15 @@ CREATE TABLE IF NOT EXISTS `albums` (
   `sort_order` INT DEFAULT 0,
   `password_hash` VARCHAR(255) NULL,
   `allow_downloads` TINYINT(1) NOT NULL DEFAULT 0,
-  -- JSON array of camera names: ["Canon AE-1", "Nikon F3"]
+  -- Newline-delimited camera names, one per line: Canon AE-1\nNikon F3
   `custom_cameras` TEXT NULL,
-  -- JSON array of lens names: ["50mm f/1.8", "35mm f/2.0"]
+  -- Newline-delimited lens names, one per line: 50mm f/1.8\n35mm f/2.0
   `custom_lenses` TEXT NULL,
-  -- JSON array of films: ["Kodak Portra 400 35mm"]
+  -- Newline-delimited films, one per line: Kodak Portra 400 35mm
   `custom_films` TEXT NULL,
-  -- JSON array of developers: ["D-76", "Rodinal"]
+  -- Newline-delimited developers, one per line: D-76\nRodinal
   `custom_developers` TEXT NULL,
-  -- JSON array of labs: ["Lab Name"]
+  -- Newline-delimited labs, one per line: Lab Name
   `custom_labs` TEXT NULL,
   `is_nsfw` TINYINT(1) NOT NULL DEFAULT 0,
   `seo_title` VARCHAR(255) NULL,

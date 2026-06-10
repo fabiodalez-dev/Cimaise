@@ -10,7 +10,7 @@ Prima di iniziare, assicurati che il tuo server soddisfi i [requisiti minimi](./
 - **Composer 2.x**
 - **Node.js 18+** e npm (solo per build frontend)
 - **Web server**: Apache 2.4+, Nginx 1.18+, o Caddy 2.0+
-- **Database**: SQLite 3.x (default, zero config) oppure MySQL 8.0+
+- **Database**: SQLite 3.25+ (default, zero config) oppure MySQL 8.0+
 
 ## Metodo 1: Installazione Rapida (5 minuti)
 

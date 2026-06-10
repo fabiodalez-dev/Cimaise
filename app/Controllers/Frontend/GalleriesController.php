@@ -130,8 +130,21 @@ class GalleriesController extends BaseController
         // Build filters from request
         $filters = $this->buildFilters($params, $filterSettings);
 
+        // Optional result cap (validated int, 1..100). Used by callers that only
+        // need a handful of results — e.g. the live-search suggestion box should
+        // request limit=6 instead of receiving every published album on each
+        // keystroke. Absent/invalid limit = full listing (unchanged behavior
+        // for the galleries page itself).
+        $limit = null;
+        if (isset($params['limit']) && is_numeric($params['limit'])) {
+            $requested = (int) $params['limit'];
+            if ($requested >= 1) {
+                $limit = min(100, $requested);
+            }
+        }
+
         // Get filtered albums
-        $albums = $this->getFilteredAlbums($filters, $isAdmin, $nsfwConsent);
+        $albums = $this->getFilteredAlbums($filters, $isAdmin, $nsfwConsent, $limit);
 
         // Sanitize album data - remove sensitive fields
         // SECURITY: For NSFW albums without consent, expose only blur_path (no real previews)
@@ -325,7 +338,11 @@ class GalleriesController extends BaseController
         return $filters;
     }
 
-    private function getFilteredAlbums(array $filters, ?bool $isAdmin = null, ?bool $nsfwConsent = null): array
+    /**
+     * @param int|null $limit Optional row cap (already validated to 1..100 by
+     *                        the caller); null = no LIMIT (full listing).
+     */
+    private function getFilteredAlbums(array $filters, ?bool $isAdmin = null, ?bool $nsfwConsent = null, ?int $limit = null): array
     {
         $pdo = $this->db->pdo();
 
@@ -343,11 +360,6 @@ class GalleriesController extends BaseController
 
         $params = [];
         $conditions = [];
-
-        // Helper closure to build "EXISTS (SELECT 1 FROM pivot p WHERE p.album_id = a.id AND p.col IN (...))"
-        $existsIn = function (string $sub) use (&$conditions, &$params, $filters) {
-            // intentionally empty placeholder for IDE; real logic uses inline assembly below
-        };
 
         // Category: match either the primary category (albums.category_id) OR the
         // many-to-many album_category. Single EXISTS handles both paths.
@@ -432,7 +444,13 @@ class GalleriesController extends BaseController
             default:
                 $sql .= ' ORDER BY a.published_at DESC';
         }
-        
+
+        // Apply optional cap in SQL so enrichment (covers/tags/counts) only
+        // runs for the rows actually returned. $limit is a validated int.
+        if ($limit !== null) {
+            $sql .= ' LIMIT ' . $limit;
+        }
+
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $albums = $stmt->fetchAll();

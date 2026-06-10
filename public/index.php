@@ -27,6 +27,14 @@ $isInstallerRoute = strpos($requestUri, '/install') !== false || strpos($request
 $isAdminRoute = strpos($requestUri, '/admin') !== false;
 $isLoginRoute = strpos($requestUri, '/login') !== false;
 
+// Media requests (/media/*) are hot-path image serving. They are gated below to
+// skip the session file lock (H2) and the DB-backed Twig global enrichment (H1)
+// while still going through Slim routing + MediaController access control.
+// Match on the path only (query string stripped) and never treat admin pages
+// (/admin/media/*) as media — those need the full session/CSRF behavior.
+$requestPathOnly = (string)(parse_url($requestUri, PHP_URL_PATH) ?: '/');
+$isMediaRequest = !$isAdminRoute && (bool)preg_match('#(^|/)media/#', $requestPathOnly);
+
 // Check if already installed (for all routes except installer itself)
 // PERFORMANCE: Use file-based marker first (fast), only fall back to full check if needed
 if (!$isInstallerRoute) {
@@ -132,7 +140,26 @@ if (CookieHelper::isHttps()) {
     ini_set('session.cookie_secure', '1');
 }
 session_cache_limiter('');
-session_start();
+if ($isMediaRequest) {
+    // H2: PHP's file session handler holds an EXCLUSIVE lock from session_start()
+    // until script end, which serializes a browser's 6-10 parallel image requests.
+    // For /media/* we therefore never keep the session open:
+    //   - no session cookie  -> skip session_start() entirely (anonymous visitor;
+    //     MediaController reads $_SESSION defensively via isset/?? and treats the
+    //     missing session as "no access granted")
+    //   - session cookie set -> start, then immediately release the lock.
+    //     $_SESSION stays readable in-memory (admin flag, album_access, NSFW
+    //     consent), so access control works identically. MediaController never
+    //     needs to persist session writes (see its ensureSession() override).
+    // HTML routes keep the default behavior: CSRF token generation must be able
+    // to write to the session.
+    if (!empty($_COOKIE[session_name()])) {
+        session_start();
+        session_write_close();
+    }
+} else {
+    session_start();
+}
 
 // Calculate base path once for subdirectory installations
 // Note: PHP built-in server sets SCRIPT_NAME to the requested URI when using a router,
@@ -329,7 +356,11 @@ $twig->getEnvironment()->addGlobal('app_version', $appVersion);
 
 // Load Twig globals from cache (APCu/file) - reduces ~50 settings queries to ~1
 // Cache is invalidated when settings change via TwigGlobalsCache::invalidate()
-if (!$isInstallerRoute && $container['db'] !== null) {
+// H1: /media/* never renders these globals (MediaController streams files), so it
+// takes the lightweight defaults branch below — skipping translations (full
+// frontend_texts scan), social profiles, NSFW global query, nav_tags and
+// TypographyService. Error pages for media requests render fine with defaults.
+if (!$isInstallerRoute && !$isMediaRequest && $container['db'] !== null) {
     try {
         // Load cached globals (most settings come from here)
         $cachedGlobals = \App\Services\TwigGlobalsCache::getGlobals(
@@ -476,7 +507,7 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $twig->getEnvironment()->addGlobal('critical_fonts_preload', []);
     }
 } else {
-    // Installer route: use defaults
+    // Installer or media route: use defaults (no DB-backed Twig globals)
     $defaults = \App\Services\TwigGlobalsCache::getDefaults($basePath);
     foreach ($defaults as $key => $value) {
         $twig->getEnvironment()->addGlobal($key, $value);
