@@ -193,7 +193,11 @@ class UpdateController extends BaseController
         return $this->jsonResponse($response, [
             'available' => $updateInfo['available'],
             'current' => $updateInfo['current'],
-            'latest' => $updateInfo['latest']
+            'latest' => $updateInfo['latest'],
+            // false = release published without the installable package asset
+            // (the release workflow failed); the UI must warn, not offer it
+            'package_asset' => $updateInfo['package_asset'] ?? false,
+            'asset_name' => $updateInfo['asset_name'] ?? null
         ]);
     }
 

@@ -81,10 +81,13 @@ test.describe.serial('NSFW & Password — complete verification', () => {
 
     const nsfwBox = page.locator('input[name="is_nsfw"]');
     await nsfwBox.scrollIntoViewIfNeeded();
-    if (nsfw && !(await nsfwBox.isChecked())) await nsfwBox.check({ force: true });
-    await page.waitForTimeout(400); // settle: toggle triggers section re-render
-    if (!nsfw && (await nsfwBox.isChecked())) await nsfwBox.uncheck({ force: true });
-    await page.waitForTimeout(400); // settle: toggle triggers section re-render
+    if (nsfw && !(await nsfwBox.isChecked())) {
+      await nsfwBox.check({ force: true });
+      await page.waitForTimeout(400); // settle: toggle triggers section re-render
+    } else if (!nsfw && (await nsfwBox.isChecked())) {
+      await nsfwBox.uncheck({ force: true });
+      await page.waitForTimeout(400); // settle: toggle triggers section re-render
+    }
 
     await page.click('button[type=\"submit\"][form=\"album-form\"]');
     // Poll the URL instead of waiting for a navigation event: the admin
@@ -117,7 +120,7 @@ test.describe.serial('NSFW & Password — complete verification', () => {
     await page.goto(`${BASE}/admin/cache`, { waitUntil: 'domcontentloaded' });
     const clearForm = page.locator('form[action$="/admin/cache/clear-everything"]');
     await clearForm.locator('button[type="submit"]').click();
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('networkidle');
   }
 
   // ─── setup & teardown ─────────────────────────────────────────────
@@ -401,7 +404,7 @@ test.describe.serial('NSFW & Password — complete verification', () => {
     // Check the NSFW confirmation checkbox and submit
     await pg.check('#nsfw_confirmed');
     await pg.click('#nsfw-confirm-form button[type="submit"]');
-    await pg.waitForURL(`**/album/${nsfwSlug}**`, { timeout: 10000 });
+    await expect(pg).toHaveURL(new RegExp(`/album/${nsfwSlug}`), { timeout: 10000 });
     await pg.waitForTimeout(1500);
     await pg.screenshot({ path: `${SCREENSHOTS}/31-album-nsfw-consented.png`, fullPage: true });
 
@@ -481,7 +484,7 @@ test.describe.serial('NSFW & Password — complete verification', () => {
 
     await pg.fill('input[name="password"]', ALBUM_PASSWORD);
     await pg.click('#album-password-form button[type="submit"]');
-    await pg.waitForURL(`**/album/${pwdSlug}**`, { timeout: 10000 });
+    await expect(pg).toHaveURL(new RegExp(`/album/${pwdSlug}`), { timeout: 10000 });
     await pg.waitForTimeout(1500);
     await pg.screenshot({ path: `${SCREENSHOTS}/42-album-pwd-unlocked.png`, fullPage: true });
 
@@ -564,7 +567,7 @@ test.describe.serial('NSFW & Password — complete verification', () => {
     const nsfwCheckbox = pg.locator('input[name="nsfw_confirmed"]');
     if (await nsfwCheckbox.count() > 0) await nsfwCheckbox.check();
     await pg.click('#album-password-form button[type="submit"]');
-    await pg.waitForURL(`**/album/${pwdNsfwSlug}**`, { timeout: 10000 });
+    await expect(pg).toHaveURL(new RegExp(`/album/${pwdNsfwSlug}`), { timeout: 10000 });
     await pg.waitForTimeout(1500);
     await pg.screenshot({ path: `${SCREENSHOTS}/52-album-pwdnsfw-unlocked.png`, fullPage: true });
 

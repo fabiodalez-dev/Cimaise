@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*.*.*'
 
+# The default GITHUB_TOKEN is read-only; creating the release and
+# uploading assets requires contents write.
+permissions:
+  contents: write
+
 jobs:
   build-release:
     name: Build and Package Release
@@ -20,10 +25,12 @@ jobs:
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
 
-      - name: Setup PHP 8.1
+      - name: Setup PHP 8.2
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
+          # composer.json requires ^8.2 — build the package with the app's
+          # minimum supported PHP so the optimized autoloader stays compatible.
+          php-version: '8.2'
           extensions: pdo, pdo_mysql, pdo_sqlite, mbstring, json, openssl, curl, gd, exif
           tools: composer
 
@@ -36,7 +43,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y jq rsync zip
+          sudo apt-get install -y jq rsync zip unzip
 
       - name: Install Composer dependencies
         run: composer install --no-dev --optimize-autoloader --no-interaction
@@ -141,9 +148,80 @@ jobs:
             releases/cimaise-v${{ steps.version.outputs.VERSION }}.zip.sha256
             releases/RELEASE_NOTES-v${{ steps.version.outputs.VERSION }}.md
           draft: false
-          prerelease: false
+          # Pinakes rule: hyphenated versions (1.5.0-rc.1) are prereleases, so
+          # /releases/latest never resolves to them and stable installs are safe.
+          prerelease: ${{ contains(steps.version.outputs.VERSION, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Pinakes "absolute rule" adapted to Actions: NEVER trust that the upload
+      # worked. Verify the published asset via the GitHub API (metadata + binary
+      # re-download) against the locally built package, and fail loudly otherwise.
+      - name: Verify uploaded release asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          set -euo pipefail
+          ASSET_NAME="cimaise-v${VERSION}.zip"
+          LOCAL_FILE="releases/${ASSET_NAME}"
+
+          LOCAL_SHA=$(sha256sum "$LOCAL_FILE" | awk '{print $1}')
+          LOCAL_SIZE=$(stat -c%s "$LOCAL_FILE")
+          echo "Local package: ${LOCAL_SIZE} bytes, sha256=${LOCAL_SHA}"
+
+          # 1) Release metadata via API (authoritative answer, no CDN).
+          #    Retry a few times: asset processing can lag right after upload.
+          RELEASE_JSON=""
+          for attempt in 1 2 3 4 5; do
+            if RELEASE_JSON=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/v${VERSION}"); then
+              break
+            fi
+            echo "Attempt ${attempt}: release not available yet, retrying in 10s..."
+            sleep 10
+          done
+          if [ -z "$RELEASE_JSON" ]; then
+            echo "::error::Cannot fetch release v${VERSION} via API"
+            exit 1
+          fi
+
+          ASSET_JSON=$(echo "$RELEASE_JSON" | jq --arg n "$ASSET_NAME" '[.assets[] | select(.name == $n)] | first // empty')
+          if [ -z "$ASSET_JSON" ]; then
+            echo "::error::Release v${VERSION} has NO ${ASSET_NAME} asset - the upload failed. Installs would have nothing to download."
+            exit 1
+          fi
+
+          REMOTE_SIZE=$(echo "$ASSET_JSON" | jq -r '.size')
+          REMOTE_DIGEST=$(echo "$ASSET_JSON" | jq -r '.digest // empty')
+          ASSET_ID=$(echo "$ASSET_JSON" | jq -r '.id')
+          echo "Remote asset: id=${ASSET_ID}, ${REMOTE_SIZE} bytes, digest=${REMOTE_DIGEST:-<none>}"
+
+          if [ "$REMOTE_SIZE" != "$LOCAL_SIZE" ]; then
+            echo "::error::Uploaded asset size (${REMOTE_SIZE}) != local package size (${LOCAL_SIZE}) - truncated upload"
+            exit 1
+          fi
+
+          if [ -n "$REMOTE_DIGEST" ] && [ "$REMOTE_DIGEST" != "sha256:${LOCAL_SHA}" ]; then
+            echo "::error::Uploaded asset digest (${REMOTE_DIGEST}) != local sha256:${LOCAL_SHA}"
+            exit 1
+          fi
+
+          # 2) Re-download the binary via the API and compare checksums.
+          gh api -H "Accept: application/octet-stream" \
+            "repos/${GITHUB_REPOSITORY}/releases/assets/${ASSET_ID}" > /tmp/asset-redownload.zip
+          DL_SHA=$(sha256sum /tmp/asset-redownload.zip | awk '{print $1}')
+          if [ "$DL_SHA" != "$LOCAL_SHA" ]; then
+            echo "::error::Re-downloaded asset sha256 (${DL_SHA}) != local sha256 (${LOCAL_SHA})"
+            exit 1
+          fi
+
+          # 3) The .sha256 sidecar must also be present (runtime fallback integrity source).
+          if ! echo "$RELEASE_JSON" | jq -e --arg n "${ASSET_NAME}.sha256" '.assets[] | select(.name == $n)' > /dev/null; then
+            echo "::error::Release is missing the ${ASSET_NAME}.sha256 sidecar asset"
+            exit 1
+          fi
+
+          echo "Uploaded asset verified: name, size, digest and binary checksum all match."
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
