@@ -1597,7 +1597,12 @@
             }
         }
 
-        // Shared PhotoSwipe helper: setup tap/zoom handling for lightbox
+        // Shared PhotoSwipe helper: setup tap/zoom handling for lightbox.
+        // Must use PhotoSwipe's native action hooks, NOT a DOM pointerup
+        // listener: stopPropagation() on pointerup swallows the gesture-end
+        // PhotoSwipe listens for on window, so drags are never finalized
+        // (no spring-back into pan bounds) and the image can be dragged
+        // off-screen permanently on touch devices.
         function pswpSetupTapZoom(pswp, toggleZoomFn) {
             if (pswp._customZoomBound) return;
 
@@ -1611,81 +1616,54 @@
                 }, { capture: true });
             }
 
-            // Tap on image: single tap navigates, double tap zooms (touch)
-            let lastTapAt = 0;
-            let lastTapX = 0;
-            let lastTapY = 0;
-            let singleTapTimer = null;
-            const tapDelayMs = 260;
-            const tapDistancePx = 24;
-
-            pswp.element?.addEventListener('pointerup', (ev) => {
-                const target = ev.target;
-                // Skip UI controls to prevent blocking button clicks
-                if (target.closest('.pswp__top-bar, .pswp__button')) {
-                    return;
-                }
-                const imgEl = target && target.closest ? target.closest('.pswp__img') : null;
-                if (!imgEl) return;
-
-                const rect = imgEl.getBoundingClientRect();
-                const clickX = ev.clientX - rect.left;
-                const clickY = ev.clientY - rect.top;
-                const isTouch = ev.pointerType === 'touch' || ev.pointerType === 'pen';
+            const isZoomedIn = () => {
                 const slide = pswp.currSlide;
-                const fit = slide && slide.zoomLevels ? (slide.zoomLevels.fit ?? slide.zoomLevels.initial ?? 1) : 1;
-                const current = slide ? (slide.currZoomLevel ?? fit) : fit;
-                const isZoomed = current > fit * 1.05;
-
-                if (isTouch) {
-                    const now = Date.now();
-                    const dist = Math.hypot(clickX - lastTapX, clickY - lastTapY);
-                    if (now - lastTapAt <= tapDelayMs && dist <= tapDistancePx) {
-                        if (singleTapTimer) {
-                            clearTimeout(singleTapTimer);
-                            singleTapTimer = null;
-                        }
-                        lastTapAt = 0;
-                        ev.preventDefault();
-                        ev.stopPropagation();
-                        toggleZoomFn(pswp);
-                        return;
-                    }
-                    if (isZoomed) {
-                        return;
-                    }
-                    lastTapAt = now;
-                    lastTapX = clickX;
-                    lastTapY = clickY;
-                    if (singleTapTimer) {
-                        clearTimeout(singleTapTimer);
-                    }
-                    singleTapTimer = setTimeout(() => {
-                        if (isZoomed) {
-                            return;
-                        }
-                        ev.preventDefault();
-                        ev.stopPropagation();
-                        if (clickX < rect.width / 2) {
-                            pswp.prev();
-                        } else {
-                            pswp.next();
-                        }
-                    }, tapDelayMs);
-                    return;
-                }
-
-                if (isZoomed) {
-                    return;
-                }
-                ev.preventDefault();
-                ev.stopPropagation();
-                if (clickX < rect.width / 2) {
+                if (!slide || !slide.zoomLevels) return false;
+                const fit = slide.zoomLevels.fit ?? slide.zoomLevels.initial ?? 1;
+                const current = slide.currZoomLevel ?? fit;
+                return current > fit * 1.05;
+            };
+            const tappedImage = (ev) => !!(ev && ev.target && ev.target.closest && ev.target.closest('.pswp__img'));
+            const navigateByHalf = (point) => {
+                if (point.x < pswp.viewportSize.x / 2) {
                     pswp.prev();
                 } else {
                     pswp.next();
                 }
-            }, { capture: true });
+            };
+            const toggleControls = () => {
+                pswp.element?.classList.toggle('pswp--ui-visible');
+            };
+
+            // Mouse click on the image: navigate at fit level, zoom back out
+            // at the clicked point when zoomed in.
+            pswp.options.imageClickAction = (point, ev) => {
+                if (!tappedImage(ev)) return;
+                if (isZoomedIn()) {
+                    pswp.currSlide?.toggleZoom(point);
+                    return;
+                }
+                navigateByHalf(point);
+            };
+
+            // Touch single tap: PhotoSwipe fires this only for real taps
+            // (drag releases go through its drag-end handling) and debounces
+            // it against double taps natively.
+            pswp.options.tapAction = (point, ev) => {
+                if (!tappedImage(ev) || isZoomedIn()) {
+                    toggleControls();
+                    return;
+                }
+                navigateByHalf(point);
+            };
+
+            // Touch double tap: centered zoom toggle. No on-image check —
+            // like PhotoSwipe's native 'zoom' action, the letterbox area
+            // around the image counts too (didTapOnMainContent already
+            // restricts this to the slide container).
+            pswp.options.doubleTapAction = (point, ev) => {
+                toggleZoomFn(pswp);
+            };
 
             pswp._customZoomBound = true;
         }
@@ -1899,7 +1877,10 @@
                         }
                     };
 
-                    lb.on('open', () => {
+                    // NOTE: PhotoSwipe 5 has no 'open' event — binding to it makes
+                    // this whole block dead code. 'afterInit' fires at the end of
+                    // open() with the UI already built (zoom button exists).
+                    lb.on('afterInit', () => {
                         const pswp = lb.pswp;
                         if (pswp && !pswp._customZoomBound) {
                             const updateZoomClasses = () => {
@@ -2423,7 +2404,8 @@
                         pswp.currSlide.zoomTo(target, center, 350);
                     }
                   };
-                  lb.on('open', () => {
+                  // 'afterInit', not 'open': PhotoSwipe 5 never dispatches 'open'.
+                  lb.on('afterInit', () => {
                     const pswp = lb.pswp;
                     // Custom zoom: toggle between fit and zoom using built-in toggleZoom
                     if (pswp && !pswp._customZoomBound) {
