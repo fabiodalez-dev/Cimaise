@@ -26,6 +26,13 @@ class CompressionMiddleware implements MiddlewareInterface
             return $handler->handle($request);
         }
 
+        // Skip PHP-level compression when the web server compresses responses
+        // itself (mod_brotli/mod_deflate are configured in public/.htaccess);
+        // double compression wastes CPU on every HTML/JSON response.
+        if ($this->serverHandlesCompression()) {
+            return $handler->handle($request);
+        }
+
         // Get response
         $response = $handler->handle($request);
 
@@ -78,6 +85,41 @@ class CompressionMiddleware implements MiddlewareInterface
             ->withHeader('Content-Encoding', $useCompression)
             ->withHeader('Vary', 'Accept-Encoding')
             ->withoutHeader('Content-Length'); // Let the server recalculate
+    }
+
+    /**
+     * Detect whether the web server itself will compress the response, making
+     * PHP-level compression redundant.
+     *
+     * - Under mod_php, apache_get_modules() reveals mod_brotli/mod_deflate
+     *   (both are configured in public/.htaccess), so Apache handles it.
+     * - Under PHP-FPM/CLI apache_get_modules() does not exist; module state is
+     *   unknowable from PHP, so we keep compressing — unless the explicit
+     *   COMPRESSION_DISABLE env override is set (use COMPRESSION_DISABLE=1
+     *   when a front server or reverse proxy already handles Content-Encoding).
+     *
+     * The result is cached in a static so detection runs at most once per request.
+     */
+    private function serverHandlesCompression(): bool
+    {
+        static $result = null;
+        if ($result !== null) {
+            return $result;
+        }
+
+        // Explicit override (env), consistent with how the app reads config via envv()
+        $disable = \envv('COMPRESSION_DISABLE');
+        if ($disable !== null && filter_var($disable, FILTER_VALIDATE_BOOLEAN)) {
+            return $result = true; // treat as "handled elsewhere"
+        }
+
+        if (function_exists('apache_get_modules')) {
+            $modules = apache_get_modules();
+            return $result = in_array('mod_brotli', $modules, true)
+                || in_array('mod_deflate', $modules, true);
+        }
+
+        return $result = false;
     }
 
     private function selectCompression(string $acceptEncoding, string $preferredType): ?string

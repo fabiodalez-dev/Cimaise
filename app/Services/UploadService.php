@@ -424,8 +424,13 @@ class UploadService
      * Generate variants for an image that was uploaded in fast mode
      * Returns array with statistics: ['generated' => int, 'failed' => int, 'skipped' => int]
      * @param bool $force Force regeneration of existing variants
+     * @param string|null $onlyVariant Restrict generation to a single breakpoint (e.g. 'md').
+     *                                 Used by MediaController's on-demand path so a request
+     *                                 never pays for the full 5-sizes × 3-formats matrix.
+     * @param string|null $onlyFormat  Restrict generation to a single format ('jpg'|'webp'|'avif').
+     *                                 Upload/cron callers omit both and keep full generation.
      */
-    public function generateVariantsForImage(int $imageId, bool $force = false): array
+    public function generateVariantsForImage(int $imageId, bool $force = false, ?string $onlyVariant = null, ?string $onlyFormat = null): array
     {
         $pdo = $this->db->pdo();
 
@@ -490,8 +495,14 @@ class UploadService
         $stats = ['generated' => 0, 'failed' => 0, 'skipped' => 0];
 
         foreach ($breakpoints as $variant => $targetW) {
+            if ($onlyVariant !== null && (string)$variant !== $onlyVariant) {
+                continue;
+            }
             $targetW = max(1, (int)$targetW);
             foreach (['avif','webp','jpg'] as $fmt) {
+                if ($onlyFormat !== null && $fmt !== $onlyFormat) {
+                    continue;
+                }
                 $enabled = $formats[$fmt] ?? false;
                 if (is_string($enabled)) {
                     $enabled = filter_var($enabled, FILTER_VALIDATE_BOOLEAN);

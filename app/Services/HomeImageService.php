@@ -29,6 +29,22 @@ class HomeImageService
     private const MAX_FETCH_LIMIT = 150;
 
     /**
+     * Default cap for the full-grid path (getAllImages) when no explicit limit
+     * is configured (masonry_max_images = 0/unset). 0 used to mean "unlimited"
+     * — fetching, LQIP-inlining and caching the ENTIRE library on the home
+     * page. NOTE: the admin settings UI may still describe 0 as "unlimited";
+     * in code 0 now means "use this sane default".
+     */
+    private const DEFAULT_GRID_LIMIT = 150;
+
+    /**
+     * Hard ceiling for an EXPLICIT admin-configured grid limit. Matches the
+     * 0..5000 clamp applied to home.masonry_max_images in PageController /
+     * CacheWarmService, so admins who deliberately set a high value get it.
+     */
+    private const MAX_GRID_LIMIT = 5000;
+
+    /**
      * Diversity headroom: how many extra rows to fetch on top of the requested
      * limit so we have a small pool to enforce album-per-image variety.
      * 1.5x was chosen instead of the previous 3x — empirically a 50% overhead
@@ -141,6 +157,16 @@ class HomeImageService
         $shownImageIds = [];
         $shownAlbumIds = [];
 
+        // ETag stability: a truly random shuffle made every cache regeneration
+        // produce a different image order, so the page_cache data_hash (and the
+        // resulting ETag) changed even when content was identical — defeating
+        // 304 revalidation. Seed the global Mt19937 PRNG (which shuffle() and
+        // array_rand() use) deterministically from the current UTC date plus
+        // the candidate image-id set: the order is stable within a day for a
+        // given content state, but still rotates daily and on content changes.
+        // Randomness is restored with mt_srand() after selection (below).
+        mt_srand(crc32(gmdate('Y-m-d') . ':' . implode(',', array_column($rawImages, 'id'))));
+
         // Shuffle album order for variety
         $albumIds = array_keys($imagesByAlbum);
         shuffle($albumIds);
@@ -181,8 +207,12 @@ class HomeImageService
             }
         }
 
-        // Final shuffle for visual variety
+        // Final shuffle for visual variety (still under the deterministic seed)
         shuffle($selectedImages);
+
+        // Restore a random seed so the deterministic sequence above does not
+        // leak into other code using the global PRNG during this request.
+        mt_srand();
 
         return [
             'images' => $selectedImages,
@@ -198,13 +228,16 @@ class HomeImageService
      * Ordered by newest albums first.
      * Implements infinite looping: if limit exceeds available images, it restarts from the beginning.
      *
-     * @param int $limit Maximum images to return (0 = no limit)
+     * @param int $limit Maximum images to return (0 = use DEFAULT_GRID_LIMIT)
      * @param bool $includeNsfw Include NSFW albums
      * @return array{images: array, totalImages: int, hasMore: bool}
      */
     public function getAllImages(int $limit = 0, bool $includeNsfw = false): array
     {
-        $limit = $limit > 0 ? min($limit, self::MAX_FETCH_LIMIT) : 0;
+        // 0/unset no longer means "unlimited" (which loaded the entire library
+        // unbounded); it falls back to a sane default. Explicit values are
+        // honoured up to MAX_GRID_LIMIT (the admin-side 5000 clamp).
+        $limit = $limit > 0 ? min($limit, self::MAX_GRID_LIMIT) : self::DEFAULT_GRID_LIMIT;
         $pdo = $this->db->pdo();
 
         // Base query for reuse
@@ -226,16 +259,12 @@ class HomeImageService
         $sql = $baseQuery . "
             GROUP BY i.id
             ORDER BY a.published_at DESC, a.id DESC, i.sort_order ASC
+            LIMIT :max_fetch
         ";
-        if ($limit > 0) {
-            $sql .= " LIMIT :max_fetch";
-        }
 
         $stmt = $pdo->prepare($sql);
         $stmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
-        if ($limit > 0) {
-            $stmt->bindValue(':max_fetch', $limit, \PDO::PARAM_INT);
-        }
+        $stmt->bindValue(':max_fetch', $limit, \PDO::PARAM_INT);
         $stmt->execute();
         $images = $this->normalizeCategorySlugs($stmt->fetchAll(\PDO::FETCH_ASSOC));
 
@@ -249,24 +278,20 @@ class HomeImageService
         }
         $images = array_values($byId);
 
-        // Total count of UNIQUE images. With no limit we already fetched everything, so
-        // count($images) IS the total — skip the extra COUNT round-trip (the common path
-        // for grid templates). Only query when a cap was applied.
-        if ($limit > 0) {
-            $countStmt = $pdo->prepare("
-                SELECT COUNT(*)
-                FROM images i
-                JOIN albums a ON a.id = i.album_id
-                WHERE a.is_published = 1
-                  AND (:include_nsfw = 1 OR a.is_nsfw = 0)
-                  AND (a.password_hash IS NULL OR a.password_hash = '')
-            ");
-            $countStmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
-            $countStmt->execute();
-            $totalImages = (int) $countStmt->fetchColumn();
-        } else {
-            $totalImages = count($images);
-        }
+        // Total count of UNIQUE images. The fetch above is always LIMIT-capped
+        // now (default or explicit), so an uncapped COUNT is required for an
+        // accurate total_images value.
+        $countStmt = $pdo->prepare("
+            SELECT COUNT(*)
+            FROM images i
+            JOIN albums a ON a.id = i.album_id
+            WHERE a.is_published = 1
+              AND (:include_nsfw = 1 OR a.is_nsfw = 0)
+              AND (a.password_hash IS NULL OR a.password_hash = '')
+        ");
+        $countStmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
+        $countStmt->execute();
+        $totalImages = (int) $countStmt->fetchColumn();
 
         // Spread images out so two photos from the same album are never adjacent on the
         // home grid (the DB order groups an album's images together, which looks like
@@ -276,7 +301,7 @@ class HomeImageService
         return [
             'images' => $images,
             'totalImages' => $totalImages,
-            'hasMore' => $limit > 0 && $totalImages > count($images), // more remain only if not all loaded
+            'hasMore' => $totalImages > count($images), // more remain only if not all loaded
         ];
     }
 

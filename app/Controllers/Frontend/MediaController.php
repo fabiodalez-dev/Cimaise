@@ -43,6 +43,29 @@ class MediaController extends BaseController
     }
 
     /**
+     * H2 (session lock contention): media requests run with the session either
+     * never started (no session cookie => anonymous visitor) or started read-only
+     * and immediately closed via session_write_close() in public/index.php.
+     *
+     * BaseController::ensureSession() would see session_status() === PHP_SESSION_NONE
+     * after session_write_close() and re-start the session — re-acquiring the
+     * exclusive session file lock and serializing the browser's parallel image
+     * requests again. So for media serving this is intentionally a no-op:
+     * $_SESSION is already populated (read-only) when a cookie was present, and
+     * every read in BaseController is defensive (isset/??/empty), so a missing
+     * session simply means "no admin, no password access, no NSFW consent".
+     *
+     * NOTE: this controller must never NEED to persist $_SESSION writes. The only
+     * writes reachable from here (expired album_access cleanup, the
+     * nsfw_confirmed_global memo derived from the signed cookie) are pure
+     * in-request optimizations whose loss does not change access decisions.
+     */
+    protected function ensureSession(): void
+    {
+        // no-op by design — see docblock
+    }
+
+    /**
      * Resolve MIME from a trusted (regex-validated) file extension, falling back to
      * finfo_file() only when no mapping is available. The fallback path remains
      * available for callers that serve unconstrained file types.
@@ -596,8 +619,8 @@ class MediaController extends BaseController
         }
 
         $imageId = (int)$matches[1];
-        $variant = $matches[2];
-        // Note: $matches[3] contains format but is validated by regex pattern
+        $variant = strtolower($matches[2]);
+        $format = strtolower($matches[3]); // regex-validated: jpg|webp|avif|png
 
         // Get image and album info
         $pdo = $this->db->pdo();
@@ -653,7 +676,7 @@ class MediaController extends BaseController
         // and without the VariantMaintenanceService cron), generate it on demand so
         // the URL is never a dead 404. With FPM the variant already exists, so this
         // never fires there.
-        $this->ensureVariantGenerated($imageId, $variant, $path);
+        $this->ensureVariantGenerated($imageId, $variant, $format, $path);
 
         // For password-protected albums, mark the (access-granted) variant `private`
         // so shared caches don't serve it to users who never passed the gate.
@@ -664,12 +687,23 @@ class MediaController extends BaseController
     private const ON_DEMAND_VARIANTS = ['sm', 'md', 'lg', 'xl', 'xxl'];
 
     /**
-     * Lazily generate the responsive variants for an image when the requested
-     * file is missing. Idempotent and best-effort: generateVariantsForImage()
-     * skips variants that already exist, and any failure is logged, not fatal
+     * Lazily generate ONLY the requested variant+format when the requested file
+     * is missing (M4). A full generateVariantsForImage() run is up to 5 sizes ×
+     * 3 formats (~15 encodes; AVIF alone can take seconds) — far too much work
+     * inside a single image request. Full multi-variant generation still happens
+     * on the upload path and via VariantMaintenanceService (cron).
+     *
+     * Concurrency: a per-image lock file (storage/tmp/variant-locks/{id}.lock)
+     * guarded by a BLOCKING flock() prevents N parallel requests from encoding
+     * the same image N times. The wait is bounded by one variant+format encode;
+     * after acquiring the lock the file is re-checked, so waiters typically find
+     * the file already generated and serve it directly. If the lock file cannot
+     * be opened, generation proceeds unlocked (best-effort, same as before).
+     *
+     * Idempotent and best-effort: any failure is logged, not fatal
      * (serveStaticFile then returns its normal 404).
      */
-    private function ensureVariantGenerated(int $imageId, string $variant, string $relativePath): void
+    private function ensureVariantGenerated(int $imageId, string $variant, string $format, string $relativePath): void
     {
         if (!\in_array($variant, self::ON_DEMAND_VARIANTS, true)) {
             return; // blur / unknown handled elsewhere
@@ -677,18 +711,44 @@ class MediaController extends BaseController
         if ($this->variantFileExists($relativePath)) {
             return;
         }
+
+        $lockDir = dirname(__DIR__, 3) . '/storage/tmp/variant-locks';
+        if (!is_dir($lockDir)) {
+            @mkdir($lockDir, 0775, true);
+        }
+        // $imageId is an int — no traversal risk in the lock filename.
+        $lockHandle = @fopen("{$lockDir}/{$imageId}.lock", 'c');
+        $locked = $lockHandle !== false && flock($lockHandle, LOCK_EX);
+
         try {
-            $this->uploadService->generateVariantsForImage($imageId);
+            // Re-check under the lock: another request may have generated the
+            // variant while we were waiting on flock().
+            if (!$locked || !$this->variantFileExists($relativePath)) {
+                $this->uploadService->generateVariantsForImage($imageId, false, $variant, $format);
+            }
         } catch (\Throwable $e) {
             Logger::warning('MediaController: on-demand variant generation failed', [
                 'image_id' => $imageId,
                 'variant' => $variant,
+                'format' => $format,
                 'error' => $e->getMessage(),
             ]);
+        } finally {
+            if ($lockHandle !== false) {
+                if ($locked) {
+                    flock($lockHandle, LOCK_UN);
+                }
+                fclose($lockHandle);
+            }
         }
     }
 
-    /** True if the variant file already exists under public/media/. */
+    /**
+     * True if the variant file already exists under public/media/.
+     *
+     * @phpstan-impure Filesystem state can change between calls (another process
+     *                 may generate the variant while this request waits on flock).
+     */
     private function variantFileExists(string $relativePath): bool
     {
         $cleanRel = ltrim($relativePath, '/');

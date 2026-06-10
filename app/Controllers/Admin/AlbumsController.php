@@ -86,6 +86,10 @@ class AlbumsController extends BaseController
                 $this->pageCacheService->invalidate("album:{$oldAlbumSlug}");
             }
 
+            // Drop the galleries filter-options cache — same file used by
+            // GalleriesController::getFilterOptions() (storage/cache/filter_options.cache)
+            @unlink(dirname(__DIR__, 3) . '/storage/cache/filter_options.cache');
+
             // Auto-warm: regenerate cache if setting is enabled
             $autoWarm = (bool) $settings->get('cache.auto_warm', false);
             if ($autoWarm) {
@@ -810,6 +814,23 @@ class AlbumsController extends BaseController
             }
             $pdo->prepare('UPDATE albums SET '.$set.' WHERE id=:id')->execute($params);
         } catch (\Throwable $e) {
+            // Legacy schema: some optional columns may be missing. A requested
+            // password change must never silently no-op, so retry it alone and
+            // fail loudly if even that is impossible (password_hash missing).
+            if ($clearPassword || $passwordRaw !== '') {
+                try {
+                    if ($clearPassword) {
+                        $pdo->prepare('UPDATE albums SET password_hash = NULL WHERE id = :id')->execute([':id' => $id]);
+                    } else {
+                        $pdo->prepare('UPDATE albums SET password_hash = :ph WHERE id = :id')
+                            ->execute([':ph' => password_hash($passwordRaw, PASSWORD_ARGON2ID), ':id' => $id]);
+                    }
+                } catch (\Throwable $e2) {
+                    if ($pdo->inTransaction()) { $pdo->rollBack(); }
+                    $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e2->getMessage()];
+                    return $response->withHeader('Location', $this->redirect('/admin/albums/'.$id.'/edit'))->withStatus(302);
+                }
+            }
             // Fallback: update NSFW flag alone if other columns are missing
             try {
                 $pdo->prepare('UPDATE albums SET is_nsfw = :nsfw WHERE id = :id')
@@ -1009,15 +1030,39 @@ class AlbumsController extends BaseController
 
             $stmt->execute([':id'=>$id]);
 
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_deleted')];
-
-            // Clean up files (best-effort, after successful DB deletion)
+            // Clean up files (best-effort, after successful DB deletion).
+            // Aggregate failures so orphaned files remain discoverable: the DB rows
+            // are already gone at this point, so a silently skipped unlink would
+            // leave files on disk with no record pointing at them.
+            $failedDeletions = [];
             foreach ($files as $p) {
                 $abs = str_starts_with((string)$p, '/media/')
                     ? ($root . '/public' . $p)
                     : ($root . $p);
-                @unlink($abs);
+                if (!is_file($abs)) {
+                    continue; // already gone — nothing to clean up
+                }
+                if (!@unlink($abs)) {
+                    $lastError = error_get_last();
+                    $reason = ($lastError !== null && str_contains($lastError['message'], 'unlink'))
+                        ? $lastError['message']
+                        : 'unknown reason';
+                    $failedDeletions[] = $abs . ' (' . $reason . ')';
+                }
             }
+
+            $flashMessage = trans('admin.flash.album_deleted');
+            if ($failedDeletions !== []) {
+                error_log(sprintf(
+                    'Album %d deleted; %d file(s) could not be removed: %s',
+                    $id,
+                    count($failedDeletions),
+                    implode('; ', $failedDeletions)
+                ));
+                $flashMessage .= ' — ' . count($failedDeletions)
+                    . ' file(s) could not be removed from disk (orphaned files, see server error log).';
+            }
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => $flashMessage];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
         }
@@ -1040,8 +1085,10 @@ class AlbumsController extends BaseController
         $slugStmt->execute([$id]);
         $albumSlug = $slugStmt->fetchColumn() ?: null;
 
-        // Use portable CURRENT_TIMESTAMP instead of MySQL-specific NOW()
-        $stmt = $pdo->prepare('UPDATE albums SET is_published=1, published_at=CURRENT_TIMESTAMP WHERE id=:id');
+        // Use portable CURRENT_TIMESTAMP instead of MySQL-specific NOW().
+        // COALESCE preserves the original publication date on re-publish
+        // (unpublish keeps published_at), so date-ordered listings stay stable.
+        $stmt = $pdo->prepare('UPDATE albums SET is_published=1, published_at=COALESCE(published_at, CURRENT_TIMESTAMP) WHERE id=:id');
         $stmt->execute([':id'=>$id]);
 
         // Invalidate page caches
@@ -1067,7 +1114,9 @@ class AlbumsController extends BaseController
         $slugStmt->execute([$id]);
         $albumSlug = $slugStmt->fetchColumn() ?: null;
 
-        $stmt = $pdo->prepare('UPDATE albums SET is_published=0, published_at=NULL WHERE id=:id');
+        // Keep published_at: re-publishing preserves the original publication date
+        // (update()/publish() reuse the existing stamp when present).
+        $stmt = $pdo->prepare('UPDATE albums SET is_published=0 WHERE id=:id');
         $stmt->execute([':id'=>$id]);
 
         // Invalidate page caches (no warm — album is unpublished)
@@ -1305,9 +1354,9 @@ class AlbumsController extends BaseController
             if ($validIds !== []) {
                 $inValid = implode(',', array_fill(0, count($validIds), '?'));
                 $pdo->prepare('DELETE FROM image_variants WHERE image_id IN (' . $inValid . ')')->execute($validIds);
+                $pdo->prepare('UPDATE albums SET cover_image_id=NULL WHERE id=? AND cover_image_id IN (' . $inValid . ')')
+                    ->execute(array_merge([$albumId], $validIds));
             }
-            $pdo->prepare('UPDATE albums SET cover_image_id=NULL WHERE id=? AND cover_image_id IN (' . $in . ')')
-                ->execute(array_merge([$albumId], $ids));
             $pdo->prepare('DELETE FROM images WHERE album_id=? AND id IN (' . $in . ')')->execute(array_merge([$albumId], $ids));
             $pdo->commit();
         } catch (\Throwable $e) {
@@ -1366,60 +1415,68 @@ class AlbumsController extends BaseController
             return $response->withHeader('Content-Type', 'application/json')->withStatus(409);
         }
 
-        // Duplicate row for target album
-        $ins = $pdo->prepare('INSERT INTO images(album_id, original_path, file_hash, width, height, mime, alt_text, caption, exif, camera_id, lens_id, film_id, developer_id, lab_id, custom_camera, custom_lens, custom_film, custom_development, custom_lab, custom_scanner, scan_resolution_dpi, scan_bit_depth, process, development_date, iso, shutter_speed, aperture, sort_order)
-                              VALUES(:album,:p,:h,:w,:hh,:m,:alt,:cap,:ex,:cam,:lens,:film,:dev,:lab,:ccam,:clens,:cfilm,:cdev,:clab,:cscan,:dpi,:bit,:proc,:ddate,:iso,:sh,:ap,:sort)');
-        $ins->execute([
-            ':album'=>$albumId,
-            ':p'=>$src['original_path'],
-            ':h'=>$src['file_hash'],
-            ':w'=>$src['width'],
-            ':hh'=>$src['height'],
-            ':m'=>$src['mime'],
-            ':alt'=>$src['alt_text'],
-            ':cap'=>$src['caption'],
-            ':ex'=>$src['exif'],
-            ':cam'=>$src['camera_id'],
-            ':lens'=>$src['lens_id'],
-            ':film'=>$src['film_id'],
-            ':dev'=>$src['developer_id'],
-            ':lab'=>$src['lab_id'],
-            ':ccam'=>$src['custom_camera'],
-            ':clens'=>$src['custom_lens'],
-            ':cfilm'=>$src['custom_film'],
-            ':cdev'=>$src['custom_development'],
-            ':clab'=>$src['custom_lab'],
-            ':cscan'=>$src['custom_scanner'],
-            ':dpi'=>$src['scan_resolution_dpi'],
-            ':bit'=>$src['scan_bit_depth'],
-            ':proc'=>$src['process'],
-            ':ddate'=>$src['development_date'],
-            ':iso'=>$src['iso'],
-            ':sh'=>$src['shutter_speed'],
-            ':ap'=>$src['aperture'],
-            ':sort'=>0,
-        ]);
-        $newId = (int)$pdo->lastInsertId();
+        // Duplicate row for target album. Run image + variant inserts in one
+        // transaction so a failure cannot leave a variant-less (broken) image.
+        $pdo->beginTransaction();
+        try {
+            $ins = $pdo->prepare('INSERT INTO images(album_id, original_path, file_hash, width, height, mime, alt_text, caption, exif, camera_id, lens_id, film_id, developer_id, lab_id, custom_camera, custom_lens, custom_film, custom_development, custom_lab, custom_scanner, scan_resolution_dpi, scan_bit_depth, process, development_date, iso, shutter_speed, aperture, sort_order)
+                                  VALUES(:album,:p,:h,:w,:hh,:m,:alt,:cap,:ex,:cam,:lens,:film,:dev,:lab,:ccam,:clens,:cfilm,:cdev,:clab,:cscan,:dpi,:bit,:proc,:ddate,:iso,:sh,:ap,:sort)');
+            $ins->execute([
+                ':album'=>$albumId,
+                ':p'=>$src['original_path'],
+                ':h'=>$src['file_hash'],
+                ':w'=>$src['width'],
+                ':hh'=>$src['height'],
+                ':m'=>$src['mime'],
+                ':alt'=>$src['alt_text'],
+                ':cap'=>$src['caption'],
+                ':ex'=>$src['exif'],
+                ':cam'=>$src['camera_id'],
+                ':lens'=>$src['lens_id'],
+                ':film'=>$src['film_id'],
+                ':dev'=>$src['developer_id'],
+                ':lab'=>$src['lab_id'],
+                ':ccam'=>$src['custom_camera'],
+                ':clens'=>$src['custom_lens'],
+                ':cfilm'=>$src['custom_film'],
+                ':cdev'=>$src['custom_development'],
+                ':clab'=>$src['custom_lab'],
+                ':cscan'=>$src['custom_scanner'],
+                ':dpi'=>$src['scan_resolution_dpi'],
+                ':bit'=>$src['scan_bit_depth'],
+                ':proc'=>$src['process'],
+                ':ddate'=>$src['development_date'],
+                ':iso'=>$src['iso'],
+                ':sh'=>$src['shutter_speed'],
+                ':ap'=>$src['aperture'],
+                ':sort'=>0,
+            ]);
+            $newId = (int)$pdo->lastInsertId();
 
-        // Copy image variants from source to new image
-        $variantsStmt = $pdo->prepare('SELECT * FROM image_variants WHERE image_id = :source_id');
-        $variantsStmt->execute([':source_id' => $sourceId]);
-        $variants = $variantsStmt->fetchAll();
+            // Copy image variants from source to new image
+            $variantsStmt = $pdo->prepare('SELECT * FROM image_variants WHERE image_id = :source_id');
+            $variantsStmt->execute([':source_id' => $sourceId]);
+            $variants = $variantsStmt->fetchAll();
 
-        if ($variants && count($variants) > 0) {
-            $insertVariant = $pdo->prepare('INSERT INTO image_variants (image_id, variant, format, path, width, height, size, created_at) VALUES (:image_id, :variant, :format, :path, :width, :height, :size, :created_at)');
-            foreach ($variants as $v) {
-                $insertVariant->execute([
-                    ':image_id' => $newId,
-                    ':variant' => $v['variant'],
-                    ':format' => $v['format'],
-                    ':path' => $v['path'],
-                    ':width' => $v['width'],
-                    ':height' => $v['height'],
-                    ':size' => $v['size'],
-                    ':created_at' => $v['created_at'] ?? date('Y-m-d H:i:s'),
-                ]);
+            if ($variants && count($variants) > 0) {
+                $insertVariant = $pdo->prepare('INSERT INTO image_variants (image_id, variant, format, path, width, height, size_bytes) VALUES (:image_id, :variant, :format, :path, :width, :height, :size_bytes)');
+                foreach ($variants as $v) {
+                    $insertVariant->execute([
+                        ':image_id' => $newId,
+                        ':variant' => $v['variant'],
+                        ':format' => $v['format'],
+                        ':path' => $v['path'],
+                        ':width' => $v['width'],
+                        ':height' => $v['height'],
+                        ':size_bytes' => $v['size_bytes'],
+                    ]);
+                }
             }
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => trans('admin.flash.error_generic')]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
         }
 
         // Invalidate page caches — new image added to album

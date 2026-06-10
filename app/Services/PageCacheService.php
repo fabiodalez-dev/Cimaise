@@ -449,10 +449,23 @@ class PageCacheService
 
         $cacheKey = $this->getCacheKey($type);
 
-        // Delete associated tags first
+        // Delete associated tags first (they are re-saved on regeneration via setWithTags)
         $this->deleteTags($cacheKey);
 
-        return $this->db->execute('DELETE FROM page_cache WHERE cache_key = ?', [$cacheKey]);
+        // Soft-invalidate: mark the row expired instead of hard-deleting it.
+        // This keeps the entry available to get($type, allowStale: true), so the
+        // stale-while-revalidate path (PageController home/album + regeneration
+        // lock) can serve stale content while ONE process rebuilds — a hard
+        // DELETE here made every concurrent visitor rebuild simultaneously
+        // (cache stampede). Hard deletes still happen in clearAllFromDatabase()
+        // (explicit admin "clear cache") and in cleanupExpired() (GC of rows
+        // that have been expired for over a day).
+        // expires_at is stored as UTC via gmdate() (see setToDatabase), so we
+        // write a UTC timestamp 1s in the past — portable across SQLite/MySQL.
+        return $this->db->execute(
+            'UPDATE page_cache SET expires_at = ? WHERE cache_key = ?',
+            [gmdate('Y-m-d H:i:s', time() - 1), $cacheKey]
+        );
     }
 
     private function clearAllFromDatabase(): int
@@ -863,7 +876,18 @@ class PageCacheService
     }
 
     /**
-     * Clean up expired cache entries (for scheduled maintenance).
+     * Grace period (seconds) before an expired row is garbage-collected.
+     * Invalidation is expiry-based (see invalidateInDatabase()), so freshly
+     * expired rows must survive long enough to be served as stale content
+     * during regeneration. One day comfortably covers any rebuild window.
+     */
+    private const GC_GRACE_PERIOD = 86400;
+
+    /**
+     * Clean up cache entries that have been expired for longer than the grace
+     * period (for scheduled maintenance). Recently expired rows are kept as
+     * stale-while-revalidate sources and are normally refreshed in place by
+     * the UPSERT in setToDatabase().
      */
     public function cleanupExpired(): int
     {
@@ -871,9 +895,11 @@ class PageCacheService
             return 0;
         }
 
-        // Use UTC for consistency with gmdate() storage
-        $now = $this->db->isSqlite() ? "datetime('now')" : 'UTC_TIMESTAMP()';
-        return $this->db->execute("DELETE FROM page_cache WHERE expires_at < {$now}");
+        // expires_at is stored as UTC via gmdate() — compare against a UTC cutoff
+        return $this->db->execute(
+            'DELETE FROM page_cache WHERE expires_at < ?',
+            [gmdate('Y-m-d H:i:s', time() - self::GC_GRACE_PERIOD)]
+        );
     }
 
     /**

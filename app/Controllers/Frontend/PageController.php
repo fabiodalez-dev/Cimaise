@@ -17,6 +17,15 @@ use Slim\Views\Twig;
 
 class PageController extends BaseController
 {
+    /**
+     * Max number of images that get an INLINE base64 LQIP data-URI.
+     * Inlining every LQIP (~1-2KB each) bloats the HTML and the page_cache
+     * payload linearly with library size; beyond this many images the
+     * file-path variant is used instead (templates already support both —
+     * same shape as the >5KB fallback in generateLQIPDataUri()).
+     */
+    private const MAX_INLINE_LQIP = 30;
+
     private ?NavigationService $navigationService = null;
     private ?PageCacheService $pageCacheService = null;
 
@@ -385,6 +394,9 @@ class PageController extends BaseController
             'masonry_col_tablet' => max(2, min(6, (int) ($svc->get('home.masonry_col_tablet', 3) ?? 3))),
             'masonry_col_mobile' => max(1, min(4, (int) ($svc->get('home.masonry_col_mobile', 1) ?? 1))),
             'masonry_layout_mode' => in_array((string) ($svc->get('home.masonry_layout_mode', 'fullwidth') ?? 'fullwidth'), ['fullwidth', 'boxed'], true) ? (string) $svc->get('home.masonry_layout_mode', 'fullwidth') : 'fullwidth',
+            // NOTE: 0 no longer means "unlimited" — HomeImageService::getAllImages()
+            // treats 0/unset as "use the default cap" (150). The admin UI text may
+            // still describe 0 as unlimited; explicit values are honoured up to 5000.
             'masonry_max_images' => max(0, min(5000, (int) ($svc->get('home.masonry_max_images', 0) ?? 0))),
         ];
 
@@ -969,6 +981,12 @@ class PageController extends BaseController
                     : (json_decode((string) $image['exif'], true) ?: []);
                 $image['exif_display'] = $this->formatExifForDisplay($exif, $image);
             }
+
+            // PERFORMANCE: drop the raw EXIF JSON blobs once exif_display is
+            // computed. Templates/JS only consume exif_display and the discrete
+            // exif_make/exif_model/exif_lens_* columns — keeping the raw blobs
+            // inflated the template payload and every page_cache entry.
+            unset($image['exif'], $image['exif_extended']);
         }
         unset($image); // Break reference
 
@@ -2353,7 +2371,19 @@ class PageController extends BaseController
 
         // SECURITY: Use system email as From, user email only in Reply-To
         // This prevents email spoofing and header injection via From header
-        $systemFrom = (string) (\envv('MAIL_FROM', 'noreply@' . ($_SERVER['HTTP_HOST'] ?? 'localhost')));
+        // SECURITY: When MAIL_FROM is unset, never derive the fallback domain
+        // from the client-controlled Host header. Use the configured canonical
+        // URL instead (seo.canonical_base_url setting, then APP_URL env) and
+        // only fall back to 'localhost' if nothing is configured.
+        $systemFrom = trim((string) (\envv('MAIL_FROM', '') ?? ''));
+        if ($systemFrom === '') {
+            $configuredUrl = trim((string) ($settings->get('seo.canonical_base_url', '') ?? ''));
+            if ($configuredUrl === '') {
+                $configuredUrl = trim((string) (\envv('APP_URL', '') ?? ''));
+            }
+            $fromHost = parse_url($configuredUrl, PHP_URL_HOST);
+            $systemFrom = 'noreply@' . (is_string($fromHost) && $fromHost !== '' ? $fromHost : 'localhost');
+        }
         $headers = 'From: ' . $systemFrom . "\r\n" .
             'Reply-To: ' . $email . "\r\n" .
             'Content-Type: text/plain; charset=UTF-8';
@@ -2742,6 +2772,7 @@ class PageController extends BaseController
         // PERFORMANCE: Trust database records instead of checking filesystem for every variant
         // Variants are created during upload; if they exist in DB, assume files exist
         // This eliminates hundreds of is_file() calls per page load
+        $imageIndex = 0;
         foreach ($images as &$image) {
             $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
             $variants = $variantsByImage[(int) $image['id']] ?? [];
@@ -2758,12 +2789,18 @@ class PageController extends BaseController
                 $sources[$format][] = $path . ' ' . (int) $variant['width'] . 'w';
             }
 
-            // Find best fallback from variants for initial grid display
-            // Prefer smallest public variant by width for faster initial load
-            // Progressive loader will fetch higher quality versions on demand
+            // Find best fallback from variants for initial grid display.
+            // Prefer the smallest public JPG so fallback_src matches the
+            // image/jpeg type declared in templates and JSON-LD; only when no
+            // JPG variant exists fall back to the smallest of any format.
+            // IMPORTANT: keep this loop byte-identical to the one in
+            // CacheWarmService::processImageSourcesBatch — warmed and
+            // request-built page_cache entries must produce the same data_hash.
             // IMPORTANT: Skip blur variants - they are for NSFW/protected previews only
             $fallbackUrl = $image['original_path'] ?? '';
             $bestWidth = PHP_INT_MAX;
+            $bestJpgUrl = null;
+            $bestJpgWidth = PHP_INT_MAX;
             foreach ($variants as $variant) {
                 $path = (string) ($variant['path'] ?? '');
                 $w = (int) ($variant['width'] ?? 0);
@@ -2776,6 +2813,14 @@ class PageController extends BaseController
                     $bestWidth = $w;
                     $fallbackUrl = $path;
                 }
+                $fmt = strtolower((string) ($variant['format'] ?? ''));
+                if (($fmt === 'jpg' || $fmt === 'jpeg') && $w < $bestJpgWidth) {
+                    $bestJpgWidth = $w;
+                    $bestJpgUrl = $path;
+                }
+            }
+            if ($bestJpgUrl !== null) {
+                $fallbackUrl = $bestJpgUrl;
             }
 
             // PERFORMANCE: Add LQIP placeholder for instant perceived loading
@@ -2787,8 +2832,13 @@ class PageController extends BaseController
                         $lqipPath = $variant['path'];
                         // Only use LQIP if it's a public path
                         if (!str_starts_with($lqipPath, '/storage/')) {
-                            // Generate inline base64 data URI for instant rendering
-                            $lqipPlaceholder = $this->generateLQIPDataUri($lqipPath);
+                            // Inline base64 data URI only for the first MAX_INLINE_LQIP
+                            // images (the ones plausibly above the fold); beyond that use
+                            // the file path — templates handle both forms in the same
+                            // src attribute, and this keeps HTML/page_cache size bounded.
+                            $lqipPlaceholder = $imageIndex < self::MAX_INLINE_LQIP
+                                ? $this->generateLQIPDataUri($lqipPath)
+                                : $lqipPath;
                         }
                         break;
                     }
@@ -2803,6 +2853,7 @@ class PageController extends BaseController
             }
             $image['fallback_src'] = $fallbackUrl;
             $image['lqip_placeholder'] = $lqipPlaceholder; // null for protected albums
+            $imageIndex++;
         }
         unset($image);
 

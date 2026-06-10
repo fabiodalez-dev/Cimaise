@@ -39,7 +39,7 @@ if ($fullPath === '' || $fullPath === false) {
 $path = $fullPath;
 if ($basePath !== '' && str_starts_with($path, $basePath)) {
     $path = substr($path, strlen($basePath));
-    if ($path === '' || $path === false) {
+    if ($path === '') {
         $path = '/';
     }
 }
@@ -157,16 +157,23 @@ if (!$forcePhp) {
             }
 
             header('Content-Type: ' . $mimeType);
-            header('Content-Length: ' . filesize($realPath));
             header('X-Content-Type-Options: nosniff');
 
-            // ETag support for caching
-            $etag = '"' . md5_file($realPath) . '"';
-            header('ETag: ' . $etag);
+            // ETag from file metadata (mtime-size): md5_file() hashed the ENTIRE
+            // file on every request — even just to answer a 304. stat() data is
+            // O(1) and answers If-None-Match BEFORE reading any file content.
+            $mtime = filemtime($realPath);
+            $size = filesize($realPath);
+            if ($mtime !== false && $size !== false) {
+                $etag = '"' . $mtime . '-' . $size . '"';
+                header('ETag: ' . $etag);
 
-            if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && trim($_SERVER['HTTP_IF_NONE_MATCH']) === $etag) {
-                http_response_code(304);
-                exit;
+                if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && trim($_SERVER['HTTP_IF_NONE_MATCH']) === $etag) {
+                    http_response_code(304);
+                    exit;
+                }
+
+                header('Content-Length: ' . $size);
             }
 
             readfile($realPath);

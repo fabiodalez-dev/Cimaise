@@ -108,9 +108,9 @@ if (file_exists($markerPath) && file_exists($envPath)) {
 if ($installed) {
     // Detect correct redirect URL
     $scriptPath = $_SERVER['SCRIPT_NAME'] ?? '';
-    $basePath = dirname($scriptPath); 
-    if ($basePath === '/' || $basePath === '\\') {
-        $basePath = '';
+    $basePath = dirname($scriptPath);
+    if ($basePath === '/' || $basePath === '\\' || $basePath === '' || $basePath === '.') {
+        $basePath = '/';
     }
     header('Location: ' . $basePath);
     exit;
@@ -590,7 +590,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $_SESSION['db_errors'] = $errors;
-        $_SESSION['db_form_data'] = $dbConfig;
+        // Never persist the cleartext password for form repopulation: it would be
+        // echoed back into the HTML source after a failed connection test.
+        $_SESSION['db_form_data'] = array_diff_key($dbConfig, ['password' => true]);
     }
     
     if (empty($errors) && $step === 'admin') {
@@ -1444,8 +1446,8 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                                     
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                                        <input type="password" name="db_password" class="form-input w-full" 
-                                               value="<?= htmlspecialchars($dbFormData['password'] ?? '') ?>" placeholder="Password (optional)">
+                                        <input type="password" name="db_password" class="form-input w-full"
+                                               value="" autocomplete="new-password" placeholder="Password (optional)">
                                     </div>
                                 </div>
                             </div>

@@ -141,6 +141,15 @@ class CacheMiddleware implements MiddlewareInterface
 
     private function addStaticAssetCache(Response $response): Response
     {
+        // Respect access-controlled responses (see hasRestrictedCacheControl()).
+        // NOTE: /media/*.{jpg,webp,avif} matches isStaticAsset() before the /media/
+        // branches in process(), so password-gated media marked 'private' by
+        // MediaController lands HERE — without this guard it was flipped to
+        // 'public, immutable' and could be stored by shared caches/CDNs.
+        if ($this->hasRestrictedCacheControl($response)) {
+            return $response;
+        }
+
         $maxAge = $this->settings->get('performance.static_cache_max_age', 31536000); // 1 year default
 
         return $response
@@ -149,8 +158,29 @@ class CacheMiddleware implements MiddlewareInterface
             ->withHeader('Pragma', 'public');
     }
 
+    /**
+     * True when the controller already marked the response as not shareable
+     * (Cache-Control containing 'private' or 'no-store'). MediaController uses
+     * 'private' for password-gated album media and NSFW-gated content; cache
+     * decoration middleware must never widen that to 'public'.
+     */
+    private function hasRestrictedCacheControl(Response $response): bool
+    {
+        $cacheControl = strtolower($response->getHeaderLine('Cache-Control'));
+        return $cacheControl !== ''
+            && (str_contains($cacheControl, 'private') || str_contains($cacheControl, 'no-store'));
+    }
+
     private function addMediaCache(Response $response): Response
     {
+        // Respect access-controlled media: MediaController marks password-gated album
+        // content and NSFW placeholders with Cache-Control 'private' (or 'no-store').
+        // Rewriting that to 'public' would let shared caches/CDNs serve protected
+        // bytes to other users — leave such responses untouched.
+        if ($this->hasRestrictedCacheControl($response)) {
+            return $response;
+        }
+
         $maxAge = $this->settings->get('performance.media_cache_max_age', 86400); // 1 day default
 
         // Don't compute ETag here - it would require reading entire body into memory

@@ -11,6 +11,8 @@
   <link rel="apple-touch-icon" sizes="180x180" href="{{ base_path }}/apple-touch-icon.png">
 
   <link href="{{ vite_asset('app.css') }}" rel="stylesheet">
+  {# admin-app.css carries the admin-purged Tailwind utilities (app.css is purged against frontend views only) #}
+  <link href="{{ vite_asset('admin-app.css') }}" rel="stylesheet">
   <link href="{{ base_path }}/assets/admin.css" rel="stylesheet">
   <link href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css" rel="stylesheet">
 

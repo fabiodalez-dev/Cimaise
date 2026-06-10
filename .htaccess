@@ -35,14 +35,29 @@
     RewriteCond %{REQUEST_URI} ^/public/
     RewriteRule ^public/(.*)$ public/$1 [L]
 
+    # Static asset fast path (M5): map known static paths to public/ BEFORE the
+    # PHP catch-all so Apache serves them directly instead of routing them
+    # through index.php (which used to md5_file() the whole file per request).
+    #
+    # Existence guard without DOCUMENT_ROOT assumptions (works for root,
+    # subdomain AND subdirectory installs): the rewrite restarts per-directory
+    # processing; if public/<path> exists Apache serves it (the catch-all's !-f
+    # fails), if it does not exist the catch-all routes to index.php and the app
+    # answers its normal 404.
+    #
+    # SECURITY: /media/* and fonts/typography.css are deliberately NOT listed —
+    # they MUST go through PHP (album password/NSFW access control, dynamic CSS).
+    # site.webmanifest is a dynamic PHP route, also excluded. /plugins/* is
+    # excluded too: plugin assets are served from the root plugins/ directory
+    # (see plugins_url()), not from public/plugins/. This is a strict whitelist:
+    # nothing outside it gains direct-serve behavior.
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^((?:assets|build)/.+|fonts/(?!typography\.css).+|favicon\.ico|favicon-[0-9]+x[0-9]+\.png|favicon-source\.png|apple-touch-icon\.png|android-chrome-[0-9]+x[0-9]+\.png|icon-[0-9]+x[0-9]+\.png|robots\.txt|sitemap[^/]*\.xml|sw\.js|offline\.html)$ public/$1 [L]
+
     # Route everything through index.php
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^ index.php [L]
-
-    # If file exists in current directory, serve it (for existing static files)
-    RewriteCond %{REQUEST_FILENAME} -f
-    RewriteRule ^ - [L]
 </IfModule>
 
 # Fallback: If mod_rewrite is not available

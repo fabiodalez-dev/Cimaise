@@ -237,6 +237,18 @@ class UsersController extends BaseController
             $role = 'user';
         }
         
+        // If demoting or deactivating an active admin, ensure at least one active admin remains
+        if ($currentUser['role'] === 'admin' && (int)$currentUser['is_active'] === 1
+            && ($role !== 'admin' || $isActive === 0)) {
+            $stmt = $this->db->pdo()->query("SELECT COUNT(*) FROM users WHERE role = 'admin' AND is_active = 1");
+            $adminCount = (int)$stmt->fetchColumn();
+
+            if ($adminCount <= 1) {
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.one_admin_required')];
+                return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit'))->withStatus(302);
+            }
+        }
+
         // Check email uniqueness (excluding current user)
         $stmt = $this->db->pdo()->prepare('SELECT id FROM users WHERE email = :email AND id != :id LIMIT 1');
         $stmt->execute([':email' => $email, ':id' => $id]);

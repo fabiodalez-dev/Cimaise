@@ -10,17 +10,19 @@ function cleanStaleBuilds() {
       const outDir = path.resolve(__dirname, 'public/assets')
       const jsDir = path.resolve(outDir, 'js')
       // Clean hashed files in root of outDir (e.g., admin-XXXX.js, app-XXXX.css)
+      // (negative lookahead keeps the non-hashed admin-app.css fallback copy)
       if (fs.existsSync(outDir)) {
         for (const file of fs.readdirSync(outDir)) {
-          if (/^(admin|app|frontend)-[A-Za-z0-9_-]+\.(js|css)$/.test(file)) {
+          if (/^(?!admin-app\.css$)(admin|app|frontend)-[A-Za-z0-9_-]+\.(js|css)$/.test(file)) {
             fs.unlinkSync(path.join(outDir, file))
           }
         }
       }
-      // Clean hashed files in js/ subfolder
+      // Clean hashed files in js/ subfolder (hash = exactly 8 chars, so
+      // non-hashed dashed files like silktide-consent-manager.js survive)
       if (fs.existsSync(jsDir)) {
         for (const file of fs.readdirSync(jsDir)) {
-          if (/^.+-[A-Za-z0-9_-]+\.js$/.test(file)) {
+          if (/^.+-[A-Za-z0-9_-]{8}\.js$/.test(file)) {
             fs.unlinkSync(path.join(jsDir, file))
           }
         }
@@ -65,6 +67,7 @@ export default defineConfig({
         'js/home-gallery': path.resolve(__dirname, 'resources/js/home-gallery.js'),
         'js/smooth-scroll': path.resolve(__dirname, 'resources/js/smooth-scroll.js'),
         'admin': path.resolve(__dirname, 'resources/admin.js'),
+        'admin-app': path.resolve(__dirname, 'resources/admin-app.css'),
         'app': path.resolve(__dirname, 'resources/app.css'),
         'frontend': path.resolve(__dirname, 'resources/frontend.css'),
       },

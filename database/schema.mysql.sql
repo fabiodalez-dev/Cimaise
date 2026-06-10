@@ -181,15 +181,15 @@ CREATE TABLE IF NOT EXISTS `albums` (
   `sort_order` INT DEFAULT 0,
   `password_hash` VARCHAR(255) NULL,
   `allow_downloads` TINYINT(1) NOT NULL DEFAULT 0,
-  -- JSON array of camera names: ["Canon AE-1", "Nikon F3"]
+  -- Newline-delimited camera names, one per line: Canon AE-1\nNikon F3
   `custom_cameras` TEXT NULL,
-  -- JSON array of lens names: ["50mm f/1.8", "35mm f/2.0"]
+  -- Newline-delimited lens names, one per line: 50mm f/1.8\n35mm f/2.0
   `custom_lenses` TEXT NULL,
-  -- JSON array of films: ["Kodak Portra 400 35mm"]
+  -- Newline-delimited films, one per line: Kodak Portra 400 35mm
   `custom_films` TEXT NULL,
-  -- JSON array of developers: ["D-76", "Rodinal"]
+  -- Newline-delimited developers, one per line: D-76\nRodinal
   `custom_developers` TEXT NULL,
-  -- JSON array of labs: ["Lab Name"]
+  -- Newline-delimited labs, one per line: Lab Name
   `custom_labs` TEXT NULL,
   `is_nsfw` TINYINT(1) NOT NULL DEFAULT 0,
   `seo_title` VARCHAR(255) NULL,
@@ -222,6 +222,10 @@ CREATE TABLE IF NOT EXISTS `albums` (
   KEY `idx_albums_published_nsfw` (`is_published`, `is_nsfw`),
   -- NOTE: CHECK constraint removed for MySQL 8.0.16+ compatibility
   -- Business rule "only template_id OR custom_template_id can be set" enforced in application layer
+  -- FK design invariant: category deletion is blocked while any album has it as
+  -- primary (RESTRICT); the album_category pivot CASCADE only fires for categories
+  -- used exclusively as secondary. Do not relax the RESTRICT (e.g. to SET NULL)
+  -- without rethinking the pivot cascade.
   CONSTRAINT `fk_albums_category` FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_albums_location` FOREIGN KEY (`location_id`) REFERENCES `locations`(`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_albums_template` FOREIGN KEY (`template_id`) REFERENCES `templates`(`id`) ON DELETE SET NULL,
@@ -347,6 +351,10 @@ CREATE TABLE IF NOT EXISTS `album_category` (
   PRIMARY KEY (`album_id`, `category_id`),
   KEY `idx_album_category_category` (`category_id`),
   CONSTRAINT `fk_album_category_album` FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE CASCADE,
+  -- FK design invariant: this CASCADE only ever fires for categories used
+  -- exclusively as secondary — albums.category_id is ON DELETE RESTRICT, which
+  -- blocks deleting a category that is any album's primary. Do not relax that
+  -- RESTRICT without rethinking this cascade (it would silently destroy pivot state).
   CONSTRAINT `fk_album_category_category` FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

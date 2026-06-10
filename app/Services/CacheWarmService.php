@@ -14,6 +14,17 @@ use App\Support\Logger;
  */
 class CacheWarmService
 {
+    /**
+     * Max number of images that get an INLINE base64 LQIP data-URI; images
+     * beyond this cutoff get the LQIP file path instead.
+     *
+     * Keep in sync with PageController::MAX_INLINE_LQIP (private there, so it
+     * cannot be referenced directly). A warmed page_cache entry must apply the
+     * exact same inline-LQIP rule as a request-built one, otherwise their
+     * data_hash (and therefore the HTML ETag) would differ.
+     */
+    private const MAX_INLINE_LQIP = 30;
+
     private PageCacheService $pageCacheService;
     private SettingsService $settings;
     private NavigationService $navigationService;
@@ -149,9 +160,10 @@ class CacheWarmService
         $homeSettings = [
             'template' => $homeTemplate,
             'hero_title' => (string) ($this->settings->get('home.hero_title', 'Portfolio') ?? 'Portfolio'),
-            'hero_subtitle' => (string) ($this->settings->get('home.hero_subtitle', '') ?? ''),
+            // Defaults must match PageController::home() exactly so warmed data hashes identically
+            'hero_subtitle' => (string) ($this->settings->get('home.hero_subtitle', 'A collection of analog and digital photography exploring light, form, and the beauty of everyday moments.') ?? 'A collection of analog and digital photography exploring light, form, and the beauty of everyday moments.'),
             'albums_title' => (string) ($this->settings->get('home.albums_title', 'Latest Albums') ?? 'Latest Albums'),
-            'albums_subtitle' => (string) ($this->settings->get('home.albums_subtitle', '') ?? ''),
+            'albums_subtitle' => (string) ($this->settings->get('home.albums_subtitle', 'Discover my recent photographic work, from analog experiments to digital explorations.') ?? 'Discover my recent photographic work, from analog experiments to digital explorations.'),
             'empty_title' => (string) ($this->settings->get('home.empty_title', 'No albums yet') ?? 'No albums yet'),
             'empty_text' => (string) ($this->settings->get('home.empty_text', 'Check back soon for new work.') ?? 'Check back soon for new work.'),
             'gallery_scroll_direction' => (string) ($this->settings->get('home.gallery_scroll_direction', 'vertical') ?? 'vertical'),
@@ -169,17 +181,21 @@ class CacheWarmService
         // Pagination parameters
         $perPage = (int) $this->settings->get('pagination.limit', 12);
 
-        // Get total count of published albums (public view = exclude NSFW and password-protected)
-        $countStmt = $pdo->prepare('SELECT COUNT(*) FROM albums a WHERE a.is_published = 1 AND a.is_nsfw = 0 AND (a.password_hash IS NULL OR a.password_hash = \'\')');
+        // Get total count of published albums.
+        // NOTE: must mirror PageController::home() — ALL published albums are counted
+        // and listed (NSFW shown blurred, password-protected shown locked), they are
+        // NOT excluded. Excluding them here produced a different albums list and a
+        // different data_hash than a request-built cache entry.
+        $countStmt = $pdo->prepare('SELECT COUNT(*) FROM albums a WHERE a.is_published = 1');
         $countStmt->execute();
         $totalAlbums = (int) $countStmt->fetchColumn();
 
-        // Get latest published albums (public view = exclude NSFW and password-protected)
+        // Get latest published albums (same query as PageController::home())
         $stmt = $pdo->prepare('
             SELECT a.*, c.name as category_name, c.slug as category_slug
             FROM albums a
             JOIN categories c ON c.id = a.category_id
-            WHERE a.is_published = 1 AND a.is_nsfw = 0 AND (a.password_hash IS NULL OR a.password_hash = \'\')
+            WHERE a.is_published = 1
             ORDER BY a.published_at DESC
             LIMIT :limit
         ');
@@ -187,8 +203,9 @@ class CacheWarmService
         $stmt->execute();
         $albums = $stmt->fetchAll();
 
-        // Enrich albums with cover images and tags
-        $albums = $this->enrichAlbums($albums);
+        // Enrich + apply public-visitor access shaping, mirroring
+        // PageController::filterAlbumsByAccess() for an anonymous user
+        $albums = $this->enrichAlbumsForPublicHome($albums);
 
         // Calculate pagination
         $hasMore = $totalAlbums > $perPage;
@@ -225,7 +242,10 @@ class CacheWarmService
             $totalImagesCount = $imageResult['totalImages'];
             $hasMoreImages = false;
         } else {
-            $initialLimit = 20;
+            // Keep in sync with PageController::home() ($initialLimit = 12): the warmed
+            // entry must contain the same image count as a request-built one, or the
+            // data_hash/ETag of warmed vs request-generated caches would diverge.
+            $initialLimit = 12;
             $imageResult = $homeImageService->getInitialImages($initialLimit, $includeNsfw);
             $shownImageIds = $imageResult['shownImageIds'];
             $shownAlbumIds = $imageResult['shownAlbumIds'];
@@ -276,13 +296,21 @@ class CacheWarmService
         unset($parent);
         $parentCategories = array_values($parentCategories);
 
-        // Select template file
+        // Select template file (keep in sync with PageController::home() — the grid
+        // templates were missing here, so warming with e.g. 'editorial' active stored
+        // the wrong template_file 'frontend/home.twig')
         $templateMap = [
             'modern' => 'frontend/home_modern.twig',
             'parallax' => 'frontend/home_parallax.twig',
             'masonry' => 'frontend/home_masonry.twig',
             'snap' => 'frontend/home_snap.twig',
             'gallery' => 'frontend/home_gallery.twig',
+            'editorial' => 'frontend/home_editorial.twig',
+            'justified' => 'frontend/home_justified.twig',
+            'slideshow' => 'frontend/home_slideshow.twig',
+            'split' => 'frontend/home_split.twig',
+            'bento' => 'frontend/home_bento.twig',
+            'filmstrip' => 'frontend/home_filmstrip.twig',
         ];
         $templateFile = $templateMap[$homeTemplate] ?? 'frontend/home.twig';
 
@@ -524,6 +552,9 @@ class CacheWarmService
 
     /**
      * Enrich albums with cover images and tags.
+     *
+     * Used by buildGalleriesCache() only — buildHomeCache() uses
+     * enrichAlbumsForPublicHome() which mirrors PageController::home().
      */
     private function enrichAlbums(array $albums): array
     {
@@ -587,7 +618,222 @@ class CacheWarmService
     }
 
     /**
+     * Enrich home-page albums and apply public-visitor access shaping.
+     *
+     * Mirrors PageController::enrichAlbumsBatch() + filterAlbumsByAccess() for
+     * an anonymous user (not admin, no NSFW consent, no album password access):
+     * cover with full variants, tags, locations, images_count, then
+     * is_password_protected/is_locked flags, NSFW cover sanitization and
+     * cover_image construction. The warmed 'home' entry must be byte-identical
+     * to the one PageController::home() builds for a public request.
+     *
+     * @param array<int, array<string, mixed>> $albums
+     * @return array<int, array<string, mixed>>
+     */
+    private function enrichAlbumsForPublicHome(array $albums): array
+    {
+        if (empty($albums)) {
+            return [];
+        }
+
+        $enrich = new AlbumEnrichmentService($this->db->pdo());
+        $albumIds = array_column($albums, 'id');
+        $coverImageIds = array_values(array_filter(array_column($albums, 'cover_image_id')));
+
+        $coverData = $enrich->loadPageCoverImagesWithVariants($coverImageIds);
+        $coverImages = $coverData['images'];
+        $variantsByImage = $coverData['variants'];
+
+        $tagsByAlbum = $enrich->loadTags($albumIds);
+        $locationsByAlbum = $enrich->loadLocations($albumIds);
+        $countsByAlbum = $enrich->loadImageCounts($albumIds);
+
+        $visibleAlbums = [];
+        foreach ($albums as $album) {
+            $albumId = (int) $album['id'];
+            $coverImageId = $album['cover_image_id'] ? (int) $album['cover_image_id'] : null;
+
+            if ($coverImageId && isset($coverImages[$coverImageId])) {
+                $cover = $coverImages[$coverImageId];
+                $cover['variants'] = $variantsByImage[$coverImageId] ?? [];
+                $album['cover'] = $cover;
+            }
+
+            $album['tags'] = $tagsByAlbum[$albumId] ?? [];
+            $album['locations'] = $locationsByAlbum[$albumId] ?? [];
+            $album['images_count'] = $countsByAlbum[$albumId] ?? 0;
+
+            $album['is_password_protected'] = !empty($album['password_hash']);
+            unset($album['password_hash']);
+
+            // Anonymous visitor: never has session password access
+            $album['is_locked'] = !empty($album['is_password_protected']);
+
+            $album = $this->sanitizeAlbumCoverForNsfwPublic($album);
+            $album = $this->ensureAlbumCoverImagePublic($album);
+
+            $visibleAlbums[] = $album;
+        }
+        return $visibleAlbums;
+    }
+
+    /**
+     * Mirror of BaseController::sanitizeAlbumCoverForNsfw() for an anonymous
+     * visitor ($isAdmin = false, $nsfwConsent = false). The BaseController
+     * method is protected on the controller hierarchy and cannot be reused here.
+     *
+     * @param array<string, mixed> $album
+     * @return array<string, mixed>
+     */
+    private function sanitizeAlbumCoverForNsfwPublic(array $album): array
+    {
+        if (empty($album['is_nsfw'])) {
+            return $album;
+        }
+
+        // Mark as requiring CSS blur fallback if no blur variant exists
+        $album['nsfw_needs_css_blur'] = true;
+        $placeholderUrl = $this->blurPlaceholderUrl();
+
+        if (!empty($album['cover']) && !empty($album['cover']['variants']) && is_array($album['cover']['variants'])) {
+            $blurVariants = array_values(array_filter(
+                $album['cover']['variants'],
+                fn($variant) => isset($variant['variant']) && $variant['variant'] === 'blur'
+            ));
+
+            if ($blurVariants !== []) {
+                // Use only blur variants for display
+                $album['cover']['variants'] = $blurVariants;
+                unset($album['cover']['original_path']);
+                $album['nsfw_needs_css_blur'] = false;
+            } else {
+                // No blur variant: substitute with a static placeholder so the template
+                // never falls back to the full-resolution preview/original
+                $album['cover']['variants'] = [[
+                    'variant' => 'blur',
+                    'format' => 'jpg',
+                    'path' => $placeholderUrl,
+                    'width' => null,
+                    'height' => null,
+                ]];
+                unset($album['cover']['original_path']);
+                $album['nsfw_needs_css_blur'] = false;
+            }
+        }
+
+        if (!empty($album['cover_image']) && is_array($album['cover_image'])) {
+            if (empty($album['cover_image']['blur_path'])) {
+                $album['cover_image']['blur_path'] = $placeholderUrl;
+            }
+            if (!empty($album['cover_image']['blur_path'])) {
+                unset(
+                    $album['cover_image']['preview_path'],
+                    $album['cover_image']['original_path'],
+                    $album['cover_image']['path']
+                );
+                $album['nsfw_needs_css_blur'] = false;
+            }
+        }
+
+        return $album;
+    }
+
+    /**
+     * Mirror of BaseController::ensureAlbumCoverImage() (protected on the
+     * controller hierarchy, cannot be reused here). Builds the cover_image
+     * structure consumed by _album_card.twig.
+     *
+     * @param array<string, mixed> $album
+     * @return array<string, mixed>
+     */
+    private function ensureAlbumCoverImagePublic(array $album): array
+    {
+        if (!empty($album['cover_image']) || empty($album['cover']) || !is_array($album['cover'])) {
+            if (!empty($album['cover_image']) && is_array($album['cover_image'])) {
+                $needsPlaceholder = !empty($album['is_password_protected']) || !empty($album['is_locked']);
+                if ($needsPlaceholder && empty($album['cover_image']['blur_path'])) {
+                    $album['cover_image']['blur_path'] = $this->blurPlaceholderUrl();
+                }
+            }
+            return $album;
+        }
+
+        $cover = $album['cover'];
+        $coverImage = [
+            'id' => $cover['id'] ?? null,
+            'width' => isset($cover['width']) ? (int)$cover['width'] : null,
+            'height' => isset($cover['height']) ? (int)$cover['height'] : null,
+            'alt_text' => $cover['alt_text'] ?? '',
+            'original_path' => $cover['original_path'] ?? null,
+        ];
+
+        if (!empty($cover['variants']) && is_array($cover['variants'])) {
+            foreach ($cover['variants'] as $variant) {
+                if (empty($variant['path'])) {
+                    continue;
+                }
+                if (($variant['variant'] ?? '') === 'blur') {
+                    $coverImage['blur_path'] = $variant['path'];
+                    continue;
+                }
+                if (empty($coverImage['preview_path'])) {
+                    $coverImage['preview_path'] = $variant['path'];
+                }
+            }
+        }
+
+        $needsPlaceholder = !empty($album['is_password_protected']) || !empty($album['is_locked']);
+        if ($needsPlaceholder && empty($coverImage['blur_path'])) {
+            $coverImage['blur_path'] = $this->blurPlaceholderUrl();
+        }
+
+        $album['cover_image'] = $coverImage;
+        return $album;
+    }
+
+    /**
+     * Mirror of BaseController::blurPlaceholderUrl(): constant URL path for the
+     * static blur placeholder, lazily materialised on disk (best-effort, same
+     * 8x8 gray jpeg at quality 60) so a warm-first deployment doesn't 404.
+     */
+    private function blurPlaceholderUrl(): string
+    {
+        static $checked = false;
+        if (!$checked) {
+            $checked = true;
+            $path = dirname(__DIR__, 2) . '/public/media/blur-placeholder.jpg';
+            if (!is_file($path)
+                && extension_loaded('gd')
+                && function_exists('imagecreatetruecolor')
+            ) {
+                try {
+                    $img = imagecreatetruecolor(8, 8);
+                    if ($img !== false) {
+                        $color = imagecolorallocate($img, 120, 120, 120);
+                        if ($color !== false) {
+                            imagefilledrectangle($img, 0, 0, 7, 7, $color);
+                        }
+                        @imagejpeg($img, $path, 60);
+                        imagedestroy($img);
+                    }
+                } catch (\Throwable $e) {
+                    Logger::warning('CacheWarmService: failed to lazily create blur placeholder', [
+                        'error' => $e->getMessage(),
+                    ], 'frontend');
+                }
+            }
+        }
+        return '/media/blur-placeholder.jpg';
+    }
+
+    /**
      * Process a batch of images to add responsive sources.
+     *
+     * Mirrors PageController::processImageSourcesBatch() (with $isProtectedAlbum
+     * = false — cache warming only handles public albums) line by line: same
+     * variant query (columns and ORDER BY), same srcset/fallback rules and the
+     * same MAX_INLINE_LQIP cutoff. Any divergence here makes a warmed
+     * page_cache entry hash differently from a request-built one.
      */
     private function processImageSourcesBatch(array $images): array
     {
@@ -598,24 +844,117 @@ class CacheWarmService
         $pdo = $this->db->pdo();
         $imageIds = array_column($images, 'id');
         $placeholders = implode(',', array_fill(0, count($imageIds), '?'));
-
-        // Get all variants for these images
-        $varStmt = $pdo->prepare("
-            SELECT * FROM image_variants
-            WHERE image_id IN ({$placeholders})
-            ORDER BY image_id, width ASC
-        ");
-        $varStmt->execute($imageIds);
-
         $variantsByImage = [];
-        foreach ($varStmt->fetchAll() as $var) {
-            $variantsByImage[$var['image_id']][] = $var;
+
+        try {
+            $variantsStmt = $pdo->prepare("
+                SELECT image_id, format, path, width, variant
+                FROM image_variants
+                WHERE image_id IN ($placeholders)
+                ORDER BY image_id, variant ASC
+            ");
+            $variantsStmt->execute($imageIds);
+            foreach ($variantsStmt->fetchAll() as $variant) {
+                $imageId = (int) $variant['image_id'];
+                if (!isset($variantsByImage[$imageId])) {
+                    $variantsByImage[$imageId] = [];
+                }
+                $variantsByImage[$imageId][] = $variant;
+            }
+        } catch (\Throwable $e) {
+            Logger::warning('CacheWarmService: Error processing image sources (batch)', ['error' => $e->getMessage()], 'frontend');
+            foreach ($images as &$image) {
+                $image['sources'] = ['avif' => [], 'webp' => [], 'jpg' => []];
+                $image['variants'] = [];
+                // Security: never expose non-public storage paths
+                $fallback = $image['original_path'] ?? '';
+                if (str_starts_with((string) $fallback, '/storage/')) {
+                    $fallback = '';
+                }
+                $image['fallback_src'] = $fallback;
+            }
+            unset($image);
+            return $images;
         }
 
-        // Process each image
+        // PERFORMANCE: Trust database records instead of checking filesystem for every variant
+        $imageIndex = 0;
         foreach ($images as &$image) {
-            $variants = $variantsByImage[$image['id']] ?? [];
-            $image = $this->buildImageSources($image, $variants);
+            $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
+            $variants = $variantsByImage[(int) $image['id']] ?? [];
+
+            foreach ($variants as $variant) {
+                $format = $variant['format'] ?? 'jpg';
+                $path = $variant['path'] ?? '';
+                $variantType = $variant['variant'] ?? '';
+                // Skip blur variants and storage paths from srcset
+                if (!isset($sources[$format]) || $path === '' || str_starts_with($path, '/storage/') || $variantType === 'blur') {
+                    continue;
+                }
+                // Trust database - variant exists means file exists
+                $sources[$format][] = $path . ' ' . (int) $variant['width'] . 'w';
+            }
+
+            // Find best fallback from variants for initial grid display.
+            // Prefer the smallest public JPG so fallback_src matches the
+            // image/jpeg type declared in templates and JSON-LD; only when no
+            // JPG variant exists fall back to the smallest of any format.
+            // IMPORTANT: keep this loop byte-identical to the one in
+            // PageController::processImageSourcesBatch — warmed and
+            // request-built page_cache entries must produce the same data_hash.
+            $fallbackUrl = $image['original_path'] ?? '';
+            $bestWidth = PHP_INT_MAX;
+            $bestJpgUrl = null;
+            $bestJpgWidth = PHP_INT_MAX;
+            foreach ($variants as $variant) {
+                $path = (string) ($variant['path'] ?? '');
+                $w = (int) ($variant['width'] ?? 0);
+                $variantType = $variant['variant'] ?? '';
+                // Skip blur variants, storage paths, and invalid widths
+                if ($path === '' || str_starts_with($path, '/storage/') || $w <= 0 || $variantType === 'blur') {
+                    continue;
+                }
+                if ($w < $bestWidth) {
+                    $bestWidth = $w;
+                    $fallbackUrl = $path;
+                }
+                $fmt = strtolower((string) ($variant['format'] ?? ''));
+                if (($fmt === 'jpg' || $fmt === 'jpeg') && $w < $bestJpgWidth) {
+                    $bestJpgWidth = $w;
+                    $bestJpgUrl = $path;
+                }
+            }
+            if ($bestJpgUrl !== null) {
+                $fallbackUrl = $bestJpgUrl;
+            }
+
+            // LQIP placeholder for instant perceived loading (public albums only)
+            $lqipPlaceholder = null;
+            foreach ($variants as $variant) {
+                if (($variant['variant'] ?? '') === 'lqip' && !empty($variant['path'])) {
+                    $lqipPath = $variant['path'];
+                    // Only use LQIP if it's a public path
+                    if (!str_starts_with($lqipPath, '/storage/')) {
+                        // Inline base64 data URI only for the first MAX_INLINE_LQIP
+                        // images; beyond that use the file path (same rule as
+                        // PageController — templates handle both forms)
+                        $lqipPlaceholder = $imageIndex < self::MAX_INLINE_LQIP
+                            ? $this->generateLQIPDataUri($lqipPath)
+                            : $lqipPath;
+                    }
+                    break;
+                }
+            }
+
+            $image['sources'] = $sources;
+            $image['variants'] = $variants;
+            // Security: never expose non-public storage paths in fallback_src
+            if ($fallbackUrl !== '' && str_starts_with((string) $fallbackUrl, '/storage/')) {
+                $fallbackUrl = '';
+            }
+            $image['fallback_src'] = $fallbackUrl;
+            $image['lqip_placeholder'] = $lqipPlaceholder;
+            $imageIndex++;
         }
         unset($image);
 

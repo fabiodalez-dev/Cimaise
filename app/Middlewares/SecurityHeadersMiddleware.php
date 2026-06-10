@@ -11,23 +11,31 @@ use Psr\Http\Server\RequestHandlerInterface as Handler;
 
 class SecurityHeadersMiddleware implements MiddlewareInterface
 {
+    /**
+     * WARNING: process-wide state, safe ONLY under one-request-per-process runtimes
+     * (Apache/mod_php, PHP-FPM). Under persistent runtimes handling concurrent
+     * requests in one process (Swoole, RoadRunner), this value would leak between
+     * requests. It exists solely because SecurityTwigExtension::getCspNonce() is
+     * registered at bootstrap as a plain Twig function and has no access to the
+     * PSR-7 request. Anything that CAN access the request must read the
+     * 'csp_nonce' request attribute instead of calling getNonce().
+     */
     private static ?string $nonce = null;
 
     public function process(Request $request, Handler $handler): Response
     {
         // Generate a unique nonce for this request
-        self::$nonce = base64_encode(random_bytes(16));
+        $nonce = base64_encode(random_bytes(16));
+        self::$nonce = $nonce;
 
         // Store nonce in request attribute for use by templates
-        $request = $request->withAttribute('csp_nonce', self::$nonce);
+        $request = $request->withAttribute('csp_nonce', $nonce);
 
         $response = $handler->handle($request);
 
         // Check if this is an admin route
         $path = $request->getUri()->getPath();
         $isAdminRoute = str_starts_with($path, '/admin') || str_starts_with($path, '/cimaise/admin');
-
-        $nonce = self::$nonce ?? '';
 
         // Admin routes: unsafe-inline for scripts because TinyMCE/SortableJS inject inline scripts dynamically.
         // Nonce-based CSP can't work here: CSP2+ ignores 'unsafe-inline' when a nonce is present,
@@ -87,7 +95,12 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
     }
 
     /**
-     * Get the current request's CSP nonce
+     * Get the current request's CSP nonce.
+     *
+     * NOTE: only for consumers without request access (SecurityTwigExtension).
+     * Prefer the 'csp_nonce' request attribute wherever the request is available —
+     * this static accessor is not safe under concurrent persistent runtimes
+     * (see the warning on self::$nonce).
      */
     public static function getNonce(): ?string
     {

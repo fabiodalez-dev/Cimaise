@@ -186,13 +186,15 @@
     <link rel="stylesheet" href="{{ base_path }}/assets/photoswipe/photoswipe.css" media="print" id="photoswipe-css">
     <noscript><link rel="stylesheet" href="{{ base_path }}/assets/photoswipe/photoswipe.css"></noscript>
 
-    <!-- Swiper CSS (only needed for carousels) -->
+    {% if (needs_vendor_scripts is defined ? needs_vendor_scripts : true) and (needs_swiper is defined ? needs_swiper : false) %}
+    <!-- Swiper CSS (only needed for carousels - opt in with needs_swiper = true) -->
     <link rel="stylesheet" href="{{ base_path }}/assets/vendor/swiper/swiper-bundle.min.css" media="print" id="swiper-css">
     <noscript><link rel="stylesheet" href="{{ base_path }}/assets/vendor/swiper/swiper-bundle.min.css"></noscript>
+    {% endif %}
 
     <!-- Font Awesome (~100KB - defer loading, icons appear after paint) -->
-    <link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css" media="print" id="fontawesome-css">
-    <noscript><link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css"></noscript>
+    <link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/frontend-subset.css" media="print" id="fontawesome-css">
+    <noscript><link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/frontend-subset.css"></noscript>
 
     <!-- CSP-compliant async CSS loading (replaces inline onload handlers) -->
     <script nonce="{{ csp_nonce() }}">['photoswipe-css','swiper-css','fontawesome-css'].forEach(function(id){var e=document.getElementById(id);if(e){if(e.sheet){e.media='all';}else{e.onload=function(){this.media='all';};}}});</script>
@@ -614,15 +616,29 @@
 
     <!-- PhotoSwipe lightbox (local) loaded dynamically in JS -->
     
-    {# Vendor scripts loaded conditionally. Set needs_vendor_scripts = false in child templates to skip. #}
-    {% if needs_vendor_scripts|default(true) %}
+    {# Vendor scripts loaded conditionally, per library:
+       - needs_vendor_scripts = false  → master kill-switch, skips ALL vendor JS (backward compatible)
+       - needs_swiper  (default false) → opt IN on templates with carousels (e.g. gallery_hero)
+       - needs_gsap    (default true)  → the layout's own album-card/gallery entry animations and
+                                          header hide/show use GSAP on most content pages; opt OUT
+                                          only on pages that provably render no animated elements
+       - needs_masonry (default false) → opt IN on album/gallery templates that run the Masonry
+                                          runtime (imagesLoaded travels with Masonry) #}
+    {# NOTE: `is defined ? x : y` instead of `|default(y)` — Twig's default filter
+       treats an explicit `false` as empty and would return the default. #}
+    {% set _vendor_scripts_enabled = needs_vendor_scripts is defined ? needs_vendor_scripts : true %}
+    {% if _vendor_scripts_enabled and (needs_swiper is defined ? needs_swiper : false) %}
     <!-- Swiper.js - Deferred for better initial load performance -->
     <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/swiper/swiper-bundle.min.js" defer></script>
+    {% endif %}
 
+    {% if _vendor_scripts_enabled and (needs_gsap is defined ? needs_gsap : true) %}
     <!-- GSAP - Deferred (progressive enhancement for animations) -->
     <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/gsap/gsap.min.js" defer></script>
     <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/gsap/ScrollTrigger.min.js" defer></script>
+    {% endif %}
 
+    {% if _vendor_scripts_enabled and (needs_masonry is defined ? needs_masonry : false) %}
     <!-- imagesLoaded + Masonry - Deferred -->
     <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/imagesloaded/imagesloaded.pkgd.min.js" defer></script>
     <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/masonry/masonry.pkgd.min.js" defer></script>
@@ -1031,7 +1047,7 @@
                         suggestController.abort();
                     }
                     suggestController = new AbortController();
-                    fetch(`${basePath}/galleries/filter?search=${encodeURIComponent(query)}`, {
+                    fetch(`${basePath}/galleries/filter?search=${encodeURIComponent(query)}&limit=6`, {
                         method: 'GET',
                         headers: { 'Accept': 'application/json' },
                         signal: suggestController.signal
@@ -1581,7 +1597,12 @@
             }
         }
 
-        // Shared PhotoSwipe helper: setup tap/zoom handling for lightbox
+        // Shared PhotoSwipe helper: setup tap/zoom handling for lightbox.
+        // Must use PhotoSwipe's native action hooks, NOT a DOM pointerup
+        // listener: stopPropagation() on pointerup swallows the gesture-end
+        // PhotoSwipe listens for on window, so drags are never finalized
+        // (no spring-back into pan bounds) and the image can be dragged
+        // off-screen permanently on touch devices.
         function pswpSetupTapZoom(pswp, toggleZoomFn) {
             if (pswp._customZoomBound) return;
 
@@ -1595,81 +1616,54 @@
                 }, { capture: true });
             }
 
-            // Tap on image: single tap navigates, double tap zooms (touch)
-            let lastTapAt = 0;
-            let lastTapX = 0;
-            let lastTapY = 0;
-            let singleTapTimer = null;
-            const tapDelayMs = 260;
-            const tapDistancePx = 24;
-
-            pswp.element?.addEventListener('pointerup', (ev) => {
-                const target = ev.target;
-                // Skip UI controls to prevent blocking button clicks
-                if (target.closest('.pswp__top-bar, .pswp__button')) {
-                    return;
-                }
-                const imgEl = target && target.closest ? target.closest('.pswp__img') : null;
-                if (!imgEl) return;
-
-                const rect = imgEl.getBoundingClientRect();
-                const clickX = ev.clientX - rect.left;
-                const clickY = ev.clientY - rect.top;
-                const isTouch = ev.pointerType === 'touch' || ev.pointerType === 'pen';
+            const isZoomedIn = () => {
                 const slide = pswp.currSlide;
-                const fit = slide && slide.zoomLevels ? (slide.zoomLevels.fit ?? slide.zoomLevels.initial ?? 1) : 1;
-                const current = slide ? (slide.currZoomLevel ?? fit) : fit;
-                const isZoomed = current > fit * 1.05;
-
-                if (isTouch) {
-                    const now = Date.now();
-                    const dist = Math.hypot(clickX - lastTapX, clickY - lastTapY);
-                    if (now - lastTapAt <= tapDelayMs && dist <= tapDistancePx) {
-                        if (singleTapTimer) {
-                            clearTimeout(singleTapTimer);
-                            singleTapTimer = null;
-                        }
-                        lastTapAt = 0;
-                        ev.preventDefault();
-                        ev.stopPropagation();
-                        toggleZoomFn(pswp);
-                        return;
-                    }
-                    if (isZoomed) {
-                        return;
-                    }
-                    lastTapAt = now;
-                    lastTapX = clickX;
-                    lastTapY = clickY;
-                    if (singleTapTimer) {
-                        clearTimeout(singleTapTimer);
-                    }
-                    singleTapTimer = setTimeout(() => {
-                        if (isZoomed) {
-                            return;
-                        }
-                        ev.preventDefault();
-                        ev.stopPropagation();
-                        if (clickX < rect.width / 2) {
-                            pswp.prev();
-                        } else {
-                            pswp.next();
-                        }
-                    }, tapDelayMs);
-                    return;
-                }
-
-                if (isZoomed) {
-                    return;
-                }
-                ev.preventDefault();
-                ev.stopPropagation();
-                if (clickX < rect.width / 2) {
+                if (!slide || !slide.zoomLevels) return false;
+                const fit = slide.zoomLevels.fit ?? slide.zoomLevels.initial ?? 1;
+                const current = slide.currZoomLevel ?? fit;
+                return current > fit * 1.05;
+            };
+            const tappedImage = (ev) => !!(ev && ev.target && ev.target.closest && ev.target.closest('.pswp__img'));
+            const navigateByHalf = (point) => {
+                if (point.x < pswp.viewportSize.x / 2) {
                     pswp.prev();
                 } else {
                     pswp.next();
                 }
-            }, { capture: true });
+            };
+            const toggleControls = () => {
+                pswp.element?.classList.toggle('pswp--ui-visible');
+            };
+
+            // Mouse click on the image: navigate at fit level, zoom back out
+            // at the clicked point when zoomed in.
+            pswp.options.imageClickAction = (point, ev) => {
+                if (!tappedImage(ev)) return;
+                if (isZoomedIn()) {
+                    pswp.currSlide?.toggleZoom(point);
+                    return;
+                }
+                navigateByHalf(point);
+            };
+
+            // Touch single tap: PhotoSwipe fires this only for real taps
+            // (drag releases go through its drag-end handling) and debounces
+            // it against double taps natively.
+            pswp.options.tapAction = (point, ev) => {
+                if (!tappedImage(ev) || isZoomedIn()) {
+                    toggleControls();
+                    return;
+                }
+                navigateByHalf(point);
+            };
+
+            // Touch double tap: centered zoom toggle. No on-image check —
+            // like PhotoSwipe's native 'zoom' action, the letterbox area
+            // around the image counts too (didTapOnMainContent already
+            // restricts this to the slide container).
+            pswp.options.doubleTapAction = (point, ev) => {
+                toggleZoomFn(pswp);
+            };
 
             pswp._customZoomBound = true;
         }
@@ -1883,7 +1877,10 @@
                         }
                     };
 
-                    lb.on('open', () => {
+                    // NOTE: PhotoSwipe 5 has no 'open' event — binding to it makes
+                    // this whole block dead code. 'afterInit' fires at the end of
+                    // open() with the UI already built (zoom button exists).
+                    lb.on('afterInit', () => {
                         const pswp = lb.pswp;
                         if (pswp && !pswp._customZoomBound) {
                             const updateZoomClasses = () => {
@@ -2407,7 +2404,8 @@
                         pswp.currSlide.zoomTo(target, center, 350);
                     }
                   };
-                  lb.on('open', () => {
+                  // 'afterInit', not 'open': PhotoSwipe 5 never dispatches 'open'.
+                  lb.on('afterInit', () => {
                     const pswp = lb.pswp;
                     // Custom zoom: toggle between fit and zoom using built-in toggleZoom
                     if (pswp && !pswp._customZoomBound) {
