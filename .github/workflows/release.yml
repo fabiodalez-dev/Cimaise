@@ -23,7 +23,9 @@ jobs:
       - name: Setup PHP 8.1
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
+          # composer.json requires ^8.2 — build the package with the app's
+          # minimum supported PHP so the optimized autoloader stays compatible.
+          php-version: '8.2'
           extensions: pdo, pdo_mysql, pdo_sqlite, mbstring, json, openssl, curl, gd, exif
           tools: composer
 
