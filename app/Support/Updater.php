@@ -353,6 +353,24 @@ class Updater
     }
 
     /**
+     * Whether a URL targets the GitHub API host — the ONLY host that may
+     * receive the Authorization bearer token. Release asset downloads
+     * (browser_download_url and the .sha256 sidecar) resolve to CDN hosts
+     * (objects.githubusercontent.com) via redirects; sending the token there
+     * would leak it to non-API hosts, so those requests go anonymous
+     * (release assets on public repos don't need auth anyway).
+     */
+    private function isApiUrl(string $url): bool
+    {
+        $apiHost = parse_url($this->apiBase(), PHP_URL_HOST);
+        $urlHost = parse_url($url, PHP_URL_HOST);
+
+        return is_string($apiHost) && $apiHost !== ''
+            && is_string($urlHost) && $urlHost !== ''
+            && strcasecmp($apiHost, $urlHost) === 0;
+    }
+
+    /**
      * Whether the prerelease (RC) channel is enabled via environment opt-in.
      * UPDATER_ALLOW_PRERELEASE=1/true/yes/on or UPDATER_CHANNEL != "stable".
      */
@@ -395,7 +413,8 @@ class Updater
      */
     private function httpGet(string $url, string $accept = 'application/vnd.github.v3+json'): array
     {
-        $attemptWithAuth = $this->githubToken() !== '';
+        // SECURITY: token scoped to the API host only (see isApiUrl).
+        $attemptWithAuth = $this->githubToken() !== '' && $this->isApiUrl($url);
         $withAuth = $attemptWithAuth;
 
         do {
@@ -579,7 +598,9 @@ class Updater
         if (extension_loaded('curl')) {
             $this->debugLog('DEBUG', 'Attempting download with cURL', ['url' => $url]);
 
-            $withAuth = $this->githubToken() !== '';
+            // SECURITY: token scoped to the API host only (see isApiUrl) —
+            // asset downloads redirect to CDN hosts and must stay anonymous.
+            $withAuth = $this->githubToken() !== '' && $this->isApiUrl($url);
 
             do {
                 $ch = curl_init($url);
@@ -651,7 +672,8 @@ class Updater
 
         $this->debugLog('DEBUG', 'Attempting download with file_get_contents', ['url' => $url]);
 
-        $withAuth = $this->githubToken() !== '';
+        // SECURITY: token scoped to the API host only (see isApiUrl).
+        $withAuth = $this->githubToken() !== '' && $this->isApiUrl($url);
 
         do {
             $context = stream_context_create([
@@ -1547,6 +1569,9 @@ class Updater
             'index.php',
             '.htaccess',
             'public/index.php',
+            // Installed by copyDirectory() and invoked at runtime (cache,
+            // settings, blur jobs) — must be restored on a failed update.
+            'bin/console',
         ];
 
         // database/schema.*.sql (sqlite + mysql, future-proof against new ones)

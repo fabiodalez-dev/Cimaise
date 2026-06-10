@@ -100,6 +100,11 @@ check_requirements() {
         missing_deps+=("zip")
     fi
 
+    # Required by verify_zip_package (unzip -Z / unzip -q)
+    if ! command -v unzip &> /dev/null; then
+        missing_deps+=("unzip")
+    fi
+
     if ! command -v shasum &> /dev/null && ! command -v sha256sum &> /dev/null; then
         missing_deps+=("shasum or sha256sum")
     fi
@@ -108,8 +113,8 @@ check_requirements() {
         log_error "Missing required dependencies: ${missing_deps[*]}"
         echo ""
         echo "Install missing dependencies:"
-        echo "  macOS:   brew install jq rsync"
-        echo "  Ubuntu:  sudo apt-get install jq rsync zip"
+        echo "  macOS:   brew install jq rsync unzip"
+        echo "  Ubuntu:  sudo apt-get install jq rsync zip unzip"
         exit 1
     fi
 

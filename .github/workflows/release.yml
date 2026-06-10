@@ -25,7 +25,7 @@ jobs:
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
 
-      - name: Setup PHP 8.1
+      - name: Setup PHP 8.2
         uses: shivammathur/setup-php@v2
         with:
           # composer.json requires ^8.2 — build the package with the app's
@@ -43,7 +43,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y jq rsync zip
+          sudo apt-get install -y jq rsync zip unzip
 
       - name: Install Composer dependencies
         run: composer install --no-dev --optimize-autoloader --no-interaction

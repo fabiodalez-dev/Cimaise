@@ -29,7 +29,7 @@ a runtime e quali regole non vanno mai violate.
 
 Gli aggiornamenti **partono da GitHub**: il pacchetto viene costruito in CI, mai a mano.
 
-```
+```text
 git tag v1.5.0 && git push --tags
         │
         ▼
@@ -106,7 +106,7 @@ generate per-installazione, `database/database.sqlite`, tutta la toolchain di bu
    - **verifica integrità obbligatoria** (vedi sotto)
 5. **Backup applicativo per rollback** (`storage/tmp/cimaise_app_backup_*`):
    `app/`, `public/assets/`, `vendor/`, `database/migrations/`, `database/schema.*.sql`,
-   `version.json`, `index.php`, `.htaccess`, `public/index.php`
+   `version.json`, `index.php`, `.htaccess`, `public/index.php`, `bin/console`
 6. **Copia file** rispettando i path preservati (vedi tabella) + pulizia orfani in `app/` e `public/assets/`
 7. **Migrazioni database** (vedi regole)
 8. **Permessi** + `opcache_reset()`
@@ -146,7 +146,7 @@ vengono comunque creati su installazioni che ne fossero prive.
 |---|---|---|
 | `UPDATER_API_BASE` | `https://api.github.com` | base URL API (test/mirror) |
 | `UPDATER_REPO` | `fabiodalez-dev/cimaise` | repo `owner/name` |
-| `UPDATER_GITHUB_TOKEN` | _(vuoto)_ | bearer token opzionale; su 401/403 ritenta automaticamente senza token |
+| `UPDATER_GITHUB_TOKEN` | _(vuoto)_ | bearer token opzionale; inviato SOLO alle richieste verso l'host API (i download degli asset/sidecar vanno anonimi: i redirect verso i CDN leakerebbero il token); su 401/403 ritenta automaticamente senza token |
 | `UPDATER_ALLOW_PRERELEASE` | _(off)_ | `1/true/yes/on` abilita il canale RC |
 | `UPDATER_CHANNEL` | `stable` | qualsiasi valore ≠ `stable` abilita il canale RC |
 
@@ -185,16 +185,18 @@ al tag RC (es. `migrate_1.5.0-rc.1_sqlite.sql`).
 ## Maintenance mode
 
 - `performUpdate()` scrive `storage/.maintenance`; `public/index.php` lo controlla
-  **prima del bootstrap pesante** (vendor/Twig possono essere a metà sostituzione)
-  e risponde **503 + `Retry-After: 120`** con una pagina HTML statica minimale
-  (niente Twig, niente DB), `Cache-Control: no-store`, `noindex`
+  **prima di `require vendor/autoload.php`** (durante l'update `vendor/` è a metà
+  sostituzione: una richiesta concorrente non deve mai toccare l'autoloader) con
+  codice self-contained senza dipendenze, e risponde **503 + `Retry-After: 120`**
+  con una pagina HTML statica minimale (niente Twig, niente DB),
+  `Cache-Control: no-store`, `X-Robots-Tag: noindex`
 - **Esenzione**: i path `/admin/updates*` non vengono bloccati, così l'admin che
   ha lanciato l'update può completare `POST /admin/updates/perform` e usare
   l'endpoint di emergenza
-- **Auto-scadenza 30 minuti**: `Updater::checkStaleMaintenanceMode()` rimuove un
-  flag più vecchio di 30 minuti (update crashato ≠ sito bloccato per sempre);
-  `public/index.php` ha anche un fallback inline nel caso la classe stessa sia
-  inutilizzabile a metà update
+- **Auto-scadenza 30 minuti**: un flag più vecchio di 30 minuti viene rimosso
+  (update crashato ≠ sito bloccato per sempre). `public/index.php` replica inline
+  la semantica di `Updater::checkStaleMaintenanceMode()` senza caricare la classe
+  (che potrebbe essere a metà sostituzione)
 - **Sblocco di emergenza**: bottone "Clear maintenance" in Admin → Updates
   (`POST /admin/updates/maintenance/clear`) oppure `rm storage/.maintenance` via SSH
 
