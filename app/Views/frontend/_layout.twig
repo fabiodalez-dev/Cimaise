@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="{{ lang|default('it')|e('html_attr') }}" class="no-js{% if dark_mode|default(false) %} dark{% endif %}">
 <head>
-    <!-- JS flag class on <html> for no-JS fallbacks -->
-    <script nonce="{{ csp_nonce() }}">(function(){ document.documentElement.classList.remove('no-js'); document.documentElement.classList.add('js'); window.__showExifInLightbox = {{ lightbox_show_exif ? 'true' : 'false' }}; })();</script>
+    <!-- JS flag class on <html> for no-JS fallbacks + visitor theme (runs before paint to avoid FOUC) -->
+    <script nonce="{{ csp_nonce() }}">(function(){ var d=document.documentElement; d.classList.remove('no-js'); d.classList.add('js'); window.__showExifInLightbox = {{ lightbox_show_exif ? 'true' : 'false' }}; try{ var t=localStorage.getItem('cimaise-theme'); if(t==='dark'){d.classList.add('dark');} else if(t==='light'){d.classList.remove('dark');} }catch(e){} })();</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page_title|default(site_title|default('Cimaise'))|e }}</title>
@@ -208,6 +208,20 @@
     </style>
     {% endif %}
 
+    <style nonce="{{ csp_nonce() }}">
+        /* Theme toggle icon visibility is driven entirely by the resolved
+           <html>.dark state (set pre-paint from localStorage), so the correct
+           icon shows on first paint even when the visitor's stored choice
+           differs from the server default — and so the FontAwesome `.fas`
+           rule (loaded after the `.hidden` utility, same specificity) can't
+           override it. The toggle wiring only syncs aria-pressed/aria-label.
+           Light: moon (switch-to-dark). Dark: sun (switch-to-light). */
+        [data-theme-icon="light"] { display: none !important; }
+        [data-theme-icon="dark"] { display: inline-block !important; }
+        html.dark [data-theme-icon="dark"] { display: none !important; }
+        html.dark [data-theme-icon="light"] { display: inline-block !important; }
+    </style>
+
     {% if page_custom_css is defined and page_custom_css %}
     {{ page_custom_css|raw }}
     {% endif %}
@@ -362,6 +376,12 @@
                       <!-- Mobile Search Toggle -->
                       <button id="mobile-search-toggle" class="md:hidden flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 focus:outline-none transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="header-search-panel" aria-expanded="false">
                           <i class="fas fa-search text-sm"></i>
+                      </button>
+                      <!-- Dark Mode Toggle -->
+                      {% set _dark_default = dark_mode|default(false) %}
+                      <button id="theme-toggle" type="button" class="flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 focus:outline-none transition-colors duration-200" aria-label="{{ _dark_default ? trans('theme.toggle_light') : trans('theme.toggle_dark') }}" aria-pressed="{{ _dark_default ? 'true' : 'false' }}">
+                          <i class="fas fa-moon text-sm{{ _dark_default ? ' hidden' : '' }}" data-theme-icon="dark" aria-hidden="true"></i>
+                          <i class="fas fa-sun text-sm{{ _dark_default ? '' : ' hidden' }}" data-theme-icon="light" aria-hidden="true"></i>
                       </button>
                     </div>
 
@@ -535,6 +555,32 @@
             </div>
         </div>
     </header>
+
+    <!-- Dark mode toggle wiring: flips the `dark` class on <html> and persists the
+         visitor's choice to localStorage (overrides the admin site default). The
+         pre-paint script in <head> applies the stored choice on subsequent loads. -->
+    <script nonce="{{ csp_nonce() }}">
+    (function(){
+        var btn = document.getElementById('theme-toggle');
+        if (!btn) return;
+        var root = document.documentElement;
+        var labels = { dark: '{{ trans('theme.toggle_dark')|e('js') }}', light: '{{ trans('theme.toggle_light')|e('js') }}' };
+        // Icon visibility is driven by the html.dark CSS rules above; sync only
+        // updates the accessible state (aria-pressed/aria-label) on theme change.
+        function sync(){
+            var isDark = root.classList.contains('dark');
+            btn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+            // Label reflects the action the button performs next.
+            btn.setAttribute('aria-label', isDark ? labels.light : labels.dark);
+        }
+        sync();
+        btn.addEventListener('click', function(){
+            var isDark = root.classList.toggle('dark');
+            try { localStorage.setItem('cimaise-theme', isDark ? 'dark' : 'light'); } catch(e){}
+            sync();
+        });
+    })();
+    </script>
 
     <!-- Main content -->
     <main>

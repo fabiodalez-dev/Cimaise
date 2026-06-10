@@ -90,6 +90,8 @@
 
 {% block content %}
 {# Modern Home Template - Grid-based layout with fixed sidebar #}
+{# Server-rendered dark-mode default (admin setting); the pre-paint <head> script + toggle wiring reconcile any localStorage override. Defined once, used by both header toggles. #}
+{% set _dark_default = dark_mode|default(false) %}
 {% import 'frontend/_seo_macros.twig' as Seo %}
 {% import 'frontend/_image_macros.twig' as ImageMacros %}
 
@@ -212,6 +214,11 @@
                       <!-- Mobile Search Toggle -->
                       <button id="mobile-search-toggle" class="flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-1 transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="header-search-panel" aria-expanded="false">
                           <i class="fas fa-search text-sm"></i>
+                      </button>
+                      <!-- Dark Mode Toggle -->
+                      <button type="button" data-theme-toggle class="js-theme-toggle flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-1 transition-colors duration-200" aria-label="{{ _dark_default ? trans('theme.toggle_light') : trans('theme.toggle_dark') }}" aria-pressed="{{ _dark_default ? 'true' : 'false' }}">
+                          <i class="fas fa-moon text-sm{{ _dark_default ? ' hidden' : '' }}" data-theme-icon="dark" aria-hidden="true"></i>
+                          <i class="fas fa-sun text-sm{{ _dark_default ? '' : ' hidden' }}" data-theme-icon="light" aria-hidden="true"></i>
                       </button>
                     </div>
 
@@ -348,6 +355,11 @@
             {% endif %}
             <button id="header-search-toggle" class="modern-search-toggle" aria-label="{{ trans('filter.search') }}" aria-controls="header-search-panel" aria-expanded="false">
                 <i class="fas fa-search" aria-hidden="true"></i>
+            </button>
+            <!-- Dark Mode Toggle -->
+            <button type="button" data-theme-toggle class="js-theme-toggle modern-search-toggle" aria-label="{{ _dark_default ? trans('theme.toggle_light') : trans('theme.toggle_dark') }}" aria-pressed="{{ _dark_default ? 'true' : 'false' }}">
+                <i class="fas fa-moon{{ _dark_default ? ' hidden' : '' }}" data-theme-icon="dark" aria-hidden="true"></i>
+                <i class="fas fa-sun{{ _dark_default ? '' : ' hidden' }}" data-theme-icon="light" aria-hidden="true"></i>
             </button>
         </div>
     </div>
