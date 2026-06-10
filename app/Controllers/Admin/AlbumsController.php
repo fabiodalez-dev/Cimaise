@@ -1030,15 +1030,39 @@ class AlbumsController extends BaseController
 
             $stmt->execute([':id'=>$id]);
 
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_deleted')];
-
-            // Clean up files (best-effort, after successful DB deletion)
+            // Clean up files (best-effort, after successful DB deletion).
+            // Aggregate failures so orphaned files remain discoverable: the DB rows
+            // are already gone at this point, so a silently skipped unlink would
+            // leave files on disk with no record pointing at them.
+            $failedDeletions = [];
             foreach ($files as $p) {
                 $abs = str_starts_with((string)$p, '/media/')
                     ? ($root . '/public' . $p)
                     : ($root . $p);
-                @unlink($abs);
+                if (!is_file($abs)) {
+                    continue; // already gone — nothing to clean up
+                }
+                if (!@unlink($abs)) {
+                    $lastError = error_get_last();
+                    $reason = ($lastError !== null && str_contains($lastError['message'], 'unlink'))
+                        ? $lastError['message']
+                        : 'unknown reason';
+                    $failedDeletions[] = $abs . ' (' . $reason . ')';
+                }
             }
+
+            $flashMessage = trans('admin.flash.album_deleted');
+            if ($failedDeletions !== []) {
+                error_log(sprintf(
+                    'Album %d deleted; %d file(s) could not be removed: %s',
+                    $id,
+                    count($failedDeletions),
+                    implode('; ', $failedDeletions)
+                ));
+                $flashMessage .= ' — ' . count($failedDeletions)
+                    . ' file(s) could not be removed from disk (orphaned files, see server error log).';
+            }
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => $flashMessage];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
         }

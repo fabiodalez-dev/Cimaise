@@ -236,6 +236,10 @@ CREATE TABLE IF NOT EXISTS albums (
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT,
   CHECK ((template_id IS NULL) OR (custom_template_id IS NULL)),
+  -- FK design invariant: category deletion is blocked while any album has it as
+  -- primary (RESTRICT); the album_category pivot CASCADE only fires for categories
+  -- used exclusively as secondary. Do not relax the RESTRICT (e.g. to SET NULL)
+  -- without rethinking the pivot cascade.
   FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT,
   FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL,
   FOREIGN KEY (template_id) REFERENCES templates(id) ON DELETE SET NULL,
@@ -373,6 +377,10 @@ CREATE TABLE IF NOT EXISTS album_category (
   category_id INTEGER NOT NULL,
   PRIMARY KEY (album_id, category_id),
   FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+  -- FK design invariant: this CASCADE only ever fires for categories used
+  -- exclusively as secondary — albums.category_id is ON DELETE RESTRICT, which
+  -- blocks deleting a category that is any album's primary. Do not relax that
+  -- RESTRICT without rethinking this cascade (it would silently destroy pivot state).
   FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_album_category_category ON album_category(category_id);
