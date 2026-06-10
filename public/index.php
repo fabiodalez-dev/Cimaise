@@ -119,6 +119,55 @@ if (!$isInstallerRoute) {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Update maintenance mode (storage/.maintenance written by App\Support\Updater
+// during performUpdate). Served BEFORE the heavy bootstrap on purpose:
+//  - mid-update the app code / Twig templates / vendor may be half-replaced,
+//    so this block is dependency-light and must never assume a working app;
+//  - visitors get a plain 503 + Retry-After, never a white screen;
+//  - the flag auto-expires after 30 minutes (a crashed update can't lock the
+//    site forever) via Updater::checkStaleMaintenanceMode(), with an inline
+//    fallback in case the class itself is mid-replacement;
+//  - /admin/updates* requests are exempt so the admin performing the update
+//    can keep polling POST /admin/updates/perform and use the emergency
+//    "clear maintenance" endpoint.
+// ---------------------------------------------------------------------------
+$maintenanceFlagFile = dirname(__DIR__) . '/storage/.maintenance';
+if (!$isInstallerRoute && is_file($maintenanceFlagFile)) {
+    try {
+        \App\Support\Updater::checkStaleMaintenanceMode();
+    } catch (\Throwable $maintenanceCheckError) {
+        // Crash-safe fallback: replicate the >30 min auto-expiry inline
+        $rawFlag = @file_get_contents($maintenanceFlagFile);
+        $flagData = is_string($rawFlag) ? json_decode($rawFlag, true) : null;
+        $flagTime = is_array($flagData) && isset($flagData['time']) ? (int)$flagData['time'] : 0;
+        if ($flagTime > 0 && (time() - $flagTime) > 1800) {
+            @unlink($maintenanceFlagFile);
+        }
+    }
+
+    clearstatcache(true, $maintenanceFlagFile);
+    if (is_file($maintenanceFlagFile) && !preg_match('#/admin/updates(/|$)#', $requestPathOnly)) {
+        http_response_code(503);
+        header('Retry-After: 120');
+        header('Content-Type: text/html; charset=utf-8');
+        header('Cache-Control: no-store, max-age=0');
+        echo '<!DOCTYPE html>' . "\n"
+            . '<html lang="en"><head><meta charset="utf-8">'
+            . '<meta name="viewport" content="width=device-width, initial-scale=1">'
+            . '<meta name="robots" content="noindex">'
+            . '<title>Maintenance — Cimaise</title>'
+            . '<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;'
+            . 'background:#111;color:#eee;display:flex;align-items:center;justify-content:center;'
+            . 'min-height:100vh;margin:0;text-align:center}main{max-width:32rem;padding:2rem}'
+            . 'h1{font-size:1.5rem;font-weight:600}p{color:#aaa;line-height:1.6}</style></head>'
+            . '<body><main><h1>Update in progress</h1>'
+            . '<p>The site is being updated and will be back in a few minutes.<br>'
+            . 'Please try again shortly.</p></main></body></html>';
+        exit;
+    }
+}
+
 // Bootstrap env and services
 try {
     $container = require __DIR__ . '/../app/Config/bootstrap.php';

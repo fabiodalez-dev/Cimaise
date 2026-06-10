@@ -32,6 +32,24 @@
             </div>
           </div>
         {% elseif updateInfo.available %}
+          {% if not updateInfo.package_asset %}
+            {# Release published WITHOUT the installable package asset: the
+               release workflow failed. Installing is impossible — warn instead
+               of offering a doomed update. #}
+            <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-4">
+              <div class="flex items-start">
+                <i class="fas fa-exclamation-triangle text-yellow-500 mr-3 mt-1"></i>
+                <div>
+                  <p class="text-sm font-medium text-yellow-800">
+                    {{ trans('admin.updates.release_without_package', {}, 'Release without installable package') }}
+                  </p>
+                  <p class="text-sm text-yellow-700">
+                    {{ trans('admin.updates.release_without_package_desc', {'version': 'v' ~ updateInfo.latest}, 'Version {version} was published on GitHub without its package asset (cimaise-*.zip) — the release workflow may have failed. The update cannot be installed until the package is available.') }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          {% else %}
           <div class="bg-accent-50 border-l-4 border-accent-500 p-4 mb-4">
             <div class="flex items-start justify-between">
               <div class="flex items-start">
@@ -54,6 +72,7 @@
               </button>
             </div>
           </div>
+          {% endif %}
         {% else %}
           <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-4">
             <div class="flex items-center">
@@ -329,7 +348,12 @@
         <i class="fas fa-database mr-2" id="footer-backup-icon"></i>
         {{ trans('admin.updates.create_backup') }}
       </button>
-      {% if updateInfo.available %}
+      {% if updateInfo.available and not updateInfo.package_asset %}
+      <button type="button" class="btn-primary opacity-50 cursor-not-allowed" disabled title="{{ trans('admin.updates.release_without_package', {}, 'Release without installable package')|e('html_attr') }}">
+        <i class="fas fa-exclamation-triangle mr-2"></i>
+        {{ trans('admin.updates.release_without_package', {}, 'Release without installable package') }}
+      </button>
+      {% elseif updateInfo.available %}
       <button type="button" class="btn-primary" data-action="start-update" data-version="{{ updateInfo.latest|e('html_attr') }}">
         <i class="fas fa-download mr-2"></i>
         {{ trans('admin.updates.update_now') }}

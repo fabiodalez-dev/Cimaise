@@ -201,15 +201,21 @@ verify_package_contents() {
 
     # Files that MUST be in the package
     local required_files=(
+        "index.php"
+        ".htaccess"
         "public/index.php"
+        "public/.htaccess"
         "composer.json"
         "version.json"
         ".env.example"
         "README.md"
         "vendor/autoload.php"
         "app/Support/Updater.php"
+        "bin/console"
         "database/schema.sqlite.sql"
         "database/schema.mysql.sql"
+        "database/template.sqlite"
+        "public/assets/.vite/manifest.json"
     )
 
     for file in "${required_files[@]}"; do
@@ -225,6 +231,232 @@ verify_package_contents() {
     fi
 
     log_success "Package contents verified"
+    return 0
+}
+
+# Return 0 (true) if $1 > $2 using PHP version_compare semantics when available.
+# Fallback to sort -V (GNU/BSD) when PHP is missing.
+version_gt() {
+    if command -v php &> /dev/null; then
+        php -r 'exit(version_compare($argv[1], $argv[2], ">") ? 0 : 1);' "$1" "$2"
+    else
+        [ "$1" != "$2" ] && [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -n1)" = "$1" ]
+    fi
+}
+
+# ==============================================================================
+# Deep verification of the FINAL ZIP (Pinakes "Step 5.5" doctrine).
+# Extracts the archive to a temp dir and verifies what will actually be
+# installed on production. Any failure deletes the ZIP and aborts the build.
+# ==============================================================================
+verify_zip_package() {
+    local zip_file=$1
+    local version=$2
+    local package_name="cimaise-v${version}"
+    local has_errors=false
+
+    log_info "Verifying final ZIP package (deep checks)..."
+
+    if [ ! -f "$zip_file" ]; then
+        log_error "ZIP file not found: $zip_file"
+        return 1
+    fi
+
+    # ---------------------------------------------------------------
+    # 0) NO symlinks in the archive.
+    # PHP's ZipArchive extracts symlink entries as small junk text files
+    # (Pinakes lesson: 22-byte broken "files" instead of real content).
+    # ---------------------------------------------------------------
+    local symlinks
+    symlinks=$(unzip -Z "$zip_file" 2>/dev/null | awk '$1 ~ /^l/ {print $NF}')
+    if [ -n "$symlinks" ]; then
+        log_error "ZIP contains symlinks (ZipArchive would extract them as junk files):"
+        echo "$symlinks" | head -20
+        has_errors=true
+    fi
+
+    local verify_dir
+    verify_dir=$(mktemp -d "${TMPDIR:-/tmp}/cimaise-zip-verify.XXXXXX")
+
+    if ! unzip -q "$zip_file" -d "$verify_dir"; then
+        log_error "Cannot extract ZIP for verification"
+        rm -rf "$verify_dir"
+        rm -f "$zip_file" "${zip_file}.sha256"
+        return 1
+    fi
+
+    local pkg="${verify_dir}/${package_name}"
+    if [ ! -d "$pkg" ]; then
+        log_error "ZIP does not contain expected root directory: ${package_name}/"
+        rm -rf "$verify_dir"
+        rm -f "$zip_file" "${zip_file}.sha256"
+        return 1
+    fi
+
+    # ---------------------------------------------------------------
+    # 1) version.json exists and matches the release version
+    # ---------------------------------------------------------------
+    if [ ! -f "$pkg/version.json" ]; then
+        log_error "Package missing version.json"
+        has_errors=true
+    else
+        local pkg_version
+        pkg_version=$(jq -r '.version' "$pkg/version.json" 2>/dev/null || echo "")
+        if [ "$pkg_version" != "$version" ]; then
+            log_error "version.json in package ($pkg_version) != release version ($version)"
+            has_errors=true
+        fi
+    fi
+
+    # ---------------------------------------------------------------
+    # 2) Required files (anything missing = broken install)
+    # ---------------------------------------------------------------
+    local required_files=(
+        "index.php"
+        ".htaccess"
+        "public/index.php"
+        "public/.htaccess"
+        "app/Support/Updater.php"
+        "vendor/autoload.php"
+        "bin/console"
+        "database/schema.sqlite.sql"
+        "database/schema.mysql.sql"
+        "database/template.sqlite"
+        "public/assets/.vite/manifest.json"
+        ".env.example"
+    )
+    local file
+    for file in "${required_files[@]}"; do
+        if [ ! -f "${pkg}/${file}" ]; then
+            log_error "ZIP missing required file: $file"
+            has_errors=true
+        fi
+    done
+
+    # ---------------------------------------------------------------
+    # 3) Dev dependencies must NOT leak into the production autoloader
+    # (Pinakes "PHPStan disaster": fatal error on every production site)
+    # ---------------------------------------------------------------
+    local autoload_leaks
+    autoload_leaks=$(grep -lEi 'phpstan|phpunit' "$pkg"/vendor/composer/autoload_*.php 2>/dev/null || true)
+    if [ -n "$autoload_leaks" ]; then
+        log_error "Dev dependencies leaked into vendor/composer autoloader (run composer install --no-dev):"
+        echo "$autoload_leaks"
+        has_errors=true
+    fi
+
+    # ---------------------------------------------------------------
+    # 4) Forbidden directories / files must be ABSENT
+    # ---------------------------------------------------------------
+    local forbidden_dirs=(
+        "tests"
+        ".github"
+        "node_modules"
+        ".git"
+        "docs"
+        "scripts"
+        "releases"
+        "build-tmp"
+        "vendor/phpstan"
+        "vendor/phpunit"
+        "vendor/bin"
+    )
+    local dir
+    for dir in "${forbidden_dirs[@]}"; do
+        if [ -e "${pkg}/${dir}" ]; then
+            log_error "ZIP contains forbidden path: ${dir}"
+            has_errors=true
+        fi
+    done
+
+    if [ -f "${pkg}/.env" ]; then
+        log_error "ZIP contains .env (secrets!)"
+        has_errors=true
+    fi
+
+    # storage/logs must contain nothing beyond the .gitkeep skeleton
+    if [ -d "${pkg}/storage/logs" ]; then
+        local log_leftovers
+        log_leftovers=$(find "${pkg}/storage/logs" -type f ! -name '.gitkeep' ! -name '.htaccess' | head -5)
+        if [ -n "$log_leftovers" ]; then
+            log_error "ZIP contains storage/logs content beyond skeleton:"
+            echo "$log_leftovers"
+            has_errors=true
+        fi
+    fi
+
+    # public/media must contain nothing beyond the skeleton (user uploads!)
+    if [ -d "${pkg}/public/media" ]; then
+        local media_leftovers
+        media_leftovers=$(find "${pkg}/public/media" -type f ! -name '.gitkeep' ! -name '.htaccess' | head -5)
+        if [ -n "$media_leftovers" ]; then
+            log_error "ZIP contains public/media content beyond skeleton (user uploads leaked):"
+            echo "$media_leftovers"
+            has_errors=true
+        fi
+    fi
+
+    # dev SQLite databases must never ship
+    local db_leftovers
+    db_leftovers=$(find "${pkg}/database" -maxdepth 1 -type f \( -name 'database.sqlite' -o -name '*.sqlite-wal' -o -name '*.sqlite-shm' \) 2>/dev/null | head -5)
+    if [ -n "$db_leftovers" ]; then
+        log_error "ZIP contains a dev database:"
+        echo "$db_leftovers"
+        has_errors=true
+    fi
+
+    # ---------------------------------------------------------------
+    # 5) Migration-version rule (hard Pinakes rule):
+    # NO migration may have a version GREATER than the release version.
+    # version_compare('1.5.0', '1.4.9', '<=') is false -> the runtime
+    # updater silently SKIPS such migrations and functionality goes missing.
+    # ---------------------------------------------------------------
+    local migration mig_base mig_version
+    for migration in "$pkg"/database/migrations/migrate_*.sql; do
+        [ -e "$migration" ] || continue
+        mig_base=$(basename "$migration")
+        mig_version=$(echo "$mig_base" | sed -E 's/^migrate_(.+)_(sqlite|mysql)\.sql$/\1/')
+        if [ "$mig_version" = "$mig_base" ]; then
+            log_error "Migration file does not match naming convention migrate_<ver>_{sqlite,mysql}.sql: $mig_base"
+            has_errors=true
+            continue
+        fi
+        if version_gt "$mig_version" "$version"; then
+            log_error "Migration $mig_base has version $mig_version > release version $version (would be silently skipped by the updater)"
+            has_errors=true
+        fi
+    done
+
+    # ---------------------------------------------------------------
+    # 6) Size sanity bounds.
+    # Reference (measured): v1.4.0 ZIP is ~13 MB (38 MB uncompressed:
+    # public/ ~19 MB incl. assets+fonts, vendor ~6.5 MB prod-only,
+    # storage seeds ~5 MB, app ~4.4 MB). A package under 8 MB almost
+    # certainly lost vendor/ or public/assets; over 100 MB something
+    # leaked in (node_modules, media uploads, dev DB...).
+    # ---------------------------------------------------------------
+    local zip_size_bytes
+    zip_size_bytes=$(wc -c < "$zip_file" | tr -d ' ')
+    local min_bytes=$((8 * 1024 * 1024))
+    local max_bytes=$((100 * 1024 * 1024))
+    if [ "$zip_size_bytes" -lt "$min_bytes" ]; then
+        log_error "ZIP too small: ${zip_size_bytes} bytes (< 8 MB) - vendor/ or assets probably missing"
+        has_errors=true
+    fi
+    if [ "$zip_size_bytes" -gt "$max_bytes" ]; then
+        log_error "ZIP too large: ${zip_size_bytes} bytes (> 100 MB) - dev files probably leaked in"
+        has_errors=true
+    fi
+
+    rm -rf "$verify_dir"
+
+    if [ "$has_errors" = true ]; then
+        log_error "ZIP verification FAILED - deleting broken package"
+        rm -f "$zip_file" "${zip_file}.sha256"
+        return 1
+    fi
+
+    log_success "ZIP package verified (symlinks, required files, autoloader, forbidden paths, migrations, size)"
     return 0
 }
 
@@ -480,6 +712,12 @@ main() {
 
     # Create release package
     create_release_package "$version"
+
+    # Deep-verify the final ZIP (deletes it and aborts on any failure)
+    if ! verify_zip_package "${OUTPUT_DIR}/cimaise-v${version}.zip" "$version"; then
+        log_error "Release build aborted: ZIP verification failed"
+        exit 1
+    fi
 
     # Generate release notes
     generate_release_notes "$version"

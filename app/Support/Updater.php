@@ -18,9 +18,13 @@ use ZipArchive;
 
 class Updater
 {
+    /** Default GitHub API base URL (override with env UPDATER_API_BASE) */
+    private const DEFAULT_API_BASE = 'https://api.github.com';
+
+    /** Default GitHub repository slug (override with env UPDATER_REPO) */
+    private const DEFAULT_REPO = 'fabiodalez-dev/cimaise';
+
     private Database $db;
-    private string $repoOwner = 'fabiodalez-dev';
-    private string $repoName = 'cimaise';
     private string $rootPath;
     private string $backupPath;
     private string $tempPath;
@@ -28,6 +32,11 @@ class Updater
     /** @var array<string> Files/directories to preserve during update */
     private array $preservePaths = [
         '.env',
+        // 'storage/' is the catch-all: every existing file under storage/ is
+        // user/runtime data and must survive updates. Shipping skeleton dirs
+        // still works because copyDirectory() only skips targets that EXIST —
+        // missing dirs/.gitkeep from the package are still created.
+        'storage/',
         'storage/originals',
         'storage/backups',
         'storage/cache',
@@ -37,9 +46,18 @@ class Updater
         'public/media',
         'public/.htaccess',
         'public/robots.txt',
-        'public/favicon.ico',
+        // Generated per-install from the uploaded logo (prefix matches:
+        // favicon.ico, favicon-*.png, android-chrome-*.png, icon-*.png)
+        'public/favicon',
+        'public/apple-touch-icon.png',
+        'public/android-chrome-',
+        'public/icon-',
+        'public/site.webmanifest',
         'public/sitemap.xml',
+        'public/sitemap_index.xml',
         'database/database.sqlite',
+        'database/database.sqlite-wal',
+        'database/database.sqlite-shm',
         'CLAUDE.md',
     ];
 
@@ -221,7 +239,7 @@ class Updater
 
     /**
      * Check for available updates from GitHub
-     * @return array{available: bool, current: string, latest: string, release: array|null, error: string|null}
+     * @return array{available: bool, current: string, latest: string, release: array|null, package_asset: bool, asset_name: string|null, error: string|null}
      */
     public function checkForUpdates(): array
     {
@@ -241,6 +259,8 @@ class Updater
                     'current' => $currentVersion,
                     'latest' => $currentVersion,
                     'release' => null,
+                    'package_asset' => false,
+                    'asset_name' => null,
                     'error' => 'Unable to fetch release information'
                 ];
             }
@@ -248,12 +268,18 @@ class Updater
             $latestVersion = ltrim($release['tag_name'], 'v');
             $updateAvailable = version_compare($latestVersion, $currentVersion, '>');
 
+            // Surface whether the release carries the installable package asset:
+            // a release without it cannot be installed (the workflow failed) and
+            // the UI must warn instead of offering a doomed update.
+            $packageAsset = $this->findPackageAsset($release);
+
             $this->debugLog('INFO', 'Check completed', [
                 'current' => $currentVersion,
                 'latest' => $latestVersion,
                 'update_available' => $updateAvailable,
                 'release_name' => $release['name'] ?? 'N/A',
-                'published_at' => $release['published_at'] ?? 'N/A'
+                'published_at' => $release['published_at'] ?? 'N/A',
+                'package_asset' => $packageAsset['name'] ?? null
             ]);
 
             return [
@@ -261,6 +287,8 @@ class Updater
                 'current' => $currentVersion,
                 'latest' => $latestVersion,
                 'release' => $release,
+                'package_asset' => $packageAsset !== null,
+                'asset_name' => $packageAsset['name'] ?? null,
                 'error' => null
             ];
 
@@ -276,21 +304,171 @@ class Updater
                 'current' => $currentVersion,
                 'latest' => $currentVersion,
                 'release' => null,
+                'package_asset' => false,
+                'asset_name' => null,
                 'error' => $e->getMessage()
             ];
         }
     }
 
     /**
-     * Get latest release from GitHub API
+     * Read an environment value ($_ENV / $_SERVER / getenv) as string.
+     */
+    private function envValue(string $key): string
+    {
+        $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
+        return is_string($value) ? trim($value) : '';
+    }
+
+    /**
+     * GitHub API base URL (env override: UPDATER_API_BASE) without trailing slash.
+     */
+    private function apiBase(): string
+    {
+        $base = $this->envValue('UPDATER_API_BASE');
+        if ($base === '' || !preg_match('#^https?://#i', $base)) {
+            $base = self::DEFAULT_API_BASE;
+        }
+        return rtrim($base, '/');
+    }
+
+    /**
+     * GitHub repository slug "owner/name" (env override: UPDATER_REPO).
+     */
+    private function repoSlug(): string
+    {
+        $repo = $this->envValue('UPDATER_REPO');
+        if ($repo === '' || !preg_match('#^[\w.-]+/[\w.-]+$#', $repo)) {
+            $repo = self::DEFAULT_REPO;
+        }
+        return $repo;
+    }
+
+    /**
+     * Optional GitHub bearer token (env: UPDATER_GITHUB_TOKEN).
+     */
+    private function githubToken(): string
+    {
+        return $this->envValue('UPDATER_GITHUB_TOKEN');
+    }
+
+    /**
+     * Whether the prerelease (RC) channel is enabled via environment opt-in.
+     * UPDATER_ALLOW_PRERELEASE=1/true/yes/on or UPDATER_CHANNEL != "stable".
+     */
+    private function prereleaseChannelEnabled(): bool
+    {
+        $allow = strtolower($this->envValue('UPDATER_ALLOW_PRERELEASE'));
+        if (in_array($allow, ['1', 'true', 'yes', 'on'], true)) {
+            return true;
+        }
+
+        $channel = strtolower($this->envValue('UPDATER_CHANNEL'));
+        return $channel !== '' && $channel !== 'stable';
+    }
+
+    /**
+     * Build GitHub request headers, optionally with Authorization bearer token.
+     * @return array<string>
+     */
+    private function githubHeaders(string $accept = 'application/vnd.github.v3+json', bool $withAuth = true): array
+    {
+        $headers = [
+            'User-Agent: Cimaise-Updater/1.0',
+            'Accept: ' . $accept,
+        ];
+
+        $token = $this->githubToken();
+        if ($withAuth && $token !== '') {
+            $headers[] = 'Authorization: Bearer ' . $token;
+        }
+
+        return $headers;
+    }
+
+    /**
+     * Low-level HTTPS GET against the GitHub API with optional bearer token.
+     * On 401/403 with a token configured, retries once without the token
+     * (an invalid/expired token must not break public-repo updates).
+     *
+     * @return array{status: int, body: string|false}
+     */
+    private function httpGet(string $url, string $accept = 'application/vnd.github.v3+json'): array
+    {
+        $attemptWithAuth = $this->githubToken() !== '';
+        $withAuth = $attemptWithAuth;
+
+        do {
+            $context = stream_context_create([
+                'http' => [
+                    'method' => 'GET',
+                    'header' => $this->githubHeaders($accept, $withAuth),
+                    'timeout' => 30,
+                    'ignore_errors' => true
+                ],
+                'ssl' => [
+                    // SECURITY: SSL verification stays ON, always. No insecure fallback.
+                    'verify_peer' => true,
+                    'verify_peer_name' => true,
+                ]
+            ]);
+
+            $body = @file_get_contents($url, false, $context);
+            // $http_response_header is populated by file_get_contents() over
+            // HTTP stream wrappers and is always defined afterwards.
+            $responseHeaders = $http_response_header;
+
+            $status = 0;
+            if (!empty($responseHeaders[0]) && preg_match('/HTTP\/\d(?:\.\d)?\s+(\d+)/', $responseHeaders[0], $matches)) {
+                $status = (int)$matches[1];
+            }
+
+            if ($withAuth && in_array($status, [401, 403], true)) {
+                $this->debugLog('WARNING', 'GitHub auth failed, retrying without token', [
+                    'url' => $url,
+                    'status' => $status
+                ]);
+                $withAuth = false;
+                continue;
+            }
+
+            return ['status' => $status, 'body' => $body];
+        } while (true);
+    }
+
+    /**
+     * Get latest release from GitHub API.
+     *
+     * Default (stable channel): /releases/latest — GitHub natively excludes
+     * drafts and prereleases. With the RC channel enabled (env opt-in), the
+     * full release list is walked and the first non-draft entry (prerelease
+     * included) is returned.
      */
     private function getLatestRelease(): ?array
     {
-        $url = "https://api.github.com/repos/{$this->repoOwner}/{$this->repoName}/releases/latest";
+        if ($this->prereleaseChannelEnabled()) {
+            $this->debugLog('INFO', 'Prerelease channel enabled - walking the release list', [
+                'repo' => $this->repoSlug()
+            ]);
+
+            foreach ($this->getAllReleases(15) as $release) {
+                if (!empty($release['draft'])) {
+                    continue;
+                }
+                if (!isset($release['tag_name'])) {
+                    continue;
+                }
+                return $release;
+            }
+
+            return null;
+        }
+
+        $url = $this->apiBase() . "/repos/{$this->repoSlug()}/releases/latest";
 
         $this->debugLog('INFO', 'GitHub API request - latest release', [
             'url' => $url,
-            'repo' => "{$this->repoOwner}/{$this->repoName}"
+            'repo' => $this->repoSlug()
         ]);
 
         return $this->makeGitHubRequest($url);
@@ -306,38 +484,16 @@ class Updater
             'method' => 'GET'
         ]);
 
-        $headers = [
-            'User-Agent: Cimaise-Updater/1.0',
-            'Accept: application/vnd.github.v3+json'
-        ];
-
-        $context = stream_context_create([
-            'http' => [
-                'method' => 'GET',
-                'header' => $headers,
-                'timeout' => 30,
-                'ignore_errors' => true
-            ],
-            'ssl' => [
-                'verify_peer' => true,
-                'verify_peer_name' => true,
-            ]
-        ]);
-
-        $responseHeaders = [];
-        $response = @file_get_contents($url, false, $context);
-
-        // $http_response_header is populated by file_get_contents() over HTTP
-        // stream wrappers and is always available afterwards.
-        $responseHeaders = $http_response_header;
-
-        // SECURITY: no insecure TLS fallback. A failed certificate check must
-        // fail the request — silently disabling verification would let a MITM
-        // serve attacker-controlled data. Genuine failures are handled below.
+        // SECURITY: no insecure TLS fallback (see httpGet). A failed certificate
+        // check must fail the request — silently disabling verification would
+        // let a MITM serve attacker-controlled data.
+        $result = $this->httpGet($url);
+        $response = $result['body'];
+        $statusCode = $result['status'];
 
         $this->debugLog('DEBUG', 'HTTP response received', [
             'response_length' => $response !== false ? strlen($response) : 0,
-            'response_headers' => $responseHeaders
+            'status_code' => $statusCode
         ]);
 
         if ($response === false) {
@@ -350,13 +506,6 @@ class Updater
             $this->diagnoseConnectionProblem($url);
 
             throw new Exception('Cannot connect to GitHub: ' . ($error['message'] ?? 'Unknown error'));
-        }
-
-        // Parse status code from headers
-        $statusCode = 0;
-        if (!empty($responseHeaders[0])) {
-            preg_match('/HTTP\/\d\.\d\s+(\d+)/', $responseHeaders[0], $matches);
-            $statusCode = (int)($matches[1] ?? 0);
         }
 
         if ($statusCode >= 400) {
@@ -430,38 +579,54 @@ class Updater
         if (extension_loaded('curl')) {
             $this->debugLog('DEBUG', 'Attempting download with cURL', ['url' => $url]);
 
-            $ch = curl_init($url);
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_MAXREDIRS => 10,
-                CURLOPT_TIMEOUT => 300,
-                CURLOPT_CONNECTTIMEOUT => 30,
-                CURLOPT_USERAGENT => 'Cimaise-Updater/1.0',
-                CURLOPT_SSL_VERIFYPEER => true,
-                CURLOPT_SSL_VERIFYHOST => 2,
-                CURLOPT_BUFFERSIZE => 1024 * 1024,  // 1MB buffer
-                CURLOPT_HTTPHEADER => ['Accept: application/octet-stream'],
-            ]);
+            $withAuth = $this->githubToken() !== '';
 
-            $content = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $error = curl_error($ch);
-            $errno = curl_errno($ch);
-            curl_close($ch);
-
-            if ($content !== false && $httpCode >= 200 && $httpCode < 400) {
-                $this->debugLog('INFO', 'cURL download successful', [
-                    'http_code' => $httpCode,
-                    'size_bytes' => strlen($content)
+            do {
+                $ch = curl_init($url);
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_MAXREDIRS => 10,
+                    CURLOPT_TIMEOUT => 300,
+                    CURLOPT_CONNECTTIMEOUT => 30,
+                    CURLOPT_USERAGENT => 'Cimaise-Updater/1.0',
+                    CURLOPT_SSL_VERIFYPEER => true,
+                    CURLOPT_SSL_VERIFYHOST => 2,
+                    CURLOPT_BUFFERSIZE => 1024 * 1024,  // 1MB buffer
+                    CURLOPT_HTTPHEADER => $this->githubHeaders('application/octet-stream', $withAuth),
                 ]);
-                return [
-                    'success' => true,
-                    'content' => $content,
-                    'error' => null,
-                    'method' => 'curl'
-                ];
-            }
+
+                $content = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $error = curl_error($ch);
+                $errno = curl_errno($ch);
+                curl_close($ch);
+
+                if ($content !== false && $httpCode >= 200 && $httpCode < 400) {
+                    $this->debugLog('INFO', 'cURL download successful', [
+                        'http_code' => $httpCode,
+                        'size_bytes' => strlen($content)
+                    ]);
+                    return [
+                        'success' => true,
+                        'content' => $content,
+                        'error' => null,
+                        'method' => 'curl'
+                    ];
+                }
+
+                // Invalid/expired token must not break public downloads:
+                // retry once without Authorization on 401/403.
+                if ($withAuth && in_array($httpCode, [401, 403], true)) {
+                    $this->debugLog('WARNING', 'Download auth failed, retrying without token', [
+                        'http_code' => $httpCode
+                    ]);
+                    $withAuth = false;
+                    continue;
+                }
+
+                break;
+            } while (true);
 
             // SECURITY: no insecure TLS fallback on download. A certificate
             // failure here would allow a MITM to replace the update archive
@@ -486,34 +651,55 @@ class Updater
 
         $this->debugLog('DEBUG', 'Attempting download with file_get_contents', ['url' => $url]);
 
-        $context = stream_context_create([
-            'http' => [
-                'method' => 'GET',
-                'header' => [
-                    'User-Agent: Cimaise-Updater/1.0',
-                    'Accept: application/octet-stream'
+        $withAuth = $this->githubToken() !== '';
+
+        do {
+            $context = stream_context_create([
+                'http' => [
+                    'method' => 'GET',
+                    'header' => $this->githubHeaders('application/octet-stream', $withAuth),
+                    'timeout' => 300,
+                    'follow_location' => true,
+                    'ignore_errors' => true
                 ],
-                'timeout' => 300,
-                'follow_location' => true,
-                'ignore_errors' => true
-            ],
-            'ssl' => [
-                'verify_peer' => true,
-                'verify_peer_name' => true,
-            ]
-        ]);
+                'ssl' => [
+                    'verify_peer' => true,
+                    'verify_peer_name' => true,
+                ]
+            ]);
 
-        $content = @file_get_contents($url, false, $context);
+            $content = @file_get_contents($url, false, $context);
+            // $http_response_header is populated by file_get_contents() over
+            // HTTP stream wrappers and is always defined afterwards.
+            $responseHeaders = $http_response_header;
 
-        // SECURITY: no insecure TLS fallback (see makeGitHubRequest). A failed
+            $statusCode = 0;
+            if (!empty($responseHeaders[0]) && preg_match('/HTTP\/\d(?:\.\d)?\s+(\d+)/', $responseHeaders[0], $matches)) {
+                $statusCode = (int)$matches[1];
+            }
+
+            if ($withAuth && in_array($statusCode, [401, 403], true)) {
+                $this->debugLog('WARNING', 'Download auth failed (file_get_contents), retrying without token', [
+                    'status' => $statusCode
+                ]);
+                $withAuth = false;
+                continue;
+            }
+
+            break;
+        } while (true);
+
+        // SECURITY: no insecure TLS fallback (see httpGet). A failed
         // certificate check fails the download rather than trusting a MITM.
 
-        if ($content === false) {
+        if ($content === false || $statusCode >= 400) {
             $error = error_get_last();
             return [
                 'success' => false,
                 'content' => null,
-                'error' => $error['message'] ?? 'Unknown download error',
+                'error' => $statusCode >= 400
+                    ? "Download failed with HTTP status {$statusCode}"
+                    : ($error['message'] ?? 'Unknown download error'),
                 'method' => 'file_get_contents'
             ];
         }
@@ -536,40 +722,34 @@ class Updater
      */
     public function getAllReleases(int $limit = 10): array
     {
-        $url = "https://api.github.com/repos/{$this->repoOwner}/{$this->repoName}/releases?per_page={$limit}";
+        $url = $this->apiBase() . "/repos/{$this->repoSlug()}/releases?per_page={$limit}";
 
         $this->debugLog('INFO', 'Fetching all releases', ['url' => $url, 'limit' => $limit]);
 
-        $headers = [
-            'User-Agent: Cimaise-Updater/1.0',
-            'Accept: application/vnd.github.v3+json'
-        ];
+        // SECURITY: no insecure TLS fallback (see httpGet).
+        $result = $this->httpGet($url);
 
-        $context = stream_context_create([
-            'http' => [
-                'method' => 'GET',
-                'header' => $headers,
-                'timeout' => 30,
-                'ignore_errors' => true
-            ],
-            'ssl' => [
-                'verify_peer' => true,
-                'verify_peer_name' => true,
-            ]
-        ]);
-
-        $response = @file_get_contents($url, false, $context);
-
-        // SECURITY: no insecure TLS fallback (see makeGitHubRequest).
-
-        if ($response === false) {
+        if ($result['body'] === false || $result['status'] >= 400) {
             $this->debugLog('ERROR', 'Cannot fetch releases', [
+                'status' => $result['status'],
                 'error' => error_get_last()
             ]);
             return [];
         }
 
-        $releases = json_decode($response, true) ?? [];
+        $releases = json_decode($result['body'], true);
+        if (!is_array($releases)) {
+            $releases = [];
+        }
+
+        // Stable channel: prereleases are invisible (update check AND changelog).
+        // The env-gated RC channel re-enables them (Pinakes parity).
+        if (!$this->prereleaseChannelEnabled()) {
+            $releases = array_values(array_filter(
+                $releases,
+                fn($r) => is_array($r) && empty($r['prerelease'])
+            ));
+        }
 
         $this->debugLog('INFO', 'Releases fetched', [
             'count' => count($releases),
@@ -602,32 +782,32 @@ class Updater
                 'assets' => array_map(fn($a) => $a['name'], $release['assets'] ?? [])
             ]);
 
-            // Find the source code zip asset or use zipball_url
-            $downloadUrl = $release['zipball_url'] ?? null;
-            $expectedDigest = null; // e.g. "sha256:abc..." from the GitHub asset metadata
+            // The packaged asset (cimaise-vX.Y.Z.zip, built and verified by the
+            // release workflow) is REQUIRED. The GitHub zipball is just the git
+            // tree: it contains neither vendor/ (production composer deps) nor
+            // the built frontend assets — installing it would brick the app.
+            // Therefore there is deliberately NO zipball fallback.
+            $packageAsset = $this->findPackageAsset($release);
 
-            // Check for custom asset named cimaise-vX.X.X.zip first
-            foreach ($release['assets'] ?? [] as $asset) {
-                if (preg_match('/cimaise.*\.zip$/i', $asset['name'])) {
-                    $downloadUrl = $asset['browser_download_url'];
-                    $expectedDigest = $asset['digest'] ?? null;
-                    $this->debugLog('INFO', 'Found custom asset', [
-                        'name' => $asset['name'],
-                        'url' => $downloadUrl,
-                        'digest' => $expectedDigest
-                    ]);
-                    break;
-                }
-            }
-
-            if (!$downloadUrl) {
-                $this->debugLog('ERROR', 'Download URL not found', [
-                    'release' => $release['tag_name']
+            if ($packageAsset === null) {
+                $this->debugLog('ERROR', 'Release has no installable package asset', [
+                    'release' => $release['tag_name'],
+                    'assets' => array_map(fn($a) => $a['name'], $release['assets'] ?? [])
                 ]);
-                throw new Exception('Download URL not found');
+                throw new \RuntimeException(sprintf(
+                    'Release %s has no installable package asset (cimaise-*.zip) — the release workflow may have failed. Update aborted.',
+                    $release['tag_name']
+                ));
             }
 
-            $this->debugLog('INFO', 'Download URL selected', ['url' => $downloadUrl]);
+            $downloadUrl = $packageAsset['browser_download_url'];
+            $expectedDigest = $packageAsset['digest'] ?? null; // e.g. "sha256:abc..."
+
+            $this->debugLog('INFO', 'Package asset selected', [
+                'name' => $packageAsset['name'],
+                'url' => $downloadUrl,
+                'digest' => $expectedDigest
+            ]);
 
             // Create temp directory
             if (!is_dir($this->tempPath)) {
@@ -662,26 +842,44 @@ class Updater
                 throw new Exception('Update file invalid (too small)');
             }
 
-            // SECURITY: integrity verification. When the release asset publishes a
-            // digest (GitHub exposes "sha256:..."), the downloaded bytes MUST match
-            // it before we ever extract/install — this is the supply-chain guard
-            // that TLS alone does not provide (e.g. a tampered release artifact).
+            // SECURITY: integrity verification is MANDATORY. The downloaded bytes
+            // must match a published sha256 before we ever extract/install — this
+            // is the supply-chain guard that TLS alone does not provide (e.g. a
+            // tampered release artifact). Sources, in order of preference:
+            //   1) the GitHub asset "digest" field ("sha256:<hex>")
+            //   2) the companion "<asset>.sha256" sidecar asset
+            // If NEITHER is available the update is refused.
+            $expectedHash = null;
+
             if (is_string($expectedDigest) && str_starts_with($expectedDigest, 'sha256:')) {
                 $expectedHash = strtolower(substr($expectedDigest, strlen('sha256:')));
-                $actualHash = hash('sha256', $fileContent);
-                if (!hash_equals($expectedHash, $actualHash)) {
-                    $this->debugLog('ERROR', 'Update archive digest mismatch', [
-                        'expected' => $expectedHash,
-                        'actual' => $actualHash
-                    ]);
-                    throw new Exception('Update integrity check failed: archive digest mismatch');
-                }
-                $this->debugLog('INFO', 'Update archive digest verified (sha256)', []);
+                $this->debugLog('INFO', 'Using GitHub asset digest for integrity check');
             } else {
-                $this->debugLog('WARNING', 'No published digest for update asset; integrity rests on TLS only', [
+                $this->debugLog('WARNING', 'No digest field on asset, trying .sha256 sidecar', [
                     'version' => $version
                 ]);
+                $expectedHash = $this->fetchSidecarChecksum($release, $packageAsset['name']);
             }
+
+            if ($expectedHash === null) {
+                $this->debugLog('ERROR', 'No integrity source available for update asset', [
+                    'version' => $version,
+                    'asset' => $packageAsset['name']
+                ]);
+                throw new \RuntimeException(
+                    'Update integrity check impossible: the release publishes neither a digest nor a .sha256 sidecar. Refusing to install an unverified package.'
+                );
+            }
+
+            $actualHash = hash('sha256', $fileContent);
+            if (!hash_equals($expectedHash, $actualHash)) {
+                $this->debugLog('ERROR', 'Update archive digest mismatch', [
+                    'expected' => $expectedHash,
+                    'actual' => $actualHash
+                ]);
+                throw new Exception('Update integrity check failed: archive digest mismatch');
+            }
+            $this->debugLog('INFO', 'Update archive digest verified (sha256)', []);
 
             // Save file
             $bytesWritten = file_put_contents($zipPath, $fileContent);
@@ -813,7 +1011,7 @@ class Updater
     private function getReleaseByVersion(string $version): ?array
     {
         $tag = strpos($version, 'v') === 0 ? $version : 'v' . $version;
-        $url = "https://api.github.com/repos/{$this->repoOwner}/{$this->repoName}/releases/tags/{$tag}";
+        $url = $this->apiBase() . "/repos/{$this->repoSlug()}/releases/tags/{$tag}";
 
         try {
             return $this->makeGitHubRequest($url);
@@ -824,6 +1022,77 @@ class Updater
             ]);
             return null;
         }
+    }
+
+    /**
+     * Find the installable package asset (cimaise-*.zip) in a release payload.
+     * Excludes the ".zip.sha256" sidecar by matching on the ".zip" suffix.
+     *
+     * @param array<string, mixed>|null $release Release payload from the GitHub API
+     * @return array<string, mixed>|null The matching asset entry, or null when absent
+     */
+    private function findPackageAsset(?array $release): ?array
+    {
+        if ($release === null) {
+            return null;
+        }
+
+        foreach ($release['assets'] ?? [] as $asset) {
+            if (!is_array($asset) || !isset($asset['name'], $asset['browser_download_url'])) {
+                continue;
+            }
+            if (preg_match('/cimaise.*\.zip$/i', (string)$asset['name'])) {
+                return $asset;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Fetch and parse the "<asset>.sha256" sidecar asset of a release.
+     * The sidecar uses the shasum format: "<hex>  <filename>".
+     *
+     * @param array<string, mixed> $release Release payload from the GitHub API
+     * @return string|null Lowercase sha256 hex, or null when unavailable/invalid
+     */
+    private function fetchSidecarChecksum(array $release, string $assetName): ?string
+    {
+        $sidecarName = $assetName . '.sha256';
+
+        foreach ($release['assets'] ?? [] as $asset) {
+            if (!is_array($asset) || ($asset['name'] ?? '') !== $sidecarName) {
+                continue;
+            }
+
+            $url = $asset['browser_download_url'] ?? '';
+            if ($url === '') {
+                return null;
+            }
+
+            $result = $this->downloadFile($url);
+            if (!$result['success'] || !is_string($result['content'])) {
+                $this->debugLog('WARNING', 'Cannot download .sha256 sidecar', [
+                    'sidecar' => $sidecarName,
+                    'error' => $result['error']
+                ]);
+                return null;
+            }
+
+            // First 64-char hex token in the file is the checksum
+            if (preg_match('/\b([a-f0-9]{64})\b/i', $result['content'], $matches)) {
+                $this->debugLog('INFO', 'Sidecar checksum parsed', ['sidecar' => $sidecarName]);
+                return strtolower($matches[1]);
+            }
+
+            $this->debugLog('WARNING', 'Sidecar has no parseable sha256 token', [
+                'sidecar' => $sidecarName
+            ]);
+            return null;
+        }
+
+        $this->debugLog('WARNING', 'No .sha256 sidecar asset on release', ['sidecar' => $sidecarName]);
+        return null;
     }
 
     /**
@@ -1147,9 +1416,12 @@ class Updater
 
     /**
      * Install update from extracted path
+     *
+     * @param string|null $dbBackupPath Path of the pre-update DB backup
+     *                    (from createBackup()), recorded in update_logs.
      * @return array{success: bool, error: string|null}
      */
-    public function installUpdate(string $sourcePath, string $targetVersion): array
+    public function installUpdate(string $sourcePath, string $targetVersion, ?string $dbBackupPath = null): array
     {
         $appBackupPath = null;
         $logId = null;
@@ -1175,8 +1447,8 @@ class Updater
                 }
             }
 
-            // Log update start
-            $logId = $this->logUpdateStart($currentVersion, $targetVersion, null);
+            // Log update start (with the real DB backup path when available)
+            $logId = $this->logUpdateStart($currentVersion, $targetVersion, $dbBackupPath);
 
             // Backup current app files
             $this->debugLog('INFO', 'Backing up application files for rollback');
@@ -1251,6 +1523,44 @@ class Updater
     }
 
     /**
+     * Directories saved/restored for atomic rollback.
+     * @return array<string>
+     */
+    private function rollbackDirs(): array
+    {
+        return [
+            'app',
+            'public/assets',
+            'vendor',
+            'database/migrations',
+        ];
+    }
+
+    /**
+     * Single files saved/restored for atomic rollback.
+     * @return array<string>
+     */
+    private function rollbackFiles(): array
+    {
+        $files = [
+            'version.json',
+            'index.php',
+            '.htaccess',
+            'public/index.php',
+        ];
+
+        // database/schema.*.sql (sqlite + mysql, future-proof against new ones)
+        $schemas = glob($this->rootPath . '/database/schema.*.sql');
+        if (is_array($schemas)) {
+            foreach ($schemas as $schema) {
+                $files[] = 'database/' . basename($schema);
+            }
+        }
+
+        return $files;
+    }
+
+    /**
      * Backup application files for atomic rollback
      */
     private function backupAppFiles(): string
@@ -1263,9 +1573,7 @@ class Updater
             throw new Exception('Cannot create application backup directory');
         }
 
-        $dirsToBackup = ['app', 'public/assets'];
-
-        foreach ($dirsToBackup as $dir) {
+        foreach ($this->rollbackDirs() as $dir) {
             $sourcePath = $this->rootPath . '/' . $dir;
             $destPath = $backupPath . '/' . $dir;
 
@@ -1274,9 +1582,16 @@ class Updater
             }
         }
 
-        $versionFile = $this->rootPath . '/version.json';
-        if (file_exists($versionFile)) {
-            copy($versionFile, $backupPath . '/version.json');
+        foreach ($this->rollbackFiles() as $file) {
+            $sourceFile = $this->rootPath . '/' . $file;
+            if (file_exists($sourceFile)) {
+                $destFile = $backupPath . '/' . $file;
+                $destDir = dirname($destFile);
+                if (!is_dir($destDir)) {
+                    mkdir($destDir, 0755, true);
+                }
+                copy($sourceFile, $destFile);
+            }
         }
 
         return $backupPath;
@@ -1287,9 +1602,7 @@ class Updater
      */
     private function restoreAppFiles(string $backupPath): void
     {
-        $dirsToRestore = ['app', 'public/assets'];
-
-        foreach ($dirsToRestore as $dir) {
+        foreach ($this->rollbackDirs() as $dir) {
             $sourcePath = $backupPath . '/' . $dir;
             $destPath = $this->rootPath . '/' . $dir;
 
@@ -1301,9 +1614,11 @@ class Updater
             }
         }
 
-        $backupVersion = $backupPath . '/version.json';
-        if (file_exists($backupVersion)) {
-            copy($backupVersion, $this->rootPath . '/version.json');
+        foreach ($this->rollbackFiles() as $file) {
+            $sourceFile = $backupPath . '/' . $file;
+            if (file_exists($sourceFile)) {
+                copy($sourceFile, $this->rootPath . '/' . $file);
+            }
         }
     }
 
@@ -1501,7 +1816,20 @@ class Updater
             // Determine which migration files to use based on database type
             $dbType = $this->db->isSqlite() ? 'sqlite' : 'mysql';
             $files = glob($migrationsPath . "/migrate_*_{$dbType}.sql");
-            sort($files);
+            if ($files === false) {
+                $files = [];
+            }
+
+            // SEMANTIC version ordering. A lexicographic sort() would run
+            // migrate_1.10.0 BEFORE migrate_1.2.0 — version_compare is the
+            // same comparator the gating below uses, so order stays coherent.
+            usort($files, function (string $a, string $b): int {
+                $extract = function (string $file): string {
+                    $name = basename($file);
+                    return preg_match('/^migrate_(.+)_(?:sqlite|mysql)\.sql$/', $name, $m) ? $m[1] : $name;
+                };
+                return version_compare($extract($a), $extract($b)) ?: strcmp($a, $b);
+            });
 
             $this->debugLog('DEBUG', 'Migration files found', [
                 'count' => count($files),
@@ -2136,7 +2464,7 @@ class Updater
 
             // Step 3: Install
             $this->debugLog('INFO', '>>> STEP 3: Installing update <<<');
-            $installResult = $this->installUpdate($downloadResult['path'], $targetVersion);
+            $installResult = $this->installUpdate($downloadResult['path'], $targetVersion, $backupResult['path']);
             if (!$installResult['success']) {
                 throw new Exception('Installation failed: ' . $installResult['error']);
             }

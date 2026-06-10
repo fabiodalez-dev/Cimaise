@@ -1,0 +1,123 @@
+# ==============================================================================
+# Cimaise release packaging filter (rsync --filter="merge .rsync-filter")
+#
+# Used by bin/build-release.sh to build the production package.
+# Rules are evaluated top-down, FIRST MATCH WINS:
+#   - specific excludes/skeleton includes come first,
+#   - broad "+ /dir/***" includes come after,
+#   - the final "- /*" drops everything not explicitly included.
+#
+# Runtime-needed paths discovered by grepping the app (do NOT remove):
+#   bin/console                  -> CommandsController, CacheController,
+#                                   SettingsController, BlurGenerationJob, InitCommand
+#   bin/dev/seed_demo_data.php   -> plugins/demo-mode/plugin.php (bundled plugin)
+#   resources/keys/              -> App\Support\PluginSignature (plugin-signing.pub)
+#   storage/lensfun/*.xml        -> lens correction data (runtime)
+#   storage/cache/lensfun.json   -> tracked runtime seed
+#   storage/translations/*.json  -> translation seeds (preserved on update)
+#   database/template.sqlite     -> installer SQLite template
+#   public/assets/.vite/manifest.json -> ViteTwigExtension
+# ==============================================================================
+
+# --- Global junk (any depth) --------------------------------------------------
+- .DS_Store
+- Thumbs.db
+- CLAUDE.md
+- .claude/
+- .env
+- .env.local
+- *.log
+- *.js.map
+- *.css.map
+# VCS/dev metadata shipped inside vendor packages & plugins
+- .gitignore
+- .gitattributes
+- .git/
+- CHANGELOG.md
+
+# --- public/: ship app code + built assets, never user content ----------------
+# User uploads: skeleton only (.gitkeep + .htaccess), content is user data
++ /public/media/
++ /public/media/.gitkeep
++ /public/media/.htaccess
+- /public/media/**
++ /public/assets/media/
++ /public/assets/media/.gitkeep
++ /public/assets/media/.htaccess
+- /public/assets/media/**
+# Dev build tooling accidentally living under public/assets
+- /public/assets/build/
+# Sitemaps are generated per-install (would ship dev URLs otherwise)
+- /public/sitemap.xml
+- /public/sitemap_index.xml
+- /public/assets/sitemap.xml
+- /public/assets/sitemap_index.xml
+
+# --- database/: schemas, template and migrations only -------------------------
+# (excludes the dev database.sqlite, -wal/-shm files)
++ /database/
++ /database/schema.sqlite.sql
++ /database/schema.mysql.sql
++ /database/template.sqlite
++ /database/migrations/***
+- /database/**
+
+# --- storage/: skeleton + tracked runtime data only ----------------------------
++ /storage/
++ /storage/.htaccess
++ /storage/backups/
++ /storage/cache/
++ /storage/cache/.gitkeep
++ /storage/cache/lensfun.json
++ /storage/lensfun/***
++ /storage/logs/
++ /storage/logs/.gitkeep
++ /storage/originals/
++ /storage/originals/.gitkeep
++ /storage/originals/.htaccess
++ /storage/rate_limits/
++ /storage/rate_limits/.gitkeep
++ /storage/tmp/
++ /storage/tmp/.gitkeep
++ /storage/tmp/.htaccess
++ /storage/translations/***
+- /storage/**
+
+# --- bin/: only the runtime-referenced CLI entrypoints -------------------------
++ /bin/
++ /bin/console
++ /bin/dev/
++ /bin/dev/seed_demo_data.php
+- /bin/**
+
+# --- resources/: only signing keys are runtime-needed --------------------------
+# (css/js sources are compiled into public/assets by Vite)
++ /resources/
++ /resources/keys/***
+- /resources/**
+
+# --- vendor/: production dependencies (CI runs composer install --no-dev) ------
+# vendor/bin contains symlinked tool stubs, never needed at runtime
+- /vendor/bin/
++ /vendor/***
+
+# --- plugins/: bundled plugins (exclude local dev leftovers) -------------------
+- /plugins/app/
+- /plugins/plugins/
++ /plugins/***
+
+# --- Application code + web root ------------------------------------------------
++ /app/***
++ /public/***
+
+# --- Root files -----------------------------------------------------------------
++ /index.php
++ /.htaccess
++ /version.json
++ /composer.json
++ /.env.example
++ /LICENSE
++ /README.md
+
+# --- Everything else at the root is dev-only: drop it ---------------------------
+- /*
