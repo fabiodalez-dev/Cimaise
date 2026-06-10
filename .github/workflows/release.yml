@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*.*.*'
 
+# The default GITHUB_TOKEN is read-only; creating the release and
+# uploading assets requires contents write.
+permissions:
+  contents: write
+
 jobs:
   build-release:
     name: Build and Package Release
