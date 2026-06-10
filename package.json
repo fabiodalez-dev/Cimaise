@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "postinstall": "node scripts/copy-vendor.js"
+    "build": "vite build && node scripts/build-fa-subset.mjs",
+    "fa-subset": "node scripts/build-fa-subset.mjs",
+    "postinstall": "node scripts/copy-vendor.js && node scripts/build-fa-subset.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",

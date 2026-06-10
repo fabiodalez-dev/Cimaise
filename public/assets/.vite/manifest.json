@@ -15,6 +15,11 @@
     "file": "js/lenis-CfsBQfFC.js",
     "name": "lenis"
   },
+  "resources/admin-app.css": {
+    "file": "admin-app-DDcC9xGW.css",
+    "src": "resources/admin-app.css",
+    "isEntry": true
+  },
   "resources/admin.js": {
     "file": "admin-R8nArFSG.js",
     "name": "admin",
@@ -28,7 +33,7 @@
     ]
   },
   "resources/app.css": {
-    "file": "app-s-5QiUO3.css",
+    "file": "app-DTrVVwQB.css",
     "src": "resources/app.css",
     "isEntry": true
   },
@@ -47,7 +52,7 @@
     ]
   },
   "resources/js/home-gallery.js": {
-    "file": "js/home-gallery-DKYbH9CM.js",
+    "file": "js/home-gallery-CbZUQkC9.js",
     "name": "js/home-gallery",
     "src": "resources/js/home-gallery.js",
     "isEntry": true,
@@ -76,7 +81,7 @@
     ]
   },
   "resources/js/home.js": {
-    "file": "js/home-DbjVSgb5.js",
+    "file": "js/home-DxeCRlSK.js",
     "name": "js/home",
     "src": "resources/js/home.js",
     "isEntry": true,

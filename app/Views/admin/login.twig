@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ trans('admin.login.title') }} — Cimaise</title>
   <link href="{{ vite_asset('app.css') }}" rel="stylesheet">
+  {# admin-app.css carries the admin-purged Tailwind utilities (app.css is purged against frontend views only) #}
+  <link href="{{ vite_asset('admin-app.css') }}" rel="stylesheet">
   <link href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css" rel="stylesheet">
   <link href="{{ base_path }}/fonts/typography.css" rel="stylesheet">
 

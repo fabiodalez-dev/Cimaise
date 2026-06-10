@@ -186,13 +186,15 @@
     <link rel="stylesheet" href="{{ base_path }}/assets/photoswipe/photoswipe.css" media="print" id="photoswipe-css">
     <noscript><link rel="stylesheet" href="{{ base_path }}/assets/photoswipe/photoswipe.css"></noscript>
 
-    <!-- Swiper CSS (only needed for carousels) -->
+    {% if (needs_vendor_scripts is defined ? needs_vendor_scripts : true) and (needs_swiper is defined ? needs_swiper : false) %}
+    <!-- Swiper CSS (only needed for carousels - opt in with needs_swiper = true) -->
     <link rel="stylesheet" href="{{ base_path }}/assets/vendor/swiper/swiper-bundle.min.css" media="print" id="swiper-css">
     <noscript><link rel="stylesheet" href="{{ base_path }}/assets/vendor/swiper/swiper-bundle.min.css"></noscript>
+    {% endif %}
 
     <!-- Font Awesome (~100KB - defer loading, icons appear after paint) -->
-    <link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css" media="print" id="fontawesome-css">
-    <noscript><link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css"></noscript>
+    <link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/frontend-subset.css" media="print" id="fontawesome-css">
+    <noscript><link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/frontend-subset.css"></noscript>
 
     <!-- CSP-compliant async CSS loading (replaces inline onload handlers) -->
     <script nonce="{{ csp_nonce() }}">['photoswipe-css','swiper-css','fontawesome-css'].forEach(function(id){var e=document.getElementById(id);if(e){if(e.sheet){e.media='all';}else{e.onload=function(){this.media='all';};}}});</script>
@@ -614,15 +616,29 @@
 
     <!-- PhotoSwipe lightbox (local) loaded dynamically in JS -->
     
-    {# Vendor scripts loaded conditionally. Set needs_vendor_scripts = false in child templates to skip. #}
-    {% if needs_vendor_scripts|default(true) %}
+    {# Vendor scripts loaded conditionally, per library:
+       - needs_vendor_scripts = false  → master kill-switch, skips ALL vendor JS (backward compatible)
+       - needs_swiper  (default false) → opt IN on templates with carousels (e.g. gallery_hero)
+       - needs_gsap    (default true)  → the layout's own album-card/gallery entry animations and
+                                          header hide/show use GSAP on most content pages; opt OUT
+                                          only on pages that provably render no animated elements
+       - needs_masonry (default false) → opt IN on album/gallery templates that run the Masonry
+                                          runtime (imagesLoaded travels with Masonry) #}
+    {# NOTE: `is defined ? x : y` instead of `|default(y)` — Twig's default filter
+       treats an explicit `false` as empty and would return the default. #}
+    {% set _vendor_scripts_enabled = needs_vendor_scripts is defined ? needs_vendor_scripts : true %}
+    {% if _vendor_scripts_enabled and (needs_swiper is defined ? needs_swiper : false) %}
     <!-- Swiper.js - Deferred for better initial load performance -->
     <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/swiper/swiper-bundle.min.js" defer></script>
+    {% endif %}
 
+    {% if _vendor_scripts_enabled and (needs_gsap is defined ? needs_gsap : true) %}
     <!-- GSAP - Deferred (progressive enhancement for animations) -->
     <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/gsap/gsap.min.js" defer></script>
     <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/gsap/ScrollTrigger.min.js" defer></script>
+    {% endif %}
 
+    {% if _vendor_scripts_enabled and (needs_masonry is defined ? needs_masonry : false) %}
     <!-- imagesLoaded + Masonry - Deferred -->
     <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/imagesloaded/imagesloaded.pkgd.min.js" defer></script>
     <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/masonry/masonry.pkgd.min.js" defer></script>
