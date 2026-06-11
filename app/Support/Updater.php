@@ -1075,7 +1075,9 @@ class Updater
             throw new Exception('Invalid update package: version.json is unreadable or has no version field');
         }
 
-        if ($found !== $expectedVersion) {
+        // Normalize a leading 'v' (tags are vX.Y.Z, version.json is X.Y.Z) —
+        // same convention as checkForUpdates()'s ltrim on tag_name.
+        if (ltrim($found, 'v') !== ltrim($expectedVersion, 'v')) {
             $this->debugLog('ERROR', 'Package version mismatch', [
                 'expected' => $expectedVersion,
                 'found' => $found,
