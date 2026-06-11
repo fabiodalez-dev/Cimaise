@@ -970,6 +970,25 @@ input[type="search"]::-webkit-search-results-decoration {
     background-color: #f3f4f6;
 }
 
+/* Dark mode: the pill wrapper has a hardcoded light background; the input
+   inside goes dark via the global html.dark input overrides, leaving a white
+   tail behind the action buttons unless the wrapper follows the theme. */
+html.dark .header-search-field {
+    background: #171a1f;
+    border-color: #404040;
+}
+
+html.dark .header-search-clear,
+html.dark .header-search-submit {
+    color: #9ca3af;
+}
+
+html.dark .header-search-clear:hover,
+html.dark .header-search-submit:hover {
+    color: #e5e5e5;
+    background-color: #262626;
+}
+
 /* Hidden caption content */
 .hidden-caption-content {
     display: none !important;
