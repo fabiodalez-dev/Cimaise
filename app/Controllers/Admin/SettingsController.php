@@ -219,6 +219,8 @@ class SettingsController extends BaseController
         $svc->set('admin.debug_logs', isset($data['admin_debug_logs']));
         $svc->set('frontend.disable_right_click', $disableRightClick);
         $svc->set('frontend.dark_mode', isset($data['dark_mode']));
+        // Unchecked checkboxes are not posted, so absence means "disabled" (same pattern as dark_mode).
+        $svc->set('frontend.allow_theme_toggle', isset($data['allow_theme_toggle']));
 
         // PWA settings
         $pwaThemeColor = trim((string)($data['pwa_theme_color'] ?? '#ffffff'));
