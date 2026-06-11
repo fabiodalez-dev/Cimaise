@@ -1073,6 +1073,7 @@
 
         const idKeep = galleryContainer.id;
         galleryContainer.className = '';
+        galleryContainer.removeAttribute('data-css-columns');
         if (newLayout !== 'gallery_wall') {
           document.body.classList.remove('gallery-wall-page');
         }
@@ -1162,15 +1163,45 @@
           galleryContainer.dataset.hoverScale = hoverScale;
           galleryContainer.dataset.gap = String(cGap);
         } else if (newLayout === 'masonry_portfolio') {
-          styleEl.textContent = ''; // Masonry portfolio has its own embedded styles
           const mp = window.templateSettings?.masonry_portfolio || {};
           const mpCols = mp.columns || window.templateSettings?.columns || {desktop:4, tablet:3, mobile:1};
           const mpGapH = mp.gap_h ?? window.templateSettings?.gap?.horizontal ?? 16;
           const mpGapV = mp.gap_v ?? window.templateSettings?.gap?.vertical ?? 16;
           const layoutMode = mp.layout_mode || 'fullwidth';
           const mpStyle = window.templateSettings?.style || {};
+          const mpD = Math.round(mpCols.desktop || 4);
+          const mpT = Math.round(mpCols.tablet || 3);
+          const mpM = Math.round(mpCols.mobile || 1);
+          // Same pure-CSS columns variant as _gallery_masonry_portfolio.twig. The page may
+          // have started on a different template, so this CSS must be self-contained — the
+          // old empty styleEl ("has its own embedded styles") left the layout unstyled.
+          styleEl.textContent = `
+            .masonry-portfolio-grid { --mp-gap-h: ${mpGapH}px; --mp-gap-v: ${mpGapV}px; width: 100%; margin: 0 auto; column-count: ${mpM}; column-gap: var(--mp-gap-h); }
+            .masonry-portfolio-grid.is-boxed { max-width: 1400px; padding: 0 20px; }
+            .masonry-portfolio-grid .grid-sizer { display: none; }
+            .masonry-portfolio-grid .photo-item { break-inside: avoid; -webkit-column-break-inside: avoid; page-break-inside: avoid; width: 100%; margin: 0 0 var(--mp-gap-v); position: relative; background: #f5f5f5; overflow: hidden; cursor: pointer; display: block; transform: translateZ(0); transition: box-shadow 0.3s ease; }
+            .masonry-portfolio-grid[data-rounded="1"] .photo-item,
+            .masonry-portfolio-grid[data-rounded="1"] .photo-item img { border-radius: 12px; }
+            .masonry-portfolio-grid[data-shadow="1"] .photo-item { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); }
+            .masonry-portfolio-grid .photo-item img { display: block; width: 100%; height: auto; transition: transform 0.4s cubic-bezier(.16,1,.3,1); }
+            .masonry-portfolio-grid[data-hover-scale="1"] .photo-item:hover { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15); }
+            .masonry-portfolio-grid[data-hover-scale="1"] .photo-item:hover img { transform: scale(1.03); }
+            .masonry-portfolio-grid .photo-loading { display: none; }
+            @media (min-width: 768px) { .masonry-portfolio-grid { column-count: ${mpT}; } }
+            @media (min-width: 1200px) { .masonry-portfolio-grid { column-count: ${mpD}; } }
+            @media (prefers-reduced-motion: reduce) {
+              .masonry-portfolio-grid .photo-item img { transition: none; }
+              .masonry-portfolio-grid[data-hover-scale="1"] .photo-item:hover img { transform: none; }
+            }
+            @media (max-width: 480px) {
+              .masonry-portfolio-grid.is-boxed { padding: 0 10px; }
+              .masonry-portfolio-grid[data-hover-scale="1"] .photo-item:hover { box-shadow: none; }
+              .masonry-portfolio-grid[data-hover-scale="1"] .photo-item:hover img { transform: none; }
+            }
+          `;
           galleryContainer.className = `masonry-portfolio-grid pswp-gallery${layoutMode === 'boxed' ? ' is-boxed' : ''}`;
           galleryContainer.dataset.layout = 'masonry_portfolio';
+          galleryContainer.dataset.cssColumns = '1';
           galleryContainer.dataset.gapH = mpGapH;
           galleryContainer.dataset.gapV = mpGapV;
           galleryContainer.dataset.colsDesktop = Math.round(mpCols.desktop || 4);
