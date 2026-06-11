@@ -217,9 +217,9 @@
   {# Template switcher (same behavior as gallery.twig) #}
   {% if available_templates|length > 0 %}
   <div class="mt-8 mb-4 flex justify-end">
-    <div id="template-switcher" class="hidden md:inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-md p-1 shadow-sm" style="opacity: 0; transform: translateX(20px);">
+    <div id="template-switcher" role="group" aria-label="{{ trans('gallery.template_switcher', {}, 'Gallery layout') }}" class="hidden md:inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-md p-1 shadow-sm" style="opacity: 0; transform: translateX(20px);">
       {% for template in available_templates %}
-        <button type="button" class="tpl-switch px-2 py-1 rounded {{ template.id == current_template_id ? 'bg-black text-white' : 'text-neutral-700 hover:bg-neutral-100' }}" data-template-id="{{ template.id }}" data-album-ref="{{ album_ref }}" title="{{ template.name }}" aria-label="{{ template.name }}">
+        <button type="button" class="tpl-switch px-2 py-1 rounded cursor-pointer {{ template.id == current_template_id ? 'bg-black text-white' : 'text-neutral-700 hover:bg-neutral-100' }}" data-template-id="{{ template.id }}" data-album-ref="{{ album_ref }}" data-tooltip="{{ template.name }}" aria-label="{{ template.name }}" aria-pressed="{{ template.id == current_template_id ? 'true' : 'false' }}">
           {% import 'frontend/_template_icon.twig' as TplIcon %}{{ TplIcon.icon(template) }}
         </button>
       {% endfor %}
@@ -1005,6 +1005,9 @@
     if (__tplSwitchAbort) { try { __tplSwitchAbort.abort(); } catch (_) {} }
     __tplSwitchAbort = new AbortController();
     const __myToken = ++__tplSwitchToken;
+    // Every deferred continuation (setTimeout, dynamic import) must bail when stale,
+    // or a superseded switch re-inits layouts on top of the active template.
+    const isStale = () => __myToken !== __tplSwitchToken;
     document.querySelectorAll('.tpl-switch').forEach(function (b) { if (b !== el) { delete b.dataset.switchInProgress; } });
     const galleryContainer = document.getElementById('images-gallery');
     const templateId = el.getAttribute('data-template-id') || (new URL(el.href, window.location.origin)).searchParams.get('template');
@@ -1015,9 +1018,9 @@
     }
     const original = galleryContainer.innerHTML;
     galleryContainer.classList.add('tpl-switching');
-    galleryContainer.innerHTML = '<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div></div>';
-    document.querySelectorAll('.tpl-switch').forEach(btn => { btn.classList.remove('bg-black','text-white'); btn.classList.add('text-neutral-700','hover:bg-neutral-100'); });
-    el.classList.remove('text-neutral-700','hover:bg-neutral-100'); el.classList.add('bg-black','text-white');
+    galleryContainer.innerHTML = '<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-black dark:border-white"></div></div>';
+    document.querySelectorAll('.tpl-switch').forEach(btn => { btn.classList.remove('bg-black','text-white'); btn.classList.add('text-neutral-700','hover:bg-neutral-100'); btn.setAttribute('aria-pressed','false'); });
+    el.classList.remove('text-neutral-700','hover:bg-neutral-100'); el.classList.add('bg-black','text-white'); el.setAttribute('aria-pressed','true');
     const fetchUrl = `${basePath}/api/gallery/template?album=${encodeURIComponent(albumRef)}&template=${encodeURIComponent(templateId)}`;
     fetch(fetchUrl, { headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' }, signal: __tplSwitchAbort.signal })
       .then(r => {
@@ -1246,11 +1249,12 @@
         galleryContainer.classList.add('tpl-switching');
         galleryContainer.id = idKeep;
 
-        // Update URL
-        try { history.pushState(null, '', `${basePath}/album/${albumRef}?template=${templateId}`); } catch(e){ console.warn('history.pushState failed:', e); }
+        // Update URL (replaceState: rapid switching must not pollute back-button history)
+        try { history.replaceState(null, '', `${basePath}/album/${albumRef}?template=${templateId}`); } catch(e){ console.warn('history.replaceState failed:', e); }
 
         // Re-init
         setTimeout(() => {
+          if (isStale()) return;
           if (typeof initLightbox === 'function') {
             initLightbox();
           }
@@ -1262,7 +1266,7 @@
             galleryContainer._masonryFitInstance = null;
           }
           if (newLayout === 'magazine') {
-            setTimeout(() => { try { initMagazineAutoscroll(); } catch(e){ console.error('Magazine init error:', e); } }, 100);
+            setTimeout(() => { if (isStale()) return; try { initMagazineAutoscroll(); } catch(e){ console.error('Magazine init error:', e); } }, 100);
           } else if (newLayout === 'gallery_wall') {
             initGalleryWallScroll(galleryContainer);
           } else if (newLayout === 'creative_layout') {
@@ -1283,6 +1287,7 @@
                   window.BalancedMasonryGrid = module.BalancedMasonryGrid;
                   window.RegularMasonryGrid = module.RegularMasonryGrid;
                   window._masonryGridReady = true;
+                  if (isStale()) return;
                   window.galleryMasonry = initGalleryMasonry(galleryContainer);
                 })
                 .catch(err => console.error('Failed to load masonry module:', err));
@@ -1298,8 +1303,8 @@
           }
           // Show container after animation starts
           setTimeout(() => {
+            if (isStale()) return;
             galleryContainer.classList.remove('tpl-switching');
-            galleryContainer.style.transition = 'none';
             // Fallback: force items visible if animation failed
             galleryContainer.querySelectorAll('.masonry-item, .image-item, .photo-item').forEach(el => {
               if (!el.hasAttribute('data-animated')) {
