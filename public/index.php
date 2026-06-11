@@ -442,7 +442,7 @@ if (!$isInstallerRoute && !$isMediaRequest && $container['db'] !== null) {
         }
 
         // App debug flag (from environment, not cached)
-        $twig->getEnvironment()->addGlobal('app_debug', (bool)($_ENV['APP_DEBUG'] ?? false));
+        $twig->getEnvironment()->addGlobal('app_debug', filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN));
 
         // Translation maps for JS bundles (request-specific, not cached)
         if ($translationService !== null) {
@@ -550,7 +550,7 @@ if (!$isInstallerRoute && !$isMediaRequest && $container['db'] !== null) {
             $twig->getEnvironment()->addGlobal($key, $value);
         }
         \App\Support\DateHelper::setDisplayFormat('Y-m-d');
-        $twig->getEnvironment()->addGlobal('app_debug', (bool)($_ENV['APP_DEBUG'] ?? false));
+        $twig->getEnvironment()->addGlobal('app_debug', filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN));
         $twig->getEnvironment()->addGlobal('nsfw_global_warning', false);
         if (!$isAdminRoute) {
             $twig->getEnvironment()->addGlobal('social_profiles', []);
@@ -565,7 +565,7 @@ if (!$isInstallerRoute && !$isMediaRequest && $container['db'] !== null) {
         $twig->getEnvironment()->addGlobal($key, $value);
     }
     \App\Support\DateHelper::setDisplayFormat('Y-m-d');
-    $twig->getEnvironment()->addGlobal('app_debug', (bool)($_ENV['APP_DEBUG'] ?? false));
+    $twig->getEnvironment()->addGlobal('app_debug', filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN));
     $twig->getEnvironment()->addGlobal('cookie_banner_enabled', false);
     $twig->getEnvironment()->addGlobal('nsfw_global_warning', false);
     $twig->getEnvironment()->addGlobal('nav_tags', []);
@@ -584,7 +584,7 @@ if (is_callable($routes)) {
     $routes($app, $container);
 }
 
-$errorMiddleware = $app->addErrorMiddleware((bool)($_ENV['APP_DEBUG'] ?? false), true, true);
+$errorMiddleware = $app->addErrorMiddleware(filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN), true, true);
 $errorMiddleware->setErrorHandler(HttpNotFoundException::class, function ($request, \Throwable $exception, bool $displayErrorDetails) use ($twig, $translationService) {
     $response = new \Slim\Psr7\Response(404);
     $path = $request->getUri()->getPath();

@@ -473,18 +473,37 @@ class AnalyticsService
             ');
             
             $stmt->execute([
-                $sessionId, $ipHash, $userAgent, $userAgentData['browser'], 
-                $userAgentData['browser_version'], $userAgentData['platform'], 
-                $userAgentData['device_type'], $geoData['country_code'], 
-                $geoData['region'], $geoData['city'], $referrerDomain, 
-                $referrer, $data['landing_page'] ?? '', $userAgentData['is_bot']
+                $sessionId, $ipHash, $userAgent, $userAgentData['browser'],
+                $userAgentData['browser_version'], $userAgentData['platform'],
+                $userAgentData['device_type'], $geoData['country_code'],
+                $geoData['region'], $geoData['city'], $referrerDomain,
+                // PDO binds PHP false as '' (empty string): MySQL strict mode
+                // rejects '' for the TINYINT is_bot column, killing the whole
+                // session insert — cast explicitly.
+                $referrer, $data['landing_page'] ?? '', (int)$userAgentData['is_bot']
             ]);
         } catch (\PDOException $e) {
-            // Analytics tables don't exist - silently return session ID without storing
-            // This allows the application to continue functioning
+            // Missing analytics tables are tolerated (plugin-less installs);
+            // anything else must surface in the logs or tracking dies silently.
+            if (!$this->isMissingTableError($e)) {
+                Logger::error('Analytics session insert failed', ['error' => $e->getMessage()], 'analytics');
+            }
         }
 
         return $sessionId;
+    }
+
+    /**
+     * True when the PDO error means an analytics table is absent
+     * (MySQL 1146 / SQLSTATE 42S02, SQLite "no such table").
+     */
+    private function isMissingTableError(\PDOException $e): bool
+    {
+        $info = $e->errorInfo ?? [];
+        if (($info[0] ?? '') === '42S02' || ($info[1] ?? 0) === 1146) {
+            return true;
+        }
+        return stripos($e->getMessage(), 'no such table') !== false;
     }
 
     /**
@@ -516,8 +535,11 @@ class AnalyticsService
                 $data['viewport_height'] ?? null
             ]);
         } catch (\PDOException $e) {
-            // Analytics tables don't exist - silently ignore tracking
-            // This allows the application to continue functioning
+            // Missing analytics tables are tolerated; real DB errors must be
+            // logged or tracking failures stay invisible forever.
+            if (!$this->isMissingTableError($e)) {
+                Logger::error('Analytics pageview insert failed', ['error' => $e->getMessage()], 'analytics');
+            }
         }
     }
 
@@ -548,8 +570,9 @@ class AnalyticsService
                 $data['image_id'] ?? null
             ]);
         } catch (\PDOException $e) {
-            // Analytics tables don't exist - silently ignore tracking
-            // This allows the application to continue functioning
+            if (!$this->isMissingTableError($e)) {
+                Logger::error('Analytics event insert failed', ['error' => $e->getMessage()], 'analytics');
+            }
         }
     }
 
