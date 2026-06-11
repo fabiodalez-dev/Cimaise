@@ -1815,6 +1815,8 @@
     "admin.seo.type_profile": "Profile",
     "admin.seo.type_website": "Website",
     "admin.settings.add_breakpoint": "Add Breakpoint",
+    "admin.settings.allow_theme_toggle": "Allow visitors to switch theme",
+    "admin.settings.allow_theme_toggle_desc": "Shows a light/dark toggle on the frontend so visitors can override the default theme. Disable to force the theme selected above for everyone.",
     "admin.settings.avif": "AVIF",
     "admin.settings.avif_desc": "Best compression, modern browsers",
     "admin.settings.avif_quality": "AVIF Quality",

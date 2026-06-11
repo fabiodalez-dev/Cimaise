@@ -1077,6 +1077,7 @@ INSERT INTO settings (key, value, type) VALUES
 ('recaptcha.secret_key', '', 'string'),
 -- Frontend settings
 ('frontend.dark_mode', 'false', 'boolean'),
+('frontend.allow_theme_toggle', 'true', 'boolean'),
 ('frontend.custom_css', '', 'string'),
 -- Performance settings
 ('performance.compression_enabled', 'true', 'boolean'),

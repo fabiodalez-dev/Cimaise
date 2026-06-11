@@ -17,7 +17,12 @@ use App\Support\Logger;
  */
 class TwigGlobalsCache
 {
-    private const CACHE_KEY_PREFIX = 'twig_globals:';
+    /**
+     * Versioned prefix: bump the `v<N>` segment whenever the SHAPE of the cached
+     * globals changes (new/renamed keys), so deployed caches with the old shape
+     * are never served to templates expecting the new key.
+     */
+    private const CACHE_KEY_PREFIX = 'twig_globals:v2:';
     private const TTL = 300; // 5 minutes
 
     /**
@@ -100,6 +105,7 @@ class TwigGlobalsCache
 
                 // Frontend settings
                 'dark_mode' => (bool) $settings->get('frontend.dark_mode', false),
+                'allow_theme_toggle' => (bool) $settings->get('frontend.allow_theme_toggle', true),
                 'custom_css' => (string) $settings->get('frontend.custom_css', ''),
 
                 // Cookie banner
@@ -191,6 +197,7 @@ class TwigGlobalsCache
             'admin_language' => 'en',
             'admin_debug' => false,
             'dark_mode' => false,
+            'allow_theme_toggle' => true,
             'custom_css' => '',
             'cookie_banner_enabled' => true,
             'custom_js_essential' => '',

@@ -1815,6 +1815,8 @@
     "admin.seo.type_profile": "Profilo",
     "admin.seo.type_website": "Sito Web",
     "admin.settings.add_breakpoint": "Aggiungi Breakpoint",
+    "admin.settings.allow_theme_toggle": "Permetti ai visitatori di cambiare tema",
+    "admin.settings.allow_theme_toggle_desc": "Mostra un interruttore chiaro/scuro nel frontend così i visitatori possono sovrascrivere il tema predefinito. Disabilita per forzare il tema selezionato sopra per tutti.",
     "admin.settings.avif": "AVIF",
     "admin.settings.avif_desc": "Migliore compressione, browser moderni",
     "admin.settings.avif_quality": "Qualità AVIF",
