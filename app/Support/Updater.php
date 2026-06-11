@@ -1009,6 +1009,13 @@ class Updater
                 throw new Exception('Invalid update package: missing ' . implode(', ', $missingFiles));
             }
 
+            // Defense in depth: the package's own version.json must match the
+            // requested version. The release workflow already gates tag ==
+            // version.json at build time, but a wrong asset uploaded under a
+            // tag would otherwise install silently while logging/migrations
+            // stay keyed to $version.
+            $this->assertPackageVersion($contentPath, $version);
+
             return [
                 'success' => true,
                 'path' => $contentPath,
@@ -1043,6 +1050,41 @@ class Updater
                 'error' => $e->getMessage()
             ]);
             return null;
+        }
+    }
+
+    /**
+     * Reject an extracted package whose own version.json does not declare the
+     * requested version. Migrations and update_logs are keyed to the requested
+     * version, so installing a mismatched tree would silently desync them.
+     *
+     * @throws Exception on unreadable/invalid version.json or version mismatch
+     */
+    private function assertPackageVersion(string $contentPath, string $expectedVersion): void
+    {
+        $raw = @file_get_contents($contentPath . '/version.json');
+        $data = is_string($raw) ? json_decode($raw, true) : null;
+        $found = is_array($data) && isset($data['version']) && is_string($data['version'])
+            ? $data['version']
+            : null;
+
+        if ($found === null) {
+            $this->debugLog('ERROR', 'Package version.json unreadable or missing version field', [
+                'expected' => $expectedVersion,
+            ]);
+            throw new Exception('Invalid update package: version.json is unreadable or has no version field');
+        }
+
+        if ($found !== $expectedVersion) {
+            $this->debugLog('ERROR', 'Package version mismatch', [
+                'expected' => $expectedVersion,
+                'found' => $found,
+            ]);
+            throw new Exception(sprintf(
+                'Update package version mismatch: requested %s but the package declares %s — refusing to install',
+                $expectedVersion,
+                $found
+            ));
         }
     }
 
