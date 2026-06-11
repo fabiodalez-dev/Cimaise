@@ -57,11 +57,15 @@ class PageController extends BaseController
         static $cache = null;
         if ($cache === null) {
             try {
-                // Core templates (always active) + active custom templates
+                // Core templates (always active) + active custom templates.
+                // Custom templates are addressed everywhere (URLs, switcher,
+                // getGalleryTemplateById) in the 1000+id namespace — validate
+                // the namespaced id, not the raw row id, or ?template=100X is
+                // always rejected and silently falls back to the album default.
                 $stmt = $this->db->pdo()->query('
                     SELECT id FROM templates
                     UNION
-                    SELECT id FROM custom_templates WHERE type = \'gallery\' AND is_active = 1
+                    SELECT id + 1000 FROM custom_templates WHERE type = \'gallery\' AND is_active = 1
                 ');
                 $cache = array_map('intval', $stmt->fetchAll(\PDO::FETCH_COLUMN));
             } catch (\Throwable $e) {
