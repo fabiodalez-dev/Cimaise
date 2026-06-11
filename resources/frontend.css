@@ -200,6 +200,28 @@ html.no-js main .album-card {
     }
 }
 
+/* Template switcher: dark theme. The markup/JS toggle light-only Tailwind utilities
+   (bg-white/90, text-neutral-700, active bg-black/text-white); these higher-specificity
+   overrides restyle the pill under html.dark without touching the JS class toggling. */
+html.dark #template-switcher {
+    background: rgba(23, 23, 23, 0.9);
+    border-color: #404040;
+}
+html.dark #template-switcher .tpl-switch {
+    color: #d4d4d4;
+}
+html.dark #template-switcher .tpl-switch:hover {
+    background: #262626;
+}
+html.dark #template-switcher .tpl-switch.bg-black {
+    background: #fafafa;
+    color: #171717;
+}
+.tpl-switch:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 1px;
+}
+
 /* NSFW content blur - scale hides pixelation at edges */
 .nsfw-blur {
     filter: blur(30px);

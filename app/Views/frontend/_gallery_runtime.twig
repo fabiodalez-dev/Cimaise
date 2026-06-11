@@ -433,13 +433,15 @@ function initMagazineAutoscroll() {
         if (tablet) tablet.style.display = isTablet ? 'flex' : 'none';
         if (desk) desk.style.display = isDesktop ? 'flex' : 'none';
 
-        var trackOriginals = new WeakMap();
         var ensureTrackFill = function(track, colHeight) {
             if (!track || !colHeight) return;
-            var originals = trackOriginals.get(track);
+            // Originals MUST live on the track element, not in a per-call WeakMap:
+            // a re-init (resize, template switch) would otherwise treat the clones
+            // as originals and re-clone them — exponential duplication.
+            var originals = track._mTrackOriginals;
             if (!originals) {
                 originals = Array.from(track.children);
-                trackOriginals.set(track, originals);
+                track._mTrackOriginals = originals;
             }
             if (!originals.length) return;
             var minHeight = colHeight * 2;
@@ -689,6 +691,10 @@ document.addEventListener('click', function(event) {
     if (__tplSwitchAbort) { try { __tplSwitchAbort.abort(); } catch (_) {} }
     __tplSwitchAbort = new AbortController();
     const __myToken = ++__tplSwitchToken;
+    // Every deferred continuation (rAF, setTimeout, dynamic import) MUST bail when
+    // stale: a superseded switch firing late re-inits layouts / re-clones content on
+    // top of the active template (observed: duplicated galleries, frozen masonry).
+    const isStale = () => __myToken !== __tplSwitchToken;
     // Defensive: never leave a previously-clicked button stuck as "in progress".
     document.querySelectorAll('.tpl-switch').forEach(function (b) { if (b !== el) { delete b.dataset.switchInProgress; } });
 
@@ -716,9 +722,11 @@ document.addEventListener('click', function(event) {
     document.querySelectorAll('.tpl-switch').forEach(btn => {
         btn.classList.remove('bg-black', 'text-white');
         btn.classList.add('text-neutral-700', 'hover:bg-neutral-100');
+        btn.setAttribute('aria-pressed', 'false');
     });
     el.classList.remove('text-neutral-700', 'hover:bg-neutral-100');
     el.classList.add('bg-black', 'text-white');
+    el.setAttribute('aria-pressed', 'true');
 
     const fetchUrl = `${window.basePath}/api/gallery/template?album=${encodeURIComponent(albumRef)}&template=${encodeURIComponent(templateId)}`;
 
@@ -1064,6 +1072,7 @@ document.addEventListener('click', function(event) {
 
             // STEP 9: Initialize the new layout with aggressive timing
             requestAnimationFrame(() => {
+                if (isStale()) return;
                 // Re-initialize lightbox first
                 if (typeof initLightbox === 'function') {
                     try { initLightbox(); } catch(e) { console.error('initLightbox error:', e); }
@@ -1072,6 +1081,7 @@ document.addEventListener('click', function(event) {
                 // Initialize layout-specific code (dense_grid is CSS-only, no JS needed)
                 if (newLayout === 'magazine') {
                     setTimeout(() => {
+                        if (isStale()) return;
                         if (typeof initMagazineAutoscroll === 'function') {
                             try { initMagazineAutoscroll(); } catch(e) { console.error('Magazine init:', e); }
                         }
@@ -1095,6 +1105,7 @@ document.addEventListener('click', function(event) {
                                 window.BalancedMasonryGrid = module.BalancedMasonryGrid;
                                 window.RegularMasonryGrid = module.RegularMasonryGrid;
                                 window._masonryGridReady = true;
+                                if (isStale()) return;
                                 window.galleryMasonry = initGalleryMasonry(galleryContainer);
                             })
                             .catch(err => console.error('Failed to load masonry module:', err));
@@ -1111,6 +1122,7 @@ document.addEventListener('click', function(event) {
                                 window.BalancedMasonryGrid = module.BalancedMasonryGrid;
                                 window.RegularMasonryGrid = module.RegularMasonryGrid;
                                 window._masonryGridReady = true;
+                                if (isStale()) return;
                                 window.galleryMasonry = initGalleryMasonry(nestedMasonry);
                             })
                             .catch(err => console.error('Failed to load masonry module:', err));
@@ -1119,6 +1131,7 @@ document.addEventListener('click', function(event) {
 
             // STEP 10: Make visible and animate items
             setTimeout(() => {
+                if (isStale()) return;
                 // Restore scroll position first to avoid visual jump
                 window.scrollTo({ top: scrollY, left: 0, behavior: 'auto' });
                 
