@@ -1,0 +1,378 @@
+{% extends 'frontend/_layout.twig' %}
+
+{% block styles %}
+<style nonce="{{ csp_nonce() }}">
+  /* ===== Editorial Index — typographic galleries listing ===== */
+  .edx-page { background: #fafafa; }
+  html.dark .edx-page { background: #0a0a0a; }
+
+  .edx { max-width: 1240px; margin: 0 auto; padding: 0 1.25rem; }
+  @media (min-width: 1024px) { .edx { padding: 0 2.5rem; } }
+
+  /* Masthead */
+  .edx-hero { padding: 4.5rem 0 3.5rem; }
+  @media (min-width: 1024px) { .edx-hero { padding: 6rem 0 4.5rem; } }
+  .edx-kicker { font-size: .7rem; letter-spacing: .24em; text-transform: uppercase; color: #737373; font-weight: 500; }
+  html.dark .edx-kicker { color: #8c8c8c; }
+  .edx-heading { font-size: clamp(2.5rem, 6.5vw, 4.75rem); line-height: 1.02; font-weight: 300; letter-spacing: -.025em; color: #171717; margin-top: 1rem; }
+  html.dark .edx-heading { color: #f5f5f4; }
+  .edx-hero-foot { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .75rem 2.5rem; margin-top: 1.5rem; }
+  .edx-sub { max-width: 52ch; color: #525252; font-size: 1.05rem; line-height: 1.7; }
+  html.dark .edx-sub { color: #a3a3a3; }
+  .edx-count { font-size: .7rem; letter-spacing: .2em; text-transform: uppercase; color: #a3a3a3; white-space: nowrap; }
+  html.dark .edx-count { color: #6b6b6b; }
+
+  /* Index rows */
+  .edx-index { padding-bottom: 7rem; }
+  .edx-row { position: relative; display: flex; align-items: baseline; gap: 1.25rem; padding: 2rem 0; border-top: 1px solid #e5e5e5; cursor: pointer; }
+  @media (min-width: 1024px) { .edx-row { gap: 2.5rem; padding: 2.75rem 0; } }
+  html.dark .edx-row { border-top-color: #262626; }
+  .edx-row:last-of-type { border-bottom: 1px solid #e5e5e5; }
+  html.dark .edx-row:last-of-type { border-bottom-color: #262626; }
+  .edx-row:focus-visible { outline: 2px solid #737373; outline-offset: 4px; }
+
+  .edx-num { flex: none; width: 3.2ch; font-size: clamp(1.1rem, 2vw, 1.5rem); font-weight: 300; font-variant-numeric: tabular-nums; color: #c4c4c2; transition: color .2s ease-out; }
+  html.dark .edx-num { color: #444446; }
+
+  .edx-main { flex: 1; min-width: 0; }
+  .edx-title { font-size: clamp(1.9rem, 4.5vw, 3.6rem); line-height: 1.08; font-weight: 300; letter-spacing: -.02em; color: #1c1c1c; overflow-wrap: break-word; transition: transform .25s cubic-bezier(.22,1,.36,1); }
+  html.dark .edx-title { color: #ededec; }
+  .edx-meta { margin-top: .85rem; font-size: .68rem; letter-spacing: .18em; text-transform: uppercase; color: #8c8c8c; }
+  html.dark .edx-meta { color: #7c7c80; }
+  .edx-meta-item { display: inline-block; }
+  .edx-meta-item + .edx-meta-item::before { content: '\00B7'; margin: 0 .7em; color: #c4c4c2; }
+  html.dark .edx-meta-item + .edx-meta-item::before { color: #4c4c4e; }
+  .edx-flag i { font-size: .62rem; margin-right: .3em; }
+
+  /* Touch / mobile thumbnail (replaced by the floating preview on fine pointers) */
+  .edx-thumb { position: relative; flex: none; align-self: center; width: 6rem; aspect-ratio: 4 / 3; overflow: hidden; background: #ebebe9; }
+  html.dark .edx-thumb { background: #1a1a1c; }
+  .edx-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .edx-thumb-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #b0b0ae; font-size: 1.1rem; }
+  html.dark .edx-thumb-empty { color: #4c4c4e; }
+  .edx-thumb-veil { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(12,12,14,.55); color: #f5f5f4; font-size: .95rem; }
+
+  /* Hover arrow (fine pointers only) */
+  .edx-arrow { display: none; }
+
+  @media (hover: hover) and (pointer: fine) {
+    .edx-thumb { display: none; }
+    .edx-arrow { display: block; flex: none; align-self: center; color: #1c1c1c; font-size: 1.1rem; opacity: 0; transform: translateX(-8px); transition: opacity .2s ease-out, transform .25s cubic-bezier(.22,1,.36,1); }
+    html.dark .edx-arrow { color: #ededec; }
+    .edx-row:hover .edx-title { transform: translateX(10px); }
+    .edx-row:hover .edx-num { color: #1c1c1c; }
+    html.dark .edx-row:hover .edx-num { color: #ededec; }
+    .edx-row:hover .edx-arrow { opacity: 1; transform: none; }
+  }
+
+  /* Floating cover preview (fine pointers only) */
+  #edx-float { display: none; }
+  @media (hover: hover) and (pointer: fine) {
+    #edx-float { display: block; position: fixed; left: 0; top: 0; width: min(320px, 30vw); aspect-ratio: 4 / 3; overflow: hidden; z-index: 70; pointer-events: none; opacity: 0; background: #161618; box-shadow: 0 24px 64px -12px rgba(18,18,20,.35); transition: opacity .2s ease-out; will-change: transform, opacity; }
+    #edx-float.is-on { opacity: 1; }
+    #edx-float img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .edx-float-veil { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(12,12,14,.5); color: #f5f5f4; font-size: 1.5rem; }
+    .edx-float-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #6b6b6e; font-size: 1.6rem; }
+  }
+
+  /* Empty state (server-side, no published galleries) */
+  .edx-empty { padding: 6rem 0 9rem; border-top: 1px solid #e5e5e5; }
+  html.dark .edx-empty { border-top-color: #262626; }
+  .edx-empty-title { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 300; letter-spacing: -.02em; color: #1c1c1c; margin-top: 1rem; }
+  html.dark .edx-empty-title { color: #ededec; }
+  .edx-empty-text { margin-top: 1rem; max-width: 48ch; color: #737373; line-height: 1.7; }
+  html.dark .edx-empty-text { color: #8c8c8c; }
+
+  /* Entrance: CSS-only stagger, content visible without JS, enhancement only */
+  @media (prefers-reduced-motion: no-preference) {
+    .edx-row { animation: edxRise .5s cubic-bezier(.22,1,.36,1) both; }
+    .edx-row:nth-child(1) { animation-delay: .05s; }
+    .edx-row:nth-child(2) { animation-delay: .1s; }
+    .edx-row:nth-child(3) { animation-delay: .15s; }
+    .edx-row:nth-child(4) { animation-delay: .2s; }
+    .edx-row:nth-child(5) { animation-delay: .25s; }
+    .edx-row:nth-child(6) { animation-delay: .3s; }
+    .edx-row:nth-child(7) { animation-delay: .35s; }
+    .edx-row:nth-child(8) { animation-delay: .4s; }
+  }
+  @keyframes edxRise {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .edx-row, .edx-row .edx-title, .edx-row .edx-num, .edx-arrow, #edx-float { animation: none !important; transition: none !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+  {% include 'frontend/_breadcrumbs.twig' %}
+</div>
+
+<div class="edx-page">
+  <!-- Masthead -->
+  <header class="edx">
+    <div class="edx-hero">
+      <p class="edx-kicker">{{ trans('galleries.tpl.index_label', {}, 'Index') }}</p>
+      <h1 class="edx-heading">{{ page_texts.title|default(trans('galleries.title'))|e }}</h1>
+      <div class="edx-hero-foot">
+        <p class="edx-sub">{{ page_texts.subtitle|default(trans('galleries.subtitle'))|e }}</p>
+        <p class="edx-count">
+          {% if albums|length == 1 %}
+            {{ trans('filter.gallery_count') }}
+          {% else %}
+            {{ trans('filter.galleries_count', {count: albums|length}) }}
+          {% endif %}
+        </p>
+      </div>
+    </div>
+  </header>
+
+  {% if filter_settings.enabled|default(false) %}{% include 'frontend/_galleries_filters.twig' %}{% endif %}
+
+  <!-- Editorial index -->
+  <main class="edx edx-index">
+    <div id="galleries-grid">
+      {% for album in albums %}
+        {% set is_locked = album.is_locked|default(false) %}
+        {% set show_nsfw_overlay = album.is_nsfw and not ((nsfw_consent|default(false)) or (is_admin|default(false))) %}
+        {% set should_blur_cover = show_nsfw_overlay or is_locked %}
+        {% set cover_raw = '' %}
+        {% if album.cover_image %}
+          {% set cover_raw = should_blur_cover ? album.cover_image.blur_path|default('') : album.cover_image.preview_path|default('') %}
+        {% endif %}
+        {% set cover_url = cover_raw ? ((cover_raw starts with '/') ? (base_path ~ cover_raw) : cover_raw) : '' %}
+        {% set overlay = show_nsfw_overlay ? 'nsfw' : (is_locked ? 'lock' : '') %}
+        <article class="edx-row gallery-card"
+                 role="link"
+                 tabindex="0"
+                 data-album-id="{{ album.id }}"
+                 data-nsfw="{{ album.is_nsfw and not is_admin ? '1' : '0' }}"
+                 data-password-protected="{{ album.is_password_protected ? '1' : '0' }}"
+                 data-album-url="{{ base_path }}/album/{{ album.slug }}"
+                 data-action="open-album"
+                 data-ed-cover="{{ cover_url|e('html_attr') }}"
+                 data-ed-overlay="{{ overlay }}"
+                 aria-label="{{ album.title|e('html_attr') }}">
+          <span class="edx-num" aria-hidden="true">{{ '%02d'|format(loop.index) }}</span>
+          <div class="edx-main">
+            <h2 class="edx-title">{{ album.title|e }}</h2>
+            <p class="edx-meta">
+              {%- if album.category_name %}<span class="edx-meta-item">{{ album.category_name|e }}</span>{% endif -%}
+              {%- if album.shoot_date %}<span class="edx-meta-item">{{ album.shoot_date|slice(0, 4)|e }}</span>{% endif -%}
+              {%- if album.images_count > 0 %}<span class="edx-meta-item">{{ album.images_count }} {{ trans('galleries.tpl.images_label', {}, 'Images') }}</span>{% endif -%}
+              {%- if album.is_password_protected %}<span class="edx-meta-item edx-flag"><i class="fas fa-lock" aria-hidden="true"></i> {{ trans('album.password_protected') }}</span>{% endif -%}
+              {%- if show_nsfw_overlay %}<span class="edx-meta-item edx-flag"><i class="fas fa-eye-slash" aria-hidden="true"></i> {{ trans('album.nsfw_warning_short') }}</span>{% endif -%}
+            </p>
+          </div>
+          <div class="edx-thumb" aria-hidden="true">
+            {% if cover_url %}
+              <img src="{{ cover_url }}" alt="" loading="lazy" decoding="async">
+            {% else %}
+              <span class="edx-thumb-empty"><i class="fas fa-images"></i></span>
+            {% endif %}
+            {% if overlay %}<span class="edx-thumb-veil"><i class="fas {{ overlay == 'nsfw' ? 'fa-eye-slash' : 'fa-lock' }}"></i></span>{% endif %}
+          </div>
+          <span class="edx-arrow" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+        </article>
+      {% endfor %}
+    </div>
+
+    {% if albums|length == 0 %}
+    <div id="empty-state" class="edx-empty">
+      <p class="edx-kicker">{{ trans('galleries.tpl.index_label', {}, 'Index') }}</p>
+      <h2 class="edx-empty-title">{{ trans('galleries.tpl.empty_title', {}, 'Nothing published yet') }}</h2>
+      <p class="edx-empty-text">{{ trans('galleries.tpl.empty_text', {}, 'New galleries will appear in this index as soon as they are published.') }}</p>
+    </div>
+    {% endif %}
+  </main>
+
+  <!-- Floating cover preview (desktop, fine pointers) -->
+  <div id="edx-float" aria-hidden="true">
+    <img id="edx-float-img" alt="" decoding="async" hidden>
+    <span id="edx-float-empty" class="edx-float-empty" hidden><i class="fas fa-images"></i></span>
+    <span id="edx-float-veil" class="edx-float-veil" hidden><i id="edx-float-veil-icon" class="fas fa-eye-slash"></i></span>
+  </div>
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+(function () {
+    'use strict';
+
+    window.basePath = window.basePath || '{{ base_path|e('js') }}';
+    {% if nsfw_consent|default(false) %}window.nsfwConsent = true;{% endif %}
+    var IS_ADMIN = {{ is_admin|default(false) ? 'true' : 'false' }};
+    var TEXTS = {
+        images: '{{ trans('galleries.tpl.images_label', {}, 'Images')|e('js') }}',
+        locked: '{{ trans('album.password_protected')|e('js') }}',
+        nsfw: '{{ trans('album.nsfw_warning_short')|e('js') }}'
+    };
+
+    function esc(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function hasNsfwConsent() {
+        if (window.nsfwConsent === true) return true;
+        try {
+            return window.localStorage && window.localStorage.getItem('nsfw_confirmed') === 'true';
+        } catch (e) { return false; }
+    }
+
+    // ---- Client-side row renderer (called by the filters partial) ----
+    // Produces markup structurally identical to the server-rendered .edx-row above.
+    window.cimaiseRenderCard = function (album, index) {
+        album = album || {};
+        var cover = album.cover_image || {};
+        var isLocked = !!album.is_locked;
+        var nsfwBlocked = !!album.is_nsfw && !IS_ADMIN && !hasNsfwConsent();
+        var shouldBlur = nsfwBlocked || isLocked;
+        var raw = shouldBlur ? (cover.blur_path || '') : (cover.preview_path || '');
+        var url = raw ? (raw.charAt(0) === '/' ? (window.basePath || '') + raw : raw) : '';
+        var overlay = nsfwBlocked ? 'nsfw' : (isLocked ? 'lock' : '');
+        var num = String((index || 0) + 1).padStart(2, '0');
+        var year = String(album.shoot_date || '').slice(0, 4);
+        if (!/^\d{4}$/.test(year)) year = '';
+        var albumUrl = (window.basePath || '') + '/album/' + encodeURIComponent(album.slug || '');
+
+        var meta = '';
+        if (album.category_name) meta += '<span class="edx-meta-item">' + esc(album.category_name) + '</span>';
+        if (year) meta += '<span class="edx-meta-item">' + esc(year) + '</span>';
+        if ((album.images_count || 0) > 0) meta += '<span class="edx-meta-item">' + esc(album.images_count) + ' ' + esc(TEXTS.images) + '</span>';
+        if (album.is_password_protected) meta += '<span class="edx-meta-item edx-flag"><i class="fas fa-lock" aria-hidden="true"></i> ' + esc(TEXTS.locked) + '</span>';
+        if (nsfwBlocked) meta += '<span class="edx-meta-item edx-flag"><i class="fas fa-eye-slash" aria-hidden="true"></i> ' + esc(TEXTS.nsfw) + '</span>';
+
+        var thumb = url
+            ? '<img src="' + esc(url) + '" alt="" loading="lazy" decoding="async">'
+            : '<span class="edx-thumb-empty"><i class="fas fa-images"></i></span>';
+        if (overlay) {
+            thumb += '<span class="edx-thumb-veil"><i class="fas ' + (overlay === 'nsfw' ? 'fa-eye-slash' : 'fa-lock') + '"></i></span>';
+        }
+
+        return '<article class="edx-row gallery-card" role="link" tabindex="0"'
+            + ' data-album-id="' + esc(album.id || '') + '"'
+            + ' data-nsfw="' + ((album.is_nsfw && !IS_ADMIN) ? '1' : '0') + '"'
+            + ' data-password-protected="' + (album.is_password_protected ? '1' : '0') + '"'
+            + ' data-album-url="' + esc(albumUrl) + '"'
+            + ' data-action="open-album"'
+            + ' data-ed-cover="' + esc(url) + '"'
+            + ' data-ed-overlay="' + overlay + '"'
+            + ' aria-label="' + esc(album.title || '') + '">'
+            + '<span class="edx-num" aria-hidden="true">' + num + '</span>'
+            + '<div class="edx-main">'
+            + '<h2 class="edx-title">' + esc(album.title || '') + '</h2>'
+            + '<p class="edx-meta">' + meta + '</p>'
+            + '</div>'
+            + '<div class="edx-thumb" aria-hidden="true">' + thumb + '</div>'
+            + '<span class="edx-arrow" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>'
+            + '</article>';
+    };
+
+    // ---- Row navigation (album page handles NSFW/password gates server-side) ----
+    document.addEventListener('click', function (event) {
+        var row = event.target.closest('[data-action="open-album"]');
+        if (!row) return;
+        if (event.target.closest('a')) return;
+        event.preventDefault();
+        if (row.dataset.albumUrl) window.location.href = row.dataset.albumUrl;
+    });
+    document.addEventListener('keydown', function (event) {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        if (!event.target || !event.target.closest) return;
+        var row = event.target.closest('[data-action="open-album"]');
+        if (!row || row !== event.target) return;
+        event.preventDefault();
+        if (row.dataset.albumUrl) window.location.href = row.dataset.albumUrl;
+    });
+
+    // ---- Floating cover preview (fine pointers only) ----
+    var grid = document.getElementById('galleries-grid');
+    var floatBox = document.getElementById('edx-float');
+    var floatImg = document.getElementById('edx-float-img');
+    var floatEmpty = document.getElementById('edx-float-empty');
+    var floatVeil = document.getElementById('edx-float-veil');
+    var floatVeilIcon = document.getElementById('edx-float-veil-icon');
+    var finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+    var activeRow = null;
+    var rafId = null;
+    var lastEvent = null;
+
+    function positionFloat(ev) {
+        var w = floatBox.offsetWidth || 320;
+        var h = floatBox.offsetHeight || 240;
+        var x = ev.clientX + 32;
+        var y = ev.clientY - h / 2;
+        if (x + w > window.innerWidth - 16) x = ev.clientX - w - 32;
+        if (x < 16) x = 16;
+        if (y < 16) y = 16;
+        if (y + h > window.innerHeight - 16) y = window.innerHeight - h - 16;
+        floatBox.style.transform = 'translate3d(' + Math.round(x) + 'px,' + Math.round(y) + 'px,0)';
+    }
+
+    function scheduleMove(ev) {
+        lastEvent = ev;
+        if (rafId !== null) return;
+        rafId = window.requestAnimationFrame(function () {
+            rafId = null;
+            if (lastEvent && activeRow) positionFloat(lastEvent);
+        });
+    }
+
+    function showFloat(row, ev) {
+        var src = row.dataset.edCover || '';
+        var overlay = row.dataset.edOverlay || '';
+        if (src) {
+            if (floatImg.getAttribute('src') !== src) floatImg.src = src;
+            floatImg.hidden = false;
+            floatEmpty.hidden = true;
+        } else {
+            floatImg.removeAttribute('src');
+            floatImg.hidden = true;
+            floatEmpty.hidden = false;
+        }
+        if (overlay) {
+            floatVeilIcon.className = overlay === 'lock' ? 'fas fa-lock' : 'fas fa-eye-slash';
+            floatVeil.hidden = false;
+        } else {
+            floatVeil.hidden = true;
+        }
+        if (ev) positionFloat(ev);
+        floatBox.classList.add('is-on');
+    }
+
+    function hideFloat() {
+        activeRow = null;
+        if (floatBox) floatBox.classList.remove('is-on');
+    }
+
+    if (grid && floatBox) {
+        grid.addEventListener('pointerover', function (ev) {
+            if (!finePointer.matches) return;
+            var row = ev.target.closest ? ev.target.closest('.edx-row') : null;
+            if (!row) { hideFloat(); return; }
+            if (row !== activeRow) {
+                activeRow = row;
+                showFloat(row, ev);
+            }
+        });
+        grid.addEventListener('pointermove', function (ev) {
+            if (!finePointer.matches || !activeRow) return;
+            scheduleMove(ev);
+        });
+        grid.addEventListener('pointerleave', hideFloat);
+    }
+
+    // ---- Re-run layout JS after the filters partial re-renders the grid ----
+    // (Entrance animation is CSS-driven and restarts automatically on new rows.)
+    document.addEventListener('cimaise:galleries-updated', function () {
+        hideFloat();
+    });
+})();
+</script>
+{% endblock %}

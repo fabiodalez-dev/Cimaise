@@ -1,0 +1,453 @@
+{% extends 'frontend/_layout.twig' %}
+{% import 'frontend/_seo_macros.twig' as Seo %}
+
+{% block styles %}
+<style nonce="{{ csp_nonce() }}">
+  /* ---- Contact sheet: shared tokens ---------------------------------- */
+  .cs-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---- Masthead (sits on the regular page surface) ------------------- */
+  .cs-kicker {
+    font-size: .7rem;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: #8a8276;
+  }
+  .dark .cs-kicker { color: #87806f; }
+
+  /* ---- The sheet: a dark warm panel in BOTH color schemes ------------ */
+  .cs-sheet { background: #1c1916; }
+  .dark .cs-sheet { background: #141110; }
+
+  .cs-sheet-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding-bottom: .8rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #2d2823;
+    font-size: .66rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: #8d8476;
+  }
+  .dark .cs-sheet-head { border-color: #262120; color: #837b6d; }
+
+  .cs-legend { display: inline-flex; align-items: center; gap: .5rem; }
+  .cs-legend-mark {
+    display: inline-block;
+    width: 1.15em;
+    height: .85em;
+    border: 2px solid rgba(224, 84, 44, .9);
+    border-radius: 56% 44% 60% 40% / 58% 52% 48% 62%;
+    transform: rotate(-6deg);
+  }
+
+  /* ---- Uniform frame grid -------------------------------------------- */
+  .cs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1.5rem 1rem;
+  }
+  @media (min-width: 768px) {
+    .cs-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2rem 1.25rem; }
+  }
+  @media (min-width: 1280px) {
+    .cs-grid { grid-template-columns: repeat(auto-fill, minmax(225px, 1fr)); }
+  }
+  .cs-grid > #empty-state { grid-column: 1 / -1; }
+
+  /* ---- One frame ------------------------------------------------------ */
+  .cs-frame { cursor: pointer; }
+
+  .cs-photo {
+    position: relative;
+    aspect-ratio: 3 / 2;
+    overflow: hidden;
+    background: #26221d;
+    border: 1px solid rgba(237, 232, 222, .78);
+    transition: border-color .2s ease-out;
+  }
+  .dark .cs-photo { background: #1e1a17; border-color: rgba(232, 227, 217, .6); }
+  .cs-frame:hover .cs-photo,
+  .cs-frame:focus-within .cs-photo { border-color: #f3efe6; }
+
+  .cs-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: saturate(.55) contrast(1.04);
+    transition: filter .25s ease-out;
+  }
+  .cs-frame:hover .cs-photo img,
+  .cs-frame:focus-within .cs-photo img { filter: saturate(1) contrast(1); }
+
+  /* NSFW/lock blur wins over the desaturation treatment */
+  .cs-photo img.nsfw-blur { filter: blur(30px) saturate(.5); transform: scale(1.1); }
+  .cs-frame:hover .cs-photo img.nsfw-blur { filter: blur(30px) saturate(.5); }
+  .nsfw-confirmed .cs-photo img.nsfw-blur { filter: saturate(.55) contrast(1.04); transform: none; }
+  .nsfw-confirmed .cs-frame:hover .cs-photo img.nsfw-blur { filter: saturate(1) contrast(1); }
+
+  .cs-photo-empty {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #5a534b;
+    font-size: 1.4rem;
+  }
+
+  .cs-veil {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    background: rgba(19, 16, 13, .6);
+    color: #ece8df;
+    pointer-events: none;
+    font-size: .62rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    text-align: center;
+    padding: 0 .5rem;
+  }
+  .cs-veil i { font-size: 1.15rem; }
+
+  .cs-lock {
+    position: absolute;
+    top: .5rem;
+    right: .55rem;
+    z-index: 20;
+    color: #ece8df;
+    font-size: .72rem;
+    text-shadow: 0 1px 3px rgba(12, 10, 8, .85);
+  }
+
+  /* ---- Caption line under each frame ---------------------------------- */
+  .cs-caption {
+    display: flex;
+    align-items: baseline;
+    gap: .6rem;
+    margin-top: .55rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: .66rem;
+    letter-spacing: .06em;
+    color: #968d7f;
+    transition: color .2s ease-out;
+  }
+  .dark .cs-caption { color: #8b8275; }
+  .cs-frame:hover .cs-caption,
+  .cs-frame:focus-within .cs-caption { color: #cfc7b8; }
+
+  .cs-num { position: relative; flex: none; color: #c6bdad; }
+  .dark .cs-num { color: #bbb2a1; }
+
+  .cs-cap-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-transform: uppercase;
+  }
+  .cs-cap-year { flex: none; }
+
+  /* ---- Grease-pencil select mark (albums with 20+ frames) -------------- */
+  .cs-select .cs-num::after {
+    content: '';
+    position: absolute;
+    left: -.5em;
+    right: -.45em;
+    top: -.42em;
+    bottom: -.36em;
+    border: 2px solid rgba(224, 84, 44, .9);
+    border-radius: 56% 44% 60% 40% / 58% 52% 48% 62%;
+    transform: rotate(-6deg);
+    pointer-events: none;
+  }
+  .dark .cs-select .cs-num::after { border-color: rgba(232, 96, 55, .9); }
+
+  /* ---- Empty states (server-rendered + the partial's JS empty state) -- */
+  .cs-sheet #empty-state h3 { color: #ece8df; }
+  .cs-sheet #empty-state p { color: #a89f91; }
+  .cs-sheet #empty-state i { color: #57504a; }
+  .cs-sheet #empty-state button {
+    background-color: #ece8df;
+    color: #1c1916;
+  }
+  .cs-sheet #empty-state button:hover { background-color: #f6f3ec; }
+
+  /* ---- Entrance: CSS-first, JS only adds the .cs-anim trigger ---------- */
+  @media (prefers-reduced-motion: no-preference) {
+    .cs-anim .cs-frame .cs-inner {
+      opacity: 0;
+      transform: translateY(10px);
+      animation: cs-frame-in .4s cubic-bezier(.16, 1, .3, 1) forwards;
+      animation-delay: calc(var(--cs-i, 0) * 40ms);
+    }
+    @keyframes cs-frame-in {
+      to { opacity: 1; transform: none; }
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cs-photo, .cs-photo img, .cs-caption { transition: none; }
+  }
+
+  /* NSFW reveal plumbing (normally provided by the classic page styles) */
+  .nsfw-confirmed .nsfw-overlay { display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+  {% include 'frontend/_breadcrumbs.twig' %}
+</div>
+
+<div class="min-h-screen">
+  <!-- Masthead -->
+  <header class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-12">
+    <p class="cs-kicker cs-mono">
+      {{ trans('galleries.tpl.contact_sheet_label', {}, 'Contact sheet')|e }}
+      &middot; {{ albums|length }} {{ trans('galleries.tpl.frames_label', {}, 'frames')|e }}
+    </p>
+    <h1 class="mt-4 text-4xl md:text-5xl font-light tracking-tight text-neutral-900 dark:text-neutral-100">
+      {{ page_texts.title|default(trans('galleries.title'))|e }}
+    </h1>
+    {% if page_texts.subtitle|default('') %}
+    <p class="mt-4 max-w-2xl text-lg text-neutral-600 dark:text-neutral-400 leading-relaxed">
+      {{ page_texts.subtitle|e }}
+    </p>
+    {% endif %}
+  </header>
+
+  <!-- Shared filter bar -->
+  {% if filter_settings.enabled|default(false) %}{% include 'frontend/_galleries_filters.twig' %}{% endif %}
+
+  <!-- The sheet -->
+  <section class="cs-sheet">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div class="cs-sheet-head cs-mono">
+        <span>{{ site_title|default('Cimaise')|e }}</span>
+        <span class="cs-legend">
+          <span class="cs-legend-mark" aria-hidden="true"></span>
+          {{ trans('galleries.tpl.selects_legend', {}, 'selects: 20 frames or more')|e }}
+        </span>
+      </div>
+
+      <div id="galleries-grid" class="cs-grid">
+        {% if albums|length > 0 %}
+          {% for album in albums %}
+          {% set seo_title = Seo.seo_title({'alt': album.cover_image.alt_text|default('')}, album, site_title)|trim %}
+          {% set show_nsfw_overlay = album.is_nsfw and not ((nsfw_consent|default(false)) or (is_admin|default(false))) %}
+          {% set is_locked = album.is_locked|default(false) %}
+          {% set should_blur_cover = (album.is_nsfw and not nsfw_consent|default(false) and not is_admin|default(false)) or is_locked %}
+          {% set frame_year = album.shoot_date ? album.shoot_date|date('Y') : (album.published_at ? album.published_at|date('Y') : '') %}
+          {% set cover_src = '' %}
+          {% if album.cover_image %}
+            {% set cover_src = should_blur_cover ? album.cover_image.blur_path|default('') : album.cover_image.preview_path|default('') %}
+          {% endif %}
+          <article class="gallery-card cs-frame{{ album.images_count|default(0) >= 20 ? ' cs-select' : '' }}"
+                   style="--cs-i: {{ loop.index0 % 12 }}"
+                   data-album-id="{{ album.id }}"
+                   data-nsfw="{{ album.is_nsfw and not is_admin|default(false) ? '1' : '0' }}"
+                   data-password-protected="{{ album.is_password_protected ? '1' : '0' }}"
+                   data-album-url="{{ base_path }}/album/{{ album.slug }}"
+                   data-action="open-album"
+                   aria-label="{{ seo_title|e('html_attr') }}">
+            <div class="cs-inner">
+              <div class="cs-photo">
+                {% if cover_src %}
+                <img src="{% if cover_src starts with '/' %}{{ base_path }}{{ cover_src }}{% else %}{{ cover_src }}{% endif %}"
+                     alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
+                     title="{{ seo_title|e('html_attr') }}"
+                     class="{{ should_blur_cover ? 'nsfw-blur' : '' }}"
+                     {% if loop.index > 6 %}loading="lazy"{% else %}fetchpriority="high"{% endif %}
+                     decoding="async"
+                     data-fallback="hide">
+                {% else %}
+                <div class="cs-photo-empty"><i class="fas fa-images"></i></div>
+                {% endif %}
+
+                {% if album.is_nsfw and show_nsfw_overlay %}
+                <div class="nsfw-overlay cs-veil">
+                  <i class="fas fa-eye-slash"></i>
+                  <span>{{ trans('album.nsfw_warning_short') }}</span>
+                </div>
+                {% endif %}
+                {% if is_locked and not (album.is_nsfw and show_nsfw_overlay) %}
+                <div class="nsfw-overlay cs-veil">
+                  <i class="fas fa-lock"></i>
+                  <span>{{ trans('album.password_protected') }}</span>
+                </div>
+                {% endif %}
+
+                {% if album.is_password_protected %}
+                <span class="cs-lock" title="{{ trans('album.password_protected')|e('html_attr') }}"><i class="fas fa-lock"></i></span>
+                {% endif %}
+              </div>
+
+              <p class="cs-caption">
+                <span class="cs-num">#{{ '%02d'|format(loop.index) }}</span>
+                <span class="cs-cap-title">{{ album.title|e }}</span>
+                {% if frame_year %}<span class="cs-cap-year">{{ frame_year }}</span>{% endif %}
+              </p>
+            </div>
+          </article>
+          {% endfor %}
+        {% else %}
+        <div class="text-center py-24" id="empty-state">
+          <div class="max-w-md mx-auto">
+            <i class="fas fa-images text-6xl mb-6"></i>
+            <h3 class="text-2xl font-semibold mb-4">
+              {{ trans('galleries.tpl.empty_sheet_title', {}, 'An empty roll')|e }}
+            </h3>
+            <p class="leading-relaxed">
+              {{ trans('galleries.tpl.empty_sheet_text', {}, 'No galleries have been published yet. New frames will land on this sheet as soon as they are.')|e }}
+            </p>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+  // Entrance trigger: content is fully visible without JS; this class only enhances.
+  (function () {
+    var g = document.getElementById('galleries-grid');
+    if (g) g.classList.add('cs-anim');
+  })();
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">
+(function () {
+  'use strict';
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function withBase(p) {
+    if (!p) return '';
+    return (p.charAt(0) === '/' && window.basePath) ? (window.basePath + p) : p;
+  }
+
+  function nsfwConfirmed() {
+    if (window.nsfwConsent === true) return true;
+    try {
+      if (window.localStorage && (
+        window.localStorage.getItem('nsfw_confirmed') === 'true' ||
+        window.localStorage.getItem('nsfw_global_confirmed') === 'true'
+      )) return true;
+    } catch (e) {}
+    return false;
+  }
+
+  var veilLabels = {
+    nsfw: '{{ trans('album.nsfw_warning_short')|e('js') }}',
+    lock: '{{ trans('album.password_protected')|e('js') }}'
+  };
+
+  // ---- Client-side card renderer used by the shared filters partial ----
+  // Markup mirrors the server-rendered .cs-frame structure above.
+  window.cimaiseRenderCard = function (album, index) {
+    var cover = album.cover_image || {};
+    var isNsfw = !!(album.is_nsfw && !window.isAdmin);
+    var isLocked = !!album.is_locked;
+    var shouldBlur = (isNsfw && !nsfwConfirmed()) || isLocked;
+    var showNsfwVeil = isNsfw && !nsfwConfirmed();
+    var previewSrc = withBase(cover.preview_path || '');
+    var blurSrc = withBase(cover.blur_path || '');
+    var src = shouldBlur ? blurSrc : previewSrc;
+    var alt = esc(cover.alt_text || album.title || '');
+    var title = esc(album.title || '');
+    var albumUrl = (window.basePath || '') + '/album/' + encodeURIComponent(album.slug || '');
+    var yearMatch = String(album.shoot_date || album.published_at || '').match(/^(\d{4})/);
+    var year = yearMatch ? yearMatch[1] : '';
+    var num = String(index + 1);
+    if (num.length < 2) num = '0' + num;
+    var isSelect = (album.images_count || 0) >= 20;
+
+    var photo = '';
+    if (src) {
+      photo = '<img src="' + esc(src) + '"'
+        + (shouldBlur && previewSrc ? ' data-nsfw-real-src="' + esc(previewSrc) + '"' : '')
+        + ' alt="' + alt + '"'
+        + ' title="' + title + '"'
+        + ' class="' + (shouldBlur ? 'nsfw-blur' : '') + '"'
+        + ' loading="lazy" decoding="async" data-fallback="hide">';
+    } else {
+      photo = '<div class="cs-photo-empty"><i class="fas fa-images"></i></div>';
+    }
+
+    var veil = '';
+    if (showNsfwVeil) {
+      veil = '<div class="nsfw-overlay cs-veil"><i class="fas fa-eye-slash"></i><span>' + esc(veilLabels.nsfw) + '</span></div>';
+    } else if (isLocked) {
+      veil = '<div class="nsfw-overlay cs-veil"><i class="fas fa-lock"></i><span>' + esc(veilLabels.lock) + '</span></div>';
+    }
+
+    var lockBadge = album.is_password_protected
+      ? '<span class="cs-lock" title="' + esc(veilLabels.lock) + '"><i class="fas fa-lock"></i></span>'
+      : '';
+
+    return '<article class="gallery-card cs-frame' + (isSelect ? ' cs-select' : '') + '"'
+      + ' style="--cs-i: ' + (index % 12) + '"'
+      + ' data-album-id="' + esc(album.id) + '"'
+      + ' data-nsfw="' + (isNsfw ? '1' : '0') + '"'
+      + ' data-password-protected="' + (album.is_password_protected ? '1' : '0') + '"'
+      + ' data-album-url="' + esc(albumUrl) + '"'
+      + ' data-action="open-album"'
+      + ' aria-label="' + title + '">'
+      + '<div class="cs-inner">'
+      + '<div class="cs-photo">' + photo + veil + lockBadge + '</div>'
+      + '<p class="cs-caption">'
+      + '<span class="cs-num">#' + num + '</span>'
+      + '<span class="cs-cap-title">' + title + '</span>'
+      + (year ? '<span class="cs-cap-year">' + year + '</span>' : '')
+      + '</p>'
+      + '</div>'
+      + '</article>';
+  };
+
+  // ---- Frame click opens the album (gates are enforced server-side) ----
+  document.addEventListener('click', function (event) {
+    var frame = event.target.closest ? event.target.closest('[data-action="open-album"]') : null;
+    if (!frame) return;
+    if (event.target.closest('a')) return;
+    event.preventDefault();
+    if (frame.dataset.albumUrl) window.location.href = frame.dataset.albumUrl;
+  });
+
+  // ---- Re-run the entrance after the filters partial re-renders -------
+  document.addEventListener('cimaise:galleries-updated', function () {
+    var grid = document.getElementById('galleries-grid');
+    if (!grid) return;
+    grid.classList.remove('cs-anim');
+    void grid.offsetWidth; // force reflow so the stagger restarts
+    grid.classList.add('cs-anim');
+    if (typeof window.applyNsfwConsentState === 'function') window.applyNsfwConsentState();
+  });
+})();
+</script>
+{% endblock %}

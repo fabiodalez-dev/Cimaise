@@ -86,7 +86,74 @@
             {# Fields end; main form continues below #}
           </div>
         </div>
-        
+
+        <!-- /galleries listing page template (admin-only, no frontend switcher) -->
+        <div class="card border-l-4 border-l-black">
+          <div class="p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-1 flex items-center">
+              <i class="fas fa-grip mr-3 text-gray-700"></i>
+              {{ trans('admin.pages.galleries.listing_template') }}
+            </h3>
+            <p class="text-sm text-gray-600 mb-4">{{ trans('admin.pages.galleries.listing_template_help') }}</p>
+            {% set listing_meta = {
+              'classic':         { icon: 'fa-table-cells',       color: '#1f2937' },
+              'editorial-index': { icon: 'fa-heading',           color: '#7c3aed' },
+              'mosaic':          { icon: 'fa-table-cells-large', color: '#e11d48' },
+              'filmstrip':       { icon: 'fa-film',              color: '#0891b2' },
+              'split-showcase':  { icon: 'fa-table-columns',     color: '#ea580c' },
+              'contact-sheet':   { icon: 'fa-border-all',        color: '#111827' },
+              'chronicle':       { icon: 'fa-timeline',          color: '#0d9488' },
+              'panorama':        { icon: 'fa-panorama',          color: '#4f46e5' },
+              'bento':           { icon: 'fa-shapes',            color: '#059669' },
+              'polaroid':        { icon: 'fa-image',             color: '#f59e0b' },
+              'index-minimal':   { icon: 'fa-list',              color: '#6b7280' }
+            } %}
+            {% set current_listing = settings['galleries.template']|default('classic') %}
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {% for slug in galleries_page_templates|default(listing_meta|keys) %}
+              {% set meta = listing_meta[slug]|default({ icon: 'fa-table-cells', color: '#1f2937' }) %}
+              {% set key_slug = slug|replace({'-': '_'}) %}
+              <label class="relative flex flex-col cursor-pointer rounded-lg border-2 p-4 transition-all {{ current_listing == slug ? 'border-gray-900' : 'border-gray-200 hover:border-gray-300' }}" data-listing-template="{{ slug }}">
+                <input type="radio" name="galleries_template" value="{{ slug }}" class="sr-only" {{ current_listing == slug ? 'checked' : '' }}>
+                <div class="flex items-center gap-3 mb-2">
+                  <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style="background-color: {{ meta.color }}">
+                    <i class="fas {{ meta.icon }} text-white text-sm"></i>
+                  </div>
+                  <div>
+                    <span class="font-semibold text-gray-900">{{ trans('admin.pages.galleries.tpl_' ~ key_slug) }}</span>
+                  </div>
+                </div>
+                <p class="text-xs text-gray-600">{{ trans('admin.pages.galleries.tpl_' ~ key_slug ~ '_desc') }}</p>
+                <div class="absolute top-2 right-2 listing-template-check {{ current_listing == slug ? '' : 'hidden' }}">
+                  <i class="fas fa-check-circle text-black"></i>
+                </div>
+              </label>
+              {% endfor %}
+            </div>
+            <script nonce="{{ csp_nonce() }}">
+            // Delegated + idempotent: survives the admin SPA navigation, which
+            // re-executes inline scripts long after DOMContentLoaded has fired.
+            (function () {
+                if (document.body.dataset.listingTplBound === '1') return;
+                document.body.dataset.listingTplBound = '1';
+                document.addEventListener('click', function (e) {
+                    const label = e.target.closest('[data-listing-template]');
+                    if (!label) return;
+                    document.querySelectorAll('[data-listing-template]').forEach(function (l) {
+                        const active = l === label;
+                        l.classList.toggle('border-gray-900', active);
+                        l.classList.toggle('border-gray-200', !active);
+                        const check = l.querySelector('.listing-template-check');
+                        if (check) check.classList.toggle('hidden', !active);
+                        const radio = l.querySelector('input[type="radio"]');
+                        if (radio) radio.checked = active;
+                    });
+                });
+            })();
+            </script>
+          </div>
+        </div>
+
         <!-- Filter Configuration -->
         <div class="card border-l-4 border-l-accent-500">
           <div class="p-6">

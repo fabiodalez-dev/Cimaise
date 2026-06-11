@@ -15,9 +15,42 @@ use Slim\Views\Twig;
 
 class GalleriesController extends BaseController
 {
+    /**
+     * Admin-selectable listing templates (setting `galleries.template`).
+     * Slug => twig file. 'classic' keeps the historical galleries.twig.
+     */
+    public const PAGE_TEMPLATES = [
+        'classic'         => 'frontend/galleries.twig',
+        'editorial-index' => 'frontend/galleries_editorial_index.twig',
+        'mosaic'          => 'frontend/galleries_mosaic.twig',
+        'filmstrip'       => 'frontend/galleries_filmstrip.twig',
+        'split-showcase'  => 'frontend/galleries_split_showcase.twig',
+        'contact-sheet'   => 'frontend/galleries_contact_sheet.twig',
+        'chronicle'       => 'frontend/galleries_chronicle.twig',
+        'panorama'        => 'frontend/galleries_panorama.twig',
+        'bento'           => 'frontend/galleries_bento.twig',
+        'polaroid'        => 'frontend/galleries_polaroid.twig',
+        'index-minimal'   => 'frontend/galleries_index_minimal.twig',
+    ];
+
     public function __construct(private Database $db, private Twig $view)
     {
         parent::__construct();
+    }
+
+    /**
+     * Resolve the active listing template (slug + twig file) from settings.
+     * Unknown values fall back to classic so a bad setting can never 500.
+     *
+     * @return array{0: string, 1: string} [slug, twigFile]
+     */
+    private function resolvePageTemplate(): array
+    {
+        $slug = (string) ((new SettingsService($this->db))->get('galleries.template', 'classic') ?? 'classic');
+        if (!isset(self::PAGE_TEMPLATES[$slug])) {
+            $slug = 'classic';
+        }
+        return [$slug, self::PAGE_TEMPLATES[$slug]];
     }
 
     public function index(Request $request, Response $response): Response
@@ -38,17 +71,22 @@ class GalleriesController extends BaseController
             !empty($filters['year']) || !empty($filters['search']) ||
             ($filters['sort'] ?? 'published_desc') !== 'published_desc';
 
+        // Admin-selected listing template; the cache key embeds the slug so a
+        // template switch can never serve a page cached for another template.
+        [$pageTemplateSlug, $pageTemplateFile] = $this->resolvePageTemplate();
+        $cacheKey = $pageTemplateSlug === 'classic' ? 'galleries' : 'galleries_' . $pageTemplateSlug;
+
         // Cache is only used for unfiltered public view
         $canUseCache = !$isAdmin && !$nsfwConsent && !$hasActiveFilters;
 
         // Try cache first for public unfiltered view
         if ($canUseCache) {
             $cacheService = $this->getPageCacheService();
-            $cached = $cacheService->get('galleries');
+            $cached = $cacheService->get($cacheKey);
 
             if ($cached !== null && isset($cached['data']) && is_array($cached['data'])) {
                 // Fresh cache hit - render with cached data + session-specific vars
-                return $this->view->render($response, 'frontend/galleries.twig', array_merge($cached['data'], [
+                return $this->view->render($response, $pageTemplateFile, array_merge($cached['data'], [
                     'nsfw_consent' => $nsfwConsent,
                     'is_admin' => $isAdmin,
                     'csrf' => $_SESSION['csrf'] ?? ''
@@ -56,10 +94,10 @@ class GalleriesController extends BaseController
             }
 
             // Lazy regeneration: try stale cache
-            $staleCached = $cacheService->get('galleries', allowStale: true);
+            $staleCached = $cacheService->get($cacheKey, allowStale: true);
             if ($staleCached !== null && isset($staleCached['data']) && is_array($staleCached['data'])) {
                 // Serve stale, schedule background regeneration could be done here
-                return $this->view->render($response, 'frontend/galleries.twig', array_merge($staleCached['data'], [
+                return $this->view->render($response, $pageTemplateFile, array_merge($staleCached['data'], [
                     'nsfw_consent' => $nsfwConsent,
                     'is_admin' => $isAdmin,
                     'csrf' => $_SESSION['csrf'] ?? ''
@@ -93,7 +131,7 @@ class GalleriesController extends BaseController
 
         // Save to cache for future public requests (unfiltered only)
         if ($canUseCache) {
-            $this->getPageCacheService()->setWithTags('galleries', [
+            $this->getPageCacheService()->setWithTags($cacheKey, [
                 'data' => $renderData,
             ], [CacheTags::GALLERIES, CacheTags::NAVIGATION]);
         }
@@ -103,7 +141,7 @@ class GalleriesController extends BaseController
         $renderData['is_admin'] = $isAdmin;
         $renderData['csrf'] = $_SESSION['csrf'] ?? '';
 
-        return $this->view->render($response, 'frontend/galleries.twig', $renderData);
+        return $this->view->render($response, $pageTemplateFile, $renderData);
     }
 
     /**

@@ -1,0 +1,534 @@
+{% extends 'frontend/_layout.twig' %}
+{% import 'frontend/_seo_macros.twig' as Seo %}
+
+{% block styles %}
+<style nonce="{{ csp_nonce() }}">
+  /* ============ Panorama galleries — one album per row, cinematic bands ============ */
+  .panorama-page { background: #fafaf9; }
+  html.dark .panorama-page { background: #0a0a0a; }
+
+  /* Rows: slow vertical rhythm, varied for breathing room */
+  .panorama-row { display: block; margin: 0 0 5.5rem; }
+  @media (min-width: 1024px) {
+    .panorama-row { margin-bottom: 7rem; }
+    .panorama-row:nth-child(3n) { margin-bottom: 9rem; }
+  }
+  .panorama-row:last-child { margin-bottom: 0; }
+
+  /* Media band: 16:9 mobile, 21:9 desktop, aspect reserved (no layout shift) */
+  .panorama-media {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+    background: #e9e9e6;
+  }
+  html.dark .panorama-media { background: #161616; }
+  @media (min-width: 768px) {
+    .panorama-media { aspect-ratio: 21 / 9; }
+  }
+  .panorama-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  /* Parallax headroom: only applied by JS when allowed (no touch, no reduced motion) */
+  .panorama-media.parallax-on .panorama-img:not(.nsfw-blur) {
+    height: 114%;
+    top: -7%;
+    will-change: transform;
+  }
+  .panorama-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #a8a8a4;
+  }
+  html.dark .panorama-placeholder { color: #525250; }
+
+  /* NSFW blur (kept local so it works even when the filter partial is not included) */
+  .panorama-media .nsfw-blur {
+    filter: blur(30px);
+    transform: scale(1.1);
+  }
+  .nsfw-confirmed .panorama-media .nsfw-blur { filter: none; transform: scale(1); }
+  .nsfw-confirmed .panorama-media .nsfw-overlay { display: none; }
+
+  /* Caption bar below the image: title left, meta right */
+  .panorama-caption {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #e5e5e1;
+    margin-top: 1.1rem;
+  }
+  html.dark .panorama-caption { border-top-color: #1f1f1e; }
+  @media (min-width: 768px) {
+    .panorama-caption {
+      flex-direction: row;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 2.5rem;
+    }
+  }
+  .panorama-num {
+    display: block;
+    font-size: 0.68rem;
+    letter-spacing: 0.26em;
+    color: #8c8c87;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 0.55rem;
+  }
+  html.dark .panorama-num { color: #6e6e69; }
+  .panorama-title {
+    font-size: clamp(1.65rem, 3.2vw, 2.15rem);
+    font-weight: 300;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    color: #1c1c1a;
+    transition: color 0.2s ease-out;
+  }
+  html.dark .panorama-title { color: #f2f2ef; }
+  .panorama-row:hover .panorama-title { color: #55554f; }
+  html.dark .panorama-row:hover .panorama-title { color: #c8c8c2; }
+  .panorama-excerpt {
+    margin-top: 0.55rem;
+    max-width: 54ch;
+    font-size: 0.9rem;
+    line-height: 1.65;
+    color: #6f6f6a;
+  }
+  html.dark .panorama-excerpt { color: #93938e; }
+  .panorama-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    font-size: 0.68rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #7c7c77;
+    flex-shrink: 0;
+    padding-bottom: 0.2rem;
+  }
+  html.dark .panorama-meta { color: #8d8d88; }
+  .panorama-meta-item + .panorama-meta-item::before {
+    content: '\00B7';
+    margin: 0 0.7em;
+    color: #b8b8b2;
+  }
+  html.dark .panorama-meta-item + .panorama-meta-item::before { color: #4b4b47; }
+  .panorama-view {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    margin-left: 1.6em;
+    color: #292927;
+    transition: transform 0.25s ease-out;
+  }
+  html.dark .panorama-view { color: #e6e6e2; }
+  .panorama-row:hover .panorama-view { transform: translateX(4px); }
+
+  /* Entrance: JS-only enhancement; content fully visible without JS.
+     Specificity beats the filter partial's `.gallery-card:not(.lazy-card)` and `.lazy-card` rules. */
+  html.js #galleries-grid .panorama-row.lazy-card {
+    opacity: 0;
+    transform: translateY(22px);
+    transition: opacity 0.45s ease-out, transform 0.45s ease-out;
+  }
+  html.js #galleries-grid .panorama-row.lazy-card.is-in {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Hero */
+  .panorama-kicker {
+    font-size: 0.7rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: #8c8c87;
+  }
+  html.dark .panorama-kicker { color: #757570; }
+
+  @media (prefers-reduced-motion: reduce) {
+    html.js #galleries-grid .panorama-row.lazy-card {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+    .panorama-row:hover .panorama-view { transform: none; }
+    .panorama-view, .panorama-title { transition: none; }
+    .panorama-media.parallax-on .panorama-img:not(.nsfw-blur) {
+      height: 100%;
+      top: 0;
+      transform: none !important;
+      will-change: auto;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+  {% include 'frontend/_breadcrumbs.twig' %}
+</div>
+
+<div class="panorama-page min-h-screen">
+  <!-- Hero: left-aligned, editorial -->
+  <header class="border-b border-gray-200 dark:border-neutral-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+      <p class="panorama-kicker">{{ trans('galleries.tpl.kicker', {}, 'Selected work') }}</p>
+      <h1 class="text-4xl md:text-5xl font-light text-black dark:text-white tracking-tight mt-4">
+        {{ page_texts.title|default(trans('galleries.title'))|e }}
+      </h1>
+      {% if page_texts.subtitle|default(trans('galleries.subtitle')) %}
+      <p class="text-xl text-gray-600 dark:text-gray-300 max-w-3xl leading-relaxed mt-6">
+        {{ page_texts.subtitle|default(trans('galleries.subtitle'))|e }}
+      </p>
+      {% endif %}
+      {% if page_texts.description|default('') %}
+      <p class="text-sm text-gray-500 dark:text-gray-400 max-w-2xl leading-relaxed mt-4">
+        {{ page_texts.description|e }}
+      </p>
+      {% endif %}
+    </div>
+  </header>
+
+  {% if filter_settings.enabled|default(false) %}{% include 'frontend/_galleries_filters.twig' %}{% endif %}
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20">
+    <div id="galleries-grid" class="panorama-list">
+      {% for album in albums %}
+      {% set seo_title = Seo.seo_title({'alt': album.cover_image.alt_text|default('')}, album, site_title)|trim %}
+      {% set is_eager = loop.index == 1 %}
+      {% set show_nsfw_overlay = not ((nsfw_consent|default(false)) or (is_admin|default(false))) %}
+      {% set is_locked = album.is_locked|default(false) %}
+      {% set should_blur_cover = (album.is_nsfw and not nsfw_consent|default(false) and not is_admin|default(false)) or is_locked %}
+      {% set album_year = album.shoot_date ? album.shoot_date|slice(0, 4) : (album.published_at ? album.published_at|slice(0, 4) : '') %}
+      <article class="panorama-row gallery-card group cursor-pointer{{ not is_eager ? ' lazy-card' : '' }}"
+               data-album-id="{{ album.id }}"
+               data-nsfw="{{ album.is_nsfw and not is_admin ? '1' : '0' }}"
+               data-password-protected="{{ album.is_password_protected ? '1' : '0' }}"
+               data-album-url="{{ base_path }}/album/{{ album.slug }}"
+               data-action="open-album"
+               aria-label="{{ seo_title|e('html_attr') }}">
+        <div class="panorama-media">
+          {% if album.cover_image and (should_blur_cover ? album.cover_image.blur_path|default(null) : album.cover_image.preview_path|default(null)) %}
+            {% set img_path = should_blur_cover ? album.cover_image.blur_path : album.cover_image.preview_path %}
+            <img src="{% if img_path starts with '/' %}{{ base_path }}{{ img_path }}{% else %}{{ img_path }}{% endif %}"
+                 alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
+                 title="{{ seo_title|e('html_attr') }}"
+                 class="panorama-img{{ should_blur_cover ? ' nsfw-blur' : '' }}"
+                 {% if is_eager %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+                 decoding="async">
+          {% else %}
+            <div class="panorama-placeholder">
+              <i class="fas {{ should_blur_cover ? 'fa-eye-slash' : 'fa-images' }} text-4xl"></i>
+            </div>
+          {% endif %}
+
+          {% if album.is_nsfw and show_nsfw_overlay %}
+          <div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">
+            <i class="fas fa-eye-slash text-3xl mb-2"></i>
+            <span class="text-sm font-medium">{{ trans('album.nsfw_warning_short') }}</span>
+          </div>
+          {% endif %}
+          {% if is_locked and not (album.is_nsfw and show_nsfw_overlay) %}
+          <div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">
+            <i class="fas fa-lock text-3xl mb-2"></i>
+            <span class="text-sm font-medium">{{ trans('album.password_protected') }}</span>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="panorama-caption">
+          <div class="panorama-heading">
+            <span class="panorama-num">{{ '%02d'|format(loop.index) }}</span>
+            <h2 class="panorama-title">{{ album.title|e }}</h2>
+            {% if album.excerpt %}
+            <p class="panorama-excerpt">{{ album.excerpt|e }}</p>
+            {% endif %}
+          </div>
+          <div class="panorama-meta">
+            {% if album.category_name %}<span class="panorama-meta-item">{{ album.category_name|e }}</span>{% endif %}
+            {% if album_year %}<span class="panorama-meta-item">{{ album_year|e }}</span>{% endif %}
+            {% if album.images_count > 0 %}<span class="panorama-meta-item">{{ album.images_count }} {{ trans('galleries.tpl.photos', {}, 'photos') }}</span>{% endif %}
+            {% if album.is_password_protected %}<span class="panorama-meta-item"><i class="fas fa-lock"></i></span>{% endif %}
+            <span class="panorama-view">{{ trans('general.view') }} <i class="fas fa-arrow-right text-xs"></i></span>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+
+      {% if albums|length == 0 %}
+      {% set has_active_filters = (active_filters.category|default([])|length > 0) or
+                                   (active_filters.tags|default([])|length > 0) or
+                                   (active_filters.cameras|default([])|length > 0) or
+                                   (active_filters.lenses|default([])|length > 0) or
+                                   (active_filters.films|default([])|length > 0) or
+                                   (active_filters.locations|default([])|length > 0) or
+                                   (active_filters.year|default('') != '') or
+                                   (active_filters.search|default('') != '') %}
+      <div class="text-center py-24" id="empty-state">
+        <div class="max-w-md mx-auto">
+          <i class="fas {{ has_active_filters ? 'fa-search' : 'fa-images' }} text-6xl text-gray-300 mb-6"></i>
+          <h3 class="text-2xl font-light text-gray-900 dark:text-white mb-4 tracking-tight">
+            {% if has_active_filters %}
+              {{ page_texts.no_results_title|default(trans('filter.no_galleries_title')) }}
+            {% else %}
+              {{ trans('galleries.empty_title', {}, 'No galleries yet') }}
+            {% endif %}
+          </h3>
+          <p class="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
+            {% if has_active_filters %}
+              {{ page_texts.no_results_text|default(trans('filter.no_galleries_text')) }}
+            {% else %}
+              {{ trans('galleries.empty_text', {}, 'There are no published galleries here at the moment.') }}
+            {% endif %}
+          </p>
+          {% if has_active_filters %}
+          <button data-action="clear-filters" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 transition-colors duration-200">
+            <i class="fas fa-times"></i>
+            {{ trans('filter.clear') }}
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+(function () {
+  'use strict';
+
+  var BASE = '{{ base_path }}';
+  var IS_ADMIN = {{ is_admin|default(false) ? 'true' : 'false' }};
+  var NSFW_CONSENT = {{ nsfw_consent|default(false) ? 'true' : 'false' }};
+  var SITE_TITLE = '{{ site_title|default('Portfolio')|e('js') }}';
+  var TXT = {
+    nsfw: '{{ trans('album.nsfw_warning_short')|e('js') }}',
+    locked: '{{ trans('album.password_protected')|e('js') }}',
+    photos: '{{ trans('galleries.tpl.photos', {}, 'photos')|e('js') }}',
+    view: '{{ page_texts.view_button_text|default(trans('general.view'))|e('js') }}'
+  };
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function nsfwConfirmed() {
+    if (NSFW_CONSENT) return true;
+    try {
+      return window.localStorage && window.localStorage.getItem('nsfw_confirmed') === 'true';
+    } catch (e) { return false; }
+  }
+
+  function pad2(n) {
+    n = String(n);
+    return n.length < 2 ? '0' + n : n;
+  }
+
+  /* ---- Client renderer (called by the shared filter partial at filter time).
+         Markup must mirror the server-rendered card above. ---- */
+  window.cimaiseRenderCard = function (album, index) {
+    var cover = album.cover_image || {};
+    var prev = cover.preview_path || '';
+    var blur = cover.blur_path || '';
+    var src = prev && prev.charAt(0) === '/' ? BASE + prev : prev;
+    var blurSrc = blur && blur.charAt(0) === '/' ? BASE + blur : blur;
+
+    var isNsfw = !!(album.is_nsfw && !IS_ADMIN);
+    var nsfwHidden = isNsfw && !nsfwConfirmed();
+    var isLocked = !!album.is_locked;
+    var shouldBlur = nsfwHidden || isLocked;
+    var imgSrc = shouldBlur ? blurSrc : src;
+
+    var alt = esc(cover.alt_text || album.title || '');
+    var url = BASE + '/album/' + encodeURIComponent(album.slug || '');
+    var seoTitle = esc([album.title || '', SITE_TITLE].filter(Boolean).join(' | '));
+    var isEager = index === 0;
+
+    var year = '';
+    var dm = String(album.shoot_date || album.published_at || '').match(/^(\d{4})/);
+    if (dm) year = dm[1];
+
+    var mediaInner = '';
+    if (imgSrc) {
+      mediaInner += '<img src="' + esc(imgSrc) + '" alt="' + alt + '" title="' + seoTitle + '"' +
+        ' class="panorama-img' + (shouldBlur ? ' nsfw-blur' : '') + '"' +
+        (isEager ? ' fetchpriority="high"' : ' loading="lazy"') +
+        ' decoding="async">';
+    } else {
+      mediaInner += '<div class="panorama-placeholder"><i class="fas ' + (shouldBlur ? 'fa-eye-slash' : 'fa-images') + ' text-4xl"></i></div>';
+    }
+    if (isNsfw && nsfwHidden) {
+      mediaInner += '<div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">' +
+        '<i class="fas fa-eye-slash text-3xl mb-2"></i>' +
+        '<span class="text-sm font-medium">' + esc(TXT.nsfw) + '</span></div>';
+    } else if (isLocked) {
+      mediaInner += '<div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">' +
+        '<i class="fas fa-lock text-3xl mb-2"></i>' +
+        '<span class="text-sm font-medium">' + esc(TXT.locked) + '</span></div>';
+    }
+
+    var metaItems = '';
+    if (album.category_name) metaItems += '<span class="panorama-meta-item">' + esc(album.category_name) + '</span>';
+    if (year) metaItems += '<span class="panorama-meta-item">' + esc(year) + '</span>';
+    if ((album.images_count || 0) > 0) metaItems += '<span class="panorama-meta-item">' + esc(album.images_count) + ' ' + esc(TXT.photos) + '</span>';
+    if (album.is_password_protected) metaItems += '<span class="panorama-meta-item"><i class="fas fa-lock"></i></span>';
+    metaItems += '<span class="panorama-view">' + esc(TXT.view) + ' <i class="fas fa-arrow-right text-xs"></i></span>';
+
+    return '<article class="panorama-row gallery-card group cursor-pointer' + (isEager ? '' : ' lazy-card') + '"' +
+      ' data-album-id="' + esc(album.id || '') + '"' +
+      ' data-nsfw="' + (isNsfw ? '1' : '0') + '"' +
+      ' data-password-protected="' + (album.is_password_protected ? '1' : '0') + '"' +
+      ' data-album-url="' + esc(url) + '"' +
+      ' data-action="open-album"' +
+      ' aria-label="' + seoTitle + '">' +
+      '<div class="panorama-media">' + mediaInner + '</div>' +
+      '<div class="panorama-caption">' +
+        '<div class="panorama-heading">' +
+          '<span class="panorama-num">' + pad2(index + 1) + '</span>' +
+          '<h2 class="panorama-title">' + esc(album.title || '') + '</h2>' +
+          (album.excerpt ? '<p class="panorama-excerpt">' + esc(album.excerpt) + '</p>' : '') +
+        '</div>' +
+        '<div class="panorama-meta">' + metaItems + '</div>' +
+      '</div>' +
+    '</article>';
+  };
+
+  /* ---- Entrance reveal + scroll parallax (transform/opacity only, JS-enhancement) ---- */
+  var reduceMotion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false, addEventListener: null };
+  var coarsePointer = window.matchMedia ? window.matchMedia('(pointer: coarse)') : { matches: true };
+  var hasIO = 'IntersectionObserver' in window;
+
+  var entranceIO = null;
+  var entranceCount = 0;
+
+  function revealRow(row) {
+    row.classList.add('is-in', 'card-revealed');
+  }
+
+  function setupEntrance() {
+    if (entranceIO) { entranceIO.disconnect(); entranceIO = null; }
+    var rows = document.querySelectorAll('#galleries-grid .panorama-row.lazy-card:not(.is-in)');
+    if (!rows.length) return;
+    if (reduceMotion.matches || !hasIO) {
+      rows.forEach(revealRow);
+      return;
+    }
+    entranceCount = 0;
+    entranceIO = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        var row = entry.target;
+        entranceIO.unobserve(row);
+        // Light stagger for rows revealed in the same batch
+        row.style.transitionDelay = Math.min((entranceCount++ % 3) * 70, 200) + 'ms';
+        revealRow(row);
+        window.setTimeout(function () { row.style.transitionDelay = ''; }, 700);
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
+    rows.forEach(function (row) { entranceIO.observe(row); });
+  }
+
+  /* Parallax: translateY between -6% and +6% on the cover while scrolling */
+  var pxIO = null;
+  var pxVisible = [];
+  var pxRaf = 0;
+  var pxBound = false;
+
+  function parallaxAllowed() {
+    return hasIO && !reduceMotion.matches && !coarsePointer.matches;
+  }
+
+  function pxUpdate() {
+    pxRaf = 0;
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    for (var i = 0; i < pxVisible.length; i++) {
+      var media = pxVisible[i];
+      var img = media.__pximg;
+      if (!img) continue;
+      var rect = media.getBoundingClientRect();
+      var progress = (rect.top + rect.height / 2 - vh / 2) / (vh / 2 + rect.height / 2);
+      if (progress > 1) progress = 1;
+      if (progress < -1) progress = -1;
+      img.style.transform = 'translate3d(0,' + (-progress * 6).toFixed(3) + '%,0)';
+    }
+  }
+
+  function pxSchedule() {
+    if (!pxRaf && pxVisible.length) pxRaf = window.requestAnimationFrame(pxUpdate);
+  }
+
+  function teardownParallax() {
+    if (pxIO) { pxIO.disconnect(); pxIO = null; }
+    pxVisible = [];
+    if (pxRaf) { window.cancelAnimationFrame(pxRaf); pxRaf = 0; }
+    document.querySelectorAll('#galleries-grid .panorama-media.parallax-on').forEach(function (media) {
+      media.classList.remove('parallax-on');
+      var img = media.querySelector('.panorama-img');
+      if (img) img.style.transform = '';
+    });
+  }
+
+  function setupParallax() {
+    teardownParallax();
+    if (!parallaxAllowed()) return;
+    var medias = document.querySelectorAll('#galleries-grid .panorama-media');
+    if (!medias.length) return;
+    pxIO = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        var media = entry.target;
+        var idx = pxVisible.indexOf(media);
+        if (entry.isIntersecting && idx === -1) {
+          pxVisible.push(media);
+        } else if (!entry.isIntersecting && idx !== -1) {
+          pxVisible.splice(idx, 1);
+        }
+      });
+      pxSchedule();
+    }, { rootMargin: '10% 0px 10% 0px' });
+    medias.forEach(function (media) {
+      var img = media.querySelector('.panorama-img:not(.nsfw-blur)');
+      if (!img) return;
+      media.classList.add('parallax-on');
+      media.__pximg = img;
+      pxIO.observe(media);
+    });
+    if (!pxBound) {
+      pxBound = true;
+      window.addEventListener('scroll', pxSchedule, { passive: true });
+      window.addEventListener('resize', pxSchedule, { passive: true });
+    }
+    pxSchedule();
+  }
+
+  function initPanorama() {
+    setupEntrance();
+    setupParallax();
+  }
+
+  // Re-run layout enhancements after the filter partial re-renders the grid
+  document.addEventListener('cimaise:galleries-updated', initPanorama);
+
+  if (reduceMotion.addEventListener) reduceMotion.addEventListener('change', initPanorama);
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPanorama);
+  } else {
+    initPanorama();
+  }
+})();
+</script>
+{% endblock %}

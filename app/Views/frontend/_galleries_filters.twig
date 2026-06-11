@@ -1,0 +1,1284 @@
+{#
+  _galleries_filters.twig — reusable filter bar partial for the /galleries page.
+
+  Usage:
+    {% include 'frontend/_galleries_filters.twig' %}
+
+  Public contract:
+    - Operates on the container with id="galleries-grid" (the host template must render it).
+    - Card rendering: if window.cimaiseRenderCard(album, index) is defined it is used to
+      produce each card's HTML string; otherwise the built-in classic-markup generator
+      (generateGalleryCard) is used as fallback.
+    - After every grid re-render (results and empty state) the partial dispatches:
+        document.dispatchEvent(new CustomEvent('cimaise:galleries-updated',
+          { detail: { albums: albums, total: total } }));
+    - Works with ambient Twig vars: filter_settings, page_texts, filter_options,
+      active_filters, csrf, base_path (plus albums/site_title/date_format/is_admin
+      already provided by the galleries controller). No new controller vars required.
+    - JS binding is idempotent (guarded by data-cimaise-filters-bound on <body>).
+#}
+
+{# Check if there are any actual filter options to show #}
+{% set has_filter_options =
+  (filter_settings.show_categories and filter_options.categories|length > 0) or
+  (filter_settings.show_tags and filter_options.tags|length > 0) or
+  (filter_settings.show_cameras and filter_options.cameras|length > 0) or
+  (filter_settings.show_lenses and filter_options.lenses|length > 0) or
+  (filter_settings.show_films and filter_options.films|length > 0) or
+  (filter_settings.show_locations and filter_options.locations|length > 0) or
+  (filter_settings.show_year and filter_options.years|length > 0)
+%}
+{% if filter_settings.enabled and has_filter_options %}
+<div id="filters-section" class="bg-white/95 dark:bg-neutral-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-neutral-700 sticky top-0 z-40 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <!-- Filter Toggle Button -->
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <button id="toggle-filters" class="flex items-center gap-3 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors duration-150" >
+          <i class="fas fa-filter"></i>
+          <span class="font-medium">{{ trans('filter.filters') }}</span>
+          <i class="fas fa-chevron-down transition-transform duration-300" id="filter-chevron"></i>
+        </button>
+
+        <div id="active-filters" class="flex items-center gap-2 opacity-0" >
+          <!-- Active filters will be populated here -->
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <div class="text-sm text-gray-600 font-medium" id="results-count">
+          {% if albums|default([])|length == 1 %}
+            {{ trans('filter.gallery_count') }}
+          {% else %}
+            {{ trans('filter.galleries_count', {count: albums|default([])|length}) }}
+          {% endif %}
+        </div>
+
+        <button id="clear-filters" class="text-sm text-gray-500 hover:text-red-600 transition-colors opacity-0 px-3 py-1 rounded hover:bg-gray-100" >
+          <i class="fas fa-times mr-1"></i>
+          {{ trans('filter.clear') }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Filters Grid with proper spacing -->
+    <div id="filters-grid" class="flex flex-wrap gap-3 opacity-0 max-h-0 overflow-hidden">
+
+      <!-- Categories Filter -->
+      {% if filter_settings.show_categories and filter_options.categories|length > 0 %}
+      <div class="filter-group">
+        <label class="block text-xs font-semibold text-gray-900 mb-2">
+          <i class="fas fa-folder-open mr-1 text-gray-600"></i>
+          {{ trans('filter.categories') }}
+        </label>
+        <div class="relative mb-3">
+          <label for="filter-categories-search" class="sr-only">{{ trans('filter.search') }}</label>
+          <input type="search"
+                 id="filter-categories-search"
+                 class="w-full px-3 py-2 pl-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-colors duration-150 text-sm"
+                 placeholder="{{ trans('filter.search') }}"
+                 autocomplete="off">
+          <i class="fas fa-search absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs"></i>
+        </div>
+        <div id="filter-categories" class="flex flex-wrap gap-2 max-h-40 overflow-auto pr-1">
+          {% for category in filter_options.categories %}
+          {% set is_active = category.id in active_filters.category|default([]) %}
+          <button type="button"
+                  class="filter-chip{{ is_active ? ' is-active' : '' }}"
+                  data-category-id="{{ category.id }}"
+                  data-category-name="{{ category.name|e('html_attr') }}"
+                  data-category-search="{{ category.name|lower|e('html_attr') }}"
+                  aria-pressed="{{ is_active ? 'true' : 'false' }}">
+            <span class="filter-chip-label">{{ category.name|e }}</span>
+            <span class="filter-chip-count">({{ category.albums_count }})</span>
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Tags Filter -->
+      {% if filter_settings.show_tags and filter_options.tags|length > 0 %}
+      <div class="filter-group hidden md:block">
+        <label for="filter-tags" class="block text-xs font-semibold text-gray-900 mb-2">
+          <i class="fas fa-tags mr-1 text-gray-600"></i>
+          {{ trans('filter.tags') }}
+        </label>
+        <select id="filter-tags" class="filter-select" multiple data-placeholder="{{ trans('filter.select_tags') }}">
+          {% for tag in filter_options.tags %}
+          <option value="{{ tag.id }}" {% if tag.id in active_filters.tags|default([]) %}selected{% endif %}>
+            {{ tag.name }} ({{ tag.albums_count }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      <!-- Cameras Filter -->
+      {% if filter_settings.show_cameras and filter_options.cameras|length > 0 %}
+      <div class="filter-group hidden md:block">
+        <label for="filter-cameras" class="block text-xs font-semibold text-gray-900 mb-2">
+          <i class="fas fa-camera mr-1 text-gray-600"></i>
+          {{ trans('album.camera') }}
+        </label>
+        <select id="filter-cameras" class="filter-select" multiple data-placeholder="{{ trans('filter.select_cameras') }}">
+          {% for camera in filter_options.cameras %}
+          <option value="{{ camera.id }}" {% if camera.id in active_filters.cameras|default([]) %}selected{% endif %}>
+            {{ camera.make }} {{ camera.model }} ({{ camera.albums_count }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      <!-- Lenses Filter -->
+      {% if filter_settings.show_lenses and filter_options.lenses|length > 0 %}
+      <div class="filter-group hidden md:block">
+        <label for="filter-lenses" class="block text-xs font-semibold text-gray-900 mb-2">
+          <i class="fas fa-eye mr-1 text-gray-600"></i>
+          {{ trans('album.lens') }}
+        </label>
+        <select id="filter-lenses" class="filter-select" multiple data-placeholder="{{ trans('filter.select_lenses') }}">
+          {% for lens in filter_options.lenses %}
+          <option value="{{ lens.id }}" {% if lens.id in active_filters.lenses|default([]) %}selected{% endif %}>
+            {{ lens.brand }} {{ lens.model }} ({{ lens.albums_count }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      <!-- Films Filter -->
+      {% if filter_settings.show_films and filter_options.films|length > 0 %}
+      <div class="filter-group hidden md:block">
+        <label for="filter-films" class="block text-xs font-semibold text-gray-900 mb-2">
+          <i class="fas fa-film mr-1 text-gray-600"></i>
+          {{ trans('filter.film') }}
+        </label>
+        <select id="filter-films" class="filter-select" multiple data-placeholder="{{ trans('filter.select_films') }}">
+          {% for film in filter_options.films %}
+          <option value="{{ film.id }}" {% if film.id in active_filters.films|default([]) %}selected{% endif %}>
+            {{ film.brand }} {{ film.name }} ({{ film.albums_count }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      <!-- Locations Filter -->
+      {% if filter_settings.show_locations and filter_options.locations|length > 0 %}
+      <div class="filter-group hidden md:block">
+        <label for="filter-locations" class="block text-xs font-semibold text-gray-900 mb-2">
+          <i class="fas fa-map-marker-alt mr-1 text-gray-600"></i>
+          {{ trans('filter.location') }}
+        </label>
+        <select id="filter-locations" class="filter-select" multiple data-placeholder="{{ trans('filter.select_locations') }}">
+          {% for location in filter_options.locations %}
+          <option value="{{ location.id }}" {% if location.id in active_filters.locations|default([]) %}selected{% endif %}>
+            {{ location.name }} ({{ location.albums_count }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      <!-- Year Filter -->
+      {% if filter_settings.show_year and filter_options.years|length > 0 %}
+      <div class="filter-group hidden md:block">
+        <label for="filter-year" class="block text-xs font-semibold text-gray-900 mb-2">
+          <i class="fas fa-calendar mr-1 text-gray-600"></i>
+          {{ trans('filter.year') }}
+        </label>
+        <select id="filter-year" class="filter-select" data-placeholder="{{ trans('filter.select_year') }}">
+          <option value="">{{ trans('filter.all') }}</option>
+          {% for year in filter_options.years %}
+          <option value="{{ year.year }}" {% if year.year == active_filters.year|default('') %}selected{% endif %}>
+            {{ year.year }} ({{ year.albums_count }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      <!-- Search Filter -->
+      <div class="filter-group">
+        <label for="filter-search" class="block text-xs font-semibold text-gray-900 mb-2">
+          <i class="fas fa-search mr-1 text-gray-600"></i>
+          {{ trans('filter.search') }}
+        </label>
+        <div class="relative">
+          <input type="text" id="filter-search" class="w-full px-3 py-2 pl-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-colors duration-150 text-sm" placeholder="{{ trans('search.placeholder') }}" value="{{ active_filters.search|default('') }}">
+          <i class="fas fa-search absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs"></i>
+        </div>
+      </div>
+
+      <!-- Sort Filter -->
+      <div class="filter-group">
+        <label for="filter-sort" class="block text-xs font-semibold text-gray-900 mb-2">
+          <i class="fas fa-sort mr-1 text-gray-600"></i>
+          {{ trans('filter.sort') }}
+        </label>
+        <select id="filter-sort" class="filter-select">
+          <option value="published_desc" {% if active_filters.sort == 'published_desc' %}selected{% endif %}>{{ trans('filter.sort_latest') }}</option>
+          <option value="published_asc" {% if active_filters.sort == 'published_asc' %}selected{% endif %}>{{ trans('filter.sort_oldest') }}</option>
+          <option value="title_asc" {% if active_filters.sort == 'title_asc' %}selected{% endif %}>{{ trans('filter.sort_title_asc') }}</option>
+          <option value="title_desc" {% if active_filters.sort == 'title_desc' %}selected{% endif %}>{{ trans('filter.sort_title_desc') }}</option>
+          <option value="shoot_date_desc" {% if active_filters.sort == 'shoot_date_desc' %}selected{% endif %}>{{ trans('filter.sort_date_new') }}</option>
+          <option value="shoot_date_asc" {% if active_filters.sort == 'shoot_date_asc' %}selected{% endif %}>{{ trans('filter.sort_date_old') }}</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Loading Overlay -->
+<div id="loading-overlay" class="fixed inset-0 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+  <div class="text-center">
+    <div class="animate-spin w-12 h-12 border-4 border-gray-200 border-t-black rounded-full mb-4"></div>
+    <p class="text-gray-600 dark:text-gray-300 font-medium">{{ trans('general.loading') }}</p>
+  </div>
+</div>
+
+<!-- Select2 for advanced dropdowns -->
+<link href="{{ base_path }}/assets/vendor/select2/select2.min.css" rel="stylesheet" />
+<script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/jquery/jquery.min.js"></script>
+<script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/select2/select2.min.js"></script>
+
+<script nonce="{{ csp_nonce() }}">
+// Galleries Filters Partial JavaScript (idempotent)
+(function() {
+    'use strict';
+
+    // Guard double-binding: set a data flag on <body> before binding
+    if (document.body && document.body.dataset.cimaiseFiltersBound === '1') {
+        return;
+    }
+    if (document.body) {
+        document.body.dataset.cimaiseFiltersBound = '1';
+    }
+
+    const resolveElements = function(target) {
+        if (!target) return [];
+        if (Array.isArray(target)) {
+            return target.flatMap(resolveElements);
+        }
+        if (typeof target === 'string') return Array.from(document.querySelectorAll(target));
+        if (typeof target.length === 'number') return Array.from(target);
+        return [target];
+    };
+
+    // GSAP safety wrapper - graceful degradation if GSAP fails to load
+    const safeGsap = {
+        to: function(target, vars) {
+            if (typeof gsap !== 'undefined') return gsap.to(target, vars);
+            // Fallback: apply end state immediately
+            const els = resolveElements(target);
+            els.forEach(el => {
+                if (!el || !el.style) return;
+                if (vars.opacity !== undefined) {
+                    el.style.opacity = vars.opacity;
+                }
+                if (vars.maxHeight !== undefined) {
+                    el.style.maxHeight = typeof vars.maxHeight === 'number' ? vars.maxHeight + 'px' : vars.maxHeight;
+                }
+                let transforms = [];
+                if (vars.rotation !== undefined) {
+                    transforms.push('rotate(' + vars.rotation + 'deg)');
+                }
+                if (vars.y !== undefined) {
+                    transforms.push('translateY(' + vars.y + 'px)');
+                }
+                if (transforms.length) {
+                    el.style.transform = transforms.join(' ');
+                }
+                if (vars.pointerEvents !== undefined) {
+                    el.style.pointerEvents = vars.pointerEvents;
+                }
+            });
+            if (vars.onComplete) setTimeout(vars.onComplete, 0);
+            return { kill: function() {} };
+        },
+        from: function(target, vars) {
+            if (typeof gsap !== 'undefined') return gsap.from(target, vars);
+            // Fallback: show immediately
+            const els = resolveElements(target);
+            els.forEach(el => {
+                if (!el || !el.style) return;
+                el.style.opacity = '1';
+                el.style.transform = 'none';
+                if (vars.pointerEvents !== undefined) el.style.pointerEvents = vars.pointerEvents;
+            });
+            if (vars.onComplete) setTimeout(vars.onComplete, 0);
+            return { kill: function() {} };
+        },
+        set: function(target, vars) {
+            if (typeof gsap !== 'undefined') return gsap.set(target, vars);
+            const els = resolveElements(target);
+            els.forEach(el => {
+                if (!el || !el.style) return;
+                if (vars.opacity !== undefined) {
+                    el.style.opacity = vars.opacity;
+                }
+                if (vars.clearProps === 'all') {
+                    el.style.cssText = '';
+                }
+            });
+        },
+        killTweensOf: function(target) {
+            if (typeof gsap !== 'undefined') return gsap.killTweensOf(target);
+        }
+    };
+
+    $(document).ready(function() {
+        // Global base path for API calls
+        window.basePath = '{{ base_path }}';
+
+        // Page texts from translations (page_texts overrides honored for the empty state)
+        window.pageTexts = {
+            resultsText: '{{ trans('nav.galleries')|e('js') }}',
+            clearFiltersText: '{{ trans('filter.clear')|e('js') }}',
+            noResultsTitle: '{{ page_texts.no_results_title|default(trans('filter.no_galleries_title'))|e('js') }}',
+            noResultsText: '{{ page_texts.no_results_text|default(trans('filter.no_galleries_text'))|e('js') }}',
+            viewButtonText: '{{ trans('album.view_gallery')|e('js') }}',
+            tagCount: '{{ trans('album.tag_count')|e('js') }}',
+            tagsCount: '{{ trans('album.tags_count', {count: '{count}'})|e('js') }}',
+            moreCount: '{{ trans('general.more_count', {count: '{count}'})|e('js') }}',
+            passwordProtected: '{{ trans('album.password_protected')|e('js') }}',
+            nsfwWarningShort: '{{ trans('album.nsfw_warning_short')|e('js') }}',
+            categoriesLabel: '{{ trans('filter.categories')|e('js') }}'
+        };
+        window.siteTitle = '{{ site_title|default('Portfolio')|e('js') }}';
+
+        // Date format from settings
+        window.dateFormat = '{{ date_format|default("Y-m-d")|e('js') }}';
+
+        // Admin status (skip NSFW restrictions for admins)
+        window.isAdmin = {{ is_admin|default(false) ? 'true' : 'false' }};
+
+        // Initialize filter functionality
+        initFilters();
+
+        // Initialize responsive grid (only when the grid opts in via data attributes)
+        initResponsiveGrid();
+    });
+
+    function initFilters() {
+        const debouncedApply = debounce(applyFilters, 60);
+        window.applyFiltersDebounced = debouncedApply;
+
+        // Initialize Select2 for multi-select filters (if available)
+        if ($.fn.select2) {
+            $('.filter-select[multiple]').select2({
+                theme: 'default',
+                placeholder: function() {
+                    return $(this).data('placeholder');
+                },
+                allowClear: false,
+                width: '100%'
+            });
+        }
+
+        // Filter toggle functionality
+        $('#toggle-filters').click(function() {
+            const filtersGrid = $('#filters-grid');
+            const chevron = $('#filter-chevron');
+            const isOpen = filtersGrid.hasClass('filters-open');
+
+            if (isOpen) {
+                // Close filters
+                safeGsap.to(filtersGrid, {
+                    opacity: 0,
+                    maxHeight: 0,
+                    duration: {{ filter_settings.animation_duration|default(300) }},
+                    ease: 'power2.inOut',
+                    onComplete: function() {
+                        filtersGrid.removeClass('filters-open');
+                    }
+                });
+                safeGsap.to(chevron, {
+                    rotation: 0,
+                    duration: {{ filter_settings.animation_duration|default(300) }},
+                    ease: 'power2.inOut'
+                });
+            } else {
+                // Open filters
+                filtersGrid.addClass('filters-open');
+                const targetHeight = filtersGrid[0]
+                    ? (filtersGrid[0].scrollHeight + 16)
+                    : Math.min(window.innerHeight * 0.6, 800);
+                safeGsap.to(filtersGrid, {
+                    opacity: 1,
+                    maxHeight: targetHeight,
+                    duration: {{ filter_settings.animation_duration|default(300) }},
+                    ease: 'power2.inOut'
+                });
+                safeGsap.to(chevron, {
+                    rotation: 180,
+                    duration: {{ filter_settings.animation_duration|default(300) }},
+                    ease: 'power2.inOut'
+                });
+
+                // Animate filter groups with safety check
+                setTimeout(() => {
+                    const filterGroups = document.querySelectorAll('.filter-group');
+                    if (filterGroups.length > 0) {
+                        safeGsap.from('.filter-group', {
+                            y: 15,
+                            opacity: 0,
+                            duration: {{ filter_settings.animation_duration|default(300) }},
+                            stagger: 0.05,
+                            ease: 'power2.out'
+                        });
+                    }
+                }, 100);
+            }
+        });
+
+        // Category chips
+        const categoryContainer = document.getElementById('filter-categories');
+        if (categoryContainer) {
+            categoryContainer.addEventListener('click', function(event) {
+                const chip = event.target.closest('.filter-chip');
+                if (!chip) return;
+                chip.classList.toggle('is-active');
+                chip.setAttribute('aria-pressed', chip.classList.contains('is-active') ? 'true' : 'false');
+                applyFilters();
+            });
+        }
+
+        // Category chips search
+        const categorySearch = document.getElementById('filter-categories-search');
+        if (categorySearch && categoryContainer) {
+            categorySearch.addEventListener('input', function() {
+                const q = this.value.trim().toLowerCase();
+                categoryContainer.querySelectorAll('.filter-chip').forEach((chip) => {
+                    const name = chip.dataset.categorySearch || '';
+                    const match = q === '' || name.indexOf(q) !== -1;
+                    chip.style.display = match ? '' : 'none';
+                });
+            });
+        }
+
+        // Filter change handlers
+        $('#filter-search').on('input', debouncedApply);
+        $('.filter-select, #filter-sort').on('change', applyFilters);
+
+        // Clear filters button
+        $('#clear-filters').click(clearAllFilters);
+    }
+
+    let activeFilterRequest = null;
+    let isUpdatingGalleries = false;
+
+    function getSelectedCategoryIds() {
+        const chips = document.querySelectorAll('#filter-categories .filter-chip.is-active');
+        return Array.from(chips).map(chip => chip.dataset.categoryId).filter(Boolean);
+    }
+
+    function getSelectedCategoryNames() {
+        const chips = document.querySelectorAll('#filter-categories .filter-chip.is-active');
+        return Array.from(chips).map(chip => chip.dataset.categoryName).filter(Boolean);
+    }
+
+    function applyFilters() {
+        // Collect filter values
+        const filters = {
+            category: getSelectedCategoryIds(),
+            tags: $('#filter-tags').val() || [],
+            cameras: $('#filter-cameras').val() || [],
+            lenses: $('#filter-lenses').val() || [],
+            films: $('#filter-films').val() || [],
+            locations: $('#filter-locations').val() || [],
+            year: $('#filter-year').val() || '',
+            search: $('#filter-search').val() || '',
+            sort: $('#filter-sort').val() || 'published_desc'
+        };
+
+        // Make AJAX request
+        if (activeFilterRequest && activeFilterRequest.readyState !== 4) {
+            activeFilterRequest.abort();
+        }
+
+        activeFilterRequest = $.ajax({
+            url: window.basePath + '/galleries/filter',
+            method: 'GET',
+            data: filters,
+            dataType: 'json',
+            cache: false,
+            success: function(response) {
+                updateGalleries(response.albums, false, response.total);
+                updateActiveFilters(filters);
+                updateResultsCount(response.total);
+                hideLoading();
+            },
+            error: function(xhr, status) {
+                hideLoading();
+                if (status !== 'abort') {
+                    console.error('Failed to apply filters', status);
+                }
+            }
+        });
+    }
+
+    window.applyFilters = applyFilters;
+
+    // Render one card: prefer the host template's renderer when available,
+    // fall back to the built-in classic markup generator.
+    function renderCardHtml(album, index) {
+        if (typeof window.cimaiseRenderCard === 'function') {
+            return window.cimaiseRenderCard(album, index);
+        }
+        return generateGalleryCard(album);
+    }
+
+    function renderCardsHtml(albums) {
+        let html = '';
+        albums.forEach(function(album, index) {
+            html += renderCardHtml(album, index);
+        });
+        return html;
+    }
+
+    // Notify host templates that the grid was re-rendered
+    function dispatchGalleriesUpdated(albums, total) {
+        document.dispatchEvent(new CustomEvent('cimaise:galleries-updated', {
+            detail: {
+                albums: albums,
+                total: (typeof total === 'number' ? total : (Array.isArray(albums) ? albums.length : 0))
+            }
+        }));
+    }
+
+    function emptyStateHtml() {
+        return `
+            <div class="col-span-full text-center py-24" id="empty-state">
+                <div class="max-w-md mx-auto">
+                    <i class="fas fa-search text-6xl text-gray-300 mb-6"></i>
+                    <h3 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">${window.pageTexts.noResultsTitle}</h3>
+                    <p class="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
+                        ${window.pageTexts.noResultsText}
+                    </p>
+                    <button data-action="clear-filters" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 transition-colors duration-200">
+                        <i class="fas fa-times"></i>
+                        ${window.pageTexts.clearFiltersText}
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    function updateGalleries(albums, animate = false, total = undefined) {
+        const grid = $('#galleries-grid');
+        if (!grid.length) {
+            isUpdatingGalleries = false;
+            hideLoading();
+            return;
+        }
+        if (!animate) {
+            if (albums.length === 0) {
+                grid.html(emptyStateHtml());
+            } else {
+                grid.html(renderCardsHtml(albums));
+            }
+            if (grid[0]) {
+                grid[0].classList.remove('gsap-grid-animating');
+            }
+            isUpdatingGalleries = false;
+            hideLoading();
+            dispatchGalleriesUpdated(albums, total);
+            return;
+        }
+        if (isUpdatingGalleries) {
+            safeGsap.killTweensOf('#galleries-grid .gallery-card');
+        }
+        isUpdatingGalleries = true;
+
+        // Add animation class
+        if (grid[0]) {
+            grid[0].classList.add('gsap-grid-animating');
+        }
+
+        // Animate out current galleries with specific selector
+        safeGsap.to('#galleries-grid .gallery-card', {
+            y: -20,
+            opacity: 0,
+            duration: {{ filter_settings.animation_duration|default(300) }},
+            stagger: 0.05,
+            ease: 'power3.in',
+            onComplete: function() {
+                // Update grid content
+                if (albums.length === 0) {
+                    grid.html(emptyStateHtml());
+                    if (grid[0]) {
+                        grid[0].classList.remove('gsap-grid-animating');
+                    }
+                    isUpdatingGalleries = false;
+                    dispatchGalleriesUpdated(albums, total);
+                } else {
+                    // Generate new gallery cards HTML
+                    grid.html(renderCardsHtml(albums));
+                    dispatchGalleriesUpdated(albums, total);
+
+                    // Animate in new galleries with specific selector
+                    safeGsap.from('#galleries-grid .gallery-card', {
+                        y: 40,
+                        opacity: 0,
+                        duration: {{ filter_settings.animation_duration|default(300) }},
+                        stagger: 0.1,
+                        ease: 'power3.out',
+                        onComplete: function() {
+                            if (grid[0]) {
+                                grid[0].classList.remove('gsap-grid-animating');
+                            }
+                            safeGsap.set('#galleries-grid .gallery-card', { clearProps: 'all' });
+                            isUpdatingGalleries = false;
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    // Date formatting helper based on settings
+    function formatDateByPattern(dateStr) {
+        if (!dateStr) return '';
+        // Parse date string directly to avoid timezone issues
+        // Expected format: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS
+        const match = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (!match) return dateStr;
+
+        const year = match[1];
+        const month = match[2];
+        const day = match[3];
+
+        // Support multiple date formats based on window.dateFormat setting
+        switch (window.dateFormat) {
+            case 'd-m-Y':  // European: 15-01-2025
+                return `${day}-${month}-${year}`;
+            case 'd/m/Y':  // European with slashes: 15/01/2025
+                return `${day}/${month}/${year}`;
+            case 'm/d/Y':  // US: 01/15/2025
+                return `${month}/${day}/${year}`;
+            case 'Y-m-d':  // ISO: 2025-01-15
+            default:
+                return `${year}-${month}-${day}`;
+        }
+    }
+
+    // Utility: HTML escape
+    function escapeHtml(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/\"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+    const esc = escapeHtml; // Alias for brevity
+
+    // NSFW consent check (delegates to the page implementation when present)
+    function hasConfirmedNsfw() {
+        if (typeof window.hasConfirmedNsfw === 'function' && window.hasConfirmedNsfw !== hasConfirmedNsfw) {
+            return window.hasConfirmedNsfw();
+        }
+        if (window.nsfwConsent === true) return true;
+        try {
+            if (window.localStorage && window.localStorage.getItem('nsfw_confirmed') === 'true') return true;
+        } catch (e) {}
+        return false;
+    }
+
+    // Built-in fallback card generator (classic /galleries markup).
+    // Used only when window.cimaiseRenderCard is undefined.
+    function generateGalleryCard(album) {
+        const coverImage = album.cover_image || {};
+        const tags = Array.isArray(album.tags) ? album.tags : [];
+        // Security: never use original_path (points to /storage/originals/ which is not web-accessible)
+        const imgPath = (coverImage.preview_path || '');
+        const blurPath = coverImage.blur_path || '';
+        const safeSrc = imgPath.startsWith('/') && window.basePath ? (window.basePath + imgPath) : imgPath;
+        const safeBlurSrc = blurPath.startsWith('/') && window.basePath ? (window.basePath + blurPath) : blurPath;
+        const title = escapeHtml(album.title);
+        const excerpt = escapeHtml(album.excerpt || '');
+        const category = escapeHtml(album.category_name || '');
+        const alt = escapeHtml(coverImage.alt_text || album.title || '');
+        const slug = encodeURIComponent(album.slug || '');
+        // Skip NSFW restrictions for admins
+        const isNsfw = !!(album.is_nsfw && !window.isAdmin);
+        const canShowNsfw = !isNsfw || hasConfirmedNsfw();
+        const isLocked = !!album.is_locked;
+        const isNsfwUnconfirmed = isNsfw && !canShowNsfw;
+        const shouldBlurCover = isNsfwUnconfirmed || isLocked;
+        const albumUrl = window.basePath + '/album/' + slug;
+        const seoTitle = [window.siteTitle || '', album.title || ''].filter(Boolean).join(' — ');
+
+        const wrapper = document.createElement('article');
+        wrapper.className = 'gallery-card group flex flex-col h-full cursor-pointer overflow-hidden rounded-2xl bg-white shadow-md hover:shadow-lg transition-shadow duration-300 ease-out';
+        wrapper.setAttribute('data-album-id', String(album.id||''));
+        wrapper.setAttribute('data-nsfw', isNsfw ? '1' : '0');
+        wrapper.setAttribute('data-password-protected', album.is_password_protected ? '1' : '0');
+        wrapper.setAttribute('data-album-url', albumUrl);
+        wrapper.setAttribute('data-action', 'open-album');
+        if (seoTitle) {
+            wrapper.setAttribute('aria-label', seoTitle);
+        }
+
+        const rel = document.createElement('div');
+        rel.className = 'relative aspect-[4/3] overflow-hidden bg-gray-100';
+        if (shouldBlurCover) {
+            if (safeBlurSrc) {
+                const img = document.createElement('img');
+                img.src = safeBlurSrc;
+                if (safeSrc) img.setAttribute('data-nsfw-real-src', safeSrc);
+                img.alt = alt;
+                if (seoTitle) img.title = seoTitle;
+                img.className = 'nsfw-blur w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]';
+                img.loading = 'lazy';
+                rel.appendChild(img);
+            } else {
+                const ph = document.createElement('div');
+                ph.className = 'w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center';
+                ph.innerHTML = '<i class="fas fa-eye-slash text-4xl text-gray-500"></i>';
+                rel.appendChild(ph);
+            }
+        } else if (safeSrc) {
+            const img = document.createElement('img');
+            img.src = safeSrc;
+            img.alt = alt;
+            if (seoTitle) img.title = seoTitle;
+            img.className = 'w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]';
+            img.loading = 'lazy';
+            rel.appendChild(img);
+        } else {
+            const ph = document.createElement('div');
+            ph.className = 'w-full h-full flex items-center justify-center text-gray-400';
+            ph.innerHTML = '<i class="fas fa-images text-4xl"></i>';
+            rel.appendChild(ph);
+        }
+        // NSFW Overlay
+        if (isNsfwUnconfirmed) {
+            const nsfwOverlay = document.createElement('div');
+            nsfwOverlay.className = 'nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10';
+            nsfwOverlay.innerHTML = '<i class="fas fa-eye-slash text-3xl mb-2"></i><span class="text-sm font-medium">' + esc(window.pageTexts.nsfwWarningShort || '18+') + '</span>';
+            rel.appendChild(nsfwOverlay);
+        }
+        if (isLocked && !isNsfwUnconfirmed) {
+            const lockOverlay = document.createElement('div');
+            lockOverlay.className = 'nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10';
+            lockOverlay.innerHTML = '<i class="fas fa-lock text-3xl mb-2"></i><span class="text-sm font-medium">' + esc(window.pageTexts.passwordProtected || 'Password Protected') + '</span>';
+            rel.appendChild(lockOverlay);
+        }
+        // Top right badges container (lock + count)
+        const badgesContainer = document.createElement('div');
+        badgesContainer.className = 'absolute top-4 right-4 flex items-center gap-2 z-20';
+
+        if (album.is_password_protected){
+            const lock = document.createElement('div');
+            lock.className = 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]';
+            lock.title = window.pageTexts.passwordProtected || 'Password Protected';
+            lock.innerHTML = '<i class="fas fa-lock text-lg"></i>';
+            badgesContainer.appendChild(lock);
+        }
+        if ((album.images_count||0) > 0){
+            const badge = document.createElement('div');
+            badge.className = 'bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm';
+            badge.innerHTML = '<i class="fas fa-images mr-1"></i>' + esc(album.images_count);
+            badgesContainer.appendChild(badge);
+        }
+        if (album.is_password_protected || (album.images_count||0) > 0) {
+            rel.appendChild(badgesContainer);
+        }
+        if (category){
+            const cat = document.createElement('div');
+            cat.className = 'absolute top-4 left-4 bg-white/90 text-black px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm';
+            cat.textContent = category;
+            rel.appendChild(cat);
+        }
+
+        const content = document.createElement('div');
+        content.className = 'p-6 flex flex-col flex-1';
+        const h3 = document.createElement('h3');
+        h3.className = 'text-xl font-semibold text-black mb-3 group-hover:text-gray-700 transition-colors duration-200 line-clamp-2';
+        h3.textContent = title; content.appendChild(h3);
+        if (excerpt){
+            const p = document.createElement('p');
+            p.className = 'text-gray-600 mb-4 line-clamp-3 leading-relaxed';
+            p.textContent = excerpt; content.appendChild(p);
+        }
+
+        if (tags.length){
+            const wrap = document.createElement('div'); wrap.className='flex flex-wrap gap-2 mt-4 mb-4 pt-4 border-t border-gray-100';
+            tags.slice(0,3).forEach(t=>{ const a=document.createElement('a'); a.href=window.basePath+'/tag/'+(t && t.slug ? t.slug : ''); a.className='inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full hover:bg-gray-200 transition-colors'; a.dataset.action='tag-link'; a.textContent = '#' + (t && t.name ? t.name : ''); wrap.appendChild(a); });
+            if (tags.length>3){ const more=document.createElement('span'); more.className='inline-block text-gray-400 text-xs px-2 py-1'; more.textContent = window.pageTexts.moreCount.replace('{count}', tags.length-3); wrap.appendChild(more); }
+            content.appendChild(wrap);
+        }
+
+        const meta = document.createElement('div');
+        meta.className = 'mt-auto flex items-center justify-between text-sm text-gray-500';
+        const left = document.createElement('div'); left.className = 'flex items-center gap-4';
+        if (album.shoot_date){
+            const span = document.createElement('span'); span.className='flex items-center gap-1';
+            span.innerHTML = '<i class="fas fa-calendar text-xs"></i>' + formatDateByPattern(album.shoot_date);
+            left.appendChild(span);
+        }
+        if (tags.length){
+            const span = document.createElement('span'); span.className='flex items-center gap-1';
+            const tagText = tags.length === 1 ? window.pageTexts.tagCount : window.pageTexts.tagsCount.replace('{count}', tags.length);
+            span.innerHTML = '<i class="fas fa-tag text-xs"></i>' + esc(tagText);
+            left.appendChild(span);
+        }
+        meta.appendChild(left);
+        const right = document.createElement('div'); right.className = 'flex items-center text-black group-hover:translate-x-1 transition-transform duration-200';
+        const viewTxt = document.createElement('span'); viewTxt.className='text-xs font-medium mr-1'; viewTxt.textContent = window.pageTexts.viewButtonText; right.appendChild(viewTxt);
+        const arrow = document.createElement('i'); arrow.className='fas fa-arrow-right text-xs'; right.appendChild(arrow);
+        meta.appendChild(right);
+        content.appendChild(meta);
+
+        wrapper.appendChild(rel); wrapper.appendChild(content);
+        const div = document.createElement('div');
+        div.appendChild(wrapper);
+        return div.innerHTML;
+    }
+
+    function updateActiveFilters(filters) {
+        const activeFiltersContainer = $('#active-filters');
+        const clearButton = $('#clear-filters');
+        let activeFiltersHtml = '';
+        let hasActiveFilters = false;
+
+        const categoryNames = getSelectedCategoryNames();
+        if (categoryNames.length > 0) {
+            hasActiveFilters = true;
+            const label = window.pageTexts.categoriesLabel || 'Categories';
+            activeFiltersHtml += `<span class="active-filter-badge">${escapeHtml(label)}: ${categoryNames.map(escapeHtml).join(', ')}</span>`;
+        }
+
+        // Check each filter type
+        Object.keys(filters).forEach(key => {
+            if (key === 'category') {
+                return;
+            }
+            if (filters[key] && filters[key].length > 0 && key !== 'sort') {
+                hasActiveFilters = true;
+                if (Array.isArray(filters[key])) {
+                    activeFiltersHtml += `<span class="active-filter-badge">${key}: ${filters[key].length}</span>`;
+                } else {
+                    activeFiltersHtml += `<span class="active-filter-badge">${key}: ${filters[key]}</span>`;
+                }
+            }
+        });
+
+        if (hasActiveFilters) {
+            activeFiltersContainer.html(activeFiltersHtml);
+            safeGsap.to(activeFiltersContainer, { opacity: 1, duration: 0.3 });
+            safeGsap.to(clearButton, { opacity: 1, duration: 0.3 });
+        } else {
+            safeGsap.to([activeFiltersContainer, clearButton], { opacity: 0, duration: 0.3 });
+        }
+    }
+
+    function updateResultsCount(count) {
+        $('#results-count').text(`${count} ${window.pageTexts.resultsText}`);
+    }
+
+    function clearAllFilters() {
+        // Reset all filter inputs
+        document.querySelectorAll('#filter-categories .filter-chip.is-active').forEach(chip => {
+            chip.classList.remove('is-active');
+            chip.setAttribute('aria-pressed', 'false');
+        });
+
+        // Reset category search input and show all chips
+        const categorySearch = document.getElementById('filter-categories-search');
+        if (categorySearch) {
+            categorySearch.value = '';
+            document.querySelectorAll('#filter-categories .filter-chip').forEach(chip => {
+                chip.style.display = '';
+            });
+        }
+
+        $('.filter-select').val(null).trigger('change');
+        $('#filter-search').val('');
+        $('#filter-sort').val('published_desc');
+
+        // Apply filters (which will be empty now)
+        applyFilters();
+    }
+
+    window.clearAllFilters = clearAllFilters;
+
+    function showLoading() {
+        safeGsap.to('#loading-overlay', {
+            opacity: 1,
+            pointerEvents: 'auto',
+            duration: 0.3
+        });
+    }
+
+    function hideLoading() {
+        safeGsap.to('#loading-overlay', {
+            opacity: 0,
+            pointerEvents: 'none',
+            duration: 0.3
+        });
+    }
+
+    function initResponsiveGrid() {
+        const grid = $('#galleries-grid');
+        if (!grid.length || grid.data('desktop-cols') === undefined) {
+            return;
+        }
+        const desktopCols = grid.data('desktop-cols');
+        const tabletCols = grid.data('tablet-cols');
+        const mobileCols = grid.data('mobile-cols');
+        const gap = grid.data('gap');
+
+        function updateGridColumns() {
+            const width = $(window).width();
+            let cols;
+
+            if (width >= 1024) {
+                cols = desktopCols;
+            } else if (width >= 768) {
+                cols = tabletCols;
+            } else {
+                cols = mobileCols;
+            }
+
+            const gapSize = gap === 'small' ? '1rem' : (gap === 'large' ? '2rem' : '1.5rem');
+
+            grid.css({
+                'grid-template-columns': `repeat(${cols}, 1fr)`,
+                'gap': gapSize
+            });
+        }
+
+        // Update on resize
+        $(window).resize(debounce(updateGridColumns, 250));
+        updateGridColumns();
+    }
+
+    // Delegated clear-filters action (used by the JS-rendered empty state)
+    document.addEventListener('click', function(event) {
+        const target = event.target.closest('[data-action="clear-filters"]');
+        if (!target) return;
+        event.preventDefault();
+        clearAllFilters();
+    });
+
+    // Utility function for debouncing
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+})();
+</script>
+
+<style nonce="{{ csp_nonce() }}">
+/* Custom Select2 styling - consistent border-radius */
+.select2-container--default .select2-selection--multiple {
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    padding: 0.25rem;
+    min-height: 2.25rem;
+    font-size: 0.8125rem;
+    background: #fff;
+}
+
+.select2-container--default .select2-selection--single {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    height: 2.25rem;
+    line-height: 1.25rem;
+    font-size: 0.8125rem;
+    background: #fff;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    flex: 1;
+    padding-left: 0.75rem;
+    padding-right: 2rem;
+    line-height: 1.25rem;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__clear {
+    align-self: center;
+    margin-right: 0.25rem;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    position: absolute;
+    right: 0.5rem;
+    top: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.select2-container--default.select2-container--focus .select2-selection--multiple,
+.select2-container--default.select2-container--focus .select2-selection--single {
+    border-color: #000;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    padding: 0.125rem 1.375rem;
+    margin: 0.125rem;
+    font-size: 0.75rem;
+}
+
+.select2-dropdown {
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    font-size: 0.8125rem;
+}
+
+/* Category filter chips - consistent rounded corners */
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.625rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    background-color: #fff;
+    color: #374151;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.filter-chip:hover {
+    border-color: #9ca3af;
+    background-color: #f9fafb;
+}
+
+.filter-chip.is-active {
+    background-color: #111827;
+    color: #fff;
+    border-color: #111827;
+}
+
+.filter-chip.is-active:hover {
+    background-color: #1f2937;
+}
+
+.filter-chip:focus-visible {
+    outline: 2px solid #111827;
+    outline-offset: 2px;
+}
+
+.filter-chip-count {
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.filter-chip.is-active .filter-chip-count {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+#filter-categories-search::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+/* Active filter badges */
+.active-filter-badge {
+    display: inline-block;
+    background-color: #000;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* Grid responsive classes */
+@media (min-width: 768px) {
+    #galleries-grid[data-tablet-cols="2"] {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    #galleries-grid[data-tablet-cols="3"] {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    #galleries-grid[data-desktop-cols="2"] {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    #galleries-grid[data-desktop-cols="3"] {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    #galleries-grid[data-desktop-cols="4"] {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    #galleries-grid[data-desktop-cols="5"] {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+
+/* Lazy card loading transition */
+.lazy-card {
+    transition: opacity 0.4s ease-out;
+}
+
+.lazy-card.card-revealed {
+    opacity: 1;
+}
+
+/* CSS Protection for Gallery Cards and UI elements - except lazy cards */
+#galleries-grid .gallery-card:not(.lazy-card) {
+    opacity: 1 !important;
+}
+/* Filter toggle button protection */
+#toggle-filters {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Better filter grid spacing - no padding when collapsed */
+#filters-grid {
+    padding: 0;
+    margin: 0;
+}
+
+#filters-grid.filters-open {
+    margin-top: 1rem;
+    padding-bottom: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+/* Filter groups - minimal styling */
+.filter-group {
+    flex: 0 1 auto;
+    min-width: 140px;
+}
+
+.filter-group label {
+    color: #374151;
+}
+
+/* Native select styling - consistent border-radius */
+.filter-select {
+    width: 100%;
+    padding: 0.5rem 2rem 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+    background: #fff url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") no-repeat right 0.5rem center;
+    background-size: 1.25rem;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: #111827;
+    box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.1);
+}
+
+/* Dark mode */
+.dark .filter-group label {
+    color: #d1d5db;
+}
+
+.dark .filter-select {
+    background-color: #262626;
+    border-color: #404040;
+    color: #d1d5db;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+}
+
+.dark .filter-chip {
+    background-color: #262626;
+    border-color: #404040;
+    color: #d1d5db;
+}
+
+.dark .filter-chip:hover {
+    border-color: #525252;
+    background-color: #333;
+}
+
+.dark .filter-chip.is-active {
+    background-color: #fff;
+    color: #111827;
+    border-color: #fff;
+}
+
+.dark .select2-container--default .select2-selection--multiple,
+.dark .select2-container--default .select2-selection--single {
+    background: #262626;
+    border-color: #404040;
+    color: #d1d5db;
+}
+
+.dark .select2-dropdown {
+    background: #262626;
+    border-color: #404040;
+}
+
+.dark .filter-group input[type="text"],
+.dark .filter-group input[type="search"] {
+    background: #262626;
+    border-color: #404040;
+    color: #d1d5db;
+}
+
+/* Improved filter bar styling */
+#filters-section {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.active-filter-badge {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* NSFW Content Styles - scale hides pixelation at edges */
+.nsfw-blur {
+    filter: blur(30px);
+    transform: scale(1.1);
+    transition: filter 0.3s ease, transform 0.3s ease;
+}
+
+.nsfw-confirmed .nsfw-blur {
+    filter: none;
+    transform: scale(1);
+}
+
+.nsfw-confirmed .nsfw-overlay {
+    display: none;
+}
+
+.nsfw-overlay {
+    transition: opacity 0.3s ease;
+}
+</style>
