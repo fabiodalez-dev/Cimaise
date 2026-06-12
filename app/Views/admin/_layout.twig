@@ -351,7 +351,7 @@
             <i class="fas fa-camera text-2xl text-black mr-3"></i>
             <h1 class="text-xl font-semibold text-black">{{ site_title|default('Cimaise') }}</h1>
           {% endif %}
-          <span class="ml-2 text-xs text-gray-400 font-normal">v{{ app_version|default('1.0.0') }}</span>
+          <span class="ml-3 hidden lg:inline self-center text-[11px] leading-none text-gray-400 font-normal border border-gray-200 rounded px-1.5 py-0.5" title="{{ trans('admin.version_label', {}, 'Application version') }}">v{{ app_version|default('1.0.0') }}</span>
         </div>
         
         <!-- User Administration Area -->

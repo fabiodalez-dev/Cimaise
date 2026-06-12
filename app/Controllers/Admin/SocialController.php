@@ -5,6 +5,7 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Services\SettingsService;
 use App\Support\Database;
+use App\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -158,10 +159,17 @@ class SocialController extends BaseController
      */
     private function getAvailableSocials(): array
     {
-        $stmt = $this->db->pdo()->query(
-            'SELECT slug, name, icon, color, share_url FROM social_networks WHERE is_active = 1 ORDER BY sort_order ASC'
-        );
-        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        // A missing social_networks table (partial install, restored pre-feature
+        // backup) must degrade to an empty list, not a 500.
+        try {
+            $stmt = $this->db->pdo()->query(
+                'SELECT slug, name, icon, color, share_url FROM social_networks WHERE is_active = 1 ORDER BY sort_order ASC'
+            );
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            Logger::warning('social_networks query failed: ' . $e->getMessage(), [], 'admin');
+            return [];
+        }
 
         $socials = [];
         foreach ($rows as $row) {
@@ -181,10 +189,15 @@ class SocialController extends BaseController
      */
     private function getProfileNetworks(): array
     {
-        $stmt = $this->db->pdo()->query(
-            'SELECT slug, name, icon, color FROM social_networks WHERE is_profile_network = 1 AND is_active = 1 ORDER BY sort_order ASC'
-        );
-        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        try {
+            $stmt = $this->db->pdo()->query(
+                'SELECT slug, name, icon, color FROM social_networks WHERE is_profile_network = 1 AND is_active = 1 ORDER BY sort_order ASC'
+            );
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            Logger::warning('social_networks query failed: ' . $e->getMessage(), [], 'admin');
+            return [];
+        }
 
         $networks = [];
         foreach ($rows as $row) {
