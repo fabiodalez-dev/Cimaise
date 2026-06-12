@@ -334,7 +334,10 @@ class PagesController extends BaseController
             'gallery.page_template' => (string)($svc->get('gallery.page_template', 'classic') ?? 'classic'),
             // Default gallery template id (DB-driven layout)
             'gallery.default_template_id' => $svc->get('gallery.default_template_id'),
+            // /galleries listing page template (admin-selectable, no frontend switcher)
+            'galleries.template' => (string)($svc->get('galleries.template', 'classic') ?? 'classic'),
         ];
+        $galleriesPageTemplates = array_keys(\App\Controllers\Frontend\GalleriesController::PAGE_TEMPLATES);
         // Load templates for dropdown (core + custom)
         $templates = [];
         try {
@@ -359,6 +362,7 @@ class PagesController extends BaseController
             'filter_settings' => $filterSettings,
             'templates' => $templates,
             'album_page_templates' => $albumPageTemplates,
+            'galleries_page_templates' => $galleriesPageTemplates,
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
@@ -403,6 +407,14 @@ class PagesController extends BaseController
         }
         if (!in_array($pageTemplate, $allowedTemplates, true)) { $pageTemplate = 'classic'; }
         $svc->set('gallery.page_template', $pageTemplate);
+
+        // /galleries listing template — whitelist is the single source of truth
+        // in GalleriesController::PAGE_TEMPLATES; invalid values become classic.
+        $listingTemplate = (string)($data['galleries_template'] ?? 'classic');
+        if (!isset(\App\Controllers\Frontend\GalleriesController::PAGE_TEMPLATES[$listingTemplate])) {
+            $listingTemplate = 'classic';
+        }
+        $svc->set('galleries.template', $listingTemplate);
 
         // Default gallery template selector moved to global Settings page.
         // Intentionally ignore any incoming default_template_id here to keep a single source of truth.

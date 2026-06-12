@@ -1,0 +1,616 @@
+{% extends 'frontend/_layout.twig' %}
+{% import 'frontend/_seo_macros.twig' as Seo %}
+
+{% block styles %}
+<style nonce="{{ csp_nonce() }}">
+  /* Chronicle page surfaces (tinted neutrals, never pure black/white) */
+  .chronicle-page { background: #fafafa; }
+  .dark .chronicle-page { background: #0b0b0c; }
+
+  .chronicle-hero { padding: 5rem 0 3.5rem; border-bottom: 1px solid #e7e7ea; }
+  .dark .chronicle-hero { border-bottom-color: #232327; }
+  .chronicle-kicker {
+    font-size: .7rem; letter-spacing: .22em; text-transform: uppercase;
+    color: #73737b; font-weight: 500;
+  }
+  .dark .chronicle-kicker { color: #8d8d96; }
+  .chronicle-hero-title {
+    font-size: clamp(2.4rem, 5vw, 3.6rem); line-height: 1.05; font-weight: 300;
+    letter-spacing: -.02em; color: #18181c; margin-top: .9rem;
+  }
+  .dark .chronicle-hero-title { color: #f4f4f6; }
+  .chronicle-hero-sub {
+    margin-top: 1.25rem; max-width: 58ch; font-size: 1.1rem; line-height: 1.7; color: #55555e;
+  }
+  .dark .chronicle-hero-sub { color: #a3a3ad; }
+
+  /* Year headings: huge ultra-light numerals, low contrast, sitting behind/above their albums */
+  .chronicle-year { position: relative; z-index: 0; margin-bottom: -1.4rem; pointer-events: none; }
+  .chronicle-year-numeral {
+    display: block; font-size: clamp(4.5rem, 11vw, 8.5rem); font-weight: 200;
+    line-height: .85; letter-spacing: -.045em; color: #e4e4e7; user-select: none;
+  }
+  .dark .chronicle-year-numeral { color: #232327; }
+
+  /* Editorial rows */
+  .chronicle-item { display: block; }
+  .chronicle-item + .chronicle-item { margin-top: 4.5rem; }
+  .chronicle-item.is-year-start { margin-top: 6.5rem; }
+  #galleries-grid > .chronicle-item.is-year-start:first-child { margin-top: 1.5rem; }
+  .chronicle-row {
+    position: relative; z-index: 1;
+    display: grid; gap: 1.5rem; align-items: center; cursor: pointer;
+  }
+  @media (min-width: 768px) {
+    .chronicle-row { grid-template-columns: 7fr 5fr; gap: 3.5rem; }
+    .chronicle-item.is-flipped .chronicle-row { grid-template-columns: 5fr 7fr; }
+    .chronicle-item.is-flipped .chronicle-cover { order: 2; }
+    .chronicle-item.is-flipped .chronicle-text { order: 1; }
+  }
+
+  .chronicle-cover { border-radius: .375rem; }
+  .chronicle-placeholder { color: #a1a1aa; }
+  .dark .chronicle-placeholder { color: #55555c; }
+  .chronicle-empty-icon { color: #d4d4d8; }
+  .dark .chronicle-empty-icon { color: #3a3a40; }
+  .chronicle-cover img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    transition: transform .35s cubic-bezier(.22,1,.36,1);
+  }
+  .chronicle-row:hover .chronicle-cover img,
+  .chronicle-row:focus-visible .chronicle-cover img { transform: scale(1.025); }
+
+  .chronicle-meta {
+    font-size: .68rem; letter-spacing: .18em; text-transform: uppercase;
+    color: #73737b; font-weight: 500;
+  }
+  .dark .chronicle-meta { color: #8d8d96; }
+  .chronicle-title {
+    margin-top: .85rem; font-size: clamp(1.5rem, 2.6vw, 1.95rem);
+    line-height: 1.2; font-weight: 300; letter-spacing: -.015em; color: #1c1c21;
+    transition: color .2s ease-out;
+  }
+  .dark .chronicle-title { color: #ededf0; }
+  .chronicle-row:hover .chronicle-title { color: #55555e; }
+  .dark .chronicle-row:hover .chronicle-title { color: #bdbdc6; }
+  .chronicle-excerpt { margin-top: .9rem; color: #5d5d66; line-height: 1.7; }
+  .dark .chronicle-excerpt { color: #9d9da6; }
+  .chronicle-date { margin-top: 1.1rem; font-size: .82rem; color: #8a8a93; }
+  .dark .chronicle-date { color: #77777f; }
+  .chronicle-view {
+    display: inline-flex; align-items: center; gap: .45rem; margin-top: 1.4rem;
+    font-size: .72rem; letter-spacing: .16em; text-transform: uppercase;
+    color: #1c1c21; font-weight: 500;
+  }
+  .dark .chronicle-view { color: #ededf0; }
+  .chronicle-view i { transition: transform .2s ease-out; }
+  .chronicle-row:hover .chronicle-view i { transform: translateX(4px); }
+
+  /* Entrance: enhancement only. Content is visible by default; the JS-added
+     .chron-animate class restarts the keyframe (animation-fill backwards). */
+  @media (prefers-reduced-motion: no-preference) {
+    #galleries-grid.chron-animate .chronicle-item {
+      animation: chronRise .4s cubic-bezier(.22,1,.36,1) backwards;
+    }
+    #galleries-grid.chron-animate .chronicle-item:nth-child(1) { animation-delay: .05s; }
+    #galleries-grid.chron-animate .chronicle-item:nth-child(2) { animation-delay: .13s; }
+    #galleries-grid.chron-animate .chronicle-item:nth-child(3) { animation-delay: .21s; }
+    #galleries-grid.chron-animate .chronicle-item:nth-child(4) { animation-delay: .29s; }
+    #galleries-grid.chron-animate .chronicle-item:nth-child(n+5) { animation-delay: .36s; }
+  }
+  @keyframes chronRise {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .chronicle-cover img, .chronicle-view i, .chronicle-title { transition: none; }
+    .chronicle-row:hover .chronicle-cover img { transform: none; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set undated_label = trans('galleries.tpl.undated', {}, 'Undated') %}
+{% set photos_label = trans('galleries.tpl.photos', {}, 'photographs') %}
+{% set view_label = page_texts.view_button_text|default(trans('album.view_gallery')) %}
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+  {% include 'frontend/_breadcrumbs.twig' %}
+</div>
+
+<div class="chronicle-page min-h-screen">
+  <!-- Hero -->
+  <header class="chronicle-hero">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <p class="chronicle-kicker">{{ trans('galleries.tpl.chronicle_kicker', {}, 'Chronicle') }}</p>
+      <h1 class="chronicle-hero-title">{{ page_texts.title|default(trans('galleries.title'))|e }}</h1>
+      {% if page_texts.subtitle|default(trans('galleries.subtitle')) %}
+      <p class="chronicle-hero-sub">{{ page_texts.subtitle|default(trans('galleries.subtitle'))|e }}</p>
+      {% endif %}
+    </div>
+  </header>
+
+  <!-- Shared filter bar -->
+  {% if filter_settings.enabled|default(false) %}{% include 'frontend/_galleries_filters.twig' %}{% endif %}
+
+  <!-- Chronicle list: one root element per album (filter partial contract) -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
+    <div id="galleries-grid" class="chronicle-list">
+      {# Dated albums keep controller order; undated albums go last under "Undated" #}
+      {% set dated_albums = [] %}
+      {% set undated_albums = [] %}
+      {% for album in albums %}
+        {% if album.shoot_date|default(album.published_at)|default('') %}
+          {% set dated_albums = dated_albums|merge([album]) %}
+        {% else %}
+          {% set undated_albums = undated_albums|merge([album]) %}
+        {% endif %}
+      {% endfor %}
+
+      {% set last_year = '' %}
+      {% set year_pos = 0 %}
+      {% for album in dated_albums|merge(undated_albums) %}
+        {% set album_date = album.shoot_date|default(album.published_at)|default('') %}
+        {% set year_label = album_date ? album_date|date('Y') : undated_label %}
+        {% set is_new_year = year_label != last_year %}
+        {% if is_new_year %}
+          {% set last_year = year_label %}
+          {% set year_pos = 0 %}
+        {% endif %}
+        {% set seo_title = Seo.seo_title({'alt': album.cover_image.alt_text|default('')}, album, site_title)|trim %}
+        {% set show_nsfw_overlay = not ((nsfw_consent|default(false)) or (is_admin|default(false))) %}
+        {% set is_locked = album.is_locked|default(false) %}
+        {% set should_blur_cover = (album.is_nsfw and show_nsfw_overlay) or is_locked %}
+        {% set is_eager = loop.index <= 2 %}
+
+        <article class="chronicle-item{{ year_pos is odd ? ' is-flipped' : '' }}{{ is_new_year ? ' is-year-start' : '' }}"
+                 data-chronicle-year="{{ year_label|e('html_attr') }}">
+          {% if is_new_year %}
+          <div class="chronicle-year" aria-hidden="true">
+            <span class="chronicle-year-numeral">{{ year_label|e }}</span>
+          </div>
+          <h2 class="sr-only">{{ year_label|e }}</h2>
+          {% endif %}
+
+          <div class="chronicle-row group"
+               role="link" tabindex="0"
+               data-album-id="{{ album.id }}"
+               data-nsfw="{{ album.is_nsfw and not is_admin|default(false) ? '1' : '0' }}"
+               data-password-protected="{{ album.is_password_protected ? '1' : '0' }}"
+               data-album-url="{{ base_path }}/album/{{ album.slug }}"
+               data-action="open-album"
+               aria-label="{{ seo_title|e('html_attr') }}">
+
+            <!-- Cover (3:2, ratio reserved) -->
+            <div class="chronicle-cover relative aspect-[3/2] overflow-hidden bg-neutral-100 dark:bg-neutral-800">
+              {% if album.cover_image %}
+                {% if should_blur_cover %}
+                  {% if album.cover_image.blur_path %}
+                  <img src="{% if album.cover_image.blur_path starts with '/' %}{{ base_path }}{{ album.cover_image.blur_path }}{% else %}{{ album.cover_image.blur_path }}{% endif %}"
+                       {% if album.cover_image.preview_path and not is_locked %}data-nsfw-real-src="{% if album.cover_image.preview_path starts with '/' %}{{ base_path }}{{ album.cover_image.preview_path }}{% else %}{{ album.cover_image.preview_path }}{% endif %}"{% endif %}
+                       alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
+                       title="{{ seo_title|e('html_attr') }}"
+                       class="nsfw-blur"
+                       {% if is_eager %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+                       decoding="async">
+                  {% else %}
+                  <div class="w-full h-full flex items-center justify-center chronicle-placeholder">
+                    <i class="fas fa-eye-slash text-4xl"></i>
+                  </div>
+                  {% endif %}
+                {% elseif album.cover_image.preview_path %}
+                  <img src="{% if album.cover_image.preview_path starts with '/' %}{{ base_path }}{{ album.cover_image.preview_path }}{% else %}{{ album.cover_image.preview_path }}{% endif %}"
+                       alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
+                       title="{{ seo_title|e('html_attr') }}"
+                       {% if is_eager %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+                       decoding="async">
+                {% else %}
+                  <div class="w-full h-full flex items-center justify-center chronicle-placeholder">
+                    <i class="fas fa-images text-4xl"></i>
+                  </div>
+                {% endif %}
+              {% else %}
+                <div class="w-full h-full flex items-center justify-center chronicle-placeholder">
+                  <i class="fas fa-images text-4xl"></i>
+                </div>
+              {% endif %}
+
+              {% if album.is_nsfw and show_nsfw_overlay %}
+              <div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">
+                <i class="fas fa-eye-slash text-3xl mb-2"></i>
+                <span class="text-sm font-medium">{{ trans('album.nsfw_warning_short') }}</span>
+              </div>
+              {% endif %}
+              {% if is_locked and not (album.is_nsfw and show_nsfw_overlay) %}
+              <div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">
+                <i class="fas fa-lock text-3xl mb-2"></i>
+                <span class="text-sm font-medium">{{ trans('album.password_protected') }}</span>
+              </div>
+              {% endif %}
+
+              {% if album.is_password_protected %}
+              <div class="absolute top-4 right-4 z-20 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" title="{{ trans('album.password_protected') }}">
+                <i class="fas fa-lock text-lg"></i>
+              </div>
+              {% endif %}
+            </div>
+
+            <!-- Text block -->
+            <div class="chronicle-text">
+              <p class="chronicle-meta">
+                {%- if album.category_name -%}{{ album.category_name|e }}{%- endif -%}
+                {%- if album.category_name and album.images_count > 0 %} &middot; {% endif -%}
+                {%- if album.images_count > 0 -%}{{ album.images_count }} {{ photos_label|e }}{%- endif -%}
+              </p>
+              <h3 class="chronicle-title">{{ album.title|e }}</h3>
+              {% if album.excerpt %}
+              <p class="chronicle-excerpt line-clamp-2">{{ album.excerpt|e }}</p>
+              {% endif %}
+              {% if album_date %}
+              <p class="chronicle-date">{{ album_date|date_format }}</p>
+              {% endif %}
+              <span class="chronicle-view">{{ view_label|e }} <i class="fas fa-arrow-right text-xs"></i></span>
+            </div>
+          </div>
+        </article>
+        {% set year_pos = year_pos + 1 %}
+      {% endfor %}
+
+      {% if albums|length == 0 %}
+      <div class="text-center py-24" id="empty-state">
+        <div class="max-w-md mx-auto">
+          <i class="fas fa-images text-6xl chronicle-empty-icon mb-6"></i>
+          <h3 class="text-2xl font-light text-neutral-900 dark:text-white mb-4">
+            {{ page_texts.no_results_title|default(trans('galleries.empty_title')|default('No galleries yet'))|e }}
+          </h3>
+          <p class="text-neutral-600 dark:text-neutral-400 leading-relaxed">
+            {{ page_texts.no_results_text|default(trans('galleries.empty_text')|default('There are no published galleries yet.'))|e }}
+          </p>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{# CollectionPage JSON-LD for SEO #}
+<script type="application/ld+json" nonce="{{ csp_nonce() }}">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": {{ page_texts.title|default(trans('galleries.title'))|json_encode|raw }},
+  "url": {{ (canonical_url|default(current_url))|json_encode|raw }},
+  "description": {{ meta_description|default('')|json_encode|raw }},
+  "numberOfItems": {{ albums|length }},
+  "hasPart": [
+    {% for album in albums|slice(0, 20) %}
+    {
+      "@type": "ImageGallery",
+      "name": {{ album.title|json_encode|raw }},
+      "url": {{ ((base_path ~ '/album/' ~ album.slug))|json_encode|raw }}
+      {% if album.images_count %},
+      "numberOfItems": {{ album.images_count }}
+      {% endif %}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+
+<!-- NSFW Age Confirmation Modal -->
+<div id="nsfw-modal" class="fixed inset-0 bg-black/70 z-50 hidden items-center justify-center p-4">
+  <div class="modal-content bg-white dark:bg-neutral-900 rounded-2xl max-w-md w-full p-8 text-center shadow-2xl">
+    <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+      <i class="fas fa-exclamation-triangle text-amber-600 text-3xl"></i>
+    </div>
+    <h3 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">{{ trans('album.nsfw_title') }}</h3>
+    <p class="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+      {{ trans('album.nsfw_message') }}
+    </p>
+    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+      <button data-action="confirm-nsfw" class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium">
+        {{ trans('album.nsfw_confirm') }}
+      </button>
+      <button data-action="cancel-nsfw" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium">
+        {{ trans('album.nsfw_cancel') }}
+      </button>
+    </div>
+    <p id="nsfw-error" class="text-sm text-red-600 mt-4 hidden">
+      {{ trans('album.nsfw_error')|default('Verification failed. Please try again.') }}
+    </p>
+    <p class="text-xs text-gray-400 mt-6">
+      {{ trans('album.nsfw_remember') }}
+    </p>
+  </div>
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+(function() {
+  'use strict';
+
+  var CHRON_BASE_PATH = window.basePath || '{{ base_path|e('js') }}';
+  var CHRON_CSRF = '{{ csrf|e('js') }}';
+  var CHRON_UNDATED = '{{ trans('galleries.tpl.undated', {}, 'Undated')|e('js') }}';
+  var CHRON_PHOTOS = '{{ trans('galleries.tpl.photos', {}, 'photographs')|e('js') }}';
+  var CHRON_VIEW = '{{ (page_texts.view_button_text|default(trans('album.view_gallery')))|e('js') }}';
+  var CHRON_NSFW_SHORT = '{{ trans('album.nsfw_warning_short')|e('js') }}';
+  var CHRON_LOCKED = '{{ trans('album.password_protected')|e('js') }}';
+  var CHRON_DATE_FORMAT = '{{ date_format|default('Y-m-d')|e('js') }}';
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function safeLsGet(key) {
+    try { return window.localStorage ? window.localStorage.getItem(key) : null; } catch (e) { return null; }
+  }
+  function safeLsSet(key, value) {
+    try { if (window.localStorage) window.localStorage.setItem(key, value); } catch (e) {}
+  }
+
+  // Exposed so the filter partial delegates NSFW consent checks to the page
+  window.hasConfirmedNsfw = function() {
+    if (window.nsfwConsent === true) return true;
+    return safeLsGet('nsfw_confirmed') === 'true';
+  };
+  window.nsfwConsent = {{ nsfw_consent|default(false) ? 'true' : 'false' }};
+
+  function prefixPath(p) {
+    p = p || '';
+    var base = window.basePath || CHRON_BASE_PATH;
+    return (p.indexOf('/') === 0 && base) ? base + p : p;
+  }
+
+  function formatChronDate(dateStr) {
+    if (!dateStr) return '';
+    var m = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return String(dateStr);
+    var fmt = window.dateFormat || CHRON_DATE_FORMAT;
+    switch (fmt) {
+      case 'd-m-Y': return m[3] + '-' + m[2] + '-' + m[1];
+      case 'd/m/Y': return m[3] + '/' + m[2] + '/' + m[1];
+      case 'm/d/Y': return m[2] + '/' + m[3] + '/' + m[1];
+      case 'Y-m-d':
+      default: return m[1] + '-' + m[2] + '-' + m[3];
+    }
+  }
+
+  function albumYear(album) {
+    var d = album.shoot_date || album.published_at || '';
+    var m = String(d).match(/^(\d{4})/);
+    return m ? m[1] : CHRON_UNDATED;
+  }
+
+  // --- Client-side card renderer (filter partial contract) ---------------
+  // Produces one root element per album, structurally identical to the
+  // server-rendered card above. Year headings regroup on year change.
+  var chronLastYear = null;
+  var chronYearPos = 0;
+
+  window.cimaiseRenderCard = function(album, index) {
+    if (index === 0) { chronLastYear = null; chronYearPos = 0; }
+
+    var year = albumYear(album);
+    var isNewYear = year !== chronLastYear;
+    if (isNewYear) { chronLastYear = year; chronYearPos = 0; }
+    var flipped = (chronYearPos % 2) === 1;
+    chronYearPos += 1;
+
+    var cover = album.cover_image || {};
+    var previewSrc = prefixPath(cover.preview_path || '');
+    var blurSrc = prefixPath(cover.blur_path || '');
+    var albumDate = album.shoot_date || album.published_at || '';
+    var isNsfw = !!(album.is_nsfw && !window.isAdmin);
+    var nsfwUnconfirmed = isNsfw && !window.hasConfirmedNsfw();
+    var isLocked = !!album.is_locked;
+    var shouldBlur = nsfwUnconfirmed || isLocked;
+    var albumUrl = (window.basePath || CHRON_BASE_PATH) + '/album/' + encodeURIComponent(album.slug || '');
+    var seoTitle = [album.title || '', window.siteTitle || ''].filter(Boolean).join(' - ');
+    var alt = esc(cover.alt_text || album.title || '');
+    var placeholderIcon = shouldBlur ? 'fa-eye-slash' : 'fa-images';
+
+    var coverInner;
+    if (shouldBlur && blurSrc) {
+      coverInner = '<img src="' + esc(blurSrc) + '"'
+        + (previewSrc && !isLocked ? ' data-nsfw-real-src="' + esc(previewSrc) + '"' : '')
+        + ' alt="' + alt + '" title="' + esc(seoTitle) + '" class="nsfw-blur" loading="lazy" decoding="async">';
+    } else if (!shouldBlur && previewSrc) {
+      coverInner = '<img src="' + esc(previewSrc) + '" alt="' + alt + '" title="' + esc(seoTitle) + '" loading="lazy" decoding="async">';
+    } else {
+      coverInner = '<div class="w-full h-full flex items-center justify-center chronicle-placeholder">'
+        + '<i class="fas ' + placeholderIcon + ' text-4xl"></i></div>';
+    }
+
+    var overlays = '';
+    if (nsfwUnconfirmed) {
+      overlays += '<div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">'
+        + '<i class="fas fa-eye-slash text-3xl mb-2"></i>'
+        + '<span class="text-sm font-medium">' + esc(CHRON_NSFW_SHORT) + '</span></div>';
+    }
+    if (isLocked && !nsfwUnconfirmed) {
+      overlays += '<div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">'
+        + '<i class="fas fa-lock text-3xl mb-2"></i>'
+        + '<span class="text-sm font-medium">' + esc(CHRON_LOCKED) + '</span></div>';
+    }
+    if (album.is_password_protected) {
+      overlays += '<div class="absolute top-4 right-4 z-20 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" title="' + esc(CHRON_LOCKED) + '">'
+        + '<i class="fas fa-lock text-lg"></i></div>';
+    }
+
+    var metaParts = [];
+    if (album.category_name) metaParts.push(esc(album.category_name));
+    if ((album.images_count || 0) > 0) metaParts.push(esc(album.images_count) + ' ' + esc(CHRON_PHOTOS));
+    var meta = metaParts.join(' &middot; ');
+
+    var yearHtml = '';
+    if (isNewYear) {
+      yearHtml = '<div class="chronicle-year" aria-hidden="true">'
+        + '<span class="chronicle-year-numeral">' + esc(year) + '</span></div>'
+        + '<h2 class="sr-only">' + esc(year) + '</h2>';
+    }
+
+    return '<article class="chronicle-item' + (flipped ? ' is-flipped' : '') + (isNewYear ? ' is-year-start' : '')
+      + '" data-chronicle-year="' + esc(year) + '">'
+      + yearHtml
+      + '<div class="chronicle-row group" role="link" tabindex="0"'
+      + ' data-album-id="' + esc(album.id) + '"'
+      + ' data-nsfw="' + (isNsfw ? '1' : '0') + '"'
+      + ' data-password-protected="' + (album.is_password_protected ? '1' : '0') + '"'
+      + ' data-album-url="' + esc(albumUrl) + '"'
+      + ' data-action="open-album"'
+      + ' aria-label="' + esc(seoTitle) + '">'
+      + '<div class="chronicle-cover relative aspect-[3/2] overflow-hidden bg-neutral-100 dark:bg-neutral-800">'
+      + coverInner + overlays
+      + '</div>'
+      + '<div class="chronicle-text">'
+      + '<p class="chronicle-meta">' + meta + '</p>'
+      + '<h3 class="chronicle-title">' + esc(album.title) + '</h3>'
+      + (album.excerpt ? '<p class="chronicle-excerpt line-clamp-2">' + esc(album.excerpt) + '</p>' : '')
+      + (albumDate ? '<p class="chronicle-date">' + esc(formatChronDate(albumDate)) + '</p>' : '')
+      + '<span class="chronicle-view">' + esc(CHRON_VIEW) + ' <i class="fas fa-arrow-right text-xs"></i></span>'
+      + '</div></div></article>';
+  };
+
+  // --- Entrance animation (enhancement only; content visible without JS) --
+  function runEntrance() {
+    var grid = document.getElementById('galleries-grid');
+    if (!grid) return;
+    grid.classList.remove('chron-animate');
+    void grid.offsetWidth; // restart keyframes
+    grid.classList.add('chron-animate');
+  }
+
+  document.addEventListener('cimaise:galleries-updated', function() {
+    runEntrance();
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', runEntrance);
+  } else {
+    runEntrance();
+  }
+
+  // --- NSFW consent: swap blurred covers when consent is granted ----------
+  window.applyNsfwConsentState = function() {
+    document.querySelectorAll('#galleries-grid img[data-nsfw-real-src]').forEach(function(img) {
+      img.src = img.getAttribute('data-nsfw-real-src');
+      img.removeAttribute('data-nsfw-real-src');
+      img.classList.remove('nsfw-blur');
+    });
+    document.querySelectorAll('#galleries-grid [data-nsfw="1"] .nsfw-overlay').forEach(function(el) {
+      el.remove();
+    });
+  };
+
+  // --- Card clicks + NSFW modal -------------------------------------------
+  var pendingNsfwUrl = null;
+
+  function showNsfwModal() {
+    var modal = document.getElementById('nsfw-modal');
+    var error = document.getElementById('nsfw-error');
+    if (!modal) return;
+    if (error) error.classList.add('hidden');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function hideNsfwModal() {
+    var modal = document.getElementById('nsfw-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.style.overflow = '';
+  }
+
+  function confirmNsfwAge() {
+    if (!CHRON_CSRF) {
+      var err = document.getElementById('nsfw-error');
+      if (err) err.classList.remove('hidden');
+      return;
+    }
+    fetch(CHRON_BASE_PATH + '/nsfw/confirm', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'csrf=' + encodeURIComponent(CHRON_CSRF) + '&nsfw_confirmed=1'
+    }).then(function(resp) {
+      if (!resp.ok) throw new Error('NSFW confirm failed');
+      safeLsSet('nsfw_confirmed', 'true');
+      window.nsfwConsent = true;
+      window.applyNsfwConsentState();
+      hideNsfwModal();
+      if (pendingNsfwUrl) {
+        window.location.href = pendingNsfwUrl;
+        pendingNsfwUrl = null;
+      } else if (typeof window.applyFilters === 'function') {
+        window.applyFilters();
+      }
+    }).catch(function() {
+      var err = document.getElementById('nsfw-error');
+      if (err) err.classList.remove('hidden');
+    });
+  }
+
+  function openAlbumFromCard(event, card) {
+    event.preventDefault();
+    event.stopPropagation();
+    var isNsfw = card.dataset.nsfw === '1';
+    var isPasswordProtected = card.dataset.passwordProtected === '1';
+    var albumUrl = card.dataset.albumUrl;
+    if (!albumUrl) return;
+    if (isNsfw && !isPasswordProtected && !window.hasConfirmedNsfw()) {
+      pendingNsfwUrl = albumUrl;
+      showNsfwModal();
+    } else {
+      window.location.href = albumUrl;
+    }
+  }
+
+  document.addEventListener('click', function(event) {
+    var target = event.target.closest('[data-action]');
+    if (!target) return;
+    var action = target.dataset.action;
+    if (action === 'open-album') {
+      openAlbumFromCard(event, target);
+    } else if (action === 'clear-filters') {
+      event.preventDefault();
+      if (typeof window.clearAllFilters === 'function') window.clearAllFilters();
+    } else if (action === 'confirm-nsfw') {
+      event.preventDefault();
+      confirmNsfwAge();
+    } else if (action === 'cancel-nsfw') {
+      event.preventDefault();
+      hideNsfwModal();
+      pendingNsfwUrl = null;
+    }
+  });
+
+  // Keyboard access for role="link" cards
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') { hideNsfwModal(); return; }
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    var card = event.target.closest ? event.target.closest('[data-action="open-album"]') : null;
+    if (card) openAlbumFromCard(event, card);
+  });
+
+  var nsfwModal = document.getElementById('nsfw-modal');
+  if (nsfwModal) {
+    nsfwModal.addEventListener('click', function(e) {
+      if (e.target === this) hideNsfwModal();
+    });
+  }
+
+  // On load: if consent already granted, unblur immediately
+  if (window.hasConfirmedNsfw()) {
+    safeLsSet('nsfw_confirmed', 'true');
+    window.applyNsfwConsentState();
+  }
+})();
+</script>
+{% endblock %}

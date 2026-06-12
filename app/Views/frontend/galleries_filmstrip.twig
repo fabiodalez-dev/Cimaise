@@ -1,0 +1,526 @@
+{% extends 'frontend/_layout.twig' %}
+
+{#
+  galleries_filmstrip.twig — /galleries listing, "filmstrip" layout.
+
+  Albums are grouped by category_name (order of first appearance preserved,
+  album order inside each group preserved; uncategorized albums fall under a
+  localized "Other" group). Each group renders a small uppercase label + count
+  and a horizontal scroll-snap strip of tall 2:3 covers with title + year below.
+  Desktop gets subtle prev/next arrows that scroll the strip by viewport width.
+
+  Filter contract (frontend/_galleries_filters.twig):
+  - window.cimaiseRenderCard(album, index) returns ONE flat .fs-card per album.
+  - On 'cimaise:galleries-updated' the flat cards are regrouped client-side
+    into the same section/strip structure as the server render.
+#}
+
+{% block styles %}
+<style nonce="{{ csp_nonce() }}">
+  /* Page surfaces (never pure black/white) */
+  .fs-page { background: #fafafa; }
+  .dark .fs-page { background: #0a0a0a; }
+
+  /* Hero */
+  .fs-hero { padding-top: 3.5rem; padding-bottom: 2.75rem; }
+  @media (min-width: 768px) { .fs-hero { padding-top: 5.5rem; padding-bottom: 4.5rem; } }
+  .fs-kicker { font-size: .7rem; letter-spacing: .24em; text-transform: uppercase; font-weight: 500; color: #8a8a8a; }
+  .dark .fs-kicker { color: #8f8f8f; }
+  .fs-title { margin-top: 1rem; font-weight: 300; letter-spacing: -.02em; line-height: 1.05; font-size: clamp(2.4rem, 5vw, 4rem); color: #141414; max-width: 48rem; }
+  .dark .fs-title { color: #f2f2f2; }
+  .fs-subtitle { margin-top: 1.25rem; font-size: 1.1rem; line-height: 1.7; color: #5c5c5c; max-width: 38rem; }
+  .dark .fs-subtitle { color: #a3a3a3; }
+
+  /* Main rhythm */
+  .fs-main { padding-top: 2.75rem; padding-bottom: 6rem; }
+  .fs-group + .fs-group { margin-top: 4.5rem; border-top: 1px solid #e7e7e5; padding-top: 2.75rem; }
+  .dark .fs-group + .fs-group { border-top-color: #1f1f1f; }
+
+  /* Group header */
+  .fs-group-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1.5rem; margin-bottom: 1.4rem; }
+  .fs-group-title { display: flex; align-items: baseline; gap: .8rem; min-width: 0; }
+  .fs-group-label { font-size: .78rem; letter-spacing: .2em; text-transform: uppercase; font-weight: 600; color: #1c1c1c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dark .fs-group-label { color: #ededed; }
+  .fs-group-count { font-size: .72rem; color: #9a9a9a; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .dark .fs-group-count { color: #6f6f6f; }
+
+  /* Prev/next arrows (desktop only, revealed by JS when the strip overflows) */
+  .fs-arrows { display: none; align-items: center; gap: .5rem; }
+  @media (min-width: 768px) { .fs-arrows { display: flex; } }
+  .fs-arrows[hidden] { display: none; }
+  .fs-arrow { display: inline-flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border-radius: 9999px; border: 1px solid #dcdcda; background: #fdfdfc; color: #474747; font-size: .68rem; cursor: pointer; transition: background-color .2s ease-out, color .2s ease-out, border-color .2s ease-out; }
+  .fs-arrow:hover { background: #161616; border-color: #161616; color: #f5f5f5; }
+  .fs-arrow:disabled { opacity: .35; cursor: default; }
+  .fs-arrow:disabled:hover { background: #fdfdfc; border-color: #dcdcda; color: #474747; }
+  .dark .fs-arrow { border-color: #2b2b2b; background: #141414; color: #b5b5b5; }
+  .dark .fs-arrow:hover { background: #ededed; border-color: #ededed; color: #141414; }
+  .dark .fs-arrow:disabled:hover { background: #141414; border-color: #2b2b2b; color: #b5b5b5; }
+
+  /* Strip: horizontal scroll, snap, hidden scrollbar */
+  .fs-strip { display: flex; gap: .9rem; overflow-x: auto; scroll-snap-type: x mandatory; padding: .25rem .25rem 1rem; margin: -.25rem -.25rem 0; scrollbar-width: none; -ms-overflow-style: none; -webkit-overflow-scrolling: touch; }
+  .fs-strip::-webkit-scrollbar { display: none; }
+  @media (min-width: 768px) { .fs-strip { gap: 1.25rem; } }
+
+  /* Card: fixed width + 2:3 cover reserves space (no layout shift) */
+  .fs-card { flex: 0 0 auto; width: 160px; scroll-snap-align: start; }
+  .fs-card:focus-visible { outline: 2px solid #161616; outline-offset: 3px; border-radius: .375rem; }
+  .dark .fs-card:focus-visible { outline-color: #ededed; }
+  @media (min-width: 768px) { .fs-card { width: 227px; } }
+  .fs-cover { position: relative; aspect-ratio: 2 / 3; overflow: hidden; border-radius: .375rem; background: #ececea; }
+  .dark .fs-cover { background: #161616; }
+  .fs-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .35s cubic-bezier(.16, 1, .3, 1); }
+  .fs-card:hover .fs-img { transform: scale(1.04); }
+  .fs-cover-fallback { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #b8b8b6; font-size: 1.8rem; }
+  .dark .fs-cover-fallback { color: #3d3d3d; }
+  .fs-lock { position: absolute; top: .6rem; right: .6rem; z-index: 20; color: #fdfdfc; font-size: .8rem; filter: drop-shadow(0 2px 4px rgba(10, 10, 10, .5)); }
+
+  /* Card meta */
+  .fs-meta { padding: .7rem .15rem 0; }
+  .fs-card-title { font-size: .9rem; font-weight: 500; line-height: 1.35; color: #1c1c1c; transition: color .2s ease-out; }
+  .dark .fs-card-title { color: #e8e8e8; }
+  .fs-card:hover .fs-card-title { color: #6b6b6b; }
+  .dark .fs-card:hover .fs-card-title { color: #a3a3a3; }
+  .fs-card-sub { margin-top: .3rem; display: flex; align-items: center; gap: .4rem; font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; color: #9a9a9a; font-variant-numeric: tabular-nums; }
+  .dark .fs-card-sub { color: #6f6f6f; }
+  .fs-card-sub .fas { font-size: .6rem; }
+
+  /* Entrance: CSS-only (no-js safe), opacity/transform only, staggered */
+  @media (prefers-reduced-motion: no-preference) {
+    .fs-strip .fs-card { animation: fs-rise .4s ease-out both; }
+    .fs-strip .fs-card:nth-child(1) { animation-delay: .04s; }
+    .fs-strip .fs-card:nth-child(2) { animation-delay: .08s; }
+    .fs-strip .fs-card:nth-child(3) { animation-delay: .12s; }
+    .fs-strip .fs-card:nth-child(4) { animation-delay: .16s; }
+    .fs-strip .fs-card:nth-child(5) { animation-delay: .2s; }
+    .fs-strip .fs-card:nth-child(6) { animation-delay: .24s; }
+    .fs-strip .fs-card:nth-child(7) { animation-delay: .28s; }
+    .fs-strip .fs-card:nth-child(8) { animation-delay: .32s; }
+  }
+  @keyframes fs-rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fs-img, .fs-arrow, .fs-card-title { transition: none; }
+    .fs-card:hover .fs-img { transform: none; }
+    .fs-strip .fs-card { animation: none; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+  {% include 'frontend/_breadcrumbs.twig' %}
+</div>
+
+<div class="fs-page">
+  <!-- Hero -->
+  <header class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 fs-hero">
+    <p class="fs-kicker">{{ trans('galleries.tpl.kicker', {}, 'Album index') }}</p>
+    <h1 class="fs-title">{{ page_texts.title|default(trans('galleries.title'))|e }}</h1>
+    {% if page_texts.subtitle|default('') %}
+    <p class="fs-subtitle">{{ page_texts.subtitle|e }}</p>
+    {% endif %}
+  </header>
+
+  <!-- Shared filter bar -->
+  {% if filter_settings.enabled|default(false) %}{% include 'frontend/_galleries_filters.twig' %}{% endif %}
+
+  <!-- Grouped filmstrips -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 fs-main">
+    {% set other_label = trans('galleries.tpl.other', {}, 'Other') %}
+    <div id="galleries-grid" class="fs-groups">
+      {% if albums|length > 0 %}
+        {# Group keys in order of first appearance #}
+        {% set group_keys = [] %}
+        {% for album in albums %}
+          {% set group_key = album.category_name|default('') != '' ? album.category_name : other_label %}
+          {% if group_key not in group_keys %}{% set group_keys = group_keys|merge([group_key]) %}{% endif %}
+        {% endfor %}
+
+        {% for group_key in group_keys %}
+          {% set group_is_first = loop.first %}
+          {% set group_albums = [] %}
+          {% for album in albums %}
+            {% set album_key = album.category_name|default('') != '' ? album.category_name : other_label %}
+            {% if album_key == group_key %}{% set group_albums = group_albums|merge([album]) %}{% endif %}
+          {% endfor %}
+
+          <section class="fs-group">
+            <header class="fs-group-head">
+              <div class="fs-group-title">
+                <h2 class="fs-group-label">{{ group_key|e }}</h2>
+                <span class="fs-group-count">{{ group_albums|length }} {{ group_albums|length == 1 ? trans('galleries.tpl.album_word', {}, 'album') : trans('galleries.tpl.albums_word', {}, 'albums') }}</span>
+              </div>
+              <div class="fs-arrows" hidden>
+                <button type="button" class="fs-arrow" data-fs-scroll="prev" aria-label="{{ trans('galleries.tpl.scroll_back', {}, 'Scroll back')|e('html_attr') }}">
+                  <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="fs-arrow" data-fs-scroll="next" aria-label="{{ trans('galleries.tpl.scroll_forward', {}, 'Scroll forward')|e('html_attr') }}">
+                  <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                </button>
+              </div>
+            </header>
+
+            <div class="fs-strip">
+              {% for album in group_albums %}
+              {% set is_eager = group_is_first and loop.index <= 4 %}
+              {% set show_nsfw_overlay = not ((nsfw_consent|default(false)) or (is_admin|default(false))) %}
+              {% set is_locked = album.is_locked|default(false) %}
+              {# NSFW albums use blur cover until user accepts gate (admins always see clear) #}
+              {% set should_blur_cover = (album.is_nsfw and not nsfw_consent|default(false) and not is_admin|default(false)) or is_locked %}
+              {% set year_source = album.shoot_date|default(album.published_at)|default('') %}
+              {% set album_year = year_source ? year_source|slice(0, 4) : '' %}
+              <article class="gallery-card fs-card group cursor-pointer"
+                       data-album-id="{{ album.id }}"
+                       data-group="{{ group_key|e('html_attr') }}"
+                       data-nsfw="{{ album.is_nsfw and not is_admin ? '1' : '0' }}"
+                       data-password-protected="{{ album.is_password_protected ? '1' : '0' }}"
+                       data-album-url="{{ base_path }}/album/{{ album.slug }}"
+                       data-action="open-album"
+                       role="link"
+                       tabindex="0"
+                       aria-label="{{ album.title|e('html_attr') }}">
+                <div class="fs-cover">
+                  {% if album.cover_image %}
+                    {% if should_blur_cover %}
+                      {% set blur_path = album.cover_image.blur_path|default(null) %}
+                      {% if blur_path %}
+                      <img src="{% if blur_path starts with '/' %}{{ base_path }}{{ blur_path }}{% else %}{{ blur_path }}{% endif %}"
+                           alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
+                           class="nsfw-blur fs-img"
+                           {% if not is_eager %}loading="lazy"{% endif %}
+                           decoding="async"
+                           data-fallback="hide">
+                      {% else %}
+                      <div class="fs-cover-fallback"><i class="fas fa-eye-slash" aria-hidden="true"></i></div>
+                      {% endif %}
+                    {% elseif album.cover_image.preview_path %}
+                      {% set cover_path = album.cover_image.preview_path %}
+                      <img src="{% if cover_path starts with '/' %}{{ base_path }}{{ cover_path }}{% else %}{{ cover_path }}{% endif %}"
+                           alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
+                           class="fs-img"
+                           {% if not is_eager %}loading="lazy"{% endif %}
+                           decoding="async"
+                           data-fallback="hide">
+                    {% else %}
+                      <div class="fs-cover-fallback"><i class="fas fa-images" aria-hidden="true"></i></div>
+                    {% endif %}
+                  {% else %}
+                    <div class="fs-cover-fallback"><i class="fas fa-images" aria-hidden="true"></i></div>
+                  {% endif %}
+
+                  <!-- NSFW Overlay (skip for admins) - pointer-events-none to allow clicks through -->
+                  {% if album.is_nsfw and show_nsfw_overlay %}
+                  <div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">
+                    <i class="fas fa-eye-slash text-3xl mb-2"></i>
+                    <span class="text-sm font-medium">{{ trans('album.nsfw_warning_short') }}</span>
+                  </div>
+                  {% endif %}
+                  {% if is_locked and not (album.is_nsfw and show_nsfw_overlay) %}
+                  <div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">
+                    <i class="fas fa-lock text-3xl mb-2"></i>
+                    <span class="text-sm font-medium">{{ trans('album.password_protected') }}</span>
+                  </div>
+                  {% endif %}
+
+                  {% if album.is_password_protected %}
+                  <div class="fs-lock" title="{{ trans('album.password_protected')|e('html_attr') }}">
+                    <i class="fas fa-lock" aria-hidden="true"></i>
+                  </div>
+                  {% endif %}
+                </div>
+
+                <div class="fs-meta">
+                  <h3 class="fs-card-title line-clamp-2">{{ album.title|e }}</h3>
+                  {% if album_year or album.images_count|default(0) > 0 %}
+                  <p class="fs-card-sub">
+                    {% if album_year %}<span>{{ album_year }}</span>{% endif %}
+                    {% if album.images_count|default(0) > 0 %}{% if album_year %}<span class="fs-dot" aria-hidden="true">&middot;</span>{% endif %}<span><i class="fas fa-images" aria-hidden="true"></i> {{ album.images_count }}</span>{% endif %}
+                  </p>
+                  {% endif %}
+                </div>
+              </article>
+              {% endfor %}
+            </div>
+          </section>
+        {% endfor %}
+      {% else %}
+        {# Server-side empty state (the filter partial owns the filtered-empty state) #}
+        {% set has_active_filters = (active_filters.category|default([])|length > 0) or
+                                     (active_filters.tags|default([])|length > 0) or
+                                     (active_filters.cameras|default([])|length > 0) or
+                                     (active_filters.lenses|default([])|length > 0) or
+                                     (active_filters.films|default([])|length > 0) or
+                                     (active_filters.locations|default([])|length > 0) or
+                                     (active_filters.year|default('') != '') or
+                                     (active_filters.search|default('') != '') %}
+        <div class="col-span-full text-center py-24" id="empty-state">
+          <div class="max-w-md mx-auto">
+            <i class="fas {{ has_active_filters ? 'fa-search' : 'fa-images' }} text-6xl text-gray-300 mb-6"></i>
+            <h3 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+              {% if has_active_filters %}
+                {{ page_texts.no_results_title|default(trans('filter.no_galleries_title'))|e }}
+              {% else %}
+                {{ trans('galleries.tpl.empty_title', {}, 'No albums yet')|e }}
+              {% endif %}
+            </h3>
+            <p class="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
+              {% if has_active_filters %}
+                {{ page_texts.no_results_text|default(trans('filter.no_galleries_text'))|e }}
+              {% else %}
+                {{ trans('galleries.tpl.empty_text', {}, 'Published albums will appear here soon.')|e }}
+              {% endif %}
+            </p>
+            {% if has_active_filters %}
+            <button data-action="clear-filters" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 transition-colors duration-200">
+              <i class="fas fa-times"></i>
+              {{ trans('filter.clear') }}
+            </button>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">
+(function () {
+    'use strict';
+
+    var FS = {
+        basePath: '{{ base_path }}',
+        isAdmin: {{ is_admin|default(false) ? 'true' : 'false' }},
+        texts: {
+            other: '{{ trans('galleries.tpl.other', {}, 'Other')|e('js') }}',
+            albumWord: '{{ trans('galleries.tpl.album_word', {}, 'album')|e('js') }}',
+            albumsWord: '{{ trans('galleries.tpl.albums_word', {}, 'albums')|e('js') }}',
+            scrollBack: '{{ trans('galleries.tpl.scroll_back', {}, 'Scroll back')|e('js') }}',
+            scrollForward: '{{ trans('galleries.tpl.scroll_forward', {}, 'Scroll forward')|e('js') }}',
+            nsfwWarning: '{{ trans('album.nsfw_warning_short')|e('js') }}',
+            passwordProtected: '{{ trans('album.password_protected')|e('js') }}'
+        }
+    };
+
+    var reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+    function esc(value) {
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function debounce(fn, wait) {
+        var t;
+        return function () {
+            clearTimeout(t);
+            t = setTimeout(fn, wait);
+        };
+    }
+
+    function hasNsfwConsent() {
+        if (window.nsfwConsent === true) return true;
+        try {
+            if (window.localStorage && window.localStorage.getItem('nsfw_confirmed') === 'true') return true;
+        } catch (err) {}
+        return false;
+    }
+
+    // --- Card renderer used by the filter partial (parity with server markup) ---
+    window.cimaiseRenderCard = function (album, index) {
+        var cover = album.cover_image || {};
+        var previewPath = cover.preview_path || '';
+        var blurPath = cover.blur_path || '';
+        var src = previewPath && previewPath.charAt(0) === '/' ? FS.basePath + previewPath : previewPath;
+        var blurSrc = blurPath && blurPath.charAt(0) === '/' ? FS.basePath + blurPath : blurPath;
+        var isNsfw = !!(album.is_nsfw && !FS.isAdmin);
+        var nsfwHidden = isNsfw && !hasNsfwConsent();
+        var isLocked = !!album.is_locked;
+        var shouldBlur = nsfwHidden || isLocked;
+        var alt = esc(cover.alt_text || album.title || '');
+        var groupName = album.category_name ? String(album.category_name) : FS.texts.other;
+        var url = FS.basePath + '/album/' + encodeURIComponent(album.slug || '');
+        var year = String(album.shoot_date || album.published_at || '').slice(0, 4);
+        if (!/^\d{4}$/.test(year)) year = '';
+
+        var coverInner;
+        if (shouldBlur) {
+            coverInner = blurSrc
+                ? '<img src="' + esc(blurSrc) + '" alt="' + alt + '" class="nsfw-blur fs-img" loading="lazy" decoding="async" data-fallback="hide">'
+                : '<div class="fs-cover-fallback"><i class="fas fa-eye-slash" aria-hidden="true"></i></div>';
+        } else if (src) {
+            coverInner = '<img src="' + esc(src) + '" alt="' + alt + '" class="fs-img" loading="lazy" decoding="async" data-fallback="hide">';
+        } else {
+            coverInner = '<div class="fs-cover-fallback"><i class="fas fa-images" aria-hidden="true"></i></div>';
+        }
+
+        var overlays = '';
+        if (nsfwHidden) {
+            overlays += '<div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">' +
+                '<i class="fas fa-eye-slash text-3xl mb-2"></i>' +
+                '<span class="text-sm font-medium">' + esc(FS.texts.nsfwWarning) + '</span></div>';
+        } else if (isLocked) {
+            overlays += '<div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">' +
+                '<i class="fas fa-lock text-3xl mb-2"></i>' +
+                '<span class="text-sm font-medium">' + esc(FS.texts.passwordProtected) + '</span></div>';
+        }
+        if (album.is_password_protected) {
+            overlays += '<div class="fs-lock" title="' + esc(FS.texts.passwordProtected) + '"><i class="fas fa-lock" aria-hidden="true"></i></div>';
+        }
+
+        var sub = '';
+        if (year) sub += '<span>' + year + '</span>';
+        if ((album.images_count || 0) > 0) {
+            sub += (year ? '<span class="fs-dot" aria-hidden="true">&middot;</span>' : '') +
+                '<span><i class="fas fa-images" aria-hidden="true"></i> ' + esc(album.images_count) + '</span>';
+        }
+
+        return '<article class="gallery-card fs-card group cursor-pointer"' +
+            ' data-album-id="' + esc(album.id) + '"' +
+            ' data-group="' + esc(groupName) + '"' +
+            ' data-nsfw="' + (isNsfw ? '1' : '0') + '"' +
+            ' data-password-protected="' + (album.is_password_protected ? '1' : '0') + '"' +
+            ' data-album-url="' + esc(url) + '"' +
+            ' data-action="open-album"' +
+            ' role="link"' +
+            ' tabindex="0"' +
+            ' aria-label="' + esc(album.title || '') + '">' +
+            '<div class="fs-cover">' + coverInner + overlays + '</div>' +
+            '<div class="fs-meta">' +
+            '<h3 class="fs-card-title line-clamp-2">' + esc(album.title || '') + '</h3>' +
+            (sub ? '<p class="fs-card-sub">' + sub + '</p>' : '') +
+            '</div></article>';
+    };
+
+    // --- Client-side regrouping (same structure as the server render) ---
+    function buildGroupSection(label, cards) {
+        var section = document.createElement('section');
+        section.className = 'fs-group';
+
+        var head = document.createElement('header');
+        head.className = 'fs-group-head';
+
+        var titleWrap = document.createElement('div');
+        titleWrap.className = 'fs-group-title';
+        var h2 = document.createElement('h2');
+        h2.className = 'fs-group-label';
+        h2.textContent = label;
+        var count = document.createElement('span');
+        count.className = 'fs-group-count';
+        count.textContent = cards.length + ' ' + (cards.length === 1 ? FS.texts.albumWord : FS.texts.albumsWord);
+        titleWrap.appendChild(h2);
+        titleWrap.appendChild(count);
+
+        var arrows = document.createElement('div');
+        arrows.className = 'fs-arrows';
+        arrows.hidden = true;
+        arrows.innerHTML =
+            '<button type="button" class="fs-arrow" data-fs-scroll="prev" aria-label="' + esc(FS.texts.scrollBack) + '"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>' +
+            '<button type="button" class="fs-arrow" data-fs-scroll="next" aria-label="' + esc(FS.texts.scrollForward) + '"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>';
+
+        head.appendChild(titleWrap);
+        head.appendChild(arrows);
+
+        var strip = document.createElement('div');
+        strip.className = 'fs-strip';
+        cards.forEach(function (card) { strip.appendChild(card); });
+
+        section.appendChild(head);
+        section.appendChild(strip);
+        return section;
+    }
+
+    function regroupGrid() {
+        var grid = document.getElementById('galleries-grid');
+        if (!grid || grid.querySelector('#empty-state')) return;
+        var cards = Array.prototype.slice.call(grid.querySelectorAll('.fs-card'));
+        if (!cards.length) return;
+
+        var order = [];
+        var groups = new Map();
+        cards.forEach(function (card) {
+            var key = card.getAttribute('data-group') || FS.texts.other;
+            if (!groups.has(key)) {
+                groups.set(key, []);
+                order.push(key);
+            }
+            groups.get(key).push(card);
+        });
+
+        var frag = document.createDocumentFragment();
+        order.forEach(function (key) {
+            frag.appendChild(buildGroupSection(key, groups.get(key)));
+        });
+        grid.innerHTML = '';
+        grid.appendChild(frag);
+        syncAllStrips();
+    }
+
+    // --- Arrow visibility / enabled state ---
+    function syncStrip(strip) {
+        var group = strip.closest('.fs-group');
+        if (!group) return;
+        var arrows = group.querySelector('.fs-arrows');
+        if (!arrows) return;
+        var overflows = strip.scrollWidth > strip.clientWidth + 4;
+        arrows.hidden = !overflows;
+        if (!overflows) return;
+        var prev = arrows.querySelector('[data-fs-scroll="prev"]');
+        var next = arrows.querySelector('[data-fs-scroll="next"]');
+        if (prev) prev.disabled = strip.scrollLeft <= 4;
+        if (next) next.disabled = strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 4;
+    }
+
+    function syncAllStrips() {
+        var strips = document.querySelectorAll('#galleries-grid .fs-strip');
+        Array.prototype.forEach.call(strips, syncStrip);
+    }
+
+    // Arrow clicks (delegated, survives regrouping)
+    document.addEventListener('click', function (e) {
+        var btn = e.target && e.target.closest ? e.target.closest('[data-fs-scroll]') : null;
+        if (!btn) return;
+        var group = btn.closest('.fs-group');
+        var strip = group ? group.querySelector('.fs-strip') : null;
+        if (!strip) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var dir = btn.getAttribute('data-fs-scroll') === 'prev' ? -1 : 1;
+        var delta = dir * Math.max(1, Math.round(strip.clientWidth * 0.9));
+        try {
+            strip.scrollBy({ left: delta, behavior: reducedMotion ? 'auto' : 'smooth' });
+        } catch (err) {
+            strip.scrollLeft += delta;
+        }
+    });
+
+    // Keep arrow states in sync while strips scroll (capture: scroll does not bubble)
+    document.addEventListener('scroll', function (e) {
+        if (e.target && e.target.classList && e.target.classList.contains('fs-strip')) {
+            syncStrip(e.target);
+        }
+    }, true);
+
+    window.addEventListener('resize', debounce(syncAllStrips, 150));
+
+    // Regroup the flat cards produced by the filter partial after every re-render
+    document.addEventListener('cimaise:galleries-updated', function () {
+        regroupGrid();
+    });
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', syncAllStrips);
+    } else {
+        syncAllStrips();
+    }
+})();
+</script>
+{# Shared open-album navigation + NSFW age gate (include ONCE per page) #}
+{% include 'frontend/_galleries_album_nav.twig' %}
+{% endblock %}

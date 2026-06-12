@@ -1,0 +1,740 @@
+{% extends 'frontend/_layout.twig' %}
+{% import 'frontend/_seo_macros.twig' as Seo %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+  {% include 'frontend/_breadcrumbs.twig' %}
+</div>
+
+<div class="mosaic-page min-h-screen">
+
+  <!-- Hero -->
+  <header class="mosaic-hero">
+    <p class="mosaic-kicker">{{ trans('galleries.tpl.mosaic_kicker', {}, 'Index') }}</p>
+    <div class="mosaic-hero-row">
+      <h1 class="mosaic-title">{{ page_texts.title|default(trans('galleries.title'))|e }}</h1>
+      <p class="mosaic-count">
+        {% if albums|length == 1 %}
+          {{ trans('filter.gallery_count') }}
+        {% else %}
+          {{ trans('filter.galleries_count', {count: albums|length}) }}
+        {% endif %}
+      </p>
+    </div>
+    {% if page_texts.subtitle|default(trans('galleries.subtitle')) %}
+    <p class="mosaic-subtitle">{{ page_texts.subtitle|default(trans('galleries.subtitle'))|e }}</p>
+    {% endif %}
+  </header>
+
+  <!-- Shared filter bar -->
+  {% if filter_settings.enabled|default(false) %}{% include 'frontend/_galleries_filters.twig' %}{% endif %}
+
+  <!-- Mosaic grid -->
+  <div class="mosaic-wrap">
+    <div id="galleries-grid" class="mosaic-grid">
+      {% for album in albums %}
+      {% set seo_title = Seo.seo_title({'alt': album.cover_image.alt_text|default('')}, album, site_title)|trim %}
+      {% set is_locked = album.is_locked|default(false) %}
+      {% set nsfw_hidden = album.is_nsfw and not (nsfw_consent|default(false)) and not (is_admin|default(false)) %}
+      {% set should_blur = nsfw_hidden or is_locked %}
+      {% set is_eager = loop.index <= 4 %}
+      <article class="gallery-card mosaic-tile"
+               role="link"
+               tabindex="0"
+               data-album-id="{{ album.id }}"
+               data-nsfw="{{ album.is_nsfw and not is_admin ? '1' : '0' }}"
+               data-password-protected="{{ album.is_password_protected ? '1' : '0' }}"
+               data-album-url="{{ base_path }}/album/{{ album.slug }}"
+               data-action="open-album"
+               aria-label="{{ seo_title|e('html_attr') }}">
+        <figure class="mosaic-frame">
+          {% set src_path = should_blur ? album.cover_image.blur_path|default(null) : album.cover_image.preview_path|default(null) %}
+          {% if album.cover_image and src_path %}
+            <img src="{% if src_path starts with '/' %}{{ base_path }}{{ src_path }}{% else %}{{ src_path }}{% endif %}"
+                 alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
+                 title="{{ seo_title|e('html_attr') }}"
+                 class="mosaic-img{{ nsfw_hidden and not is_locked ? ' nsfw-blur' : '' }}{{ is_locked ? ' mosaic-img--locked' : '' }}"
+                 {% if nsfw_hidden and not is_locked and album.cover_image.preview_path %}data-nsfw-real-src="{% if album.cover_image.preview_path starts with '/' %}{{ base_path }}{{ album.cover_image.preview_path }}{% else %}{{ album.cover_image.preview_path }}{% endif %}"{% endif %}
+                 {% if is_eager %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+                 decoding="async"
+                 data-fallback="hide">
+          {% else %}
+            <div class="mosaic-empty-cover">
+              <i class="fas {{ should_blur ? 'fa-eye-slash' : 'fa-images' }} text-3xl" aria-hidden="true"></i>
+            </div>
+          {% endif %}
+
+          {% if nsfw_hidden %}
+          <div class="mosaic-veil nsfw-overlay">
+            <i class="fas fa-eye-slash" aria-hidden="true"></i>
+            <span>{{ trans('album.nsfw_warning_short') }}</span>
+          </div>
+          {% elseif is_locked %}
+          <div class="mosaic-veil">
+            <i class="fas fa-lock" aria-hidden="true"></i>
+            <span>{{ trans('album.password_protected') }}</span>
+          </div>
+          {% endif %}
+
+          {% if album.is_password_protected and not should_blur %}
+          <span class="mosaic-flag" title="{{ trans('album.password_protected')|e('html_attr') }}">
+            <i class="fas fa-lock" aria-hidden="true"></i>
+          </span>
+          {% endif %}
+
+          <figcaption class="mosaic-scrim">
+            <div class="mosaic-scrim-title">{{ album.title|e }}</div>
+            {% if album.images_count > 0 %}
+            <div class="mosaic-scrim-count">
+              {{ album.images_count }} {{ album.images_count == 1 ? trans('galleries.tpl.photo', {}, 'photo') : trans('galleries.tpl.photos', {}, 'photos') }}
+            </div>
+            {% endif %}
+          </figcaption>
+        </figure>
+      </article>
+      {% endfor %}
+
+      {% if albums|length == 0 %}
+      {% set has_active_filters = (active_filters.category|default([])|length > 0) or
+                                   (active_filters.tags|default([])|length > 0) or
+                                   (active_filters.cameras|default([])|length > 0) or
+                                   (active_filters.lenses|default([])|length > 0) or
+                                   (active_filters.films|default([])|length > 0) or
+                                   (active_filters.locations|default([])|length > 0) or
+                                   (active_filters.year|default('') != '') or
+                                   (active_filters.search|default('') != '') %}
+      <div class="col-span-full mosaic-empty-state" id="empty-state">
+        <i class="fas {{ has_active_filters ? 'fa-search' : 'fa-images' }}" aria-hidden="true"></i>
+        <h2>
+          {% if has_active_filters %}
+            {{ page_texts.no_results_title|default(trans('filter.no_galleries_title'))|e }}
+          {% else %}
+            {{ trans('galleries.tpl.empty_title', {}, 'Nothing here yet')|e }}
+          {% endif %}
+        </h2>
+        <p>
+          {% if has_active_filters %}
+            {{ page_texts.no_results_text|default(trans('filter.no_galleries_text'))|e }}
+          {% else %}
+            {{ trans('galleries.tpl.empty_text', {}, 'Published galleries will appear in this mosaic as soon as they go live.')|e }}
+          {% endif %}
+        </p>
+        {% if has_active_filters %}
+        <a href="{{ base_path }}/galleries" class="mosaic-empty-reset">{{ trans('filter.clear') }}</a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- NSFW Age Confirmation Modal -->
+<div id="nsfw-modal" class="fixed inset-0 bg-black/70 z-50 hidden items-center justify-center p-4">
+  <div class="modal-content mosaic-modal-card bg-white rounded-2xl max-w-md w-full p-8 text-center shadow-2xl">
+    <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+      <i class="fas fa-exclamation-triangle text-amber-600 text-3xl" aria-hidden="true"></i>
+    </div>
+    <h3 class="mosaic-modal-title text-2xl font-semibold text-gray-900 mb-4">{{ trans('album.nsfw_title') }}</h3>
+    <p class="mosaic-modal-text text-gray-600 mb-6 leading-relaxed">
+      {{ trans('album.nsfw_message') }}
+    </p>
+    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+      <button data-action="confirm-nsfw" class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium">
+        {{ trans('album.nsfw_confirm') }}
+      </button>
+      <button data-action="cancel-nsfw" class="mosaic-modal-cancel px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium">
+        {{ trans('album.nsfw_cancel') }}
+      </button>
+    </div>
+    <p id="nsfw-error" class="text-sm text-red-600 mt-4 hidden">
+      {{ trans('album.nsfw_error')|default('Verification failed. Please try again.') }}
+    </p>
+    <p class="mosaic-modal-note text-xs text-gray-400 mt-6">
+      {{ trans('album.nsfw_remember') }}
+    </p>
+  </div>
+</div>
+
+<style nonce="{{ csp_nonce() }}">
+/* ---------- Page surfaces ---------- */
+.mosaic-page { background: #fafafa; }
+html.dark .mosaic-page { background: #0b0b0b; }
+
+/* ---------- Hero ---------- */
+.mosaic-hero {
+  max-width: 1800px;
+  margin: 0 auto;
+  padding: 4rem 1.25rem 2.5rem;
+}
+@media (min-width: 1024px) {
+  .mosaic-hero { padding: 6rem 2.5rem 3.25rem; }
+}
+.mosaic-kicker {
+  font-size: 0.6875rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #8c8c8a;
+  margin-bottom: 1.25rem;
+}
+html.dark .mosaic-kicker { color: #767674; }
+.mosaic-hero-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem 3rem;
+}
+.mosaic-title {
+  font-size: clamp(2.25rem, 5vw, 4rem);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: #171716;
+}
+html.dark .mosaic-title { color: #f2f2f0; }
+.mosaic-count {
+  font-size: 0.8125rem;
+  color: #8c8c8a;
+  white-space: nowrap;
+  padding-bottom: 0.45rem;
+}
+html.dark .mosaic-count { color: #737371; }
+.mosaic-subtitle {
+  margin-top: 1.5rem;
+  max-width: 42rem;
+  font-size: 1.0625rem;
+  font-weight: 300;
+  line-height: 1.65;
+  color: #5d5d5b;
+}
+html.dark .mosaic-subtitle { color: #a3a3a1; }
+
+/* ---------- Mosaic grid ---------- */
+.mosaic-wrap {
+  max-width: 1800px;
+  margin: 0 auto;
+  padding: 0 0.75rem 5rem;
+}
+@media (min-width: 1024px) {
+  .mosaic-wrap { padding: 0 1rem 6rem; }
+}
+#galleries-grid.mosaic-grid {
+  display: grid;
+  grid-auto-flow: dense;
+  gap: 3px;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: 42vw;
+}
+@media (min-width: 768px) {
+  #galleries-grid.mosaic-grid {
+    grid-template-columns: repeat(3, 1fr);
+    grid-auto-rows: 27vw;
+  }
+}
+@media (min-width: 1024px) {
+  #galleries-grid.mosaic-grid {
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: 19vw;
+  }
+}
+@media (min-width: 1800px) {
+  #galleries-grid.mosaic-grid { grid-auto-rows: 330px; }
+}
+/* Rhythm: every 5th tile widens, every 7th deepens (nth-child so client
+   re-render keeps the exact same pattern with zero inline math). */
+#galleries-grid.mosaic-grid > .mosaic-tile:nth-child(5n) { grid-column: span 2; }
+#galleries-grid.mosaic-grid > .mosaic-tile:nth-child(7n) { grid-row: span 2; }
+
+/* ---------- Tiles ---------- */
+.mosaic-tile {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  background: #e9e9e7;
+  outline: none;
+}
+html.dark .mosaic-tile { background: #161616; }
+.mosaic-tile:focus-visible {
+  outline: 2px solid #171716;
+  outline-offset: -2px;
+  z-index: 2;
+}
+html.dark .mosaic-tile:focus-visible { outline-color: #e7e7e5; }
+.mosaic-frame {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+}
+.mosaic-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.mosaic-empty-cover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #bcbcb9;
+}
+html.dark .mosaic-empty-cover { color: #4a4a48; }
+
+/* Blurred covers (NSFW pre-consent / locked) */
+.mosaic-img.nsfw-blur,
+.mosaic-img--locked {
+  filter: blur(26px);
+  transform: scale(1.12);
+}
+/* Layout JS adds .nsfw-confirmed on consent and swaps data-nsfw-real-src;
+   this rule is the CSS backstop for the brief window before the swap. */
+.nsfw-confirmed .mosaic-img.nsfw-blur {
+  filter: none;
+  transform: none;
+}
+.nsfw-confirmed .nsfw-overlay { display: none; }
+
+/* Centered veil for NSFW / locked tiles */
+.mosaic-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  text-align: center;
+  color: #f5f5f4;
+  background: rgba(10, 10, 10, 0.45);
+  pointer-events: none;
+}
+.mosaic-veil i { font-size: 1.5rem; }
+.mosaic-veil span {
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Quiet lock flag on unlocked-but-protected covers */
+.mosaic-flag {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.65rem;
+  z-index: 3;
+  color: #f5f5f4;
+  font-size: 0.8125rem;
+  text-shadow: 0 1px 4px rgba(10, 10, 10, 0.55);
+  pointer-events: none;
+}
+
+/* ---------- Hover scrim: idle is pure photography ---------- */
+.mosaic-scrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  padding: 2.5rem 0.9rem 0.8rem;
+  background: linear-gradient(to top, rgba(9, 9, 9, 0.74), rgba(9, 9, 9, 0));
+  opacity: 0;
+  pointer-events: none;
+}
+.mosaic-scrim-title {
+  color: #f5f5f4;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mosaic-scrim-count {
+  margin-top: 0.2rem;
+  color: rgba(245, 245, 244, 0.72);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+@media (hover: hover) {
+  .mosaic-tile:hover .mosaic-scrim,
+  .mosaic-tile:focus-visible .mosaic-scrim { opacity: 1; }
+}
+@media (hover: none) {
+  /* No hover on touch: keep the label readable at all times */
+  .mosaic-scrim { opacity: 1; padding-top: 1.75rem; }
+}
+
+/* ---------- Motion (enhancement only; content visible without it) ---------- */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .mosaic-tile:hover .mosaic-img:not(.nsfw-blur):not(.mosaic-img--locked) {
+    transform: scale(1.03);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .mosaic-img {
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .mosaic-scrim {
+    transform: translateY(6px);
+    transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+  }
+  .mosaic-tile:hover .mosaic-scrim,
+  .mosaic-tile:focus-visible .mosaic-scrim { transform: none; }
+
+  /* Entrance: stagger via nth-child delays so the AJAX re-render replays it.
+     Animates the inner frame (transform/opacity only) so the filter partial's
+     opacity guard on .gallery-card never hides a tile. */
+  .mosaic-frame {
+    animation: mosaicReveal 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+  .mosaic-tile:nth-child(12n+2)  .mosaic-frame { animation-delay: 0.03s; }
+  .mosaic-tile:nth-child(12n+3)  .mosaic-frame { animation-delay: 0.06s; }
+  .mosaic-tile:nth-child(12n+4)  .mosaic-frame { animation-delay: 0.09s; }
+  .mosaic-tile:nth-child(12n+5)  .mosaic-frame { animation-delay: 0.12s; }
+  .mosaic-tile:nth-child(12n+6)  .mosaic-frame { animation-delay: 0.15s; }
+  .mosaic-tile:nth-child(12n+7)  .mosaic-frame { animation-delay: 0.18s; }
+  .mosaic-tile:nth-child(12n+8)  .mosaic-frame { animation-delay: 0.21s; }
+  .mosaic-tile:nth-child(12n+9)  .mosaic-frame { animation-delay: 0.24s; }
+  .mosaic-tile:nth-child(12n+10) .mosaic-frame { animation-delay: 0.27s; }
+  .mosaic-tile:nth-child(12n+11) .mosaic-frame { animation-delay: 0.3s; }
+  .mosaic-tile:nth-child(12n)    .mosaic-frame { animation-delay: 0.33s; }
+}
+@keyframes mosaicReveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mosaic-frame,
+  .mosaic-img,
+  .mosaic-scrim {
+    animation: none !important;
+    transition: none !important;
+  }
+  .mosaic-scrim { transform: none; }
+}
+
+/* ---------- Empty state ---------- */
+.mosaic-empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 6rem 1.5rem;
+}
+.mosaic-empty-state i {
+  font-size: 3rem;
+  color: #d4d4d2;
+  margin-bottom: 1.5rem;
+}
+html.dark .mosaic-empty-state i { color: #3a3a38; }
+.mosaic-empty-state h2 {
+  font-size: 1.5rem;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  color: #171716;
+  margin-bottom: 0.75rem;
+}
+html.dark .mosaic-empty-state h2 { color: #f2f2f0; }
+.mosaic-empty-state p {
+  max-width: 26rem;
+  margin: 0 auto;
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: #6d6d6b;
+}
+html.dark .mosaic-empty-state p { color: #8f8f8d; }
+.mosaic-empty-reset {
+  display: inline-block;
+  margin-top: 2rem;
+  padding: 0.7rem 1.5rem;
+  border-radius: 0.75rem;
+  background: #171716;
+  color: #fafaf9;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease-out;
+}
+.mosaic-empty-reset:hover { background: #2e2e2c; }
+html.dark .mosaic-empty-reset { background: #f2f2f0; color: #171716; }
+html.dark .mosaic-empty-reset:hover { background: #d9d9d7; }
+
+/* ---------- NSFW modal (dark counterpart for the light card) ---------- */
+#nsfw-modal .modal-content { animation: mosaicModalIn 0.3s ease-out; }
+@keyframes mosaicModalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(-20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #nsfw-modal .modal-content { animation: none; }
+}
+html.dark .mosaic-modal-card { background: #161616; }
+html.dark .mosaic-modal-title { color: #f2f2f0; }
+html.dark .mosaic-modal-text { color: #a3a3a1; }
+html.dark .mosaic-modal-note { color: #737371; }
+html.dark .mosaic-modal-cancel { background: #262626; color: #d4d4d2; }
+html.dark .mosaic-modal-cancel:hover { background: #333331; }
+</style>
+
+<script nonce="{{ csp_nonce() }}">
+// Mosaic template: client-side card renderer (filter partial contract) + tile behaviour.
+(function () {
+    'use strict';
+
+    var MOSAIC_BASE = '{{ base_path|e('js') }}';
+    var MOSAIC_IS_ADMIN = {{ is_admin|default(false) ? 'true' : 'false' }};
+    var MOSAIC_SITE_TITLE = '{{ site_title|default('')|e('js') }}';
+    var MOSAIC_TEXTS = {
+        nsfwShort: '{{ trans('album.nsfw_warning_short')|e('js') }}',
+        locked: '{{ trans('album.password_protected')|e('js') }}',
+        photo: '{{ trans('galleries.tpl.photo', {}, 'photo')|e('js') }}',
+        photos: '{{ trans('galleries.tpl.photos', {}, 'photos')|e('js') }}'
+    };
+
+    function esc(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function nsfwOk() {
+        if (typeof window.hasConfirmedNsfw === 'function') return window.hasConfirmedNsfw();
+        if (window.nsfwConsent === true) return true;
+        try {
+            if (window.localStorage && window.localStorage.getItem('nsfw_confirmed') === 'true') return true;
+        } catch (e) {}
+        return false;
+    }
+
+    function resolvePath(p) {
+        p = p || '';
+        return (p.charAt(0) === '/' && MOSAIC_BASE) ? MOSAIC_BASE + p : p;
+    }
+
+    // Contract with frontend/_galleries_filters.twig: return ONE album tile as an
+    // HTML string, structurally identical to the server-rendered markup above.
+    window.cimaiseRenderCard = function (album, index) {
+        var cover = album.cover_image || {};
+        var isLocked = !!album.is_locked;
+        var isNsfw = !!(album.is_nsfw && !MOSAIC_IS_ADMIN);
+        var nsfwHidden = isNsfw && !nsfwOk();
+        var shouldBlur = nsfwHidden || isLocked;
+        var previewSrc = resolvePath(cover.preview_path || '');
+        var blurSrc = resolvePath(cover.blur_path || '');
+        var src = shouldBlur ? blurSrc : previewSrc;
+        var alt = esc(cover.alt_text || album.title || '');
+        var url = MOSAIC_BASE + '/album/' + encodeURIComponent(album.slug || '');
+        var label = esc([album.title || '', MOSAIC_SITE_TITLE].filter(Boolean).join(' | '));
+
+        var inner;
+        if (src) {
+            var imgClass = 'mosaic-img'
+                + (nsfwHidden && !isLocked ? ' nsfw-blur' : '')
+                + (isLocked ? ' mosaic-img--locked' : '');
+            var realSrc = (nsfwHidden && !isLocked && previewSrc)
+                ? ' data-nsfw-real-src="' + esc(previewSrc) + '"'
+                : '';
+            var loadAttr = index < 4 ? ' fetchpriority="high"' : ' loading="lazy"';
+            inner = '<img src="' + esc(src) + '" alt="' + alt + '" title="' + label + '"'
+                + ' class="' + imgClass + '"' + realSrc + loadAttr
+                + ' decoding="async" data-fallback="hide">';
+        } else {
+            inner = '<div class="mosaic-empty-cover"><i class="fas '
+                + (shouldBlur ? 'fa-eye-slash' : 'fa-images')
+                + ' text-3xl" aria-hidden="true"></i></div>';
+        }
+
+        if (nsfwHidden) {
+            inner += '<div class="mosaic-veil nsfw-overlay"><i class="fas fa-eye-slash" aria-hidden="true"></i><span>'
+                + esc(MOSAIC_TEXTS.nsfwShort) + '</span></div>';
+        } else if (isLocked) {
+            inner += '<div class="mosaic-veil"><i class="fas fa-lock" aria-hidden="true"></i><span>'
+                + esc(MOSAIC_TEXTS.locked) + '</span></div>';
+        }
+
+        if (album.is_password_protected && !shouldBlur) {
+            inner += '<span class="mosaic-flag" title="' + esc(MOSAIC_TEXTS.locked)
+                + '"><i class="fas fa-lock" aria-hidden="true"></i></span>';
+        }
+
+        var count = '';
+        if ((album.images_count || 0) > 0) {
+            var unit = album.images_count === 1 ? MOSAIC_TEXTS.photo : MOSAIC_TEXTS.photos;
+            count = '<div class="mosaic-scrim-count">' + esc(album.images_count) + ' ' + esc(unit) + '</div>';
+        }
+        inner += '<figcaption class="mosaic-scrim"><div class="mosaic-scrim-title">'
+            + esc(album.title || '') + '</div>' + count + '</figcaption>';
+
+        return '<article class="gallery-card mosaic-tile" role="link" tabindex="0"'
+            + ' data-album-id="' + esc(album.id) + '"'
+            + ' data-nsfw="' + (isNsfw ? '1' : '0') + '"'
+            + ' data-password-protected="' + (album.is_password_protected ? '1' : '0') + '"'
+            + ' data-album-url="' + esc(url) + '"'
+            + ' data-action="open-album"'
+            + ' aria-label="' + label + '">'
+            + '<figure class="mosaic-frame">' + inner + '</figure>'
+            + '</article>';
+    };
+
+    // After every filtered re-render the partial swaps the grid's children;
+    // force a reflow so the CSS entrance animation replays on the fresh tiles.
+    document.addEventListener('cimaise:galleries-updated', function () {
+        var grid = document.getElementById('galleries-grid');
+        if (!grid) return;
+        void grid.offsetWidth;
+    });
+
+    // Keyboard access for the role="link" tiles (delegated click handles the rest).
+    document.addEventListener('keydown', function (event) {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        var tile = event.target && event.target.closest
+            ? event.target.closest('.mosaic-tile[data-action="open-album"]')
+            : null;
+        if (!tile) return;
+        event.preventDefault();
+        tile.click();
+    });
+})();
+</script>
+
+<script nonce="{{ csp_nonce() }}">
+// Album opening + NSFW confirmation flow (CSP-safe delegated handlers).
+(function () {
+    'use strict';
+
+    var basePath = '{{ base_path|e('js') }}';
+    var csrfToken = '{{ csrf|e('js') }}';
+    var pendingNsfwUrl = null;
+
+    function safeLocalStorageGet(key) {
+        try {
+            return window.localStorage ? window.localStorage.getItem(key) : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function safeLocalStorageSet(key, value) {
+        try {
+            if (window.localStorage) {
+                window.localStorage.setItem(key, value);
+            }
+        } catch (e) {}
+    }
+
+    window.hasConfirmedNsfw = function () {
+        if (window.nsfwConsent === true) return true;
+        if (safeLocalStorageGet('nsfw_confirmed') === 'true') return true;
+        return false;
+    };
+
+    function showNsfwModal() {
+        var modal = document.getElementById('nsfw-modal');
+        var error = document.getElementById('nsfw-error');
+        if (!modal) return;
+        if (error) error.classList.add('hidden');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function hideNsfwModal() {
+        var modal = document.getElementById('nsfw-modal');
+        if (!modal) return;
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.style.overflow = '';
+    }
+
+    function handleTileClick(event, tile) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        var isNsfw = tile.dataset.nsfw === '1';
+        var isPasswordProtected = tile.dataset.passwordProtected === '1';
+        var albumUrl = tile.dataset.albumUrl;
+
+        // Password-protected albums defer NSFW confirmation to the password page.
+        if (isNsfw && !isPasswordProtected && !window.hasConfirmedNsfw()) {
+            pendingNsfwUrl = albumUrl;
+            showNsfwModal();
+        } else if (albumUrl) {
+            window.location.href = albumUrl;
+        }
+    }
+
+    function confirmNsfwAge() {
+        var error = document.getElementById('nsfw-error');
+        if (!csrfToken) {
+            if (error) error.classList.remove('hidden');
+            return;
+        }
+        fetch(basePath + '/nsfw/confirm', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'csrf=' + encodeURIComponent(csrfToken) + '&nsfw_confirmed=1'
+        }).then(function (resp) {
+            if (!resp.ok) throw new Error('NSFW confirm failed');
+            safeLocalStorageSet('nsfw_confirmed', 'true');
+            window.nsfwConsent = true;
+            if (window.applyNsfwConsentState) window.applyNsfwConsentState();
+            hideNsfwModal();
+            if (pendingNsfwUrl) {
+                window.location.href = pendingNsfwUrl;
+                pendingNsfwUrl = null;
+            } else if (typeof window.applyFilters === 'function') {
+                window.applyFilters();
+            }
+        }).catch(function (err) {
+            console.warn('NSFW confirmation failed:', err);
+            if (error) error.classList.remove('hidden');
+        });
+    }
+
+    document.addEventListener('click', function (event) {
+        var target = event.target.closest('[data-action]');
+        if (!target) return;
+        var action = target.dataset.action;
+        if (action === 'open-album') {
+            handleTileClick(event, target);
+        } else if (action === 'confirm-nsfw') {
+            event.preventDefault();
+            confirmNsfwAge();
+        } else if (action === 'cancel-nsfw') {
+            event.preventDefault();
+            pendingNsfwUrl = null;
+            hideNsfwModal();
+        }
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') hideNsfwModal();
+    });
+
+    var modal = document.getElementById('nsfw-modal');
+    if (modal) {
+        modal.addEventListener('click', function (e) {
+            if (e.target === this) hideNsfwModal();
+        });
+    }
+
+    // If consent already given, unblur server-rendered NSFW covers on load.
+    document.addEventListener('DOMContentLoaded', function () {
+        if (window.hasConfirmedNsfw()) {
+            safeLocalStorageSet('nsfw_confirmed', 'true');
+            if (window.applyNsfwConsentState) window.applyNsfwConsentState();
+        }
+    });
+})();
+</script>
+{% endblock %}

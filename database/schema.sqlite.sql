@@ -990,6 +990,7 @@ INSERT INTO settings (key, value, type) VALUES
 ('gallery.default_template_id', '4', 'number'),
 ('pagination.limit', '12', 'number'),
 ('home.template', 'classic', 'string'),
+('galleries.template', 'classic', 'string'),
 ('home.hero_title', 'Portfolio', 'string'),
 ('home.hero_subtitle', 'A collection of analog and digital photography exploring light, form, and the beauty of everyday moments.', 'string'),
 ('home.albums_title', 'Latest Albums', 'string'),

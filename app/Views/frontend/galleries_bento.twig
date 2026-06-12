@@ -1,0 +1,551 @@
+{% extends 'frontend/_layout.twig' %}
+{% import 'frontend/_seo_macros.twig' as Seo %}
+
+{% block styles %}
+<style nonce="{{ csp_nonce() }}">
+  /* ---------- Bento galleries page ---------- */
+  .bgal-page { background: #fafafa; }
+  .dark .bgal-page { background: #0a0a0a; }
+
+  .bgal-hero { max-width: 1480px; margin: 0 auto; padding: 3rem 1rem 2.25rem; }
+  @media (min-width: 640px) { .bgal-hero { padding: 4rem 1.5rem 3rem; } }
+  @media (min-width: 1024px) { .bgal-hero { padding: 5.5rem 2.5rem 4rem; } }
+  .bgal-hero-kicker { font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; color: #767676; margin-bottom: 1.1rem; font-weight: 500; }
+  .dark .bgal-hero-kicker { color: #969696; }
+
+  .bgal-wrap { max-width: 1480px; margin: 0 auto; padding: 0 1rem 5rem; }
+  @media (min-width: 640px) { .bgal-wrap { padding: 0 1.5rem 5.5rem; } }
+  @media (min-width: 1024px) { .bgal-wrap { padding: 0 2.5rem 6.5rem; } }
+
+  /* ---------- Composed bento collage (pure CSS pattern, survives client re-render) ---------- */
+  .bgal-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+
+  .bgal-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    background: #ececec;
+  }
+  .dark .bgal-card { background: #161616; }
+  .bgal-card:focus-visible { outline: 2px solid #767676; outline-offset: 2px; }
+  .dark .bgal-card:focus-visible { outline-color: #bdbdbd; }
+
+  /* Mobile: single column, alternating 4:3 / 1:1 rhythm */
+  @media (max-width: 639px) {
+    .bgal-card:nth-child(odd) { aspect-ratio: 4 / 3; }
+    .bgal-card:nth-child(even) { aspect-ratio: 1 / 1; }
+  }
+
+  /* Tablet: two columns, every 6th cell goes ultra wide */
+  @media (min-width: 640px) and (max-width: 1023px) {
+    .bgal-grid { grid-template-columns: repeat(2, 1fr); }
+    .bgal-card { aspect-ratio: 4 / 3; }
+    .bgal-card:nth-child(6n+6) { grid-column: span 2; aspect-ratio: 21 / 9; }
+  }
+
+  /* Desktop: 6-column collage, repeating 6-album pattern */
+  @media (min-width: 1024px) {
+    .bgal-grid { grid-template-columns: repeat(6, 1fr); grid-auto-rows: clamp(170px, 17.5vw, 250px); grid-auto-flow: dense; }
+    .bgal-card:nth-child(6n+1) { grid-column: span 4; grid-row: span 2; }
+    .bgal-card:nth-child(6n+2) { grid-column: span 2; }
+    .bgal-card:nth-child(6n+3) { grid-column: span 2; }
+    .bgal-card:nth-child(6n+4) { grid-column: span 3; }
+    .bgal-card:nth-child(6n+5) { grid-column: span 3; }
+    .bgal-card:nth-child(6n+6) { grid-column: span 6; }
+  }
+
+  .bgal-img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease-out;
+  }
+  .bgal-card:hover .bgal-img,
+  .bgal-card:focus-visible .bgal-img { transform: scale(1.03); }
+
+  .bgal-fallback {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #9b9b9b; font-size: 2rem;
+  }
+  .dark .bgal-fallback { color: #5c5c5c; }
+
+  /* Quiet, always-visible scrim carrying the caption (no blur) */
+  .bgal-scrim {
+    position: absolute; inset: 0; z-index: 5; pointer-events: none;
+    background: linear-gradient(to top, rgba(8,8,8,0.62) 0%, rgba(8,8,8,0.2) 36%, rgba(8,8,8,0) 58%);
+  }
+
+  .bgal-caption {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;
+    padding: 0.85rem 1rem;
+    color: #fdfdfd;
+    text-shadow: 0 1px 8px rgba(8,8,8,0.55);
+    pointer-events: none;
+  }
+  .bgal-kicker {
+    display: block;
+    font-size: 0.66rem; letter-spacing: 0.18em; text-transform: uppercase;
+    font-weight: 500;
+    color: rgba(253,253,253,0.85);
+    margin-bottom: 0.3rem;
+  }
+  .bgal-title { font-size: 1.05rem; font-weight: 400; line-height: 1.25; color: inherit; }
+  .bgal-meta { margin-top: 0.3rem; font-size: 0.75rem; color: rgba(253,253,253,0.78); }
+  @media (min-width: 1024px) {
+    .bgal-caption { padding: 1.1rem 1.3rem; }
+    .bgal-card:nth-child(6n+1) .bgal-title { font-size: 1.6rem; font-weight: 300; }
+    .bgal-card:nth-child(6n+6) .bgal-title { font-size: 1.35rem; font-weight: 300; }
+  }
+
+  .bgal-badges {
+    position: absolute; top: 0.75rem; right: 0.75rem; z-index: 20;
+    display: flex; align-items: center; gap: 0.55rem;
+    color: #fdfdfd; font-size: 0.75rem;
+    text-shadow: 0 1px 6px rgba(8,8,8,0.6);
+    pointer-events: none;
+  }
+  .bgal-count { display: inline-flex; align-items: center; gap: 0.3rem; }
+
+  .bgal-empty { text-align: center; padding: 6rem 1rem; }
+  .bgal-empty i { font-size: 3rem; color: #c9c9c9; margin-bottom: 1.5rem; }
+  .dark .bgal-empty i { color: #3d3d3d; }
+
+  /* Entrance: enhances only, content visible without it; transform/opacity only */
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes bgalIn {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: none; }
+    }
+    .bgal-card { animation: bgalIn 0.36s cubic-bezier(0, 0, 0.2, 1) backwards; }
+    .bgal-card:nth-child(6n+2) { animation-delay: 55ms; }
+    .bgal-card:nth-child(6n+3) { animation-delay: 110ms; }
+    .bgal-card:nth-child(6n+4) { animation-delay: 165ms; }
+    .bgal-card:nth-child(6n+5) { animation-delay: 220ms; }
+    .bgal-card:nth-child(6n+6) { animation-delay: 275ms; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bgal-card, .bgal-img { animation: none !important; transition: none !important; }
+    .bgal-card:hover .bgal-img { transform: none; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+  {% include 'frontend/_breadcrumbs.twig' %}
+</div>
+
+<div class="bgal-page min-h-screen">
+
+  <!-- Hero: left aligned, generous whitespace -->
+  <header class="bgal-hero">
+    <p class="bgal-hero-kicker">
+      {% if albums|length == 1 %}
+        {{ trans('filter.gallery_count') }}
+      {% else %}
+        {{ trans('filter.galleries_count', {count: albums|length}) }}
+      {% endif %}
+    </p>
+    <h1 class="text-4xl md:text-6xl font-light text-black dark:text-white tracking-tight">
+      {{ page_texts.title|default(trans('galleries.title'))|e }}
+    </h1>
+    {% if page_texts.subtitle|default(trans('galleries.subtitle')) %}
+    <p class="mt-6 text-xl text-gray-600 dark:text-gray-300 max-w-2xl leading-relaxed">
+      {{ page_texts.subtitle|default(trans('galleries.subtitle'))|e }}
+    </p>
+    {% endif %}
+  </header>
+
+  <!-- Shared filter bar (owns AJAX, empty state and results count) -->
+  {% if filter_settings.enabled|default(false) %}{% include 'frontend/_galleries_filters.twig' %}{% endif %}
+
+  <div class="bgal-wrap">
+    <div id="galleries-grid" class="bgal-grid">
+      {% for album in albums %}
+      {% set seo_title = Seo.seo_title({'alt': album.cover_image.alt_text|default('')}, album, site_title)|trim %}
+      {% set show_nsfw_overlay = not ((nsfw_consent|default(false)) or (is_admin|default(false))) %}
+      {% set is_locked = album.is_locked|default(false) %}
+      {% set should_blur_cover = (album.is_nsfw and show_nsfw_overlay) or is_locked %}
+      {% set is_eager = loop.index <= 2 %}
+      <article class="bgal-card gallery-card group"
+               data-album-id="{{ album.id }}"
+               data-nsfw="{{ album.is_nsfw and not is_admin ? '1' : '0' }}"
+               data-password-protected="{{ album.is_password_protected ? '1' : '0' }}"
+               data-album-url="{{ base_path }}/album/{{ album.slug }}"
+               data-action="open-album"
+               tabindex="0"
+               role="link"
+               aria-label="{{ seo_title|e('html_attr') }}">
+
+        {# Cover (security: never original_path) #}
+        {% if album.cover_image and should_blur_cover and album.cover_image.blur_path %}
+          {% set blur_path = album.cover_image.blur_path %}
+          <img src="{% if blur_path starts with '/' %}{{ base_path }}{{ blur_path }}{% else %}{{ blur_path }}{% endif %}"
+               {% if not is_locked and album.cover_image.preview_path %}data-nsfw-real-src="{% if album.cover_image.preview_path starts with '/' %}{{ base_path }}{{ album.cover_image.preview_path }}{% else %}{{ album.cover_image.preview_path }}{% endif %}"{% endif %}
+               alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
+               title="{{ seo_title|e('html_attr') }}"
+               class="bgal-img nsfw-blur"
+               {% if is_eager %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+               decoding="async"
+               data-fallback="hide">
+        {% elseif album.cover_image and not should_blur_cover and album.cover_image.preview_path %}
+          {% set cover_path = album.cover_image.preview_path %}
+          <img src="{% if cover_path starts with '/' %}{{ base_path }}{{ cover_path }}{% else %}{{ cover_path }}{% endif %}"
+               alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
+               title="{{ seo_title|e('html_attr') }}"
+               class="bgal-img"
+               {% if is_eager %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+               decoding="async"
+               data-fallback="hide">
+        {% else %}
+          <div class="bgal-fallback" aria-hidden="true">
+            <i class="fas {{ should_blur_cover ? 'fa-eye-slash' : 'fa-images' }}"></i>
+          </div>
+        {% endif %}
+
+        <div class="bgal-scrim" aria-hidden="true"></div>
+
+        {# NSFW / lock overlays: same contract as frontend/galleries.twig #}
+        {% if album.is_nsfw and show_nsfw_overlay %}
+        <div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">
+          <i class="fas fa-eye-slash text-3xl mb-2"></i>
+          <span class="text-sm font-medium">{{ trans('album.nsfw_warning_short') }}</span>
+        </div>
+        {% endif %}
+        {% if is_locked and not (album.is_nsfw and show_nsfw_overlay) %}
+        <div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">
+          <i class="fas fa-lock text-3xl mb-2"></i>
+          <span class="text-sm font-medium">{{ trans('album.password_protected') }}</span>
+        </div>
+        {% endif %}
+
+        <div class="bgal-badges">
+          {% if album.is_password_protected %}
+          <span title="{{ trans('album.password_protected')|e('html_attr') }}"><i class="fas fa-lock"></i></span>
+          {% endif %}
+          {% if album.images_count > 0 %}
+          <span class="bgal-count"><i class="fas fa-images"></i>{{ album.images_count }}</span>
+          {% endif %}
+        </div>
+
+        <div class="bgal-caption">
+          {% if album.category_name %}
+          <span class="bgal-kicker">{{ album.category_name|e }}</span>
+          {% endif %}
+          <h2 class="bgal-title">{{ album.title|e }}</h2>
+          {% if album.shoot_date %}
+          <p class="bgal-meta">{{ album.shoot_date|date_format }}</p>
+          {% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+
+    {# Server-side empty state (filtered-empty is owned by the partial) #}
+    {% if albums|length == 0 %}
+    <div id="empty-state" class="bgal-empty">
+      <i class="fas fa-images"></i>
+      <h2 class="text-2xl font-light text-black dark:text-white mb-4 tracking-tight">
+        {{ trans('galleries.tpl.empty_title', {}, 'No galleries yet') }}
+      </h2>
+      <p class="text-gray-600 dark:text-gray-300 max-w-md mx-auto leading-relaxed">
+        {{ trans('galleries.tpl.empty_text', {}, 'New work is on the way. Check back soon.') }}
+      </p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# NSFW confirmation modal (same contract as frontend/galleries.twig) #}
+<div id="nsfw-modal" class="fixed inset-0 bg-black/70 z-50 hidden items-center justify-center p-4">
+  <div class="modal-content bg-white dark:bg-neutral-900 rounded-2xl max-w-md w-full p-8 text-center shadow-2xl">
+    <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+      <i class="fas fa-exclamation-triangle text-amber-600 text-3xl"></i>
+    </div>
+    <h3 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">{{ trans('album.nsfw_title') }}</h3>
+    <p class="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+      {{ trans('album.nsfw_message') }}
+    </p>
+    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+      <button data-action="confirm-nsfw" class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 transition-colors font-medium">
+        {{ trans('album.nsfw_confirm') }}
+      </button>
+      <button data-action="cancel-nsfw" class="px-6 py-3 bg-gray-100 text-gray-700 dark:bg-neutral-800 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors font-medium">
+        {{ trans('album.nsfw_cancel') }}
+      </button>
+    </div>
+    <p id="nsfw-error" class="text-sm text-red-600 mt-4 hidden">
+      {{ trans('album.nsfw_error')|default('Verification failed. Please try again.') }}
+    </p>
+    <p class="text-xs text-gray-400 mt-6">
+      {{ trans('album.nsfw_remember') }}
+    </p>
+  </div>
+</div>
+
+{# CollectionPage JSON-LD for SEO #}
+<script type="application/ld+json" nonce="{{ csp_nonce() }}">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": {{ page_texts.title|default(trans('galleries.title'))|json_encode|raw }},
+  "url": {{ (canonical_url|default(current_url))|json_encode|raw }},
+  "description": {{ meta_description|default('')|json_encode|raw }},
+  "numberOfItems": {{ albums|length }},
+  "hasPart": [
+    {% for album in albums|slice(0, 20) %}
+    {
+      "@type": "ImageGallery",
+      "name": {{ album.title|json_encode|raw }},
+      "url": "{{ base_path }}/album/{{ album.slug }}"
+      {% if album.images_count %},
+      "numberOfItems": {{ album.images_count }}
+      {% endif %}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">
+(function() {
+    'use strict';
+
+    var basePath = window.basePath || '{{ base_path|e('js') }}';
+    var csrfToken = '{{ csrf|e('js') }}';
+    var siteTitle = '{{ site_title|default('')|e('js') }}';
+    var txtNsfwShort = '{{ trans('album.nsfw_warning_short')|e('js') }}';
+    var txtLocked = '{{ trans('album.password_protected')|e('js') }}';
+
+    function esc(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function safeLocalStorageGet(key) {
+        try { return window.localStorage ? window.localStorage.getItem(key) : null; } catch (e) { return null; }
+    }
+    function safeLocalStorageSet(key, value) {
+        try { if (window.localStorage) window.localStorage.setItem(key, value); } catch (e) {}
+    }
+
+    function hasConfirmedNsfw() {
+        if (window.nsfwConsent === true) return true;
+        if (safeLocalStorageGet('nsfw_confirmed') === 'true') return true;
+        if (safeLocalStorageGet('nsfw_global_confirmed') === 'true') return true;
+        return false;
+    }
+    window.hasConfirmedNsfw = hasConfirmedNsfw;
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '';
+        var m = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (!m) return String(dateStr);
+        var fmt = window.dateFormat || 'Y-m-d';
+        switch (fmt) {
+            case 'd-m-Y': return m[3] + '-' + m[2] + '-' + m[1];
+            case 'd/m/Y': return m[3] + '/' + m[2] + '/' + m[1];
+            case 'm/d/Y': return m[2] + '/' + m[3] + '/' + m[1];
+            default: return m[1] + '-' + m[2] + '-' + m[3];
+        }
+    }
+
+    function prefixPath(p) {
+        if (!p) return '';
+        return (p.charAt(0) === '/' && basePath) ? (basePath + p) : p;
+    }
+
+    // Client-side renderer for the shared filter partial: must mirror the
+    // server-rendered .bgal-card markup exactly (pattern sizing is pure CSS).
+    window.cimaiseRenderCard = function(album, index) {
+        var cover = album.cover_image || {};
+        var previewSrc = prefixPath(cover.preview_path || '');
+        var blurSrc = prefixPath(cover.blur_path || '');
+        var isNsfw = !!(album.is_nsfw && !window.isAdmin);
+        var isLocked = !!album.is_locked;
+        var nsfwUnconfirmed = isNsfw && !hasConfirmedNsfw();
+        var shouldBlur = nsfwUnconfirmed || isLocked;
+        var alt = esc(cover.alt_text || album.title || '');
+        var seoTitle = esc([album.title || '', siteTitle].filter(Boolean).join(' — '));
+        var albumUrl = basePath + '/album/' + encodeURIComponent(album.slug || '');
+        var tagsCount = Array.isArray(album.tags) ? album.tags.length : 0; // shape parity, unused visually
+        void tagsCount;
+
+        var mediaHtml = '';
+        if (shouldBlur && blurSrc) {
+            mediaHtml = '<img src="' + esc(blurSrc) + '"' +
+                ((!isLocked && previewSrc) ? ' data-nsfw-real-src="' + esc(previewSrc) + '"' : '') +
+                ' alt="' + alt + '" title="' + seoTitle + '" class="bgal-img nsfw-blur" loading="lazy" decoding="async" data-fallback="hide">';
+        } else if (!shouldBlur && previewSrc) {
+            mediaHtml = '<img src="' + esc(previewSrc) + '" alt="' + alt + '" title="' + seoTitle + '" class="bgal-img" loading="lazy" decoding="async" data-fallback="hide">';
+        } else {
+            mediaHtml = '<div class="bgal-fallback" aria-hidden="true"><i class="fas ' + (shouldBlur ? 'fa-eye-slash' : 'fa-images') + '"></i></div>';
+        }
+
+        var overlayHtml = '';
+        if (nsfwUnconfirmed) {
+            overlayHtml = '<div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">' +
+                '<i class="fas fa-eye-slash text-3xl mb-2"></i>' +
+                '<span class="text-sm font-medium">' + esc(txtNsfwShort) + '</span></div>';
+        } else if (isLocked) {
+            overlayHtml = '<div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">' +
+                '<i class="fas fa-lock text-3xl mb-2"></i>' +
+                '<span class="text-sm font-medium">' + esc(txtLocked) + '</span></div>';
+        }
+
+        var badgesHtml = '<div class="bgal-badges">' +
+            (album.is_password_protected ? '<span title="' + esc(txtLocked) + '"><i class="fas fa-lock"></i></span>' : '') +
+            ((album.images_count || 0) > 0 ? '<span class="bgal-count"><i class="fas fa-images"></i>' + esc(album.images_count) + '</span>' : '') +
+            '</div>';
+
+        var captionHtml = '<div class="bgal-caption">' +
+            (album.category_name ? '<span class="bgal-kicker">' + esc(album.category_name) + '</span>' : '') +
+            '<h2 class="bgal-title">' + esc(album.title) + '</h2>' +
+            (album.shoot_date ? '<p class="bgal-meta">' + esc(formatDate(album.shoot_date)) + '</p>' : '') +
+            '</div>';
+
+        return '<article class="bgal-card gallery-card group"' +
+            ' data-album-id="' + esc(album.id) + '"' +
+            ' data-nsfw="' + (isNsfw ? '1' : '0') + '"' +
+            ' data-password-protected="' + (album.is_password_protected ? '1' : '0') + '"' +
+            ' data-album-url="' + esc(albumUrl) + '"' +
+            ' data-action="open-album"' +
+            ' tabindex="0" role="link"' +
+            ' aria-label="' + seoTitle + '">' +
+            mediaHtml +
+            '<div class="bgal-scrim" aria-hidden="true"></div>' +
+            overlayHtml +
+            badgesHtml +
+            captionHtml +
+            '</article>';
+    };
+
+    // Re-run after the shared partial re-renders #galleries-grid.
+    // The bento pattern and entrance are pure CSS, so freshly inserted nodes
+    // pick them up automatically; we only need to re-apply NSFW consent swaps.
+    document.addEventListener('cimaise:galleries-updated', function() {
+        if (window.applyNsfwConsentState) window.applyNsfwConsentState();
+    });
+
+    // ---------- NSFW modal + card navigation (same contract as classic page) ----------
+    var pendingNsfwUrl = null;
+
+    function showNsfwModal() {
+        var modal = document.getElementById('nsfw-modal');
+        var error = document.getElementById('nsfw-error');
+        if (!modal) return;
+        if (error) error.classList.add('hidden');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function hideNsfwModal() {
+        var modal = document.getElementById('nsfw-modal');
+        if (!modal) return;
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.style.overflow = '';
+    }
+
+    function handleGalleryCardClick(event, card) {
+        event.preventDefault();
+        event.stopPropagation();
+        var isNsfw = card.dataset.nsfw === '1';
+        var isPasswordProtected = card.dataset.passwordProtected === '1';
+        var albumUrl = card.dataset.albumUrl;
+        if (isNsfw && !isPasswordProtected && !hasConfirmedNsfw()) {
+            pendingNsfwUrl = albumUrl;
+            showNsfwModal();
+        } else {
+            window.location.href = albumUrl;
+        }
+    }
+
+    function confirmNsfwAge() {
+        var error = document.getElementById('nsfw-error');
+        if (!csrfToken) {
+            if (error) error.classList.remove('hidden');
+            return;
+        }
+        fetch(basePath + '/nsfw/confirm', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'csrf=' + encodeURIComponent(csrfToken) + '&nsfw_confirmed=1'
+        }).then(function(resp) {
+            if (!resp.ok) throw new Error('NSFW confirm failed');
+            safeLocalStorageSet('nsfw_confirmed', 'true');
+            window.nsfwConsent = true;
+            if (window.applyNsfwConsentState) window.applyNsfwConsentState();
+            hideNsfwModal();
+            if (pendingNsfwUrl) {
+                window.location.href = pendingNsfwUrl;
+                pendingNsfwUrl = null;
+            } else if (typeof window.applyFilters === 'function') {
+                window.applyFilters();
+            }
+        }).catch(function() {
+            if (error) error.classList.remove('hidden');
+        });
+    }
+
+    // Delegated, CSP-safe actions (clear-filters is owned by the shared partial)
+    document.addEventListener('click', function(event) {
+        var target = event.target.closest('[data-action]');
+        if (!target) return;
+        var action = target.dataset.action;
+        if (action === 'open-album') {
+            handleGalleryCardClick(event, target);
+        } else if (action === 'confirm-nsfw') {
+            event.preventDefault();
+            confirmNsfwAge();
+        } else if (action === 'cancel-nsfw') {
+            event.preventDefault();
+            hideNsfwModal();
+            pendingNsfwUrl = null;
+        }
+    });
+
+    // Keyboard support for the focusable cards
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            hideNsfwModal();
+            pendingNsfwUrl = null;
+            return;
+        }
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        var card = event.target.closest && event.target.closest('[data-action="open-album"]');
+        if (!card) return;
+        handleGalleryCardClick(event, card);
+    });
+
+    // Close modal on backdrop click
+    var nsfwModal = document.getElementById('nsfw-modal');
+    if (nsfwModal) {
+        nsfwModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideNsfwModal();
+                pendingNsfwUrl = null;
+            }
+        });
+    }
+
+    // On load, swap blurred covers if consent was already given
+    document.addEventListener('DOMContentLoaded', function() {
+        if (hasConfirmedNsfw()) {
+            safeLocalStorageSet('nsfw_confirmed', 'true');
+            if (window.applyNsfwConsentState) window.applyNsfwConsentState();
+        }
+    });
+})();
+</script>
+{% endblock %}

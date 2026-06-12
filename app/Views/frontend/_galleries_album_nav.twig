@@ -1,0 +1,198 @@
+{#
+  _galleries_album_nav.twig — shared album-card navigation + NSFW age gate.
+
+  Extracted from galleries_chronicle.twig's working open-album block for the
+  listing templates that render cards with data-action="open-album" but do not
+  ship their own click/keyboard handler (filmstrip, panorama). Chronicle keeps
+  its own self-contained copy of this logic — do not include this partial there.
+
+  Provides:
+  - delegated click handling for [data-action="open-album"] cards
+  - keyboard handling (Enter / Space open, Escape closes the modal)
+  - the #nsfw-modal age-confirmation modal + confirm/cancel POST flow
+    (csrf-protected POST to {{ base_path }}/nsfw/confirm, same endpoint as chronicle)
+  - localStorage consent helpers (window.hasConfirmedNsfw / window.nsfwConsent)
+
+  IMPORTANT: include this partial at most ONCE per page. The script is
+  idempotent (guarded by document.body.dataset.cimaiseAlbumNavBound) but the
+  #nsfw-modal markup below would be duplicated by a second include.
+
+  Ambient Twig vars used: base_path, csrf, nsfw_consent (optional).
+#}
+
+<!-- NSFW Age Confirmation Modal -->
+<div id="nsfw-modal" class="fixed inset-0 bg-black/70 z-50 hidden items-center justify-center p-4">
+  <div class="modal-content bg-white dark:bg-neutral-900 rounded-2xl max-w-md w-full p-8 text-center shadow-2xl">
+    <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+      <i class="fas fa-exclamation-triangle text-amber-600 text-3xl"></i>
+    </div>
+    <h3 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">{{ trans('album.nsfw_title') }}</h3>
+    <p class="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+      {{ trans('album.nsfw_message') }}
+    </p>
+    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+      <button data-action="confirm-nsfw" class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium">
+        {{ trans('album.nsfw_confirm') }}
+      </button>
+      <button data-action="cancel-nsfw" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium">
+        {{ trans('album.nsfw_cancel') }}
+      </button>
+    </div>
+    <p id="nsfw-error" class="text-sm text-red-600 mt-4 hidden">
+      {{ trans('album.nsfw_error')|default('Verification failed. Please try again.') }}
+    </p>
+    <p class="text-xs text-gray-400 mt-6">
+      {{ trans('album.nsfw_remember') }}
+    </p>
+  </div>
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+(function() {
+  'use strict';
+
+  // Idempotent: document-level listeners must bind once per page
+  if (document.body.dataset.cimaiseAlbumNavBound === '1') return;
+  document.body.dataset.cimaiseAlbumNavBound = '1';
+
+  var NAV_BASE_PATH = window.basePath || '{{ base_path|e('js') }}';
+  var NAV_CSRF = '{{ csrf|e('js') }}';
+
+  function safeLsGet(key) {
+    try { return window.localStorage ? window.localStorage.getItem(key) : null; } catch (e) { return null; }
+  }
+  function safeLsSet(key, value) {
+    try { if (window.localStorage) window.localStorage.setItem(key, value); } catch (e) {}
+  }
+
+  if (window.nsfwConsent !== true) {
+    window.nsfwConsent = {{ nsfw_consent|default(false) ? 'true' : 'false' }};
+  }
+  // Exposed so the filter partial delegates NSFW consent checks to the page
+  window.hasConfirmedNsfw = function() {
+    if (window.nsfwConsent === true) return true;
+    return safeLsGet('nsfw_confirmed') === 'true';
+  };
+
+  // Swap blurred covers when consent is granted (host may provide its own)
+  if (typeof window.applyNsfwConsentState !== 'function') {
+    window.applyNsfwConsentState = function() {
+      document.querySelectorAll('#galleries-grid img[data-nsfw-real-src]').forEach(function(img) {
+        img.src = img.getAttribute('data-nsfw-real-src');
+        img.removeAttribute('data-nsfw-real-src');
+        img.classList.remove('nsfw-blur');
+      });
+      document.querySelectorAll('#galleries-grid [data-nsfw="1"] .nsfw-overlay').forEach(function(el) {
+        el.remove();
+      });
+    };
+  }
+
+  // --- Card clicks + NSFW modal -------------------------------------------
+  var pendingNsfwUrl = null;
+
+  function showNsfwModal() {
+    var modal = document.getElementById('nsfw-modal');
+    var error = document.getElementById('nsfw-error');
+    if (!modal) return;
+    if (error) error.classList.add('hidden');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function hideNsfwModal() {
+    var modal = document.getElementById('nsfw-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.style.overflow = '';
+  }
+
+  function confirmNsfwAge() {
+    if (!NAV_CSRF) {
+      var err = document.getElementById('nsfw-error');
+      if (err) err.classList.remove('hidden');
+      return;
+    }
+    fetch(NAV_BASE_PATH + '/nsfw/confirm', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'csrf=' + encodeURIComponent(NAV_CSRF) + '&nsfw_confirmed=1'
+    }).then(function(resp) {
+      if (!resp.ok) throw new Error('NSFW confirm failed');
+      safeLsSet('nsfw_confirmed', 'true');
+      window.nsfwConsent = true;
+      window.applyNsfwConsentState();
+      hideNsfwModal();
+      if (pendingNsfwUrl) {
+        window.location.href = pendingNsfwUrl;
+        pendingNsfwUrl = null;
+      } else if (typeof window.applyFilters === 'function') {
+        window.applyFilters();
+      }
+    }).catch(function() {
+      var err = document.getElementById('nsfw-error');
+      if (err) err.classList.remove('hidden');
+    });
+  }
+
+  function openAlbumFromCard(event, card) {
+    event.preventDefault();
+    event.stopPropagation();
+    var isNsfw = card.dataset.nsfw === '1';
+    var isPasswordProtected = card.dataset.passwordProtected === '1';
+    var albumUrl = card.dataset.albumUrl;
+    if (!albumUrl) return;
+    if (isNsfw && !isPasswordProtected && !window.hasConfirmedNsfw()) {
+      pendingNsfwUrl = albumUrl;
+      showNsfwModal();
+    } else {
+      window.location.href = albumUrl;
+    }
+  }
+
+  document.addEventListener('click', function(event) {
+    var target = event.target.closest ? event.target.closest('[data-action]') : null;
+    if (!target) return;
+    var action = target.dataset.action;
+    if (action === 'open-album') {
+      // Let real links and embedded controls inside a card behave normally
+      if (event.target.closest('a, button, [data-fs-scroll]')) return;
+      openAlbumFromCard(event, target);
+    } else if (action === 'confirm-nsfw') {
+      event.preventDefault();
+      confirmNsfwAge();
+    } else if (action === 'cancel-nsfw') {
+      event.preventDefault();
+      hideNsfwModal();
+      pendingNsfwUrl = null;
+    }
+  });
+
+  // Keyboard access for role="link" cards (Enter / Space open, Escape closes)
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') { hideNsfwModal(); return; }
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    if (event.target.closest && event.target.closest('a, button')) return;
+    var card = event.target.closest ? event.target.closest('[data-action="open-album"]') : null;
+    if (!card) return;
+    if (event.key === ' ') event.preventDefault(); // stop page scroll
+    openAlbumFromCard(event, card);
+  });
+
+  var nsfwModal = document.getElementById('nsfw-modal');
+  if (nsfwModal) {
+    nsfwModal.addEventListener('click', function(e) {
+      if (e.target === this) hideNsfwModal();
+    });
+  }
+
+  // On load: if consent already granted, unblur immediately
+  if (window.hasConfirmedNsfw()) {
+    safeLsSet('nsfw_confirmed', 'true');
+    window.applyNsfwConsentState();
+  }
+})();
+</script>

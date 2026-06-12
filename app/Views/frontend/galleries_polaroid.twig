@@ -1,0 +1,363 @@
+{% extends 'frontend/_layout.twig' %}
+
+{% block styles %}
+<style nonce="{{ csp_nonce() }}">
+  /* ===== Polaroid Wall — prints pinned on a wall ===== */
+  .pol-page { background: #fafafa; }
+  html.dark .pol-page { background: #0a0a0a; }
+
+  .pol-frame { max-width: 1240px; margin: 0 auto; padding: 0 1.25rem; }
+  @media (min-width: 1024px) { .pol-frame { padding: 0 2.5rem; } }
+
+  /* Masthead */
+  .pol-hero { padding: 4.5rem 0 3.25rem; }
+  @media (min-width: 1024px) { .pol-hero { padding: 6rem 0 4rem; } }
+  .pol-kicker { font-size: .7rem; letter-spacing: .24em; text-transform: uppercase; color: #737373; font-weight: 500; }
+  html.dark .pol-kicker { color: #8c8c8c; }
+  .pol-heading { font-size: clamp(2.4rem, 6vw, 4.5rem); line-height: 1.04; font-weight: 300; letter-spacing: -.025em; color: #171717; margin-top: 1rem; }
+  html.dark .pol-heading { color: #f5f5f4; }
+  .pol-hero-foot { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .75rem 2.5rem; margin-top: 1.5rem; }
+  .pol-sub { max-width: 52ch; color: #525252; font-size: 1.05rem; line-height: 1.7; }
+  html.dark .pol-sub { color: #a3a3a3; }
+  .pol-count { font-size: .7rem; letter-spacing: .2em; text-transform: uppercase; color: #a3a3a3; white-space: nowrap; }
+  html.dark .pol-count { color: #6b6b6b; }
+
+  /* The wall: a subtly different neutral from the page in both themes */
+  .pol-wall { background: #f1efec; border-top: 1px solid #e6e3df; padding: 4rem 0 7rem; }
+  html.dark .pol-wall { background: #131315; border-top-color: #232326; }
+
+  /* Grid: 2 / 3 / 4 columns with uneven row offsets */
+  .pol-grid { display: grid; grid-template-columns: repeat(2, 1fr); column-gap: 1.25rem; row-gap: 2.75rem; align-items: start; }
+  @media (min-width: 768px) { .pol-grid { grid-template-columns: repeat(3, 1fr); column-gap: 1.75rem; row-gap: 3.25rem; } }
+  @media (min-width: 1280px) { .pol-grid { grid-template-columns: repeat(4, 1fr); column-gap: 2rem; } }
+
+  .pol-card { cursor: pointer; }
+  .pol-card:focus-visible { outline: none; }
+  .pol-card:focus-visible .pol-print { outline: 2px solid #737373; outline-offset: 4px; }
+
+  /* Uneven hang heights per breakpoint */
+  .pol-card:nth-child(2n) { margin-top: 2rem; }
+  @media (min-width: 768px) {
+    .pol-card:nth-child(n) { margin-top: 0; }
+    .pol-card:nth-child(3n+2) { margin-top: 2.5rem; }
+    .pol-card:nth-child(3n) { margin-top: 1rem; }
+  }
+  @media (min-width: 1280px) {
+    .pol-card:nth-child(n) { margin-top: 0; }
+    .pol-card:nth-child(4n+2) { margin-top: 2.25rem; }
+    .pol-card:nth-child(4n+3) { margin-top: .75rem; }
+    .pol-card:nth-child(4n) { margin-top: 3rem; }
+  }
+
+  /* The print: white frame, wider chin, soft realistic shadow.
+     Prints stay light in dark mode, like real polaroids on a dark wall. */
+  .pol-print {
+    position: relative;
+    background: #fbfaf8;
+    padding: .85rem .85rem 2.9rem;
+    box-shadow: 0 1px 2px rgba(30, 28, 24, .12), 0 12px 24px -10px rgba(30, 28, 24, .28);
+    transition: transform .2s ease-out, box-shadow .2s ease-out;
+    will-change: transform;
+  }
+  html.dark .pol-print {
+    background: #f0efec;
+    box-shadow: 0 1px 2px rgba(5, 5, 8, .5), 0 14px 28px -10px rgba(5, 5, 8, .65);
+  }
+
+  /* Push pin */
+  .pol-print::before {
+    content: '';
+    position: absolute;
+    top: .38rem;
+    left: 50%;
+    margin-left: -.26rem;
+    width: .52rem;
+    height: .52rem;
+    border-radius: 9999px;
+    background: #b8b4ad;
+    box-shadow: inset 0 -1px 1px rgba(28, 26, 22, .4), 0 1px 2px rgba(28, 26, 22, .3);
+    z-index: 2;
+  }
+  html.dark .pol-print::before { background: #98948c; box-shadow: inset 0 -1px 1px rgba(8, 8, 10, .5), 0 1px 2px rgba(8, 8, 10, .5); }
+
+  /* Deterministic tilt cycle (straightened on hover) */
+  .pol-card:nth-child(5n+1) .pol-print { transform: rotate(-2.2deg); }
+  .pol-card:nth-child(5n+2) .pol-print { transform: rotate(1.8deg); }
+  .pol-card:nth-child(5n+3) .pol-print { transform: rotate(-1deg); }
+  .pol-card:nth-child(5n+4) .pol-print { transform: rotate(2.4deg); }
+  .pol-card:nth-child(5n) .pol-print { transform: rotate(-1.6deg); }
+
+  .pol-card:hover .pol-print,
+  .pol-card:focus-visible .pol-print {
+    transform: rotate(0deg) translateY(-4px);
+    box-shadow: 0 2px 4px rgba(30, 28, 24, .12), 0 22px 40px -12px rgba(30, 28, 24, .38);
+  }
+  html.dark .pol-card:hover .pol-print,
+  html.dark .pol-card:focus-visible .pol-print {
+    box-shadow: 0 2px 4px rgba(5, 5, 8, .5), 0 24px 44px -12px rgba(5, 5, 8, .75);
+  }
+
+  /* Square photo area, ratio reserved (no layout shift) */
+  .pol-photo { position: relative; aspect-ratio: 1 / 1; overflow: hidden; background: #e8e6e2; }
+  .pol-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .pol-photo-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #b3b0aa; font-size: 1.6rem; }
+
+  /* NSFW / lock veil over the (already blurred) cover */
+  .pol-veil { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5rem; background: rgba(16, 15, 14, .55); color: #f5f5f4; pointer-events: none; z-index: 1; }
+  .pol-veil i { font-size: 1.5rem; }
+  .pol-veil span { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; }
+
+  /* Caption: handwritten feel via styling of the body font only */
+  .pol-caption { padding: .8rem .2rem 0; text-align: center; }
+  .pol-title {
+    font-style: italic;
+    font-weight: 400;
+    font-size: .95rem;
+    line-height: 1.35;
+    color: #4f4c47;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .pol-meta { margin-top: .3rem; font-style: italic; font-size: .72rem; color: #97938c; }
+  .pol-meta-item { display: inline-block; }
+  .pol-meta-item + .pol-meta-item::before { content: '\00B7'; margin: 0 .55em; color: #c2beb7; }
+  .pol-meta-flag i { font-size: .62rem; margin-right: .25em; }
+
+  /* Empty state (server-side, no published galleries): one intentional blank print */
+  .pol-empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 2rem 0 3rem; }
+  .pol-empty .pol-print { width: min(280px, 70vw); transform: rotate(-1.8deg); cursor: default; }
+  .pol-empty-title { margin-top: 2.25rem; font-size: clamp(1.5rem, 3.5vw, 2.25rem); font-weight: 300; letter-spacing: -.02em; color: #1c1c1c; }
+  html.dark .pol-empty-title { color: #ededec; }
+  .pol-empty-text { margin-top: .75rem; max-width: 46ch; color: #737373; line-height: 1.7; }
+  html.dark .pol-empty-text { color: #8c8c8c; }
+
+  /* Entrance: CSS-only drop-and-settle with stagger. Pure enhancement,
+     content is visible without JS and without animation support. */
+  @media (prefers-reduced-motion: no-preference) {
+    .pol-card { animation: polSettle .4s cubic-bezier(.22, 1, .36, 1) both; }
+    .pol-card:nth-child(1)  { animation-delay: .04s; }
+    .pol-card:nth-child(2)  { animation-delay: .08s; }
+    .pol-card:nth-child(3)  { animation-delay: .12s; }
+    .pol-card:nth-child(4)  { animation-delay: .16s; }
+    .pol-card:nth-child(5)  { animation-delay: .2s; }
+    .pol-card:nth-child(6)  { animation-delay: .24s; }
+    .pol-card:nth-child(7)  { animation-delay: .28s; }
+    .pol-card:nth-child(8)  { animation-delay: .32s; }
+    .pol-card:nth-child(n+9) { animation-delay: .36s; }
+  }
+  @keyframes polSettle {
+    from { opacity: 0; transform: translateY(-14px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pol-card { animation: none !important; }
+    .pol-print { transition: none !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+  {% include 'frontend/_breadcrumbs.twig' %}
+</div>
+
+<div class="pol-page">
+  <!-- Masthead -->
+  <header class="pol-frame">
+    <div class="pol-hero">
+      <p class="pol-kicker">{{ trans('galleries.tpl.wall_kicker', {}, 'The wall') }}</p>
+      <h1 class="pol-heading">{{ page_texts.title|default(trans('galleries.title'))|e }}</h1>
+      <div class="pol-hero-foot">
+        <p class="pol-sub">{{ page_texts.subtitle|default(trans('galleries.subtitle'))|e }}</p>
+        <p class="pol-count">
+          {% if albums|length == 1 %}
+            {{ trans('filter.gallery_count') }}
+          {% else %}
+            {{ trans('filter.galleries_count', {count: albums|length}) }}
+          {% endif %}
+        </p>
+      </div>
+    </div>
+  </header>
+
+  {% if filter_settings.enabled|default(false) %}{% include 'frontend/_galleries_filters.twig' %}{% endif %}
+
+  <!-- The wall -->
+  <main class="pol-wall">
+    <div class="pol-frame">
+      <div id="galleries-grid" class="pol-grid">
+        {% for album in albums %}
+          {% set is_locked = album.is_locked|default(false) %}
+          {% set show_nsfw_overlay = album.is_nsfw and not ((nsfw_consent|default(false)) or (is_admin|default(false))) %}
+          {% set should_blur_cover = show_nsfw_overlay or is_locked %}
+          {% set cover_raw = '' %}
+          {% if album.cover_image %}
+            {% set cover_raw = should_blur_cover ? album.cover_image.blur_path|default('') : album.cover_image.preview_path|default('') %}
+          {% endif %}
+          {% set cover_url = cover_raw ? ((cover_raw starts with '/') ? (base_path ~ cover_raw) : cover_raw) : '' %}
+          <article class="pol-card gallery-card"
+                   role="link"
+                   tabindex="0"
+                   data-album-id="{{ album.id }}"
+                   data-nsfw="{{ album.is_nsfw and not is_admin ? '1' : '0' }}"
+                   data-password-protected="{{ album.is_password_protected ? '1' : '0' }}"
+                   data-album-url="{{ base_path }}/album/{{ album.slug }}"
+                   data-action="open-album"
+                   aria-label="{{ album.title|e('html_attr') }}">
+            <div class="pol-print">
+              <div class="pol-photo">
+                {% if cover_url %}
+                  <img src="{{ cover_url }}"
+                       alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
+                       {% if loop.index > 4 %}loading="lazy" {% endif %}decoding="async">
+                {% else %}
+                  <span class="pol-photo-empty"><i class="fas fa-images" aria-hidden="true"></i></span>
+                {% endif %}
+                {% if show_nsfw_overlay %}
+                  <div class="pol-veil"><i class="fas fa-eye-slash" aria-hidden="true"></i><span>{{ trans('album.nsfw_warning_short') }}</span></div>
+                {% elseif is_locked %}
+                  <div class="pol-veil"><i class="fas fa-lock" aria-hidden="true"></i><span>{{ trans('album.password_protected') }}</span></div>
+                {% endif %}
+              </div>
+              <div class="pol-caption">
+                <p class="pol-title">{{ album.title|e }}</p>
+                <p class="pol-meta">
+                  {%- if album.shoot_date %}<span class="pol-meta-item">{{ album.shoot_date|slice(0, 4)|e }}</span>{% endif -%}
+                  {%- if album.category_name %}<span class="pol-meta-item">{{ album.category_name|e }}</span>{% endif -%}
+                  {%- if album.images_count > 0 %}<span class="pol-meta-item">{{ album.images_count }} {{ trans('galleries.tpl.photos', {}, 'photos') }}</span>{% endif -%}
+                  {%- if album.is_password_protected %}<span class="pol-meta-item pol-meta-flag"><i class="fas fa-lock" aria-hidden="true"></i>{{ trans('album.password_protected') }}</span>{% endif -%}
+                </p>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+
+      {% if albums|length == 0 %}
+      <div id="empty-state" class="pol-empty">
+        <div class="pol-print" aria-hidden="true">
+          <div class="pol-photo">
+            <span class="pol-photo-empty"><i class="fas fa-images"></i></span>
+          </div>
+          <div class="pol-caption">
+            <p class="pol-title">{{ trans('galleries.tpl.empty_caption', {}, 'Space reserved') }}</p>
+          </div>
+        </div>
+        <h2 class="pol-empty-title">{{ trans('galleries.tpl.empty_title', {}, 'Nothing published yet') }}</h2>
+        <p class="pol-empty-text">{{ trans('galleries.tpl.empty_text', {}, 'New galleries will appear in this index as soon as they are published.') }}</p>
+      </div>
+      {% endif %}
+    </div>
+  </main>
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+(function () {
+    'use strict';
+
+    window.basePath = window.basePath || '{{ base_path|e('js') }}';
+    {% if nsfw_consent|default(false) %}window.nsfwConsent = true;{% endif %}
+    var IS_ADMIN = {{ is_admin|default(false) ? 'true' : 'false' }};
+    var TEXTS = {
+        photos: '{{ trans('galleries.tpl.photos', {}, 'photos')|e('js') }}',
+        locked: '{{ trans('album.password_protected')|e('js') }}',
+        nsfw: '{{ trans('album.nsfw_warning_short')|e('js') }}'
+    };
+
+    function esc(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function hasNsfwConsent() {
+        if (window.nsfwConsent === true) return true;
+        try {
+            return window.localStorage && window.localStorage.getItem('nsfw_confirmed') === 'true';
+        } catch (e) { return false; }
+    }
+
+    // ---- Client-side card renderer (called by the filters partial) ----
+    // Produces markup structurally identical to the server-rendered .pol-card above.
+    // Tilt, offsets and entrance stagger are all :nth-child driven, so they apply
+    // automatically to re-rendered cards.
+    window.cimaiseRenderCard = function (album, index) {
+        album = album || {};
+        var cover = album.cover_image || {};
+        var isLocked = !!album.is_locked;
+        var nsfwBlocked = !!album.is_nsfw && !IS_ADMIN && !hasNsfwConsent();
+        var shouldBlur = nsfwBlocked || isLocked;
+        var raw = shouldBlur ? (cover.blur_path || '') : (cover.preview_path || '');
+        var url = raw ? (raw.charAt(0) === '/' ? (window.basePath || '') + raw : raw) : '';
+        var albumUrl = (window.basePath || '') + '/album/' + encodeURIComponent(album.slug || '');
+        var lazyAttr = (index || 0) >= 4 ? ' loading="lazy"' : '';
+        var year = String(album.shoot_date || '').slice(0, 4);
+        if (!/^\d{4}$/.test(year)) year = '';
+
+        var photo = url
+            ? '<img src="' + esc(url) + '" alt="' + esc(cover.alt_text || album.title || '') + '"' + lazyAttr + ' decoding="async">'
+            : '<span class="pol-photo-empty"><i class="fas fa-images" aria-hidden="true"></i></span>';
+        if (nsfwBlocked) {
+            photo += '<div class="pol-veil"><i class="fas fa-eye-slash" aria-hidden="true"></i><span>' + esc(TEXTS.nsfw) + '</span></div>';
+        } else if (isLocked) {
+            photo += '<div class="pol-veil"><i class="fas fa-lock" aria-hidden="true"></i><span>' + esc(TEXTS.locked) + '</span></div>';
+        }
+
+        var meta = '';
+        if (year) meta += '<span class="pol-meta-item">' + esc(year) + '</span>';
+        if (album.category_name) meta += '<span class="pol-meta-item">' + esc(album.category_name) + '</span>';
+        if ((album.images_count || 0) > 0) meta += '<span class="pol-meta-item">' + esc(album.images_count) + ' ' + esc(TEXTS.photos) + '</span>';
+        if (album.is_password_protected) meta += '<span class="pol-meta-item pol-meta-flag"><i class="fas fa-lock" aria-hidden="true"></i>' + esc(TEXTS.locked) + '</span>';
+
+        return '<article class="pol-card gallery-card" role="link" tabindex="0"'
+            + ' data-album-id="' + esc(album.id || '') + '"'
+            + ' data-nsfw="' + ((album.is_nsfw && !IS_ADMIN) ? '1' : '0') + '"'
+            + ' data-password-protected="' + (album.is_password_protected ? '1' : '0') + '"'
+            + ' data-album-url="' + esc(albumUrl) + '"'
+            + ' data-action="open-album"'
+            + ' aria-label="' + esc(album.title || '') + '">'
+            + '<div class="pol-print">'
+            + '<div class="pol-photo">' + photo + '</div>'
+            + '<div class="pol-caption">'
+            + '<p class="pol-title">' + esc(album.title || '') + '</p>'
+            + '<p class="pol-meta">' + meta + '</p>'
+            + '</div>'
+            + '</div>'
+            + '</article>';
+    };
+
+    // ---- Card navigation (album page handles NSFW/password gates server-side) ----
+    document.addEventListener('click', function (event) {
+        var card = event.target.closest('[data-action="open-album"]');
+        if (!card) return;
+        if (event.target.closest('a')) return;
+        event.preventDefault();
+        if (card.dataset.albumUrl) window.location.href = card.dataset.albumUrl;
+    });
+    document.addEventListener('keydown', function (event) {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        if (!event.target || !event.target.closest) return;
+        var card = event.target.closest('[data-action="open-album"]');
+        if (!card || card !== event.target) return;
+        event.preventDefault();
+        if (card.dataset.albumUrl) window.location.href = card.dataset.albumUrl;
+    });
+
+    // ---- After the filters partial re-renders the grid ----
+    // Tilt, hang offsets and the entrance animation restart automatically on the
+    // new nodes (everything is :nth-child / keyframe driven). Only reset focus so
+    // keyboard users are not left on a removed card.
+    document.addEventListener('cimaise:galleries-updated', function () {
+        if (document.activeElement && document.activeElement.closest &&
+            !document.body.contains(document.activeElement)) {
+            try { document.activeElement.blur(); } catch (e) { /* noop */ }
+        }
+    });
+})();
+</script>
+{% endblock %}
