@@ -63,6 +63,8 @@
 
   /* Card: fixed width + 2:3 cover reserves space (no layout shift) */
   .fs-card { flex: 0 0 auto; width: 160px; scroll-snap-align: start; }
+  .fs-card:focus-visible { outline: 2px solid #161616; outline-offset: 3px; border-radius: .375rem; }
+  .dark .fs-card:focus-visible { outline-color: #ededed; }
   @media (min-width: 768px) { .fs-card { width: 227px; } }
   .fs-cover { position: relative; aspect-ratio: 2 / 3; overflow: hidden; border-radius: .375rem; background: #ececea; }
   .dark .fs-cover { background: #161616; }
@@ -160,7 +162,7 @@
               </div>
             </header>
 
-            <div class="fs-strip" role="list">
+            <div class="fs-strip">
               {% for album in group_albums %}
               {% set is_eager = group_is_first and loop.index <= 4 %}
               {% set show_nsfw_overlay = not ((nsfw_consent|default(false)) or (is_admin|default(false))) %}
@@ -176,7 +178,8 @@
                        data-password-protected="{{ album.is_password_protected ? '1' : '0' }}"
                        data-album-url="{{ base_path }}/album/{{ album.slug }}"
                        data-action="open-album"
-                       role="listitem"
+                       role="link"
+                       tabindex="0"
                        aria-label="{{ album.title|e('html_attr') }}">
                 <div class="fs-cover">
                   {% if album.cover_image %}
@@ -385,7 +388,8 @@
             ' data-password-protected="' + (album.is_password_protected ? '1' : '0') + '"' +
             ' data-album-url="' + esc(url) + '"' +
             ' data-action="open-album"' +
-            ' role="listitem"' +
+            ' role="link"' +
+            ' tabindex="0"' +
             ' aria-label="' + esc(album.title || '') + '">' +
             '<div class="fs-cover">' + coverInner + overlays + '</div>' +
             '<div class="fs-meta">' +
@@ -425,7 +429,6 @@
 
         var strip = document.createElement('div');
         strip.className = 'fs-strip';
-        strip.setAttribute('role', 'list');
         cards.forEach(function (card) { strip.appendChild(card); });
 
         section.appendChild(head);
@@ -518,4 +521,6 @@
     }
 })();
 </script>
+{# Shared open-album navigation + NSFW age gate (include ONCE per page) #}
+{% include 'frontend/_galleries_album_nav.twig' %}
 {% endblock %}

@@ -9,6 +9,8 @@
 
   /* Rows: slow vertical rhythm, varied for breathing room */
   .panorama-row { display: block; margin: 0 0 5.5rem; }
+  .panorama-row:focus-visible { outline: 2px solid #1c1c1a; outline-offset: 4px; }
+  html.dark .panorama-row:focus-visible { outline-color: #f2f2ef; }
   @media (min-width: 1024px) {
     .panorama-row { margin-bottom: 7rem; }
     .panorama-row:nth-child(3n) { margin-bottom: 9rem; }
@@ -209,6 +211,8 @@
       {% set should_blur_cover = (album.is_nsfw and not nsfw_consent|default(false) and not is_admin|default(false)) or is_locked %}
       {% set album_year = album.shoot_date ? album.shoot_date|slice(0, 4) : (album.published_at ? album.published_at|slice(0, 4) : '') %}
       <article class="panorama-row gallery-card group cursor-pointer{{ not is_eager ? ' lazy-card' : '' }}"
+               role="link"
+               tabindex="0"
                data-album-id="{{ album.id }}"
                data-nsfw="{{ album.is_nsfw and not is_admin ? '1' : '0' }}"
                data-password-protected="{{ album.is_password_protected ? '1' : '0' }}"
@@ -389,6 +393,8 @@
     metaItems += '<span class="panorama-view">' + esc(TXT.view) + ' <i class="fas fa-arrow-right text-xs"></i></span>';
 
     return '<article class="panorama-row gallery-card group cursor-pointer' + (isEager ? '' : ' lazy-card') + '"' +
+      ' role="link"' +
+      ' tabindex="0"' +
       ' data-album-id="' + esc(album.id || '') + '"' +
       ' data-nsfw="' + (isNsfw ? '1' : '0') + '"' +
       ' data-password-protected="' + (album.is_password_protected ? '1' : '0') + '"' +
@@ -531,4 +537,6 @@
   }
 })();
 </script>
+{# Shared open-album navigation + NSFW age gate (include ONCE per page) #}
+{% include 'frontend/_galleries_album_nav.twig' %}
 {% endblock %}

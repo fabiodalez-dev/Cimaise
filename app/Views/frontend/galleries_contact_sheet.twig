@@ -64,6 +64,10 @@
 
   /* ---- One frame ------------------------------------------------------ */
   .cs-frame { cursor: pointer; }
+  .cs-frame:focus-visible {
+    outline: 2px solid #f3efe6;
+    outline-offset: 3px;
+  }
 
   .cs-photo {
     position: relative;
@@ -260,6 +264,8 @@
           {% endif %}
           <article class="gallery-card cs-frame{{ album.images_count|default(0) >= 20 ? ' cs-select' : '' }}"
                    style="--cs-i: {{ loop.index0 % 12 }}"
+                   role="link"
+                   tabindex="0"
                    data-album-id="{{ album.id }}"
                    data-nsfw="{{ album.is_nsfw and not is_admin|default(false) ? '1' : '0' }}"
                    data-password-protected="{{ album.is_password_protected ? '1' : '0' }}"
@@ -413,6 +419,8 @@
 
     return '<article class="gallery-card cs-frame' + (isSelect ? ' cs-select' : '') + '"'
       + ' style="--cs-i: ' + (index % 12) + '"'
+      + ' role="link"'
+      + ' tabindex="0"'
       + ' data-album-id="' + esc(album.id) + '"'
       + ' data-nsfw="' + (isNsfw ? '1' : '0') + '"'
       + ' data-password-protected="' + (album.is_password_protected ? '1' : '0') + '"'
@@ -430,13 +438,26 @@
       + '</article>';
   };
 
-  // ---- Frame click opens the album (gates are enforced server-side) ----
+  // ---- Frame click/keyboard opens the album (gates are enforced server-side) ----
+  function openFrame(event, frame) {
+    if (event.target.closest && event.target.closest('a')) return;
+    event.preventDefault();
+    if (frame.dataset.albumUrl) window.location.href = frame.dataset.albumUrl;
+  }
+
   document.addEventListener('click', function (event) {
     var frame = event.target.closest ? event.target.closest('[data-action="open-album"]') : null;
     if (!frame) return;
-    if (event.target.closest('a')) return;
-    event.preventDefault();
-    if (frame.dataset.albumUrl) window.location.href = frame.dataset.albumUrl;
+    openFrame(event, frame);
+  });
+
+  // Keyboard access for role="link" frames (Enter and Space)
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    var frame = event.target.closest ? event.target.closest('[data-action="open-album"]') : null;
+    if (!frame) return;
+    if (event.key === ' ') event.preventDefault(); // stop page scroll
+    openFrame(event, frame);
   });
 
   // ---- Re-run the entrance after the filters partial re-renders -------

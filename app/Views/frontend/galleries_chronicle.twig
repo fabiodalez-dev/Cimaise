@@ -287,7 +287,7 @@
     {
       "@type": "ImageGallery",
       "name": {{ album.title|json_encode|raw }},
-      "url": "{{ base_path }}/album/{{ album.slug }}"
+      "url": {{ ((base_path ~ '/album/' ~ album.slug))|json_encode|raw }}
       {% if album.images_count %},
       "numberOfItems": {{ album.images_count }}
       {% endif %}

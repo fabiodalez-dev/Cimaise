@@ -471,6 +471,9 @@
     let activeFilterRequest = null;
     let isUpdatingGalleries = false;
 
+    // Admin filter setting: animate grid updates (filter_settings.animation_enabled)
+    const FILTER_ANIMATION_ENABLED = {{ (filter_settings.animation_enabled is defined ? filter_settings.animation_enabled : true) ? 'true' : 'false' }};
+
     function getSelectedCategoryIds() {
         const chips = document.querySelectorAll('#filter-categories .filter-chip.is-active');
         return Array.from(chips).map(chip => chip.dataset.categoryId).filter(Boolean);
@@ -500,6 +503,8 @@
             activeFilterRequest.abort();
         }
 
+        showLoading();
+
         activeFilterRequest = $.ajax({
             url: window.basePath + '/galleries/filter',
             method: 'GET',
@@ -507,7 +512,7 @@
             dataType: 'json',
             cache: false,
             success: function(response) {
-                updateGalleries(response.albums, false, response.total);
+                updateGalleries(response.albums, FILTER_ANIMATION_ENABLED, response.total);
                 updateActiveFilters(filters);
                 updateResultsCount(response.total);
                 hideLoading();
@@ -699,10 +704,15 @@
         const blurPath = coverImage.blur_path || '';
         const safeSrc = imgPath.startsWith('/') && window.basePath ? (window.basePath + imgPath) : imgPath;
         const safeBlurSrc = blurPath.startsWith('/') && window.basePath ? (window.basePath + blurPath) : blurPath;
-        const title = escapeHtml(album.title);
-        const excerpt = escapeHtml(album.excerpt || '');
-        const category = escapeHtml(album.category_name || '');
-        const alt = escapeHtml(coverImage.alt_text || album.title || '');
+        // Raw values: these are assigned via DOM APIs (textContent / property
+        // assignment) which never interpret HTML, so escaping them here would
+        // produce visible double-escaping (e.g. "&amp;" shown to the user).
+        // escapeHtml()/esc() is still used below wherever strings are
+        // concatenated into HTML markup (innerHTML).
+        const title = String(album.title == null ? '' : album.title);
+        const excerpt = String(album.excerpt == null ? '' : album.excerpt);
+        const category = String(album.category_name == null ? '' : album.category_name);
+        const alt = String((coverImage.alt_text || album.title || ''));
         const slug = encodeURIComponent(album.slug || '');
         // Skip NSFW restrictions for admins
         const isNsfw = !!(album.is_nsfw && !window.isAdmin);

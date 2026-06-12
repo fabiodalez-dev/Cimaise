@@ -136,11 +136,9 @@
             (function () {
                 if (document.body.dataset.listingTplBound === '1') return;
                 document.body.dataset.listingTplBound = '1';
-                document.addEventListener('click', function (e) {
-                    const label = e.target.closest('[data-listing-template]');
-                    if (!label) return;
+                function syncListingTemplateCards(activeLabel) {
                     document.querySelectorAll('[data-listing-template]').forEach(function (l) {
-                        const active = l === label;
+                        const active = l === activeLabel;
                         l.classList.toggle('border-gray-900', active);
                         l.classList.toggle('border-gray-200', !active);
                         const check = l.querySelector('.listing-template-check');
@@ -148,6 +146,18 @@
                         const radio = l.querySelector('input[type="radio"]');
                         if (radio) radio.checked = active;
                     });
+                }
+                document.addEventListener('click', function (e) {
+                    const label = e.target.closest('[data-listing-template]');
+                    if (!label) return;
+                    syncListingTemplateCards(label);
+                });
+                // Keyboard support: arrow-key radio navigation fires 'change', not 'click'
+                document.addEventListener('change', function (e) {
+                    if (!e.target || !e.target.matches || !e.target.matches('input[name="galleries_template"]')) return;
+                    const label = e.target.closest('[data-listing-template]');
+                    if (!label) return;
+                    syncListingTemplateCards(label);
                 });
             })();
             </script>

@@ -351,6 +351,16 @@
         if (floatBox) floatBox.classList.remove('is-on');
     }
 
+    // Anchor the preview next to a row (used for keyboard focus, where there
+    // is no pointer position): vertically centered on the row, offset right.
+    function positionFloatNearRow(row) {
+        var rect = row.getBoundingClientRect();
+        positionFloat({
+            clientX: Math.max(16, Math.min(rect.left + rect.width * 0.55, window.innerWidth - 48)),
+            clientY: rect.top + rect.height / 2
+        });
+    }
+
     if (grid && floatBox) {
         grid.addEventListener('pointerover', function (ev) {
             if (!finePointer.matches) return;
@@ -366,6 +376,20 @@
             scheduleMove(ev);
         });
         grid.addEventListener('pointerleave', hideFloat);
+
+        // Keyboard navigation: Tab between rows updates the preview too
+        grid.addEventListener('focusin', function (ev) {
+            if (!finePointer.matches) return;
+            var row = ev.target.closest ? ev.target.closest('.edx-row') : null;
+            if (!row) { hideFloat(); return; }
+            activeRow = row;
+            showFloat(row, null);
+            positionFloatNearRow(row);
+        });
+        grid.addEventListener('focusout', function (ev) {
+            // Hide only when focus actually leaves the rows container
+            if (!ev.relatedTarget || !grid.contains(ev.relatedTarget)) hideFloat();
+        });
     }
 
     // ---- Re-run layout JS after the filters partial re-renders the grid ----

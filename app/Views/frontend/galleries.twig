@@ -889,10 +889,13 @@ function generateGalleryCard(album) {
     const blurPath = coverImage.blur_path || '';
     const safeSrc = imgPath.startsWith('/') && window.basePath ? (window.basePath + imgPath) : imgPath;
     const safeBlurSrc = blurPath.startsWith('/') && window.basePath ? (window.basePath + blurPath) : blurPath;
-    const title = escapeHtml(album.title);
-    const excerpt = escapeHtml(album.excerpt || '');
-    const category = escapeHtml(album.category_name || '');
-    const alt = escapeHtml(coverImage.alt_text || album.title || '');
+    // Raw values: assigned via DOM APIs (textContent / property assignment)
+    // which never interpret HTML — escaping here would double-escape (&amp;).
+    // esc() is still used below wherever strings go through innerHTML.
+    const title = String(album.title == null ? '' : album.title);
+    const excerpt = String(album.excerpt == null ? '' : album.excerpt);
+    const category = String(album.category_name == null ? '' : album.category_name);
+    const alt = String((coverImage.alt_text || album.title || ''));
     const slug = encodeURIComponent(album.slug || '');
     // Skip NSFW restrictions for admins
     const isNsfw = !!(album.is_nsfw && !window.isAdmin);
