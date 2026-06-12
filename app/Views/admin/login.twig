@@ -17,114 +17,176 @@
     {{ custom_css|raw }}
   </style>
   {% endif %}
+
+  <style nonce="{{ csp_nonce() }}">
+    /* Split login. The left panel is the one committed visual element: the
+       photographer's wordmark set in the site display font on a darkroom
+       surface; the form stays on a quiet product surface. */
+    .login-shell { min-height: 100dvh; display: grid; grid-template-columns: 1fr; }
+    @media (min-width: 1024px) { .login-shell { grid-template-columns: 5fr 4fr; } }
+
+    .login-stage {
+      position: relative;
+      background: #101013; /* near-black, warm-tinted: the darkroom */
+      color: #f5f4f2;
+      display: flex; flex-direction: column; justify-content: space-between;
+      padding: 2rem 2.25rem;
+      overflow: hidden;
+    }
+    @media (min-width: 1024px) { .login-stage { padding: 3.5rem 4rem; } }
+    /* a single, faint focus-frame line — photographic viewfinder, not decoration overload */
+    .login-stage::after {
+      content: '';
+      position: absolute; inset: 18px;
+      border: 1px solid rgba(245, 244, 242, 0.10);
+      border-radius: 10px;
+      pointer-events: none;
+    }
+    .login-wordmark {
+      font-family: var(--font-display, var(--font-heading, Georgia, serif));
+      font-weight: 400;
+      font-size: clamp(2.4rem, 5vw, 4.25rem);
+      line-height: 1.05;
+      letter-spacing: -0.015em;
+      max-width: 14ch;
+    }
+    .login-kicker {
+      font-size: 0.6875rem; letter-spacing: 0.22em; text-transform: uppercase;
+      color: rgba(245, 244, 242, 0.55);
+    }
+    .login-stage-meta {
+      display: flex; align-items: center; gap: 0.75rem;
+      font-size: 0.75rem; color: rgba(245, 244, 242, 0.45);
+      font-variant-numeric: tabular-nums;
+    }
+    .login-stage-meta .dot { width: 4px; height: 4px; border-radius: 9999px; background: var(--color-accent, #D70261); }
+
+    .login-form-pane {
+      background: var(--color-bg, #F6F7F9);
+      display: flex; align-items: center; justify-content: center;
+      padding: 2.5rem 1.25rem;
+    }
+    html.dark .login-form-pane { background: #0F1115; }
+    .login-card { width: 100%; max-width: 24.5rem; }
+
+    /* On small screens the stage becomes a compact masthead */
+    @media (max-width: 1023.98px) {
+      .login-stage { min-height: 11rem; }
+      .login-stage::after { inset: 10px; }
+      .login-wordmark { font-size: clamp(1.9rem, 8vw, 2.6rem); }
+      .login-stage-bottom { display: none; }
+    }
+  </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex items-center justify-center px-4">
-  <div class="max-w-md w-full space-y-8">
-    <div class="text-center">
-      {% if logo_type == 'image' and site_logo %}
-        <img src="{% if site_logo starts with '/' %}{{ base_path }}{{ site_logo }}{% else %}{{ site_logo }}{% endif %}"
-             alt="{{ site_title|default('Cimaise')|e }}" class="h-12 w-auto mx-auto mb-4">
-      {% else %}
-        <i class="fas fa-camera text-4xl text-accent-600 mb-4"></i>
-      {% endif %}
-      <h2 class="text-3xl font-bold text-gray-900">{{ site_title|default('Cimaise') }}</h2>
-      <p class="mt-2 text-sm text-gray-600">{{ trans('admin.login.admin_panel') }}</p>
-    </div>
+<body>
+  <div class="login-shell">
 
-    {# Flash messages (e.g., session expired) #}
-    {% if session.flash %}
-    <div class="space-y-3">
-      {% for flash in session.flash %}
-        <div role="alert" class="{% if flash.type == 'warning' %}bg-yellow-50 border border-yellow-200 text-yellow-800{% elseif flash.type == 'success' %}bg-green-50 border border-green-200 text-green-800{% else %}bg-red-50 border border-red-200 text-red-800{% endif %} px-4 py-3 rounded-lg">
-          {{ flash.message|e }}
-        </div>
-      {% endfor %}
-    </div>
-    {% endif %}
-
-    {% if error %}
-      <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
-        {{ error }}
+    {# ---- Stage: the photographer's brand carries the page ---- #}
+    <section class="login-stage" aria-hidden="true">
+      <div class="login-kicker">Cimaise · {{ trans('admin.login.admin_panel') }}</div>
+      <div>
+        {% if logo_type == 'image' and site_logo %}
+          <img src="{% if site_logo starts with '/' %}{{ base_path }}{{ site_logo }}{% else %}{{ site_logo }}{% endif %}"
+               alt="" class="h-14 w-auto mb-5">
+        {% endif %}
+        <div class="login-wordmark">{{ site_title|default('Cimaise') }}</div>
       </div>
-    {% endif %}
+      <div class="login-stage-bottom login-stage-meta">
+        <span>Cimaise</span><span class="dot"></span><span>{{ "now"|date('Y') }}</span>
+      </div>
+    </section>
 
-    {# Hook: login_before_form - For displaying info boxes like demo credentials #}
-    {{ hook('login_before_form', {'base_path': base_path, 'csp_nonce': csp_nonce()}) }}
+    {# ---- Form pane ---- #}
+    <main class="login-form-pane">
+      <div class="login-card">
+        <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">{{ trans('admin.login.title') }}</h1>
+        <p class="mt-1 mb-7 text-sm text-gray-500 dark:text-gray-400">{{ trans('admin.login.admin_panel') }}</p>
 
-    <form method="post" action="{{ base_path }}/admin/login" class="mt-8 space-y-6">
-      <input type="hidden" name="csrf" value="{{ csrf }}">
-      
-      <div class="space-y-4">
-        <div>
-          <label for="email" class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.login.email') }}</label>
-          <div class="relative">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <i class="fas fa-envelope text-gray-400"></i>
+        {# Flash messages (e.g., session expired) #}
+        {% if session.flash %}
+        <div class="space-y-3 mb-5">
+          {% for flash in session.flash %}
+            <div role="alert" class="{% if flash.type == 'warning' %}bg-yellow-50 border border-yellow-200 text-yellow-800{% elseif flash.type == 'success' %}bg-green-50 border border-green-200 text-green-800{% else %}bg-red-50 border border-red-200 text-red-800{% endif %} px-4 py-3 rounded-lg text-sm">
+              {{ flash.message|e }}
             </div>
-            <input 
-              id="email" 
-              name="email" 
-              type="email" 
-              required 
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if error %}
+          <div role="alert" class="mb-5 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm dark:bg-red-950 dark:border-red-900 dark:text-red-200">
+            {{ error }}
+          </div>
+        {% endif %}
+
+        {# Hook: login_before_form - For displaying info boxes like demo credentials #}
+        {{ hook('login_before_form', {'base_path': base_path, 'csp_nonce': csp_nonce()}) }}
+
+        <form method="post" action="{{ base_path }}/admin/login" class="space-y-5">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+
+          <div>
+            <label for="email" class="block text-xs font-medium uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-2">{{ trans('admin.login.email') }}</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
               autofocus
-              class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder:text-gray-400 dark:bg-white dark:text-black dark:placeholder:text-black/60 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent"
+              autocomplete="username"
+              class="block w-full px-3.5 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent"
               placeholder="admin@cimaise.local"
             >
           </div>
-        </div>
 
-        <div>
-          <label for="password" class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.login.password') }}</label>
-          <div class="relative">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <i class="fas fa-lock text-gray-400"></i>
+          <div>
+            <label for="password" class="block text-xs font-medium uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-2">{{ trans('admin.login.password') }}</label>
+            <div class="relative">
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                autocomplete="current-password"
+                class="block w-full pl-3.5 pr-11 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent"
+                placeholder="••••••••"
+              >
+              <button
+                type="button"
+                id="togglePassword"
+                aria-label="{{ trans('admin.login.toggle_password')|default('Mostra/nascondi password') }}"
+                aria-pressed="false"
+                class="absolute inset-y-0 right-0 px-3.5 flex items-center text-gray-400 hover:text-accent-600 focus:text-accent-600 focus:outline-none dark:text-gray-500 dark:hover:text-accent-400"
+              >
+                <i class="fas fa-eye" id="togglePasswordIcon" aria-hidden="true"></i>
+              </button>
             </div>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              class="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg placeholder:text-gray-400 dark:bg-white dark:text-black dark:placeholder:text-black/60 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent"
-              placeholder="••••••••"
-            >
-            <button
-              type="button"
-              id="togglePassword"
-              aria-label="{{ trans('admin.login.toggle_password')|default('Mostra/nascondi password') }}"
-              aria-pressed="false"
-              class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-accent-600 focus:text-accent-600 focus:outline-none"
-            >
-              <i class="fas fa-eye" id="togglePasswordIcon" aria-hidden="true"></i>
-            </button>
           </div>
-        </div>
 
-        <div class="flex items-center">
-          <input
-            id="remember_me"
-            name="remember_me"
-            type="checkbox"
-            value="1"
-            class="h-4 w-4 text-accent-600 border-gray-300 rounded focus:ring-accent-500"
+          <div class="flex items-center justify-between pt-1">
+            <label for="remember_me" class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 select-none">
+              <input
+                id="remember_me"
+                name="remember_me"
+                type="checkbox"
+                value="1"
+                class="h-4 w-4 text-accent-600 border-gray-300 rounded focus:ring-accent-500 dark:border-gray-600 dark:bg-gray-900"
+              >
+              {{ trans('admin.login.remember_me') }}
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            class="w-full bg-accent-600 hover:bg-accent-700 text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 dark:focus:ring-offset-gray-950"
           >
-          <label for="remember_me" class="ml-2 block text-sm text-gray-700">
-            {{ trans('admin.login.remember_me') }}
-          </label>
-        </div>
+            {{ trans('admin.login.submit') }}
+          </button>
+        </form>
+
+        <p class="mt-8 text-center text-xs text-gray-400 dark:text-gray-600">Cimaise</p>
       </div>
-
-      <button 
-        type="submit"
-        class="w-full bg-accent-600 hover:bg-accent-700 text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2"
-      >
-        <i class="fas fa-sign-in-alt mr-2"></i>
-        {{ trans('admin.login.submit') }}
-      </button>
-    </form>
-
-    <div class="text-center text-xs text-gray-500 mt-8">
-      Cimaise Admin Panel
-    </div>
+    </main>
   </div>
 
   <script nonce="{{ csp_nonce() }}">
