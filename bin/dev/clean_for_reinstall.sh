@@ -68,6 +68,7 @@ echo ""
 echo "🗑️  Cleaning public/media/..."
 find public/media -type f ! -name '.gitkeep' ! -name '.htaccess' -delete 2>/dev/null || true
 find public/media -type d -empty -delete 2>/dev/null || true
+find storage/protected-media -type f ! -name '.gitkeep' ! -name '.htaccess' -delete 2>/dev/null || true
 echo "   ✓ Media variants removed"
 
 # 2. Clean storage originals

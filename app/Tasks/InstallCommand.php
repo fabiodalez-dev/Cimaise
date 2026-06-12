@@ -126,6 +126,7 @@ class InstallCommand extends Command
             $this->rootPath . '/.env',
             $this->rootPath . '/database',
             $this->rootPath . '/storage',
+            $this->rootPath . '/storage/protected-media',
             $this->rootPath . '/public/media'
         ];
         

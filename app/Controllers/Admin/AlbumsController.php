@@ -952,6 +952,8 @@ class AlbumsController extends BaseController
             if ($wasProtected !== $isProtected) {
                 try {
                     $uploadService = new \App\Services\UploadService($this->db);
+                    $protectedStorage = new \App\Services\ProtectedMediaStorage($this->db);
+                    $protectedStorage->relocateAlbumVariants($id, $isProtected);
                     if ($isProtected) {
                         // Album became protected - generate blurred variants
                         $uploadService->generateBlurredVariantsForAlbum($id);
@@ -1035,10 +1037,15 @@ class AlbumsController extends BaseController
             // are already gone at this point, so a silently skipped unlink would
             // leave files on disk with no record pointing at them.
             $failedDeletions = [];
+            $protectedStorage = new \App\Services\ProtectedMediaStorage($this->db);
             foreach ($files as $p) {
-                $abs = str_starts_with((string)$p, '/media/')
-                    ? ($root . '/public' . $p)
-                    : ($root . $p);
+                if (str_starts_with((string)$p, '/media/')) {
+                    if (!$protectedStorage->deleteVariantCopies((string)$p)) {
+                        $failedDeletions[] = (string)$p . ' (protected/public variant copies could not be removed)';
+                    }
+                    continue;
+                }
+                $abs = $root . $p;
                 if (!is_file($abs)) {
                     continue; // already gone — nothing to clean up
                 }
@@ -1314,9 +1321,9 @@ class AlbumsController extends BaseController
         // try unlink files (best-effort)
         $root = dirname(__DIR__, 2);
         @unlink($root . $row['original_path']);
+        $protectedStorage = new \App\Services\ProtectedMediaStorage($this->db);
         foreach ($variantPaths as $p) {
-            $abs = str_starts_with((string)$p, '/media/') ? ($root . '/public' . $p) : ($root . $p);
-            @unlink($abs);
+            $protectedStorage->deleteVariantCopies((string)$p);
         }
         $response->getBody()->write(json_encode(['ok'=>true]));
         return $response->withHeader('Content-Type','application/json');
@@ -1365,9 +1372,13 @@ class AlbumsController extends BaseController
         }
         $this->invalidatePageCaches($this->getAlbumSlug($albumId), null, $albumId);
         $root = dirname(__DIR__, 2);
+        $protectedStorage = new \App\Services\ProtectedMediaStorage($this->db);
         foreach ($files as $p) {
-            $abs = str_starts_with((string)$p, '/media/') ? ($root . '/public' . $p) : ($root . $p);
-            @unlink($abs);
+            if (str_starts_with((string)$p, '/media/')) {
+                $protectedStorage->deleteVariantCopies((string)$p);
+            } else {
+                @unlink($root . $p);
+            }
         }
         $response->getBody()->write(json_encode(['ok'=>true]));
         return $response->withHeader('Content-Type','application/json');

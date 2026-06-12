@@ -181,9 +181,13 @@ class MediaController extends BaseController
             $this->invalidateAlbumCaches($albumId);
         }
         $root = dirname(__DIR__, 2);
+        $protectedStorage = new \App\Services\ProtectedMediaStorage($this->db);
         foreach ($files as $p) {
-            $abs = str_starts_with((string)$p, '/media/') ? ($root . '/public' . $p) : ($root . $p);
-            @unlink($abs);
+            if (str_starts_with((string)$p, '/media/')) {
+                $protectedStorage->deleteVariantCopies((string)$p);
+            } else {
+                @unlink($root . $p);
+            }
         }
         $response->getBody()->write(json_encode(['ok'=>true]));
         return $response->withHeader('Content-Type','application/json');

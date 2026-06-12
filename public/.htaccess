@@ -66,15 +66,9 @@
   ExpiresByType application/x-javascript "access plus 1 year"
   ExpiresByType text/javascript "access plus 1 year"
 
-  # Images - 1 year
-  ExpiresByType image/jpeg "access plus 1 year"
-  ExpiresByType image/jpg "access plus 1 year"
-  ExpiresByType image/png "access plus 1 year"
-  ExpiresByType image/gif "access plus 1 year"
-  ExpiresByType image/webp "access plus 1 year"
-  ExpiresByType image/avif "access plus 1 year"
-  ExpiresByType image/svg+xml "access plus 1 year"
-  ExpiresByType image/x-icon "access plus 1 year"
+  # Image caching is handled by the conditional Header rule below. Keeping it
+  # out of mod_expires prevents /media/*.jpg dynamic responses from receiving
+  # a second public max-age after PHP marked protected bytes no-store.
 
   # Fonts - 1 year
   ExpiresByType application/font-woff "access plus 1 year"
@@ -95,6 +89,12 @@
 </IfModule>
 
 <IfModule mod_headers.c>
+  # Album media is dynamic even though the URL has a static image extension.
+  # Do not let FilesMatch widen its controller-owned cache policy.
+  <IfModule mod_setenvif.c>
+    SetEnvIf Request_URI "(^|/)media/" cimaise_album_media=1
+  </IfModule>
+
   # Add Vary header for proper caching
   <FilesMatch "\.(js|css|xml|gz|html)$">
     Header append Vary Accept-Encoding
@@ -102,7 +102,7 @@
 
   # Cache-Control headers for static assets
   <FilesMatch "\.(ico|jpg|jpeg|png|gif|webp|avif|svg|css|js|woff|woff2|ttf|otf|eot)$">
-    Header set Cache-Control "public, max-age=31536000, immutable"
+    Header set Cache-Control "public, max-age=31536000, immutable" env=!cimaise_album_media
   </FilesMatch>
 
   # Cache-Control for HTML (shorter cache)

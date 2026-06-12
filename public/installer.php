@@ -301,6 +301,7 @@ function createStorageDirectories($rootPath) {
     $directories = [
         $rootPath . '/storage',
         $rootPath . '/storage/originals',
+        $rootPath . '/storage/protected-media',
         $rootPath . '/storage/tmp',
         $rootPath . '/storage/logs',
         $rootPath . '/public/media',
@@ -321,6 +322,7 @@ function createStorageDirectories($rootPath) {
     // Create .gitkeep files to preserve empty directories in git
     $keepFiles = [
         $rootPath . '/storage/originals/.gitkeep',
+        $rootPath . '/storage/protected-media/.gitkeep',
         $rootPath . '/storage/tmp/.gitkeep',
         $rootPath . '/storage/logs/.gitkeep',
         $rootPath . '/public/media/.gitkeep'
@@ -330,6 +332,11 @@ function createStorageDirectories($rootPath) {
         if (!file_exists($keepFile)) {
             file_put_contents($keepFile, '');
         }
+    }
+
+    $protectedHtaccess = $rootPath . '/storage/protected-media/.htaccess';
+    if (!file_exists($protectedHtaccess)) {
+        file_put_contents($protectedHtaccess, "Require all denied\nOptions -Indexes\n");
     }
 }
 

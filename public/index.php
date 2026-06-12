@@ -179,6 +179,12 @@ try {
     $container = ['db' => null];
 }
 
+// One-time upgrade hardening: move sharp variants belonging exclusively to
+// password/NSFW albums out of public/media before normal request handling.
+if ($container['db'] !== null) {
+    (new \App\Services\ProtectedMediaStorage($container['db']))->quarantineExistingProtectedVariants();
+}
+
 // Sessions with secure defaults
 ini_set('session.use_strict_mode', '1');
 ini_set('session.cookie_httponly', '1');

@@ -39,6 +39,7 @@ echo -e "${GREEN}done${NC}"
 echo -n "Cleaning public/media... "
 find "$PROJECT_ROOT/public/media" -type f ! -name '.gitkeep' ! -name '.htaccess' -delete 2>/dev/null || true
 find "$PROJECT_ROOT/public/media" -mindepth 1 -type d -empty -delete 2>/dev/null || true
+find "$PROJECT_ROOT/storage/protected-media" -type f ! -name '.gitkeep' ! -name '.htaccess' -delete 2>/dev/null || true
 echo -e "${GREEN}done${NC}"
 
 # 3. Delete database files

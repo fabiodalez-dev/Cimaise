@@ -283,4 +283,51 @@ test.describe.serial('Album public access — password, NSFW, listings', () => {
         await page.waitForLoadState('networkidle');
         expect(errors.filter((m) => !m.includes('favicon'))).toHaveLength(0);
     });
+
+    test('ACC-09: NSFW sharp bytes stay private and authorized responses are no-store', async ({ page, browser }) => {
+        await requireServer(test, page);
+        await requireAdmin(test, page);
+        const name = `ACC09 ${Date.now()}`;
+        const { id, slug } = await createAlbum(page, name, { isNsfw: true });
+        if (!id || !slug) test.skip(true, 'createAlbum helper could not resolve new album id/slug (env-dependent)');
+        const upload = await uploadCover(page, id, 'PRIVATE', '#7c3aed');
+        if (!upload.ok || !upload.imageId) test.skip(true, 'test image upload failed');
+
+        const ctx = await browser.newContext();
+        try {
+            const mediaUrl = `${BASE}/media/${upload.imageId}_sm.jpg`;
+            const anonymous = await ctx.request.get(mediaUrl, { failOnStatusCode: false });
+            expect(anonymous.status()).toBe(200);
+            const blurredBytes = await anonymous.body();
+
+            // Alternate public-path aliases must never bypass MediaController.
+            const alias = await ctx.request.get(`${BASE}/public/media/${upload.imageId}_sm.jpg`, {
+                failOnStatusCode: false,
+            });
+            expect(alias.status()).not.toBe(200);
+
+            const privateAlias = await ctx.request.get(`${BASE}/storage/protected-media/${upload.imageId}_sm.jpg`, {
+                failOnStatusCode: false,
+            });
+            expect(privateAlias.status()).not.toBe(200);
+
+            const gate = await ctx.request.get(`${BASE}/album/${slug}`);
+            const gateBody = await gate.text();
+            const csrf = (gateBody.match(/name="csrf"[^>]*value="([^"]+)"/) || [])[1] || '';
+            await ctx.request.post(`${BASE}/album/${slug}/nsfw-confirm`, {
+                form: { csrf, nsfw_confirmed: 1 },
+                maxRedirects: 5,
+                failOnStatusCode: false,
+            });
+
+            const authorized = await ctx.request.get(mediaUrl, { failOnStatusCode: false });
+            expect(authorized.status()).toBe(200);
+            expect(authorized.headers()['cache-control'] || '').toContain('no-store');
+            expect(authorized.headers()['cache-control'] || '').not.toContain('public');
+            expect(await authorized.body()).not.toEqual(blurredBytes);
+        } finally {
+            await ctx.close();
+            await deleteAlbum(page, id);
+        }
+    });
 });

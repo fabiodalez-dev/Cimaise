@@ -148,11 +148,20 @@ class DownloadController extends BaseController
         }
         fclose($stream);
         
-        return $response
+        $result = $response
             ->withHeader('Content-Type', $mime)
             ->withHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
             ->withHeader('Content-Length', (string)$filesize)
             ->withHeader('X-Content-Type-Options', 'nosniff')
             ->withHeader('X-Frame-Options', 'DENY');
+
+        if (!empty($row['password_hash']) || !empty($row['is_nsfw'])) {
+            $result = $result
+                ->withHeader('Cache-Control', 'private, no-store, max-age=0')
+                ->withHeader('Pragma', 'no-cache')
+                ->withHeader('X-Robots-Tag', 'noindex, noimageindex, noarchive');
+        }
+
+        return $result;
     }
 }

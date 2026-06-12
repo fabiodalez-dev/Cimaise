@@ -1198,7 +1198,9 @@ php bin/dev/seed_demo_data.php --force
 - NSFW and password-protected albums for testing
 - Draft albums for workflow testing
 
-Images are stored in `/storage/originals/` (matching production upload behavior) and variants are automatically generated.
+Originals are stored in `/storage/originals/`. Public variants live in
+`public/media/`; sharp variants for password/NSFW albums live outside the web
+root in `storage/protected-media/` and are served only after server-side access checks.
 
 ### Clean for Reinstallation
 
@@ -1213,7 +1215,8 @@ bash bin/dev/clean_for_reinstall.sh --force
 ```
 
 **What it removes:**
-- All image variants (`public/media/*`)
+- All public image variants (`public/media/*`)
+- All protected sharp variants (`storage/protected-media/*`)
 - All original files (`storage/originals/*`)
 - Database (`database/database.sqlite`)
 - Environment config (`.env`)

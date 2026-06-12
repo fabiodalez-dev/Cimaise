@@ -401,6 +401,17 @@ verify_zip_package() {
         fi
     fi
 
+    # Protected variants are user uploads too and must never ship in a release.
+    if [ -d "${pkg}/storage/protected-media" ]; then
+        local protected_media_leftovers
+        protected_media_leftovers=$(find "${pkg}/storage/protected-media" -type f ! -name '.gitkeep' ! -name '.htaccess' | head -5)
+        if [ -n "$protected_media_leftovers" ]; then
+            log_error "ZIP contains storage/protected-media content (protected user uploads leaked):"
+            echo "$protected_media_leftovers"
+            has_errors=true
+        fi
+    fi
+
     # dev SQLite databases must never ship
     local db_leftovers
     db_leftovers=$(find "${pkg}/database" -maxdepth 1 -type f \( -name 'database.sqlite' -o -name '*.sqlite-wal' -o -name '*.sqlite-shm' \) 2>/dev/null | head -5)

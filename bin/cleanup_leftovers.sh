@@ -158,12 +158,14 @@ fi
 # 9) Reset installation (purge media/originals + remove .env and database)
 if [[ $RESET_INSTALL -eq 1 ]]; then
   MEDIA_DIR="$ROOT_DIR/public/media"
+  PROTECTED_MEDIA_DIR="$ROOT_DIR/storage/protected-media"
   ORIG_DIR="$ROOT_DIR/storage/originals"
   TMP_DIR="$ROOT_DIR/storage/tmp"
   ENV_FILE="$ROOT_DIR/.env"
   DB_FILE="$ROOT_DIR/database/database.sqlite"
 
   empty_dir_preserve_htaccess "$MEDIA_DIR"
+  empty_dir_preserve_htaccess "$PROTECTED_MEDIA_DIR"
   empty_dir_preserve_htaccess "$ORIG_DIR"
   empty_dir_preserve_htaccess "$TMP_DIR"
 
@@ -175,13 +177,14 @@ if [[ $RESET_INSTALL -eq 1 ]]; then
 
   # Recreate critical dirs & .htaccess just in case
   if [[ $APPLY -eq 1 ]]; then
-    mkdir -p "$MEDIA_DIR" "$ORIG_DIR" "$TMP_DIR"
+    mkdir -p "$MEDIA_DIR" "$PROTECTED_MEDIA_DIR" "$ORIG_DIR" "$TMP_DIR"
     # Write security .htaccess files if missing
     [[ -f "$MEDIA_DIR/.htaccess" ]] || write_htaccess "$MEDIA_DIR/.htaccess" media
+    [[ -f "$PROTECTED_MEDIA_DIR/.htaccess" ]] || write_htaccess "$PROTECTED_MEDIA_DIR/.htaccess" storage
     [[ -f "$ORIG_DIR/.htaccess" ]] || write_htaccess "$ORIG_DIR/.htaccess" storage
     [[ -f "$TMP_DIR/.htaccess" ]]   || write_htaccess "$TMP_DIR/.htaccess" storage
-    say "recreated directories and ensured .htaccess: $MEDIA_DIR $ORIG_DIR $TMP_DIR"
+    say "recreated directories and ensured .htaccess: $MEDIA_DIR $PROTECTED_MEDIA_DIR $ORIG_DIR $TMP_DIR"
   else
-    say "would recreate directories and .htaccess: $MEDIA_DIR $ORIG_DIR $TMP_DIR"
+    say "would recreate directories and .htaccess: $MEDIA_DIR $PROTECTED_MEDIA_DIR $ORIG_DIR $TMP_DIR"
   fi
 fi
