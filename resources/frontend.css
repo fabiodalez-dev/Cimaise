@@ -311,7 +311,7 @@ html.dark .pswp__custom-caption {
     width: 18px;
     height: 2px;
     border-radius: 1px;
-    background: currentColor;
+    background: currentcolor;
     opacity: 0.9;
 }
 

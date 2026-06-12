@@ -167,7 +167,10 @@ class SocialController extends BaseController
             );
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
-            Logger::warning('social_networks query failed: ' . $e->getMessage(), [], 'admin');
+            Logger::warning('social_networks query failed: ' . $e->getMessage(), [
+                'table' => 'social_networks',
+                'method' => 'getAvailableSocials',
+            ], 'admin');
             return [];
         }
 
@@ -195,7 +198,10 @@ class SocialController extends BaseController
             );
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
-            Logger::warning('social_networks query failed: ' . $e->getMessage(), [], 'admin');
+            Logger::warning('social_networks query failed: ' . $e->getMessage(), [
+                'table' => 'social_networks',
+                'method' => 'getProfileNetworks',
+            ], 'admin');
             return [];
         }
 
