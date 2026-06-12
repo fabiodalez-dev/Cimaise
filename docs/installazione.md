@@ -230,6 +230,19 @@ server {
         try_files $uri $uri/ /index.php?$query_string;
     }
 
+    # SECURITY: never expose the physical public/media directory through an
+    # alternate URL when the document root is configured above public/.
+    location ^~ /public/media/ {
+        return 404;
+    }
+
+    # SECURITY: every media URL must reach PHP. This block must appear before
+    # the generic static-assets regex below; ^~ prevents that regex from serving
+    # album variants directly and bypassing password/NSFW checks.
+    location ^~ /media/ {
+        try_files /__cimaise_media_must_use_php__ /index.php?$query_string;
+    }
+
     # PHP-FPM
     location ~ \.php$ {
         fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
@@ -238,7 +251,7 @@ server {
         fastcgi_hide_header X-Powered-By;
     }
 
-    # Cache static assets aggressively
+    # Cache non-media static assets aggressively
     location ~* \.(avif|webp|jpg|jpeg|png|gif|ico|css|js|woff2)$ {
         expires 1y;
         add_header Cache-Control "public, immutable";
@@ -341,6 +354,7 @@ sudo find /var/www/cimaise -type d -exec chmod 755 {} \;
 # Cartelle scrivibili
 sudo chmod -R 775 storage/
 sudo chmod -R 775 public/media/
+sudo chmod -R 775 storage/protected-media/
 sudo chmod -R 775 public/fonts/
 
 # File di configurazione
@@ -407,7 +421,7 @@ Scegli i font per headings, body, captions. Oltre 40 font disponibili con antepr
 ```bash
 # Verifica permessi
 ls -la storage/
-ls -la public/media/
+ls -la public/media/ storage/protected-media/
 
 # Apache: abilita mod_rewrite
 sudo a2enmod rewrite

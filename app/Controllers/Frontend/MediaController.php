@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Frontend;
 
 use App\Controllers\BaseController;
+use App\Services\ProtectedMediaStorage;
 use App\Services\UploadService;
 use App\Support\BlurGenerationJob;
 use App\Support\Database;
@@ -19,7 +20,7 @@ class MediaController extends BaseController
 {
     private const BLUR_CACHE_SECONDS = 86400; // 24 hours for blur variants
     private const PUBLIC_CACHE_SECONDS = 31536000; // 1 year for public images
-    private const PROTECTED_CACHE_SECONDS = 604800; // 1 week for protected variants
+    private ProtectedMediaStorage $protectedStorage;
 
     /**
      * Extension -> MIME map for images already validated by a whitelist regex.
@@ -40,6 +41,7 @@ class MediaController extends BaseController
     public function __construct(private Database $db, private UploadService $uploadService)
     {
         parent::__construct();
+        $this->protectedStorage = new ProtectedMediaStorage($db);
     }
 
     /**
@@ -416,7 +418,8 @@ class MediaController extends BaseController
             }
         }
 
-        // Build file path - DB stores URL paths like /media/... which map to public/media/
+        // Build file path. Sharp variants for protected albums live outside
+        // public/; blur variants remain public and are safe to expose.
         $root = dirname(__DIR__, 3);
         $relativePath = ltrim($variantRow['path'], '/');
 
@@ -425,13 +428,18 @@ class MediaController extends BaseController
             return $response->withStatus(403);
         }
 
-        // Convert URL path to filesystem path (media/ -> public/media/)
-        if (str_starts_with($relativePath, 'media/')) {
-            $filePath = "{$root}/public/{$relativePath}";
+        if ($variant !== 'blur' && str_starts_with($relativePath, 'media/')) {
+            $realPath = $this->protectedStorage->resolveVariantPath(
+                (string)$variantRow['path'],
+                $isPasswordProtected || $isNsfw
+            );
         } else {
-            $filePath = "{$root}/{$relativePath}";
+            // Convert URL path to filesystem path (media/ -> public/media/)
+            $filePath = str_starts_with($relativePath, 'media/')
+                ? "{$root}/public/{$relativePath}"
+                : "{$root}/{$relativePath}";
+            $realPath = realpath($filePath) ?: false;
         }
-        $realPath = realpath($filePath);
 
         // Validate file exists and is within allowed directories
         $storageRoot = realpath("{$root}/storage/");
@@ -474,7 +482,9 @@ class MediaController extends BaseController
             return $response
                 ->withStatus(304)
                 ->withHeader('ETag', $etag)
-                ->withHeader('Cache-Control', 'private, max-age=' . self::PROTECTED_CACHE_SECONDS . ', immutable');
+                ->withHeader('Cache-Control', 'private, no-store, max-age=0')
+                ->withHeader('Pragma', 'no-cache')
+                ->withHeader('X-Robots-Tag', 'noindex, noimageindex, noarchive');
         }
 
         $streamed = $this->streamFile($response, $realPath, $detectedMime);
@@ -482,9 +492,12 @@ class MediaController extends BaseController
             return $response->withStatus(500);
         }
 
-        // Cache headers for protected variants: 1 week cache (session-gated, variants have unique filenames)
+        // Never retain authorized protected bytes after the access grant expires
+        // and never allow a shared cache/CDN to reuse them for another visitor.
         return $streamed
-            ->withHeader('Cache-Control', 'private, max-age=' . self::PROTECTED_CACHE_SECONDS . ', immutable')
+            ->withHeader('Cache-Control', 'private, no-store, max-age=0')
+            ->withHeader('Pragma', 'no-cache')
+            ->withHeader('X-Robots-Tag', 'noindex, noimageindex, noarchive')
             ->withHeader('ETag', $etag);
     }
 
@@ -575,7 +588,9 @@ class MediaController extends BaseController
             return $response
                 ->withStatus(304)
                 ->withHeader('ETag', $etag)
-                ->withHeader('Cache-Control', 'private, max-age=' . self::PUBLIC_CACHE_SECONDS . ', immutable');
+                ->withHeader('Cache-Control', 'private, no-store, max-age=0')
+                ->withHeader('Pragma', 'no-cache')
+                ->withHeader('X-Robots-Tag', 'noindex, noimageindex, noarchive');
         }
 
         $streamed = $this->streamFile($response, $realPath, $detectedMime);
@@ -583,9 +598,12 @@ class MediaController extends BaseController
             return $response->withStatus(500);
         }
 
-        // Cache headers for originals: long cache (originals are immutable)
+        // Originals are never cached client-side: they may belong to protected
+        // albums and access is re-checked on every request.
         return $streamed
-            ->withHeader('Cache-Control', 'private, max-age=' . self::PUBLIC_CACHE_SECONDS . ', immutable')
+            ->withHeader('Cache-Control', 'private, no-store, max-age=0')
+            ->withHeader('Pragma', 'no-cache')
+            ->withHeader('X-Robots-Tag', 'noindex, noimageindex, noarchive')
             ->withHeader('ETag', $etag);
     }
 
@@ -612,7 +630,14 @@ class MediaController extends BaseController
         // Parse filename to extract image ID
         // Format: {imageId}_{variant}.{format} or {imageId}_blur.{format}
         $filename = basename($path);
-        if (!preg_match('/^(\d+)_([a-z]+)\.(jpg|webp|avif|png)$/i', $filename, $matches)) {
+        if (!preg_match('/^(\d+)_([a-z0-9_-]+)\.(jpg|webp|avif|png)$/i', $filename, $matches)) {
+            // Any numeric-prefixed media filename could be an album variant
+            // from an older/custom generator. Never let it fall through to
+            // unauthenticated static serving merely because its shape changed.
+            if (preg_match('/^\d+_/', $filename)) {
+                return $response->withStatus(404);
+            }
+
             // Not a variant file - could be uploads or other media
             // For non-variant files, serve directly (they're not protected)
             return $this->serveStaticFile($request, $response, $path);
@@ -633,9 +658,10 @@ class MediaController extends BaseController
         $stmt->execute([':id' => $imageId]);
         $row = $stmt->fetch();
 
-        // If image not found in DB, serve static file (might be orphan or non-album media)
+        // Numeric variant files are album media. Orphans must fail closed:
+        // serving them directly would bypass publication/password/NSFW checks.
         if (!$row) {
-            return $this->serveStaticFile($request, $response, $path);
+            return $response->withStatus(404);
         }
 
         // Unpublished albums - 404
@@ -671,16 +697,36 @@ class MediaController extends BaseController
             return $response->withStatus(403);
         }
 
-        // Access granted. If the variant file is not on disk yet (deferred
-        // generation has not run — e.g. Apache/mod_php without fastcgi_finish_request
-        // and without the VariantMaintenanceService cron), generate it on demand so
-        // the URL is never a dead 404. With FPM the variant already exists, so this
-        // never fires there.
-        $this->ensureVariantGenerated($imageId, $variant, $format, $path);
+        $isProtectedVariant = ($isPasswordProtected || $isNsfw) && $variant !== 'blur';
 
-        // For password-protected albums, mark the (access-granted) variant `private`
-        // so shared caches don't serve it to users who never passed the gate.
-        return $this->serveStaticFile($request, $response, $path, $isPasswordProtected);
+        if ($variant !== 'blur') {
+            $variantStmt = $pdo->prepare(
+                'SELECT path FROM image_variants WHERE image_id = :id AND variant = :variant AND format = :format'
+            );
+            $variantStmt->execute([':id' => $imageId, ':variant' => $variant, ':format' => $format]);
+            $dbPath = $variantStmt->fetchColumn();
+            $realPath = $dbPath
+                ? $this->protectedStorage->resolveVariantPath((string)$dbPath, $isProtectedVariant)
+                : null;
+
+            // Access granted. If the variant is genuinely missing (rather than
+            // merely awaiting quarantine from public/), generate it on demand.
+            if ($realPath === null) {
+                $this->ensureVariantGenerated($imageId, $variant, $format, $path, $isProtectedVariant);
+                $variantStmt->execute([':id' => $imageId, ':variant' => $variant, ':format' => $format]);
+                $dbPath = $variantStmt->fetchColumn();
+                $realPath = $dbPath
+                    ? $this->protectedStorage->resolveVariantPath((string)$dbPath, $isProtectedVariant)
+                    : null;
+            }
+
+            if ($realPath === null) {
+                return $response->withStatus(404);
+            }
+            return $this->serveResolvedFile($request, $response, $realPath, $isProtectedVariant);
+        }
+
+        return $this->serveStaticFile($request, $response, $path);
     }
 
     /** Variant sizes that can be (re)generated on demand from the original. */
@@ -703,12 +749,18 @@ class MediaController extends BaseController
      * Idempotent and best-effort: any failure is logged, not fatal
      * (serveStaticFile then returns its normal 404).
      */
-    private function ensureVariantGenerated(int $imageId, string $variant, string $format, string $relativePath): void
+    private function ensureVariantGenerated(
+        int $imageId,
+        string $variant,
+        string $format,
+        string $relativePath,
+        bool $protected
+    ): void
     {
         if (!\in_array($variant, self::ON_DEMAND_VARIANTS, true)) {
             return; // blur / unknown handled elsewhere
         }
-        if ($this->variantFileExists($relativePath)) {
+        if ($this->variantFileExists($relativePath, $protected)) {
             return;
         }
 
@@ -723,7 +775,7 @@ class MediaController extends BaseController
         try {
             // Re-check under the lock: another request may have generated the
             // variant while we were waiting on flock().
-            if (!$locked || !$this->variantFileExists($relativePath)) {
+            if (!$locked || !$this->variantFileExists($relativePath, $protected)) {
                 $this->uploadService->generateVariantsForImage($imageId, false, $variant, $format);
             }
         } catch (\Throwable $e) {
@@ -749,7 +801,7 @@ class MediaController extends BaseController
      * @phpstan-impure Filesystem state can change between calls (another process
      *                 may generate the variant while this request waits on flock).
      */
-    private function variantFileExists(string $relativePath): bool
+    private function variantFileExists(string $relativePath, bool $protected): bool
     {
         $cleanRel = ltrim($relativePath, '/');
         if (str_starts_with($cleanRel, 'media/')) {
@@ -760,7 +812,52 @@ class MediaController extends BaseController
         if ($cleanRel === '' || str_contains($cleanRel, '..')) {
             return true;
         }
-        return is_file(dirname(__DIR__, 3) . '/public/media/' . $cleanRel);
+        $dir = $this->protectedStorage->directoryForProtection($protected);
+        return is_file($dir . '/' . $cleanRel);
+    }
+
+    private function serveResolvedFile(
+        Request $request,
+        Response $response,
+        string $realPath,
+        bool $protected
+    ): Response {
+        $detectedMime = $this->mimeFromExtension($realPath, strict: true);
+        if ($detectedMime === null || !\in_array($detectedMime, ['image/jpeg', 'image/webp', 'image/avif', 'image/png'], true)) {
+            return $response->withStatus(403);
+        }
+
+        $filesize = filesize($realPath);
+        if ($filesize === false) {
+            return $response->withStatus(500);
+        }
+        $etag = $this->generateEtag($realPath, $filesize);
+        if ($request->getHeaderLine('If-None-Match') === $etag) {
+            $notModified = $response->withStatus(304)->withHeader('ETag', $etag);
+            return $protected
+                ? $notModified
+                    ->withHeader('Cache-Control', 'private, no-store, max-age=0')
+                    ->withHeader('Pragma', 'no-cache')
+                    ->withHeader('X-Robots-Tag', 'noindex, noimageindex, noarchive')
+                : $notModified->withHeader('Cache-Control', 'public, max-age=' . self::PUBLIC_CACHE_SECONDS . ', immutable');
+        }
+
+        $streamed = $this->streamFile($response, $realPath, $detectedMime);
+        if ($streamed === null) {
+            return $response->withStatus(500);
+        }
+
+        if ($protected) {
+            return $streamed
+                ->withHeader('Cache-Control', 'private, no-store, max-age=0')
+                ->withHeader('Pragma', 'no-cache')
+                ->withHeader('X-Robots-Tag', 'noindex, noimageindex, noarchive')
+                ->withHeader('ETag', $etag);
+        }
+
+        return $streamed
+            ->withHeader('Cache-Control', 'public, max-age=' . self::PUBLIC_CACHE_SECONDS . ', immutable')
+            ->withHeader('ETag', $etag);
     }
 
     /**

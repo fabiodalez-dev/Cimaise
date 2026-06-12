@@ -260,12 +260,17 @@ class SeedDemoAlbumsCommand extends Command
     {
         $publicMedia = realpath($root . '/public/media');
         $originals = realpath($root . '/storage/originals');
+        $protectedMedia = realpath($root . '/storage/protected-media');
         foreach (array_unique(array_filter($relPaths)) as $rel) {
             if (!is_string($rel) || $rel === '' || str_contains($rel, '..')) {
                 continue;
             }
             // /media/... lives under public/, /storage/... under root.
-            $candidates = [$root . '/public' . $rel, $root . $rel];
+            $candidates = [
+                $root . '/public' . $rel,
+                $root . $rel,
+                $root . '/storage/protected-media/' . basename($rel),
+            ];
             foreach ($candidates as $abs) {
                 $real = realpath($abs);
                 if (!$real || !is_file($real)) {
@@ -273,7 +278,8 @@ class SeedDemoAlbumsCommand extends Command
                 }
                 $inMedia = $publicMedia && str_starts_with($real, $publicMedia . DIRECTORY_SEPARATOR);
                 $inOriginals = $originals && str_starts_with($real, $originals . DIRECTORY_SEPARATOR);
-                if ($inMedia || $inOriginals) {
+                $inProtectedMedia = $protectedMedia && str_starts_with($real, $protectedMedia . DIRECTORY_SEPARATOR);
+                if ($inMedia || $inOriginals || $inProtectedMedia) {
                     // $real is realpath()-resolved and confined to public/media or
                     // storage/originals; the source paths come from our own DB rows.
                     @unlink($real); // nosemgrep

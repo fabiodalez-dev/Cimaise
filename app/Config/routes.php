@@ -108,6 +108,16 @@ return function (App $app, array $container) {
                 return $response->withStatus(404);
             }
 
+            // Without the database there is no way to prove that an album
+            // variant is public. Fail closed instead of serving numeric image
+            // files during a DB outage/bootstrap failure.
+            if (preg_match('/^\d+_[a-z0-9_-]+\.(?:jpg|jpeg|webp|avif|png)$/i', basename($path))) {
+                return $response
+                    ->withStatus(503)
+                    ->withHeader('Cache-Control', 'no-store, max-age=0')
+                    ->withHeader('Retry-After', '60');
+            }
+
             $root = dirname(__DIR__, 2);
             $filePath = "{$root}/public/media/{$path}";
             $realPath = realpath($filePath);
@@ -157,9 +167,11 @@ return function (App $app, array $container) {
     // image request from the same visitor. Public variants are cheap static
     // streams; the expensive path (on-demand variant generation) is protected by
     // a per-image lock in MediaController::ensureVariantGenerated() and only
-    // generates the single requested variant. Enumeration-sensitive routes
-    // (/media/protected/*) above keep their 100 req/min limiter. If needed,
-    // rate-limit /media/ at the Apache level (mod_ratelimit / mod_evasive).
+    // generates the single requested variant. The /media/protected/* routes
+    // above keep their 100 req/min limiter; note that AUTHORIZED protected
+    // variants are also served through this un-limited route after the access
+    // check (unauthenticated requests only ever get the blur placeholder).
+    // If needed, rate-limit /media/ at the Apache level (mod_ratelimit).
 
     $app->get('/album/{slug}', function (Request $request, Response $response, array $args) use ($container) {
         $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));

@@ -184,6 +184,7 @@ class InitCommand extends Command
     {
         $directories = [
             dirname(__DIR__, 2) . '/storage/originals',
+            dirname(__DIR__, 2) . '/storage/protected-media',
             dirname(__DIR__, 2) . '/storage/tmp',
             dirname(__DIR__, 2) . '/public/media'
         ];

@@ -40,6 +40,9 @@ public/assets/media/
 storage/originals/*
 !storage/originals/.gitkeep
 !storage/originals/.htaccess
+storage/protected-media/*
+!storage/protected-media/.gitkeep
+!storage/protected-media/.htaccess
 storage/tmp/*
 !storage/tmp/.gitkeep
 storage/cache/*
@@ -74,6 +77,11 @@ Thumbs.db
 reset_app.php
 phpinfo.php
 tests/
+!/tests/
+/tests/*
+!/tests/Services/
+/tests/Services/*
+!/tests/Services/ProtectedMediaStorageTest.php
 
 # Cache
 .cache/
@@ -141,3 +149,8 @@ docs/PERFORMANCE_IMPLEMENTATION_PLAN.md
 
 # Local files
 presentazione.md
+
+# Local browser-verification artifacts
+.playwright-mcp/
+m8-before/
+m8-after/

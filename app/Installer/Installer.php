@@ -359,9 +359,10 @@ class Installer
             $this->rootPath . '/public/media' => 'public/media',
         ];
 
-        // Add storage/originals only for installation (createDirectories mode)
+        // Add private media directories only for installation (createDirectories mode)
         if ($createDirectories) {
             $writablePaths[$this->rootPath . '/storage/originals'] = 'storage/originals';
+            $writablePaths[$this->rootPath . '/storage/protected-media'] = 'storage/protected-media';
         }
 
         foreach ($writablePaths as $path => $name) {
@@ -1010,6 +1011,7 @@ PHP;
     RewriteRule ^app/ - [F,L]
     RewriteRule ^database/ - [F,L]
     RewriteRule ^bin/ - [F,L]
+    RewriteRule ^public/media/ - [F,L]
 
     # Route everything through index.php
     RewriteCond %{REQUEST_FILENAME} !-f
@@ -1176,6 +1178,7 @@ HTACCESS;
             'storage/tmp',
             'storage/translations',
             'storage/originals',
+            'storage/protected-media',
             'database',
             'public/media',
         ];
@@ -1194,6 +1197,7 @@ HTACCESS;
             'storage/tmp',
             'storage/translations',
             'storage/originals',
+            'storage/protected-media',
             'public/media',
         ];
 
@@ -1281,7 +1285,11 @@ HTACCESS;
             }
 
             // Skip heavy directories
-            if ($relativePath === 'vendor' || str_starts_with($relativePath, 'storage/originals')) {
+            if (
+                $relativePath === 'vendor'
+                || str_starts_with($relativePath, 'storage/originals')
+                || str_starts_with($relativePath, 'storage/protected-media')
+            ) {
                 return;
             }
 

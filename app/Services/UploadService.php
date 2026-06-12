@@ -288,8 +288,13 @@ class UploadService
         ]);
         $imageId = (int)$pdo->lastInsertId();
 
-        // Generate preview and full variants set
-        $mediaDir = dirname(__DIR__, 2) . '/public/media';
+        // Generate preview outside the web root when the album is protected.
+        $albumFlagsStmt = $pdo->prepare('SELECT is_nsfw, password_hash FROM albums WHERE id = :id');
+        $albumFlagsStmt->execute([':id' => $albumId]);
+        $albumFlags = $albumFlagsStmt->fetch() ?: [];
+        $isProtectedAlbum = (int)($albumFlags['is_nsfw'] ?? 0) === 1 || !empty($albumFlags['password_hash']);
+        $protectedStorage = new ProtectedMediaStorage($this->db);
+        $mediaDir = $protectedStorage->directoryForProtection($isProtectedAlbum);
         ImagesService::ensureDir($mediaDir);
         $settingsSvc = new \App\Services\SettingsService($this->db);
         $defaults = $settingsSvc->defaults();
@@ -302,8 +307,9 @@ class UploadService
         $previewPath = $mediaDir . '/' . $imageId . '_sm.jpg';
         $preview = ImagesService::generateJpegPreview($dest, $previewPath, $previewW);
         if ($preview) {
-            $relFs = str_replace(dirname(__DIR__, 2), '', $preview);
-            $relUrl = preg_replace('#^/public#','', $relFs);
+            // The URL stays stable; MediaController maps it to public/ or
+            // storage/protected-media after checking album access.
+            $relUrl = "/media/{$imageId}_sm.jpg";
             $previewSize = @getimagesize($preview) ?: [$previewW, 0];
             $replaceKeyword = $this->db->replaceKeyword();
             $pdo->prepare(sprintf('%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)', $replaceKeyword))
@@ -435,7 +441,12 @@ class UploadService
         $pdo = $this->db->pdo();
 
         // Get image details
-        $stmt = $pdo->prepare('SELECT * FROM images WHERE id = ?');
+        $stmt = $pdo->prepare(
+            'SELECT i.*, a.is_nsfw AS album_is_nsfw, a.password_hash AS album_password_hash
+             FROM images i
+             JOIN albums a ON a.id = i.album_id
+             WHERE i.id = ?'
+        );
         $stmt->execute([$imageId]);
         $image = $stmt->fetch();
 
@@ -488,7 +499,9 @@ class UploadService
             $breakpoints = $defaults['image.breakpoints'];
         }
 
-        $mediaDir = dirname(__DIR__, 2) . '/public/media';
+        $isProtectedAlbum = (int)($image['album_is_nsfw'] ?? 0) === 1 || !empty($image['album_password_hash']);
+        $protectedStorage = new ProtectedMediaStorage($this->db);
+        $mediaDir = $protectedStorage->directoryForProtection($isProtectedAlbum);
         ImagesService::ensureDir($mediaDir);
 
         $haveImagick = class_exists(\Imagick::class) && !$this->imagickDisabled();
@@ -553,6 +566,8 @@ class UploadService
                 }
 
                 if ($ok && is_file($destPath)) {
+                    $oppositeDir = $protectedStorage->directoryForProtection(!$isProtectedAlbum);
+                    @unlink($oppositeDir . "/{$imageId}_{$variant}.{$fmt}");
                     $size = (int)filesize($destPath);
                     [$vw, $vh] = getimagesize($destPath) ?: [$targetW, 0];
                     $replaceKeyword = $this->db->replaceKeyword();
@@ -633,12 +648,16 @@ class UploadService
 
         // Find source file - prefer sm variant, fallback to original
         $mediaDir = dirname(__DIR__, 2) . '/public/media';
+        $protectedStorage = new ProtectedMediaStorage($this->db);
         $smPath = $mediaDir . "/{$imageId}_sm.jpg";
+        $privateSmPath = $protectedStorage->directoryForProtection(true) . "/{$imageId}_sm.jpg";
 
         $sourcePath = null;
-        $triedPaths = [$smPath];
+        $triedPaths = [$smPath, $privateSmPath];
         if (is_file($smPath)) {
             $sourcePath = $smPath;
+        } elseif (is_file($privateSmPath)) {
+            $sourcePath = $privateSmPath;
         } else {
             // Try to find original
             $dbPath = $image['original_path'];
