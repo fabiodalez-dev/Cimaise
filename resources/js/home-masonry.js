@@ -1,5 +1,6 @@
 import { HomeProgressiveLoader } from './home-progressive-loader.js';
 import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js';
+import { getBasePath, normalizeBasePath } from './utils/base-path.js';
 
 (function () {
   'use strict';
@@ -84,7 +85,7 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
 
     const trigger = document.getElementById('home-load-trigger');
     const loadingEl = document.getElementById('masonry-loading');
-    const basePath = config.basePath || '';
+    const basePath = config.basePath ? normalizeBasePath(config.basePath) : getBasePath();
     const maxImages = Number.parseInt(config.maxImages, 10) || 0;
 
     const fetchPriorityObserver = createFetchPriorityObserverWrapper(3);
@@ -184,6 +185,13 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
       try {
         await originalLoadMore();
       } finally {
+        // Enforce the app-level cap AFTER the loader's own
+        // _processImageData(), which overwrites hasMore from the API
+        // response and would otherwise re-enable further batches.
+        if (maxImages > 0 && loader.shownImageIds.size >= maxImages) {
+          loader.hasMore = false;
+          loader.disconnect();
+        }
         // Rebalance columns after new images are added
         balanceColumns(grid);
         setLoading(false);
