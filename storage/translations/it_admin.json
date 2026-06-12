@@ -2544,6 +2544,7 @@
     "admin.pages.galleries.tpl_polaroid": "Muro Polaroid",
     "admin.pages.galleries.tpl_polaroid_desc": "Stampe sparse con didascalie in stile scritto a mano.",
     "admin.pages.galleries.tpl_index_minimal": "Indice Minimale",
-    "admin.pages.galleries.tpl_index_minimal_desc": "Elenco solo testo con conteggi; anteprime al passaggio."
+    "admin.pages.galleries.tpl_index_minimal_desc": "Elenco solo testo con conteggi; anteprime al passaggio.",
+    "admin.login.toggle_password": "Mostra/nascondi password"
   }
 }

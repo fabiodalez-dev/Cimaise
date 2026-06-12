@@ -2544,6 +2544,7 @@
     "admin.pages.galleries.tpl_polaroid": "Polaroid Wall",
     "admin.pages.galleries.tpl_polaroid_desc": "Scattered prints with handwritten-style captions.",
     "admin.pages.galleries.tpl_index_minimal": "Minimal Index",
-    "admin.pages.galleries.tpl_index_minimal_desc": "Text-only list with counts; previews appear on hover."
+    "admin.pages.galleries.tpl_index_minimal_desc": "Text-only list with counts; previews appear on hover.",
+    "admin.login.toggle_password": "Show/hide password"
   }
 }
