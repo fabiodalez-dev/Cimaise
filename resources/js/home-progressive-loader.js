@@ -28,7 +28,8 @@ export class HomeProgressiveLoader {
    * @param {number} [options.batchSize=20] - Number of images per API request
    */
   constructor(options = {}) {
-    this.apiUrl = options.apiUrl || '/api/home/gallery';
+    this.apiUrl = options.apiUrl
+      || `${(typeof window !== 'undefined' && window.basePath) ? window.basePath : ''}/api/home/gallery`;
     this.container = options.container;
     this.renderImage = options.renderImage;
     this.batchSize = options.batchSize || 20;

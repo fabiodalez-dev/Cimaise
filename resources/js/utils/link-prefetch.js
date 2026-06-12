@@ -45,8 +45,9 @@ function isPrefetchable(url) {
     const pathname = urlObj.pathname.toLowerCase();
     if (skipExtensions.some(ext => pathname.endsWith(ext))) return false;
 
-    // Skip admin and API routes
-    if (pathname.startsWith('/admin') || pathname.startsWith('/api/')) return false;
+    // Skip admin and API routes (base-path aware for subfolder installs)
+    const base = (typeof window !== 'undefined' && window.basePath) ? window.basePath.toLowerCase() : '';
+    if (pathname.startsWith(`${base}/admin`) || pathname.startsWith(`${base}/api/`)) return false;
 
     return true;
   } catch {

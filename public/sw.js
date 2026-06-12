@@ -16,11 +16,16 @@ const CACHE_PAGES = `${CACHE_VERSION}-pages`;
 const DEBUG = false;
 const log = (...args) => DEBUG && console.log(...args);
 
-// Assets to pre-cache on install
+// Base path of the installation, derived from where this SW is served
+// (subfolder installs serve it at /sub/sw.js -> scope /sub/). '' on root.
+const BASE_PATH = new URL(self.registration ? self.registration.scope : self.location.href)
+  .pathname.replace(/sw\.js$/, '').replace(/\/$/, '');
+
+// Assets to pre-cache on install (base-path aware)
 const STATIC_ASSETS = [
-  '/',
-  '/assets/app.css',
-  '/offline.html'
+  `${BASE_PATH}/`,
+  `${BASE_PATH}/assets/app.css`,
+  `${BASE_PATH}/offline.html`
 ];
 
 // Maximum cache sizes
@@ -82,18 +87,18 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Skip admin routes
-  if (url.pathname.startsWith('/admin')) {
+  if (url.pathname.startsWith(`${BASE_PATH}/admin`)) {
     return;
   }
 
   // Skip API routes (always fresh)
-  if (url.pathname.startsWith('/api')) {
+  if (url.pathname.startsWith(`${BASE_PATH}/api`)) {
     return;
   }
 
   // Skip protected media (requires authentication, never cache)
   // Protected albums (password/NSFW) use /media/protected/ endpoint
-  if (url.pathname.startsWith('/media/protected')) {
+  if (url.pathname.startsWith(`${BASE_PATH}/media/protected`)) {
     return;
   }
 
@@ -253,7 +258,7 @@ async function networkFirstStrategy(request, cacheName, maxItems = 20) {
     // 5. No cache available AND offline, show offline page
     if (isOffline || isNetworkError) {
       const staticCache = await caches.open(CACHE_STATIC);
-      const offlinePage = await staticCache.match('/offline.html');
+      const offlinePage = await staticCache.match(`${BASE_PATH}/offline.html`);
       if (offlinePage) {
         return offlinePage;
       }
