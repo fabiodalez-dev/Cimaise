@@ -3,6 +3,8 @@
  * Prefetches pages when user hovers over internal links for faster navigation
  */
 
+import { getBasePath } from './base-path.js';
+
 const prefetchedUrls = new Set();
 let hoverTimer = null;
 const HOVER_DELAY = 65; // ms delay before prefetching (avoid accidental hovers)
@@ -45,8 +47,14 @@ function isPrefetchable(url) {
     const pathname = urlObj.pathname.toLowerCase();
     if (skipExtensions.some(ext => pathname.endsWith(ext))) return false;
 
-    // Skip admin and API routes
-    if (pathname.startsWith('/admin') || pathname.startsWith('/api/')) return false;
+    // Skip admin and API routes (base-path aware for subfolder installs)
+    const base = getBasePath().toLowerCase();
+    const adminPrefix = `${base}/admin`;
+    const apiPrefix = `${base}/api`;
+    if (
+      pathname === adminPrefix || pathname.startsWith(`${adminPrefix}/`) ||
+      pathname === apiPrefix || pathname.startsWith(`${apiPrefix}/`)
+    ) return false;
 
     return true;
   } catch {

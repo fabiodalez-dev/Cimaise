@@ -4,6 +4,7 @@ import './home-gallery.js'
 import './albums-carousel.js'
 import { HomeProgressiveLoader } from './home-progressive-loader.js'
 import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
+import { getBasePath, normalizeBasePath } from './utils/base-path.js'
 
 /**
  * Home Infinite Gallery - Entry animation reveal + Progressive Loading
@@ -125,6 +126,8 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
     // Progressive Loading: Load more images via API
     const config = window.homeLoaderConfig;
     if (config && config.hasMore) {
+      // Single source of truth for the base path (normalized, subfolder-safe)
+      const basePath = config.basePath ? normalizeBasePath(config.basePath) : getBasePath();
       // Get containers for appending new images
       const isHorizontal = gallery.closest('[data-scroll-direction="horizontal"]') !== null;
       const mobileCells = gallery.querySelector('.home-mobile');
@@ -136,17 +139,17 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
       let appendIndex = 0;
 
       const loader = new HomeProgressiveLoader({
-        apiUrl: `${config.basePath}/api/home/gallery`,
+        apiUrl: `${basePath}/api/home/gallery`,
         container: gallery,
         shownImageIds: config.shownImageIds,
         shownAlbumIds: config.shownAlbumIds,
         batchSize: 20,
         renderImage: (img) => {
-          const cell = createHomeItem(img, config.basePath, isHorizontal);
+          const cell = createHomeItem(img, basePath, isHorizontal);
 
           // Append to mobile layout (create separate item to preserve event listeners)
           if (mobileCells) {
-            const mobileCell = createHomeItem(img, config.basePath, false);
+            const mobileCell = createHomeItem(img, basePath, false);
             mobileCell.className = 'home-cell';
             mobileCells.appendChild(mobileCell);
             if (observer) {
