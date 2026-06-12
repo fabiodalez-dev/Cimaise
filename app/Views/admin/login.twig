@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ trans('admin.login.title') }} — Cimaise</title>
+  <title>{{ trans('admin.login.title') }} — {{ site_title|default('Cimaise') }}</title>
   <link href="{{ vite_asset('app.css') }}" rel="stylesheet">
   {# admin-app.css carries the admin-purged Tailwind utilities (app.css is purged against frontend views only) #}
   <link href="{{ vite_asset('admin-app.css') }}" rel="stylesheet">
@@ -22,7 +22,7 @@
     /* Split login. The left panel is the one committed visual element: the
        photographer's wordmark set in the site display font on a darkroom
        surface; the form stays on a quiet product surface. */
-    .login-shell { min-height: 100dvh; display: grid; grid-template-columns: 1fr; }
+    .login-shell { min-height: 100vh; min-height: 100dvh; display: grid; grid-template-columns: 1fr; }
     @media (min-width: 1024px) { .login-shell { grid-template-columns: 5fr 4fr; } }
 
     .login-stage {
@@ -43,7 +43,7 @@
       pointer-events: none;
     }
     .login-wordmark {
-      font-family: var(--font-display, var(--font-heading, Georgia, serif));
+      font-family: var(--font-headings, Georgia, serif);
       font-weight: 400;
       font-size: clamp(2.4rem, 5vw, 4.25rem);
       line-height: 1.05;
@@ -56,17 +56,19 @@
     }
     .login-stage-meta {
       display: flex; align-items: center; gap: 0.75rem;
-      font-size: 0.75rem; color: rgba(245, 244, 242, 0.45);
+      font-size: 0.75rem; color: rgba(245, 244, 242, 0.62);
       font-variant-numeric: tabular-nums;
     }
     .login-stage-meta .dot { width: 4px; height: 4px; border-radius: 9999px; background: var(--color-accent, #D70261); }
 
     .login-form-pane {
-      background: var(--color-bg, #F6F7F9);
+      background: var(--color-bg-primary, #F6F7F9);
       display: flex; align-items: center; justify-content: center;
       padding: 2.5rem 1.25rem;
     }
-    html.dark .login-form-pane { background: #0F1115; }
+    /* The admin stylesheet's global `html.dark i` rule would freeze the
+       password-toggle icon color; let the button's own utilities govern. */
+    html.dark #togglePassword i { color: inherit; }
     .login-card { width: 100%; max-width: 24.5rem; }
 
     /* On small screens the stage becomes a compact masthead */
@@ -83,13 +85,14 @@
 
     {# ---- Stage: the photographer's brand carries the page ---- #}
     <section class="login-stage" aria-hidden="true">
-      <div class="login-kicker">Cimaise · {{ trans('admin.login.admin_panel') }}</div>
+      <div class="login-kicker">{{ site_title|default('Cimaise') }} · {{ trans('admin.login.admin_panel') }}</div>
       <div>
         {% if logo_type == 'image' and site_logo %}
           <img src="{% if site_logo starts with '/' %}{{ base_path }}{{ site_logo }}{% else %}{{ site_logo }}{% endif %}"
-               alt="" class="h-14 w-auto mb-5">
+               alt="" class="h-14 w-auto">
+        {% else %}
+          <div class="login-wordmark">{{ site_title|default('Cimaise') }}</div>
         {% endif %}
-        <div class="login-wordmark">{{ site_title|default('Cimaise') }}</div>
       </div>
       <div class="login-stage-bottom login-stage-meta">
         <span>Cimaise</span><span class="dot"></span><span>{{ "now"|date('Y') }}</span>
@@ -99,7 +102,7 @@
     {# ---- Form pane ---- #}
     <main class="login-form-pane">
       <div class="login-card">
-        <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">{{ trans('admin.login.title') }}</h1>
+        <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">{{ trans('admin.login.title') }}<span class="sr-only"> — {{ site_title|default('Cimaise') }}</span></h1>
         <p class="mt-1 mb-7 text-sm text-gray-500 dark:text-gray-400">{{ trans('admin.login.admin_panel') }}</p>
 
         {# Flash messages (e.g., session expired) #}
@@ -154,16 +157,16 @@
               <button
                 type="button"
                 id="togglePassword"
-                aria-label="{{ trans('admin.login.toggle_password')|default('Mostra/nascondi password') }}"
+                aria-label="{{ trans('admin.login.toggle_password', {}, 'Show/hide password') }}"
                 aria-pressed="false"
-                class="absolute inset-y-0 right-0 px-3.5 flex items-center text-gray-400 hover:text-accent-600 focus:text-accent-600 focus:outline-none dark:text-gray-500 dark:hover:text-accent-400"
+                class="absolute inset-y-0 right-0 px-3.5 flex items-center text-gray-500 hover:text-accent-600 focus:text-accent-600 focus:outline-none dark:text-gray-400 dark:hover:text-accent-400 dark:focus:text-accent-400"
               >
                 <i class="fas fa-eye" id="togglePasswordIcon" aria-hidden="true"></i>
               </button>
             </div>
           </div>
 
-          <div class="flex items-center justify-between pt-1">
+          <div class="flex items-center pt-1">
             <label for="remember_me" class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 select-none">
               <input
                 id="remember_me"
@@ -178,13 +181,13 @@
 
           <button
             type="submit"
-            class="w-full bg-accent-600 hover:bg-accent-700 text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 dark:focus:ring-offset-gray-950"
+            class="w-full bg-accent-600 hover:bg-accent-700 text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 dark:focus:ring-offset-[#0f1115]"
           >
             {{ trans('admin.login.submit') }}
           </button>
         </form>
 
-        <p class="mt-8 text-center text-xs text-gray-400 dark:text-gray-600">Cimaise</p>
+        <p class="mt-8 text-center text-xs text-gray-500 dark:text-gray-400">Cimaise</p>
       </div>
     </main>
   </div>
