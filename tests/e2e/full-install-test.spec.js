@@ -138,6 +138,19 @@ test.describe.serial('Full Cimaise Install + NSFW Test', () => {
     // same title around).
     const editMatch = page.url().match(/\/admin\/albums\/(\d+)\/edit/);
     createdAlbumId = editMatch ? Number(editMatch[1]) : null;
+    if (createdAlbumId === null) {
+      // Plain-POST path (AJAX handler not yet bound on a cold fresh
+      // install) redirects to the LIST, not /edit — resolve the id from
+      // the row's edit link instead. Fresh install ⇒ the title is unique.
+      await page.goto(`${BASE}/admin/albums`);
+      const href = await page
+        .locator('a[href*="/admin/albums/"][href$="/edit"]')
+        .filter({ hasText: 'Test NSFW Album' })
+        .first()
+        .getAttribute('href');
+      const m = href ? href.match(/\/admin\/albums\/(\d+)\/edit/) : null;
+      createdAlbumId = m ? Number(m[1]) : null;
+    }
   });
 
   test('Step 8: Verify NSFW album gate on frontend', async () => {
@@ -170,11 +183,13 @@ test.describe.serial('Full Cimaise Install + NSFW Test', () => {
     // Use a clean visitor page
     const visitorContext = await browser.newContext();
     const visitorPage = await visitorContext.newPage();
-    await visitorPage.goto(`${BASE}/`);
+    // networkidle absorbs the home page's immediate post-load navigation
+    // (intro/template bootstrap) that destroys the execution context and
+    // breaks a naive evaluate() — same race class fixed in _debug-darkcompat.
+    await visitorPage.goto(`${BASE}/`, { waitUntil: 'networkidle' });
     // Should load without errors
     await expect(visitorPage).toHaveURL(`${BASE}/`);
-    const status = await visitorPage.evaluate(() => document.readyState);
-    expect(status).toBe('complete');
+    await visitorPage.waitForLoadState('load');
     // Should have the site title somewhere
     await expect(visitorPage.locator('text=Test Cimaise').first()).toBeVisible({ timeout: 5000 });
     await visitorPage.close();
