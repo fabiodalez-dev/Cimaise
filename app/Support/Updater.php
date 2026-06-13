@@ -2744,12 +2744,21 @@ class Updater
                 throw new Exception('Download failed: ' . $downloadResult['error']);
             }
 
+            // Step 2.5: Pre-update patch (optional, signed, NON-FATAL).
+            $this->debugLog('INFO', '>>> STEP 2.5: Pre-update patch <<<');
+            $this->applyPreUpdatePatch($targetVersion);
+
             // Step 3: Install
             $this->debugLog('INFO', '>>> STEP 3: Installing update <<<');
             $installResult = $this->installUpdate($downloadResult['path'], $targetVersion, $backupResult['path']);
             if (!$installResult['success']) {
                 throw new Exception('Installation failed: ' . $installResult['error']);
             }
+
+            // Step 4: Post-install patch (optional, signed, NON-FATAL). The
+            // update is already complete; a patch failure must not undo it.
+            $this->debugLog('INFO', '>>> STEP 4: Post-install patch <<<');
+            $this->applyPostInstallPatch($targetVersion);
 
             $result = [
                 'success' => true,
@@ -2785,6 +2794,299 @@ class Updater
         }
 
         return $result;
+    }
+
+    /**
+     * Fetch a release asset and its detached Ed25519 signature sibling
+     * (<asset>.sig), verifying the signature before returning the bytes.
+     *
+     * FAIL-CLOSED on every uncertain path: if no signing public key is
+     * configured (PluginSignature disabled), if the asset has no .sig sibling,
+     * or if the signature does not verify, returns null and nothing is
+     * executed. The patch download is anonymous (no bearer token to the CDN),
+     * inheriting downloadFile()'s host scoping.
+     *
+     * This is STRONGER than the upstream (Pinakes) sha256-from-digest scheme:
+     * a remote PHP patch must carry a valid signature from the project's
+     * offline signing key, not merely match a hash published alongside it.
+     */
+    private function fetchSignedReleaseAsset(string $version, string $assetName): ?string
+    {
+        if (!\App\Support\PluginSignature::isEnabled()) {
+            $this->debugLog('INFO', 'Remote patch skipped: no signing public key configured (fail-closed)', [
+                'asset' => $assetName,
+            ]);
+            return null;
+        }
+
+        $release = $this->getReleaseByVersion($version);
+        if (!is_array($release)) {
+            return null;
+        }
+
+        $assetUrl = null;
+        $sigUrl = null;
+        foreach ($release['assets'] ?? [] as $asset) {
+            if (!is_array($asset)) {
+                continue;
+            }
+            $name = $asset['name'] ?? '';
+            if ($name === $assetName) {
+                $assetUrl = $asset['browser_download_url'] ?? null;
+            } elseif ($name === $assetName . '.sig') {
+                $sigUrl = $asset['browser_download_url'] ?? null;
+            }
+        }
+
+        // No patch asset on this release is the normal case — silently skip.
+        if (!is_string($assetUrl) || $assetUrl === '') {
+            return null;
+        }
+        // Patch present but unsigned: refuse (fail-closed).
+        if (!is_string($sigUrl) || $sigUrl === '') {
+            $this->debugLog('WARNING', 'Patch asset has no .sig sibling — refusing to execute', [
+                'asset' => $assetName,
+            ]);
+            return null;
+        }
+
+        $patch = $this->downloadFile($assetUrl);
+        if (!($patch['success'] ?? false) || !is_string($patch['content'])) {
+            return null;
+        }
+        $sig = $this->downloadFile($sigUrl);
+        if (!($sig['success'] ?? false) || !is_string($sig['content'])) {
+            return null;
+        }
+
+        if (!\App\Support\PluginSignature::verify($patch['content'], trim($sig['content']))) {
+            $this->debugLog('ERROR', 'Patch signature verification FAILED — refusing to execute', [
+                'asset' => $assetName,
+            ]);
+            return null;
+        }
+
+        $this->debugLog('INFO', 'Patch asset downloaded and Ed25519 signature verified', [
+            'asset' => $assetName,
+        ]);
+        return $patch['content'];
+    }
+
+    /**
+     * Load a verified patch definition (a PHP file that returns an array) from
+     * a signed release asset, writing it to a random temp file, requiring it,
+     * and removing it immediately. Returns the array, or null on any failure.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function loadVerifiedPatch(string $version, string $assetName): ?array
+    {
+        $content = $this->fetchSignedReleaseAsset($version, $assetName);
+        if ($content === null) {
+            return null;
+        }
+
+        $tmp = $this->rootPath . '/storage/tmp/' . pathinfo($assetName, PATHINFO_FILENAME)
+            . '-' . bin2hex(random_bytes(16)) . '.php';
+        if (!is_dir(dirname($tmp))) {
+            @mkdir(dirname($tmp), 0775, true);
+        }
+        if (@file_put_contents($tmp, $content) === false) {
+            return null;
+        }
+        try {
+            $definition = require $tmp;
+        } catch (\Throwable $e) {
+            $this->debugLog('ERROR', 'Patch file failed to load', ['error' => $e->getMessage()]);
+            $definition = null;
+        } finally {
+            @unlink($tmp);
+            if (function_exists('opcache_invalidate')) {
+                @opcache_invalidate($tmp, true);
+            }
+        }
+
+        return is_array($definition) ? $definition : null;
+    }
+
+    /**
+     * Apply the optional pre-update patch (signed `pre-update-patch.php`).
+     * Runs BEFORE new files land, against the current version. NON-FATAL.
+     *
+     * @return array{success: bool, applied: bool, patches: array<int, mixed>, error: string|null}
+     */
+    public function applyPreUpdatePatch(string $targetVersion): array
+    {
+        $result = ['success' => true, 'applied' => false, 'patches' => [], 'error' => null];
+        try {
+            $def = $this->loadVerifiedPatch($targetVersion, 'pre-update-patch.php');
+            if ($def === null) {
+                return $result;
+            }
+            // Gate on the source version, when the patch declares targets.
+            $targets = $def['target_versions'] ?? null;
+            if (is_array($targets) && !in_array($this->getCurrentVersion(), $targets, true)) {
+                return $result;
+            }
+            $applied = [];
+            foreach ($def['patches'] ?? [] as $patch) {
+                if (is_array($patch) && $this->applySinglePatch($patch)['success']) {
+                    $applied[] = $patch['file'] ?? 'unknown';
+                }
+            }
+            $result['patches'] = $applied;
+            $result['applied'] = $applied !== [];
+        } catch (\Throwable $e) {
+            $result['error'] = $e->getMessage(); // success stays true — non-fatal
+        }
+        return $result;
+    }
+
+    /**
+     * Apply the optional post-install patch (signed `post-install-patch.php`).
+     * Runs AFTER the update is complete. NON-FATAL. Supports file
+     * search-replace, file deletion (protected-path guarded), and SQL.
+     *
+     * @return array{success: bool, applied: bool, patches: array<int, mixed>, cleanup: array<int, mixed>, sql: array<int, mixed>, error: string|null}
+     */
+    public function applyPostInstallPatch(string $targetVersion): array
+    {
+        $result = ['success' => true, 'applied' => false, 'patches' => [], 'cleanup' => [], 'sql' => [], 'error' => null];
+        try {
+            $def = $this->loadVerifiedPatch($targetVersion, 'post-install-patch.php');
+            if ($def === null) {
+                return $result;
+            }
+            $any = false;
+
+            foreach ($def['patches'] ?? [] as $patch) {
+                if (is_array($patch) && $this->applySinglePatch($patch)['success']) {
+                    $result['patches'][] = $patch['file'] ?? 'unknown';
+                    $any = true;
+                }
+            }
+            foreach ($def['cleanup'] ?? [] as $rel) {
+                if (is_string($rel) && $this->cleanupPatchFile($rel)['success']) {
+                    $result['cleanup'][] = $rel;
+                    $any = true;
+                }
+            }
+            foreach ($def['sql'] ?? [] as $sql) {
+                if (is_string($sql) && $this->executePostInstallSql($sql)['success']) {
+                    $result['sql'][] = substr($sql, 0, 80);
+                    $any = true;
+                }
+            }
+            $result['applied'] = $any;
+        } catch (\Throwable $e) {
+            $result['error'] = $e->getMessage();
+        }
+        return $result;
+    }
+
+    /**
+     * Apply one search-replace patch to a file inside the app root. The search
+     * string must occur exactly once (no ambiguous / already-applied edits),
+     * and the resolved path must stay within the root.
+     *
+     * @param array<string, mixed> $patch  Requires file, search, replace
+     * @return array{success: bool, error: string|null}
+     */
+    private function applySinglePatch(array $patch): array
+    {
+        if (!isset($patch['file'], $patch['search'], $patch['replace'])
+            || !is_string($patch['file']) || !is_string($patch['search']) || !is_string($patch['replace'])) {
+            return ['success' => false, 'error' => 'Invalid patch definition'];
+        }
+
+        $real = realpath($this->rootPath . '/' . $patch['file']);
+        $root = realpath($this->rootPath);
+        if ($real === false || $root === false || strpos($real, $root . DIRECTORY_SEPARATOR) !== 0) {
+            return ['success' => false, 'error' => 'Invalid file path'];
+        }
+
+        $content = @file_get_contents($real);
+        if ($content === false) {
+            return ['success' => false, 'error' => 'Cannot read file'];
+        }
+        $occurrences = substr_count($content, $patch['search']);
+        if ($occurrences !== 1) {
+            return ['success' => false, 'error' => "Search string not unique ({$occurrences})"];
+        }
+        $patched = str_replace($patch['search'], $patch['replace'], $content);
+        if (@file_put_contents($real, $patched) === false) {
+            return ['success' => false, 'error' => 'Cannot write file'];
+        }
+        if (function_exists('opcache_invalidate')) {
+            @opcache_invalidate($real, true);
+        }
+        return ['success' => true, 'error' => null];
+    }
+
+    /**
+     * Delete a file relative to the app root, refusing protected paths and any
+     * path escaping the root. Idempotent (missing file = success).
+     *
+     * @return array{success: bool, error: string|null}
+     */
+    private function cleanupPatchFile(string $relativePath): array
+    {
+        $protected = ['.env', 'version.json', 'composer.json', 'public/index.php', 'database/database.sqlite'];
+        $base = basename($relativePath);
+        foreach ($protected as $p) {
+            if ($relativePath === $p || strpos($relativePath, $p . '/') === 0 || $base === basename($p)) {
+                return ['success' => false, 'error' => 'Cannot delete protected file'];
+            }
+        }
+
+        $real = realpath($this->rootPath . '/' . $relativePath);
+        $root = realpath($this->rootPath);
+        if ($real === false) {
+            return ['success' => true, 'error' => null]; // already gone
+        }
+        if ($root === false || strpos($real, $root . DIRECTORY_SEPARATOR) !== 0) {
+            return ['success' => false, 'error' => 'Invalid file path'];
+        }
+        if (is_file($real) && @unlink($real)) {
+            return ['success' => true, 'error' => null];
+        }
+        return ['success' => false, 'error' => 'Cannot delete file'];
+    }
+
+    /**
+     * Execute a single SQL statement from a post-install patch, refusing a
+     * blocklist of catastrophic operations. Runs on whichever engine is
+     * active (PDO). Idempotent errors are tolerated.
+     *
+     * @return array{success: bool, error: string|null}
+     */
+    private function executePostInstallSql(string $sql): array
+    {
+        $sql = trim($sql);
+        if ($sql === '') {
+            return ['success' => true, 'error' => null];
+        }
+        $dangerous = [
+            '/\bDROP\s+DATABASE\b/i',
+            '/\bTRUNCATE\s+(?:TABLE\s+)?`?users`?\b/i',
+            '/\bDELETE\s+FROM\s+`?users`?\s+WHERE\s+1\b/i',
+        ];
+        foreach ($dangerous as $p) {
+            if (preg_match($p, $sql)) {
+                return ['success' => false, 'error' => 'Dangerous SQL blocked'];
+            }
+        }
+        try {
+            $this->db->pdo()->exec($sql);
+            return ['success' => true, 'error' => null];
+        } catch (\PDOException $e) {
+            foreach (['/already exists/i', '/duplicate column/i', '/duplicate key/i'] as $p) {
+                if (preg_match($p, $e->getMessage())) {
+                    return ['success' => true, 'error' => null];
+                }
+            }
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
     }
 
     /**
