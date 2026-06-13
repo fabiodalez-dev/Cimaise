@@ -159,6 +159,8 @@
     "filter.all": "Tutti",
     "filter.analog": "Analogico",
     "filter.apply": "Applica",
+    "filter.apply_error": "Impossibile caricare le gallerie. Riprova.",
+    "filter.retry": "Riprova",
     "filter.categories": "Categorie",
     "filter.category": "Categoria",
     "filter.clear": "Cancella filtri",

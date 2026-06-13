@@ -166,6 +166,13 @@ class PageCacheService
     {
         $deleted = 0;
         $deleted += $this->invalidate('galleries');
+        // Admin-selectable listing templates cache under per-template keys
+        // ('galleries_<slug>'), all tagged CacheTags::GALLERIES. The exact-key
+        // invalidate('galleries') above only clears the classic listing, so
+        // drop the whole tag family too — otherwise callers that rely on this
+        // method (tag edits, filter-settings changes, the manual cache-clear
+        // button) leave non-classic listings serving a stale filter bar.
+        $deleted += $this->invalidateByTag(CacheTags::GALLERIES);
         // Home may also show gallery preview
         $deleted += $this->invalidate('home');
         return $deleted;
