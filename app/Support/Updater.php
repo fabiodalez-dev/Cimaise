@@ -1925,15 +1925,16 @@ class Updater
                         $sql = file_get_contents($file);
 
                         if ($sql !== false && trim($sql) !== '') {
-                            // Remove comments
-                            $sqlLines = explode("\n", $sql);
-                            $sqlLines = array_filter($sqlLines, fn($line) => !preg_match('/^\s*--/', $line));
-                            $sql = implode("\n", $sqlLines);
-
-                            $statements = array_filter(
-                                array_map('trim', explode(';', $sql)),
-                                fn($s) => !empty($s)
-                            );
+                            // Migrations carrying triggers/stored routines use
+                            // DELIMITER directives and BEGIN...END bodies with
+                            // inner ';' — the naive explode(';') splitter would
+                            // shred them. Pick the DELIMITER-aware parser for
+                            // those; the standard quote-aware splitter otherwise.
+                            if ($this->migrationNeedsDelimiterParser($sql)) {
+                                $statements = $this->splitSqlWithDelimiters($sql);
+                            } else {
+                                $statements = $this->splitSqlStatements($sql);
+                            }
 
                             foreach ($statements as $statement) {
                                 if (!empty(trim($statement))) {
@@ -1953,7 +1954,13 @@ class Updater
                                                 break;
                                             }
                                         }
-                                        if (!$isIgnorable) {
+                                        // CREATE/DROP TRIGGER errors are non-fatal:
+                                        // SQLite and MySQL phrase "already exists"
+                                        // differently, and a trigger SearchIndexer
+                                        // re-creates at runtime may already be
+                                        // present. Tolerate them like Pinakes does.
+                                        $isTriggerStmt = (bool) preg_match('/^\s*(CREATE|DROP)\s+TRIGGER/i', $statement);
+                                        if (!$isIgnorable && !$isTriggerStmt) {
                                             throw $e;
                                         }
                                         $this->debugLog('WARNING', 'Ignorable SQL error', [
@@ -1988,6 +1995,146 @@ class Updater
                 'error' => $e->getMessage()
             ];
         }
+    }
+
+    /**
+     * Decide whether a migration script needs the DELIMITER/BEGIN-END-aware
+     * parser (triggers, stored routines) rather than the plain quote-aware
+     * splitter. True when it carries a DELIMITER directive (MySQL) or any
+     * CREATE TRIGGER (both dialects).
+     */
+    private function migrationNeedsDelimiterParser(string $sql): bool
+    {
+        return (bool) preg_match('/^\s*DELIMITER\b/im', $sql)
+            || stripos($sql, 'CREATE TRIGGER') !== false;
+    }
+
+    /**
+     * Split a SQL script into statements on top-level semicolons, ignoring
+     * semicolons inside single-quoted string literals (so a ';' in a CSS
+     * blob, a default value, or seeded text doesn't split a statement).
+     * Comment-only lines (leading `--`) are dropped.
+     *
+     * @return string[] Trimmed, non-empty statements.
+     */
+    private function splitSqlStatements(string $sql): array
+    {
+        // Strip full-line comments first (keeps `--` inside string literals,
+        // which is rare in our migrations, out of scope — matches the prior
+        // behavior this method replaces).
+        $sqlLines = explode("\n", $sql);
+        $sqlLines = array_filter($sqlLines, fn($line) => !preg_match('/^\s*--/', $line));
+        $sql = implode("\n", $sqlLines);
+
+        $statements = [];
+        $current = '';
+        $inString = false;
+        $length = strlen($sql);
+
+        for ($i = 0; $i < $length; $i++) {
+            $char = $sql[$i];
+
+            if ($char === "'") {
+                // Escaped quote ('') inside a string literal: keep both, skip next.
+                if ($inString && $i + 1 < $length && $sql[$i + 1] === "'") {
+                    $current .= "''";
+                    $i++;
+                    continue;
+                }
+                $inString = !$inString;
+                $current .= $char;
+                continue;
+            }
+
+            if ($char === ';' && !$inString) {
+                $trimmed = trim($current);
+                if ($trimmed !== '') {
+                    $statements[] = $trimmed;
+                }
+                $current = '';
+                continue;
+            }
+
+            $current .= $char;
+        }
+
+        $trimmed = trim($current);
+        if ($trimmed !== '') {
+            $statements[] = $trimmed;
+        }
+
+        return $statements;
+    }
+
+    /**
+     * Split a SQL script that uses DELIMITER directives (MySQL) and/or
+     * multi-statement CREATE TRIGGER ... BEGIN ... END bodies (whose inner ';'
+     * must not split the statement). Handles BOTH dialects:
+     *   - MySQL: an explicit `DELIMITER $$` block switches the terminator;
+     *   - SQLite: no DELIMITER directive — instead a BEGIN...END depth counter
+     *     suppresses the inner ';' so `CREATE TRIGGER ... BEGIN ...; ...; END;`
+     *     stays a single statement.
+     * Normalizes `CREATE DEFINER=...@... TRIGGER` to plain `CREATE TRIGGER` so
+     * trigger SQL applies regardless of the creating DB user.
+     *
+     * Note: BEGIN/END depth is matched on word boundaries. `END IF` / `END WHILE`
+     * inside stored routines would mis-count, but Cimaise's migrations only use
+     * plain trigger bodies; MySQL routines should use an explicit DELIMITER.
+     *
+     * @return string[] Trimmed, non-empty statements (delimiter stripped).
+     */
+    private function splitSqlWithDelimiters(string $sql): array
+    {
+        $sql = preg_replace('/CREATE\s+DEFINER=`[^`]+`@`[^`]+`\s+TRIGGER/i', 'CREATE TRIGGER', $sql) ?? $sql;
+
+        $statements = [];
+        $buffer = '';
+        $delimiter = ';';
+        $blockDepth = 0;
+
+        foreach (explode("\n", $sql) as $line) {
+            $trimmed = trim($line);
+
+            // Skip blank / comment-only lines while not mid-statement.
+            if ($buffer === '' && ($trimmed === '' || strpos($trimmed, '--') === 0)) {
+                continue;
+            }
+
+            // DELIMITER directive: switch terminator, do not emit the line.
+            if ($blockDepth === 0 && preg_match('/^DELIMITER\s+(\S+)/i', $trimmed, $m)) {
+                $delimiter = $m[1];
+                continue;
+            }
+
+            $buffer .= $line . "\n";
+
+            // Track BEGIN...END nesting so inner ';' don't terminate the
+            // statement (SQLite triggers have no DELIMITER directive).
+            $blockDepth += preg_match_all('/\bBEGIN\b/i', $line);
+            $blockDepth -= preg_match_all('/\bEND\b/i', $line);
+            if ($blockDepth < 0) {
+                $blockDepth = 0;
+            }
+
+            // A statement terminates only at depth 0, when the line ends with
+            // the active delimiter.
+            if ($blockDepth === 0 && $trimmed !== '' && substr($trimmed, -strlen($delimiter)) === $delimiter) {
+                $stmt = trim($buffer);
+                $stmt = substr($stmt, 0, strlen($stmt) - strlen($delimiter));
+                $stmt = trim($stmt);
+                if ($stmt !== '') {
+                    $statements[] = $stmt;
+                }
+                $buffer = '';
+            }
+        }
+
+        $tail = trim($buffer);
+        if ($tail !== '') {
+            $statements[] = $tail;
+        }
+
+        return $statements;
     }
 
     /**
