@@ -319,6 +319,53 @@
     </div>
     {% endif %}
 
+    <!-- GitHub Token -->
+    <div class="card">
+      <div class="p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+          <i class="fab fa-github mr-3 text-gray-600"></i>
+          {{ trans('admin.updates.github_token', {}, 'GitHub token') }}
+        </h3>
+        <p class="text-sm text-gray-600 mb-4">
+          {{ trans('admin.updates.github_token_desc', {}, 'Optional. A personal access token raises the GitHub API rate limit for update checks. Stored encrypted; only sent to api.github.com.') }}
+        </p>
+
+        {% if tokenViaEnv %}
+          <p class="text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 mb-4">
+            <i class="fas fa-circle-info mr-2 text-gray-500"></i>
+            {{ trans('admin.updates.github_token_env', {}, 'A token is configured via the UPDATER_GITHUB_TOKEN environment variable and takes precedence over any value saved here.') }}
+          </p>
+        {% elseif not secretBoxAvailable %}
+          <p class="text-sm text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3 mb-4">
+            <i class="fas fa-triangle-exclamation mr-2 text-yellow-600"></i>
+            {{ trans('admin.updates.github_token_no_crypto', {}, 'Encryption is unavailable (set SESSION_SECRET and enable libsodium). Use the UPDATER_GITHUB_TOKEN environment variable instead.') }}
+          </p>
+        {% endif %}
+
+        <div class="flex items-center gap-3">
+          <input type="password" id="github-token-input" autocomplete="off"
+                 placeholder="{{ tokenConfigured ? '••••••••••••••••' : 'ghp_…' }}"
+                 {% if tokenViaEnv or not secretBoxAvailable %}disabled{% endif %}
+                 class="flex-1 px-3.5 py-2.5 rounded-lg border border-gray-300 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-400">
+          <button type="button" class="btn-primary" data-action="save-token"
+                  {% if tokenViaEnv or not secretBoxAvailable %}disabled{% endif %}>
+            <i class="fas fa-save mr-2"></i>{{ trans('admin.updates.github_token_save', {}, 'Save') }}
+          </button>
+          {% if tokenConfigured and not tokenViaEnv %}
+          <button type="button" class="btn-secondary text-red-700 hover:bg-red-50 border-red-200" data-action="clear-token">
+            <i class="fas fa-trash mr-2"></i>{{ trans('admin.updates.github_token_clear', {}, 'Clear') }}
+          </button>
+          {% endif %}
+        </div>
+        {% if tokenConfigured and not tokenViaEnv %}
+        <p class="text-xs text-green-700 mt-3">
+          <i class="fas fa-circle-check mr-1"></i>
+          {{ trans('admin.updates.github_token_set', {}, 'A token is currently saved (encrypted).') }}
+        </p>
+        {% endif %}
+      </div>
+    </div>
+
     <!-- Emergency Actions -->
     <div class="card border-orange-200">
       <div class="p-6">
@@ -586,13 +633,42 @@ function clearMaintenance() {
     });
 }
 
+function saveToken(clear) {
+    const input = document.getElementById('github-token-input');
+    const token = clear ? '' : (input ? input.value.trim() : '');
+    if (!clear && token === '') { return; }
+
+    const formData = new FormData();
+    formData.append('csrf', csrfToken);
+    formData.append('github_token', token);
+
+    fetch(basePath + '/admin/updates/token', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            window.location.reload();
+        } else {
+            alert(i18n.errorChecking + ': ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert(i18n.errorChecking + ': ' + error.message);
+    });
+}
+
 function bindUpdateActions() {
     const actionHandlers = {
         'check-updates': () => checkForUpdatesManual(),
         'start-update': (el) => startUpdate(el.dataset.version),
         'create-backup': () => createBackup(),
         'delete-backup': (el) => deleteBackup(el.dataset.backup),
-        'clear-maintenance': () => clearMaintenance()
+        'clear-maintenance': () => clearMaintenance(),
+        'save-token': () => saveToken(false),
+        'clear-token': () => saveToken(true)
     };
 
     document.querySelectorAll('[data-action]').forEach((el) => {

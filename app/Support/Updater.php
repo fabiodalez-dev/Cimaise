@@ -345,11 +345,32 @@ class Updater
     }
 
     /**
-     * Optional GitHub bearer token (env: UPDATER_GITHUB_TOKEN).
+     * Optional GitHub bearer token. The env var UPDATER_GITHUB_TOKEN wins;
+     * otherwise an admin-configured token, stored encrypted-at-rest in the
+     * settings table (key `updater.github_token`, "ENC:" wire format), is
+     * decrypted on demand. Decrypt failure / missing key yields no token —
+     * never a plaintext leak.
      */
     private function githubToken(): string
     {
-        return $this->envValue('UPDATER_GITHUB_TOKEN');
+        $env = $this->envValue('UPDATER_GITHUB_TOKEN');
+        if ($env !== '') {
+            return $env;
+        }
+
+        try {
+            $stored = (new \App\Services\SettingsService($this->db))->get('updater.github_token');
+            if (is_string($stored) && $stored !== '') {
+                $plain = \App\Support\SecretBox::decrypt($stored);
+                if (is_string($plain) && $plain !== '') {
+                    return $plain;
+                }
+            }
+        } catch (\Throwable) {
+            // Settings unavailable (e.g. mid-install) — fall through to none.
+        }
+
+        return '';
     }
 
     /**

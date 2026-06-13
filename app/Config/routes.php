@@ -1612,6 +1612,13 @@ return function (App $app, array $container) {
     })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
         $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
 
+    $app->post('/admin/updates/token', function (Request $request, Response $response) use ($container) {
+        $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
+        return $controller->saveToken($request, $response);
+    })->add(new RateLimitMiddleware(5, 600)) // sensitive credential write
+        ->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+            $resp = new \Slim\Psr7\Response(503); $resp->getBody()->write('Service Unavailable'); return $resp; });
+
     // Public analytics tracking endpoint (no auth required)
     $app->post('/api/analytics/track', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Admin\AnalyticsController($container['db'], Twig::fromRequest($request));
