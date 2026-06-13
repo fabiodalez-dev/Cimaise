@@ -70,11 +70,16 @@ final class UpdaterSqlSplitterTest extends TestCase
         $this->assertFalse($this->needsDelimiter("CREATE TABLE t (id INTEGER);\nINSERT INTO t VALUES(1);"));
     }
 
-    public function testSelectorFalseWhenTriggerOnlyInStringLiteralStillRoutesSafe(): void
+    public function testSelectorFalseWhenTriggerOnlyInStringLiteral(): void
     {
-        // Even if "CREATE TRIGGER" appears only in text, routing to the
-        // delimiter parser is still correct (it handles plain SQL too).
-        $this->assertTrue($this->needsDelimiter("INSERT INTO log VALUES('CREATE TRIGGER ran');"));
+        // "CREATE TRIGGER" inside a seed string must NOT route a plain
+        // migration to the delimiter parser (regex is line-anchored).
+        $this->assertFalse($this->needsDelimiter("INSERT INTO log VALUES('CREATE TRIGGER ran');"));
+    }
+
+    public function testSelectorTrueOnCreateDefinerTrigger(): void
+    {
+        $this->assertTrue($this->needsDelimiter("CREATE DEFINER=`root`@`localhost` TRIGGER t AFTER INSERT ON a BEGIN END;"));
     }
 
     // ---- splitSqlStatements() (quote-aware) --------------------------------
@@ -254,6 +259,66 @@ final class UpdaterSqlSplitterTest extends TestCase
             $db->exec($stmt);
         }
         $this->assertSame('a:1; b:2; c:3', $db->query('SELECT css FROM t WHERE id = 1')->fetchColumn());
+    }
+
+    public function testDelimiterEndIfDoesNotMiscountDepth(): void
+    {
+        // `END IF` closes an IF, not the outer BEGIN — it must not decrement
+        // the block depth and shred the body. Uses an explicit DELIMITER.
+        $sql = "DELIMITER $$\n"
+             . "CREATE TRIGGER t AFTER INSERT ON a FOR EACH ROW\n"
+             . "BEGIN\n"
+             . "  IF NEW.x > 0 THEN\n"
+             . "    INSERT INTO b(x) VALUES(NEW.x);\n"
+             . "  END IF;\n"
+             . "  UPDATE a SET y = 1;\n"
+             . "END$$\n"
+             . "DELIMITER ;";
+        $stmts = $this->splitD($sql);
+        $this->assertCount(1, $stmts, 'END IF must not split the trigger body');
+        $this->assertStringContainsString('END IF', $stmts[0]);
+        $this->assertStringContainsString('UPDATE a SET y = 1', $stmts[0]);
+    }
+
+    public function testDelimiterBeginEndInsideStringLiteralNotCounted(): void
+    {
+        // BEGIN/END words inside a quoted value must not affect depth.
+        $sql = "CREATE TRIGGER t AFTER INSERT ON a\n"
+             . "BEGIN\n"
+             . "  INSERT INTO log(msg) VALUES('job did not END yet; BEGIN later');\n"
+             . "END;";
+        $stmts = $this->splitD($sql);
+        $this->assertCount(1, $stmts, 'BEGIN/END in a string literal must not split');
+        $this->assertStringContainsString('job did not END yet', $stmts[0]);
+    }
+
+    public function testDelimiterTrailingLineCommentAfterTerminator(): void
+    {
+        // `END; -- note` must still flush the trigger statement.
+        $sql = "CREATE TRIGGER t AFTER INSERT ON a\n"
+             . "BEGIN\n"
+             . "  UPDATE a SET x = 1;\n"
+             . "END; -- syncs counter\n"
+             . "INSERT INTO b VALUES(1);";
+        $stmts = $this->splitD($sql);
+        $this->assertCount(2, $stmts);
+        $this->assertStringContainsString('CREATE TRIGGER t', $stmts[0]);
+        $this->assertStringNotContainsString('syncs counter', $stmts[0]);
+        $this->assertStringContainsString('INSERT INTO b', $stmts[1]);
+    }
+
+    public function testRunnerToleratesTriggerAlreadyExistsButNotMissingTable(): void
+    {
+        // Mirror the runner's narrowed tolerance: trigger "already exists" is
+        // ignorable; a genuine error (missing table) is not.
+        $triggerExists = 'SQLSTATE[HY000]: trigger images_ai already exists';
+        $missingTable  = 'SQLSTATE[HY000]: no such table: ghost';
+        $isTrigger = static fn(string $s): bool => (bool) preg_match('/^\s*(CREATE|DROP)\s+TRIGGER/i', $s);
+        $tolerable = static fn(string $msg): bool => (bool) preg_match('/already exists|duplicate|no such trigger|does not exist|unknown trigger/i', $msg);
+
+        $stmt = "CREATE TRIGGER images_ai AFTER INSERT ON images BEGIN SELECT 1; END";
+        $this->assertTrue($isTrigger($stmt) && $tolerable($triggerExists), 'already-exists is tolerated');
+        $this->assertFalse($isTrigger($stmt) && $tolerable($missingTable), 'missing-table must abort');
     }
 
     public function testCreateTriggerStatementMatchesRunnerToleranceRegex(): void

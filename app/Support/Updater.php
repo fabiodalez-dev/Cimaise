@@ -1941,6 +1941,7 @@ class Updater
                                     try {
                                         $this->db->pdo()->exec($statement);
                                     } catch (\PDOException $e) {
+                                        $msg = $e->getMessage();
                                         // Ignore certain errors (table exists, column exists, etc.)
                                         $ignorablePatterns = [
                                             '/table.*already exists/i',
@@ -1949,18 +1950,24 @@ class Updater
                                         ];
                                         $isIgnorable = false;
                                         foreach ($ignorablePatterns as $pattern) {
-                                            if (preg_match($pattern, $e->getMessage())) {
+                                            if (preg_match($pattern, $msg)) {
                                                 $isIgnorable = true;
                                                 break;
                                             }
                                         }
-                                        // CREATE/DROP TRIGGER errors are non-fatal:
-                                        // SQLite and MySQL phrase "already exists"
-                                        // differently, and a trigger SearchIndexer
-                                        // re-creates at runtime may already be
-                                        // present. Tolerate them like Pinakes does.
-                                        $isTriggerStmt = (bool) preg_match('/^\s*(CREATE|DROP)\s+TRIGGER/i', $statement);
-                                        if (!$isIgnorable && !$isTriggerStmt) {
+                                        // CREATE/DROP TRIGGER: tolerate ONLY idempotency
+                                        // collisions (a trigger SearchIndexer also
+                                        // creates/drops at runtime, present on re-run).
+                                        // A genuine failure — missing table, syntax
+                                        // error — must still abort, so the migration is
+                                        // not falsely recorded as applied. SQLite and
+                                        // MySQL phrase the collision differently.
+                                        if (!$isIgnorable
+                                            && preg_match('/^\s*(CREATE|DROP)\s+TRIGGER/i', $statement)
+                                            && preg_match('/already exists|duplicate|no such trigger|does not exist|unknown trigger/i', $msg)) {
+                                            $isIgnorable = true;
+                                        }
+                                        if (!$isIgnorable) {
                                             throw $e;
                                         }
                                         $this->debugLog('WARNING', 'Ignorable SQL error', [
@@ -2005,8 +2012,11 @@ class Updater
      */
     private function migrationNeedsDelimiterParser(string $sql): bool
     {
+        // Anchor CREATE TRIGGER to a statement start (line-leading) so the word
+        // appearing inside a seed string literal doesn't route a plain
+        // migration to the delimiter parser (which would change how it splits).
         return (bool) preg_match('/^\s*DELIMITER\b/im', $sql)
-            || stripos($sql, 'CREATE TRIGGER') !== false;
+            || (bool) preg_match('/^\s*CREATE\s+(?:DEFINER\s*=\S+(?:\s+\S+)*\s+)?TRIGGER\b/im', $sql);
     }
 
     /**
@@ -2108,18 +2118,27 @@ class Updater
 
             $buffer .= $line . "\n";
 
-            // Track BEGIN...END nesting so inner ';' don't terminate the
-            // statement (SQLite triggers have no DELIMITER directive).
-            $blockDepth += preg_match_all('/\bBEGIN\b/i', $line);
-            $blockDepth -= preg_match_all('/\bEND\b/i', $line);
+            // Count BEGIN...END nesting so inner ';' don't terminate the
+            // statement. Do it on a "code only" view of the line: strip
+            // single-quoted string literals (so BEGIN/END inside a value
+            // aren't counted) and a trailing line comment. Exclude the
+            // `END IF`/`END WHILE`/`END LOOP`/`END CASE`/`END REPEAT` forms,
+            // which close an IF/loop, not the outer BEGIN block.
+            $code = preg_replace("/'(?:[^']|'')*'/", '', $line) ?? $line;
+            $code = preg_replace('/--.*$/', '', $code) ?? $code;
+            $blockDepth += preg_match_all('/\bBEGIN\b/i', $code);
+            $blockDepth -= preg_match_all('/\bEND\b(?!\s+(?:IF|WHILE|LOOP|CASE|REPEAT)\b)/i', $code);
             if ($blockDepth < 0) {
                 $blockDepth = 0;
             }
 
-            // A statement terminates only at depth 0, when the line ends with
-            // the active delimiter.
-            if ($blockDepth === 0 && $trimmed !== '' && substr($trimmed, -strlen($delimiter)) === $delimiter) {
-                $stmt = trim($buffer);
+            // A statement terminates only at depth 0, when the line (minus any
+            // trailing line comment) ends with the active delimiter.
+            $codeTrimmed = rtrim(preg_replace('/--.*$/', '', $trimmed) ?? $trimmed);
+            if ($blockDepth === 0 && $codeTrimmed !== '' && substr($codeTrimmed, -strlen($delimiter)) === $delimiter) {
+                // Drop a trailing line comment from the buffer before slicing
+                // off the delimiter, so `END; -- note` flushes cleanly.
+                $stmt = rtrim(preg_replace('/--[^\n]*$/', '', rtrim($buffer)) ?? $buffer);
                 $stmt = substr($stmt, 0, strlen($stmt) - strlen($delimiter));
                 $stmt = trim($stmt);
                 if ($stmt !== '') {
