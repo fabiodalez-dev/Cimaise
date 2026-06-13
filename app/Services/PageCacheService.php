@@ -166,6 +166,25 @@ class PageCacheService
     {
         $deleted = 0;
         $deleted += $this->invalidate('galleries');
+        // Admin-selectable listing templates cache under per-template keys
+        // ('galleries_<slug>'). The exact-key invalidate('galleries') above
+        // only clears the classic listing, so the non-classic ones must be
+        // dropped too — otherwise callers that rely on this method (tag edits,
+        // filter-settings changes, the manual cache-clear button) leave them
+        // serving a stale filter bar.
+        if ($this->backend === 'database') {
+            // DB backend: every listing entry is tagged CacheTags::GALLERIES.
+            $deleted += $this->invalidateByTag(CacheTags::GALLERIES);
+        } else {
+            // File backend has no tag index, so sweep the per-template files
+            // directly (galleries.json itself is already handled above and
+            // does not match the underscore pattern).
+            foreach (glob($this->cacheDir . '/galleries_*.json') ?: [] as $file) {
+                if (@unlink($file)) {
+                    $deleted++;
+                }
+            }
+        }
         // Home may also show gallery preview
         $deleted += $this->invalidate('home');
         return $deleted;

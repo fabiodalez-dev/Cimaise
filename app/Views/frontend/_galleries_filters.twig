@@ -34,7 +34,7 @@
     <!-- Filter Toggle Button -->
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-4">
-        <button id="toggle-filters" class="flex items-center gap-3 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors duration-150" >
+        <button id="toggle-filters" type="button" aria-expanded="false" aria-controls="filters-grid" class="flex items-center gap-3 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors duration-150" >
           <i class="fas fa-filter"></i>
           <span class="font-medium">{{ trans('filter.filters') }}</span>
           <i class="fas fa-chevron-down transition-transform duration-300" id="filter-chevron"></i>
@@ -46,7 +46,7 @@
       </div>
 
       <div class="flex items-center gap-4">
-        <div class="text-sm text-gray-600 font-medium" id="results-count">
+        <div class="text-sm text-gray-600 font-medium" id="results-count" aria-live="polite">
           {% if albums|default([])|length == 1 %}
             {{ trans('filter.gallery_count') }}
           {% else %}
@@ -332,7 +332,7 @@
 
     $(document).ready(function() {
         // Global base path for API calls
-        window.basePath = '{{ base_path }}';
+        window.basePath = '{{ base_path|e('js') }}';
 
         // Page texts from translations (page_texts overrides honored for the empty state)
         window.pageTexts = {
@@ -346,7 +346,19 @@
             moreCount: '{{ trans('general.more_count', {count: '{count}'})|e('js') }}',
             passwordProtected: '{{ trans('album.password_protected')|e('js') }}',
             nsfwWarningShort: '{{ trans('album.nsfw_warning_short')|e('js') }}',
-            categoriesLabel: '{{ trans('filter.categories')|e('js') }}'
+            categoriesLabel: '{{ trans('filter.categories')|e('js') }}',
+            applyError: '{{ trans('filter.apply_error')|e('js') }}',
+            retryText: '{{ trans('filter.retry')|e('js') }}',
+            // Human labels for active-filter badges, keyed by the filter object's keys
+            filterLabels: {
+                tags: '{{ trans('filter.tags')|e('js') }}',
+                cameras: '{{ trans('album.camera')|e('js') }}',
+                lenses: '{{ trans('album.lens')|e('js') }}',
+                films: '{{ trans('filter.film')|e('js') }}',
+                locations: '{{ trans('filter.location')|e('js') }}',
+                year: '{{ trans('filter.year')|e('js') }}',
+                search: '{{ trans('filter.search')|e('js') }}'
+            }
         };
         window.siteTitle = '{{ site_title|default('Portfolio')|e('js') }}';
 
@@ -384,6 +396,9 @@
             const filtersGrid = $('#filters-grid');
             const chevron = $('#filter-chevron');
             const isOpen = filtersGrid.hasClass('filters-open');
+
+            // Reflect the open/closed state for assistive technology
+            $(this).attr('aria-expanded', isOpen ? 'false' : 'true');
 
             if (isOpen) {
                 // Close filters
@@ -521,6 +536,12 @@
                 hideLoading();
                 if (status !== 'abort') {
                     console.error('Failed to apply filters', status);
+                    // Surface a visible error state so the user isn't left
+                    // staring at a stale grid with no feedback.
+                    const grid = $('#galleries-grid');
+                    if (grid.length) {
+                        grid.html(errorStateHtml());
+                    }
                 }
             }
         });
@@ -567,6 +588,23 @@
                     <button data-action="clear-filters" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 transition-colors duration-200">
                         <i class="fas fa-times"></i>
                         ${window.pageTexts.clearFiltersText}
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    function errorStateHtml() {
+        return `
+            <div class="col-span-full text-center py-24" id="filter-error-state" role="alert">
+                <div class="max-w-md mx-auto">
+                    <i class="fas fa-triangle-exclamation text-6xl text-gray-300 mb-6"></i>
+                    <p class="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
+                        ${escapeHtml(window.pageTexts.applyError || 'Could not load galleries. Please try again.')}
+                    </p>
+                    <button data-action="apply-filters" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 transition-colors duration-200">
+                        <i class="fas fa-rotate-right"></i>
+                        ${escapeHtml(window.pageTexts.retryText || 'Retry')}
                     </button>
                 </div>
             </div>
@@ -871,10 +909,13 @@
             }
             if (filters[key] && filters[key].length > 0 && key !== 'sort') {
                 hasActiveFilters = true;
+                const labels = window.pageTexts.filterLabels || {};
+                const label = escapeHtml(labels[key] || key);
                 if (Array.isArray(filters[key])) {
-                    activeFiltersHtml += `<span class="active-filter-badge">${key}: ${filters[key].length}</span>`;
+                    activeFiltersHtml += `<span class="active-filter-badge">${label}: ${filters[key].length}</span>`;
                 } else {
-                    activeFiltersHtml += `<span class="active-filter-badge">${key}: ${filters[key]}</span>`;
+                    // Scalar values (year, search) can be user-controlled — escape them.
+                    activeFiltersHtml += `<span class="active-filter-badge">${label}: ${escapeHtml(String(filters[key]))}</span>`;
                 }
             }
         });
@@ -975,6 +1016,14 @@
         if (!target) return;
         event.preventDefault();
         clearAllFilters();
+    });
+
+    // Delegated retry action (used by the JS-rendered error state)
+    document.addEventListener('click', function(event) {
+        const target = event.target.closest('[data-action="apply-filters"]');
+        if (!target) return;
+        event.preventDefault();
+        applyFilters();
     });
 
     // Utility function for debouncing
