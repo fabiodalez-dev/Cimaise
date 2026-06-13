@@ -1963,9 +1963,24 @@ class Updater
                                         // not falsely recorded as applied. SQLite and
                                         // MySQL phrase the collision differently.
                                         if (!$isIgnorable
-                                            && preg_match('/^\s*(CREATE|DROP)\s+TRIGGER/i', $statement)
-                                            && preg_match('/already exists|duplicate|no such trigger|does not exist|unknown trigger/i', $msg)) {
-                                            $isIgnorable = true;
+                                            && preg_match('/^\s*(CREATE|DROP)\s+TRIGGER\b/i', $statement)) {
+                                            // Trigger-SPECIFIC collision phrases only — a bare
+                                            // "duplicate" (e.g. duplicate column/key) must NOT
+                                            // mark a broken trigger migration as applied.
+                                            $triggerCollisionPatterns = [
+                                                '/\btrigger\b.*\balready exists\b/i',
+                                                '/\balready exists\b.*\btrigger\b/i',
+                                                '/\bduplicate trigger\b/i',
+                                                '/\bno such trigger\b/i',
+                                                '/\bunknown trigger\b/i',
+                                                '/\btrigger\b.*\bdoes not exist\b/i',
+                                            ];
+                                            foreach ($triggerCollisionPatterns as $pattern) {
+                                                if (preg_match($pattern, $msg)) {
+                                                    $isIgnorable = true;
+                                                    break;
+                                                }
+                                            }
                                         }
                                         if (!$isIgnorable) {
                                             throw $e;
@@ -2101,6 +2116,7 @@ class Updater
         $buffer = '';
         $delimiter = ';';
         $blockDepth = 0;
+        $inTrigger = false;
 
         foreach (explode("\n", $sql) as $line) {
             $trimmed = trim($line);
@@ -2118,18 +2134,27 @@ class Updater
 
             $buffer .= $line . "\n";
 
-            // Count BEGIN...END nesting so inner ';' don't terminate the
-            // statement. Do it on a "code only" view of the line: strip
-            // single-quoted string literals (so BEGIN/END inside a value
-            // aren't counted) and a trailing line comment. Exclude the
-            // `END IF`/`END WHILE`/`END LOOP`/`END CASE`/`END REPEAT` forms,
-            // which close an IF/loop, not the outer BEGIN block.
-            $code = preg_replace("/'(?:[^']|'')*'/", '', $line) ?? $line;
-            $code = preg_replace('/--.*$/', '', $code) ?? $code;
-            $blockDepth += preg_match_all('/\bBEGIN\b/i', $code);
-            $blockDepth -= preg_match_all('/\bEND\b(?!\s+(?:IF|WHILE|LOOP|CASE|REPEAT)\b)/i', $code);
-            if ($blockDepth < 0) {
-                $blockDepth = 0;
+            // Only a CREATE TRIGGER statement carries a BEGIN...END body whose
+            // inner ';' must be suppressed. Detect it from the statement start
+            // so a transactional `BEGIN TRANSACTION; ... COMMIT;` (which has no
+            // matching END) does not leave blockDepth stuck above zero and
+            // swallow the rest of the file.
+            if (!$inTrigger && $blockDepth === 0) {
+                $inTrigger = (bool) preg_match('/^\s*CREATE\s+TRIGGER\b/i', $buffer);
+            }
+
+            if ($inTrigger) {
+                // Count BEGIN...END nesting on a "code only" view of the line:
+                // strip single-quoted literals and a trailing comment, and
+                // exclude `END IF`/`END WHILE`/`END LOOP`/`END CASE`/`END REPEAT`
+                // (those close an IF/loop, not the outer BEGIN block).
+                $code = preg_replace("/'(?:[^']|'')*'/", '', $line) ?? $line;
+                $code = preg_replace('/--.*$/', '', $code) ?? $code;
+                $blockDepth += preg_match_all('/\bBEGIN\b/i', $code);
+                $blockDepth -= preg_match_all('/\bEND\b(?!\s+(?:IF|WHILE|LOOP|CASE|REPEAT)\b)/i', $code);
+                if ($blockDepth < 0) {
+                    $blockDepth = 0;
+                }
             }
 
             // A statement terminates only at depth 0, when the line (minus any
@@ -2145,6 +2170,7 @@ class Updater
                     $statements[] = $stmt;
                 }
                 $buffer = '';
+                $inTrigger = false;
             }
         }
 

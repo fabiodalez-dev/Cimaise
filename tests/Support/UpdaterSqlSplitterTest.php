@@ -307,18 +307,55 @@ final class UpdaterSqlSplitterTest extends TestCase
         $this->assertStringContainsString('INSERT INTO b', $stmts[1]);
     }
 
-    public function testRunnerToleratesTriggerAlreadyExistsButNotMissingTable(): void
+    /**
+     * Mirror the runner's narrowed trigger tolerance: trigger-specific
+     * collision phrases are ignorable; a bare "duplicate" (column/key) on a
+     * trigger statement, or a genuine failure, must NOT be tolerated.
+     */
+    public function testTriggerToleranceIsTriggerSpecific(): void
     {
-        // Mirror the runner's narrowed tolerance: trigger "already exists" is
-        // ignorable; a genuine error (missing table) is not.
-        $triggerExists = 'SQLSTATE[HY000]: trigger images_ai already exists';
-        $missingTable  = 'SQLSTATE[HY000]: no such table: ghost';
-        $isTrigger = static fn(string $s): bool => (bool) preg_match('/^\s*(CREATE|DROP)\s+TRIGGER/i', $s);
-        $tolerable = static fn(string $msg): bool => (bool) preg_match('/already exists|duplicate|no such trigger|does not exist|unknown trigger/i', $msg);
+        $tolerable = static function (string $msg): bool {
+            foreach ([
+                '/\btrigger\b.*\balready exists\b/i',
+                '/\balready exists\b.*\btrigger\b/i',
+                '/\bduplicate trigger\b/i',
+                '/\bno such trigger\b/i',
+                '/\bunknown trigger\b/i',
+                '/\btrigger\b.*\bdoes not exist\b/i',
+            ] as $p) {
+                if (preg_match($p, $msg)) {
+                    return true;
+                }
+            }
+            return false;
+        };
 
-        $stmt = "CREATE TRIGGER images_ai AFTER INSERT ON images BEGIN SELECT 1; END";
-        $this->assertTrue($isTrigger($stmt) && $tolerable($triggerExists), 'already-exists is tolerated');
-        $this->assertFalse($isTrigger($stmt) && $tolerable($missingTable), 'missing-table must abort');
+        // Tolerated — genuine idempotency collisions.
+        $this->assertTrue($tolerable('SQLSTATE[HY000]: trigger images_ai already exists'));
+        $this->assertTrue($tolerable("Trigger 'images_ai' already exists"));
+        $this->assertTrue($tolerable('no such trigger: images_ai'));
+        // NOT tolerated — bare "duplicate" must not pass on a trigger stmt.
+        $this->assertFalse($tolerable('SQLSTATE[42S21]: Duplicate column name "x"'));
+        $this->assertFalse($tolerable("Duplicate key name 'idx_foo'"));
+        // NOT tolerated — genuine failure.
+        $this->assertFalse($tolerable('SQLSTATE[HY000]: no such table: ghost'));
+    }
+
+    public function testDelimiterTransactionalBeginDoesNotBreakFlush(): void
+    {
+        // A transactional BEGIN/COMMIT (no matching END) in the same file as a
+        // trigger must NOT leave depth stuck and swallow later statements.
+        $sql = "BEGIN TRANSACTION;\n"
+             . "CREATE TABLE a (id INTEGER);\n"
+             . "CREATE TRIGGER t AFTER INSERT ON a\nBEGIN\n  UPDATE a SET id = id;\nEND;\n"
+             . "INSERT INTO a VALUES(1);\n"
+             . "COMMIT;";
+        $stmts = $this->splitD($sql);
+        // BEGIN TRANSACTION / CREATE TABLE / CREATE TRIGGER / INSERT / COMMIT
+        $this->assertCount(5, $stmts);
+        $this->assertSame('BEGIN TRANSACTION', $stmts[0]);
+        $this->assertStringContainsString('CREATE TRIGGER t', $stmts[2]);
+        $this->assertSame('COMMIT', $stmts[4]);
     }
 
     public function testCreateTriggerStatementMatchesRunnerToleranceRegex(): void
