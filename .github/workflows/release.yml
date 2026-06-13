@@ -102,6 +102,29 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.VERSION }}
 
+      # Optional per-release migration patches. If release-patches/ carries a
+      # pre-update-patch.php / post-install-patch.php for this release, sign
+      # each with the same Ed25519 key used for plugins and stage it (+ .sig)
+      # as release assets. The updater verifies the signature before executing
+      # — an unsigned or absent patch is simply not run (fail-closed).
+      - name: Sign release patches (optional)
+        env:
+          PLUGIN_SIGNING_KEY: ${{ secrets.PLUGIN_SIGNING_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PLUGIN_SIGNING_KEY:-}" ]; then
+            echo "No signing key configured — skipping patch signing."
+            exit 0
+          fi
+          for name in pre-update-patch.php post-install-patch.php; do
+            src="release-patches/${name}"
+            if [ -f "$src" ]; then
+              cp "$src" "releases/${name}"
+              php bin/console plugin:sign "releases/${name}" --out "releases/${name}.sig"
+              echo "Signed ${name}"
+            fi
+          done
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -147,6 +170,13 @@ jobs:
             releases/cimaise-v${{ steps.version.outputs.VERSION }}.zip
             releases/cimaise-v${{ steps.version.outputs.VERSION }}.zip.sha256
             releases/RELEASE_NOTES-v${{ steps.version.outputs.VERSION }}.md
+            releases/pre-update-patch.php
+            releases/pre-update-patch.php.sig
+            releases/post-install-patch.php
+            releases/post-install-patch.php.sig
+          # The patch assets are optional (present only when this release ships
+          # a migration patch); don't fail the release when they're absent.
+          fail_on_unmatched_files: false
           draft: false
           # Pinakes rule: hyphenated versions (1.5.0-rc.1) are prereleases, so
           # /releases/latest never resolves to them and stable installs are safe.
