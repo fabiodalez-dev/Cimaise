@@ -1,0 +1,168 @@
+name: Upgrade smoke test
+
+# Proves that the database migrations apply cleanly on BOTH engines:
+#  - baseline = the schema from the latest published release (a real
+#    old-production state) when its cimaise-*.zip carries one, otherwise
+#    the branch's own schema (a fresh install — then the migrations are
+#    an idempotency check against the current structure);
+#  - then every database/migrations/migrate_*_<db>.sql from the branch is
+#    applied in semantic-version order, tolerating only idempotent errors
+#    (already-exists / duplicate), and the objects they add are verified.
+#
+# Runs the migrations through the native sqlite3 / mysql clients (which
+# handle trigger BEGIN...END and DELIMITER blocks themselves), so it is
+# independent of the PHP migration runner.
+
+on:
+  pull_request:
+    paths:
+      - 'database/**'
+      - 'version.json'
+      - '.github/workflows/upgrade-smoke.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'database/**'
+      - 'version.json'
+      - '.github/workflows/upgrade-smoke.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: migrate (${{ matrix.db }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [sqlite, mysql]
+
+    # The MySQL service runs for both matrix legs (a conditional service
+    # image is not reliably supported). The sqlite leg simply ignores it.
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: cimaise_upgrade
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+
+    env:
+      DBKIND: ${{ matrix.db }}
+      MYSQL_DB: cimaise_upgrade
+      MYSQL_PWD: root
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install client tools
+        run: |
+          sudo apt-get update -qq
+          if [ "$DBKIND" = "sqlite" ]; then
+            sudo apt-get install -y -qq sqlite3
+          else
+            sudo apt-get install -y -qq mysql-client jq unzip
+          fi
+
+      - name: Resolve baseline schema
+        id: baseline
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          schema="database/schema.${DBKIND}.sql"   # branch schema (fallback)
+          source="branch"
+
+          # Try the latest release's cimaise-*.zip for a real old-version schema.
+          repo="${{ github.repository }}"
+          url=$(gh api "repos/$repo/releases/latest" \
+                  --jq '.assets[]?.browser_download_url | select(test("cimaise.*\\.zip$"))' \
+                2>/dev/null | head -1 || true)
+          if [ -n "${url:-}" ]; then
+            echo "Latest release asset: $url"
+            curl -fsSL -o /tmp/rel.zip "$url" || true
+            if [ -s /tmp/rel.zip ]; then
+              mkdir -p /tmp/rel && unzip -q /tmp/rel.zip -d /tmp/rel || true
+              found=$(find /tmp/rel -path "*/database/schema.${DBKIND}.sql" | head -1 || true)
+              if [ -n "${found:-}" ]; then
+                schema="$found"; source="release"
+              fi
+            fi
+          fi
+          echo "Using $source schema: $schema"
+          echo "schema=$schema" >> "$GITHUB_OUTPUT"
+          echo "source=$source" >> "$GITHUB_OUTPUT"
+
+      - name: Apply baseline schema
+        env:
+          SCHEMA: ${{ steps.baseline.outputs.schema }}
+        run: |
+          set -euo pipefail
+          if [ "$DBKIND" = "sqlite" ]; then
+            sqlite3 /tmp/cimaise.db < "$SCHEMA"
+          else
+            mysql -h 127.0.0.1 -u root "$MYSQL_DB" < "$SCHEMA"
+          fi
+
+      - name: Apply branch migrations (idempotent-tolerant)
+        run: |
+          set -euo pipefail
+          # Idempotent error allow-lists per engine.
+          if [ "$DBKIND" = "sqlite" ]; then
+            allow='already exists|duplicate column'
+          else
+            allow='Duplicate key name|already exists|Duplicate column name|Multiple primary key'
+          fi
+
+          # Version-sorted list of this branch's migrations for the engine.
+          mapfile -t files < <(find database/migrations -maxdepth 1 \
+            -name "migrate_*_${DBKIND}.sql" | sort -t_ -k2 -V)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No migrations for $DBKIND — nothing to apply."; exit 0
+          fi
+
+          for f in "${files[@]}"; do
+            echo "::group::apply $f"
+            if [ "$DBKIND" = "sqlite" ]; then
+              # sqlite3 continues past errors; capture stderr to inspect.
+              err=$(sqlite3 /tmp/cimaise.db < "$f" 2>&1 1>/dev/null || true)
+            else
+              err=$(mysql --force -h 127.0.0.1 -u root "$MYSQL_DB" < "$f" 2>&1 1>/dev/null || true)
+            fi
+            if [ -n "$err" ]; then
+              # Drop blank lines, then any line matching the idempotent allow-list.
+              bad=$(printf '%s\n' "$err" | grep -v '^[[:space:]]*$' | grep -viE "$allow" || true)
+              if [ -n "$bad" ]; then
+                echo "Non-idempotent error applying $f:"; printf '%s\n' "$bad"
+                echo "::endgroup::"; exit 1
+              fi
+              echo "Tolerated idempotent notices:"; printf '%s\n' "$err"
+            fi
+            echo "::endgroup::"
+          done
+
+      - name: Verify migrated objects
+        run: |
+          set -euo pipefail
+          fail=0
+          if [ "$DBKIND" = "sqlite" ]; then
+            q() { sqlite3 /tmp/cimaise.db "$1"; }
+            tcount=$(q "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN ('collections','collection_images');")
+            scount=$(q "SELECT COUNT(*) FROM settings WHERE key IN ('search_fts_schema','plugin_image_ratings_schema');")
+            icount=$(q "SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name IN ('idx_analytics_pageviews_type_viewed','idx_analytics_events_type_occurred');")
+          else
+            q() { mysql -N -h 127.0.0.1 -u root "$MYSQL_DB" -e "$1"; }
+            tcount=$(q "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$MYSQL_DB' AND table_name IN ('collections','collection_images');")
+            scount=$(q "SELECT COUNT(*) FROM settings WHERE \`key\` IN ('search_fts_schema','plugin_image_ratings_schema');")
+            icount=$(q "SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema='$MYSQL_DB' AND index_name IN ('idx_analytics_pageviews_type_viewed','idx_analytics_events_type_occurred');")
+          fi
+          echo "tables(collections,collection_images)=$tcount  settings_markers=$scount  analytics_indexes=$icount"
+          [ "$tcount" -eq 2 ] || { echo "MISSING 1.4.0 collections tables"; fail=1; }
+          [ "$scount" -ge 2 ] || { echo "MISSING 1.2.0/1.3.0 marker settings"; fail=1; }
+          [ "$icount" -ge 1 ] || { echo "MISSING 1.2.0 analytics indexes"; fail=1; }
+          exit $fail
