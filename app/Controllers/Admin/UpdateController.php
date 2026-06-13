@@ -41,6 +41,11 @@ class UpdateController extends BaseController
             $changelog = $updater->getChangelog($updateInfo['current']);
         }
 
+        // GitHub token state (the value itself is never sent to the view).
+        $settings = new \App\Services\SettingsService($this->db);
+        $storedToken = (string) ($settings->get('updater.github_token', '') ?? '');
+        $tokenViaEnv = (string) (getenv('UPDATER_GITHUB_TOKEN') ?: '') !== '';
+
         return $this->view->render($response, 'admin/updates.twig', [
             'updateInfo' => $updateInfo,
             'requirements' => $requirements,
@@ -48,6 +53,9 @@ class UpdateController extends BaseController
             'backups' => $backups,
             'changelog' => $changelog,
             'csrf' => $_SESSION['csrf'] ?? '',
+            'tokenConfigured' => $storedToken !== '',
+            'tokenViaEnv' => $tokenViaEnv,
+            'secretBoxAvailable' => \App\Support\SecretBox::isAvailable(),
         ]);
     }
 
@@ -323,6 +331,65 @@ class UpdateController extends BaseController
         return $this->jsonResponse($response, [
             'success' => true,
             'message' => 'Maintenance mode was not active'
+        ]);
+    }
+
+    /**
+     * API: Save (or clear) the GitHub API token, encrypted at rest.
+     *
+     * Stores the token under settings key `updater.github_token` via
+     * SecretBox (libsodium). An empty submission clears it. The token value
+     * is never echoed back or logged.
+     */
+    public function saveToken(Request $request, Response $response): Response
+    {
+        if ($request->getMethod() !== 'POST') {
+            return $this->jsonResponse($response, ['error' => 'method_not_allowed'], 405);
+        }
+        if (($_SESSION['admin_role'] ?? '') !== 'admin') {
+            return $this->jsonResponse($response, ['error' => 'Access denied'], 403);
+        }
+
+        $data = (array) $request->getParsedBody();
+        $csrfToken = $data['csrf'] ?? $data['csrf_token'] ?? '';
+        if (empty($csrfToken) || !hash_equals($_SESSION['csrf'] ?? '', $csrfToken)) {
+            return $this->jsonResponse($response, ['error' => 'Invalid CSRF token'], 403);
+        }
+
+        $token = trim((string) ($data['github_token'] ?? ''));
+        $settings = new \App\Services\SettingsService($this->db);
+
+        // Empty submission clears the stored token.
+        if ($token === '') {
+            $settings->set('updater.github_token', '');
+            return $this->jsonResponse($response, [
+                'success' => true,
+                'configured' => false,
+                'message' => 'GitHub token cleared',
+            ]);
+        }
+
+        if (!\App\Support\SecretBox::isAvailable()) {
+            return $this->jsonResponse($response, [
+                'success' => false,
+                'error' => 'Encryption unavailable (set SESSION_SECRET and enable libsodium). Use the UPDATER_GITHUB_TOKEN env var instead.',
+            ], 400);
+        }
+
+        $encrypted = \App\Support\SecretBox::encrypt($token);
+        if ($encrypted === null) {
+            return $this->jsonResponse($response, [
+                'success' => false,
+                'error' => 'Failed to encrypt the token',
+            ], 500);
+        }
+
+        $settings->set('updater.github_token', $encrypted);
+
+        return $this->jsonResponse($response, [
+            'success' => true,
+            'configured' => true,
+            'message' => 'GitHub token saved',
         ]);
     }
 }
