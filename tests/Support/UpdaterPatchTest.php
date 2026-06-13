@@ -147,7 +147,7 @@ final class UpdaterPatchTest extends TestCase
 
     public function testCleanupRefusesProtectedFiles(): void
     {
-        foreach (['.env', 'version.json', 'composer.json', 'public/index.php'] as $p) {
+        foreach (['.env', 'version.json', 'composer.json', 'public/index.php', 'database/database.sqlite'] as $p) {
             $res = $this->call('cleanupPatchFile', $p);
             $this->assertFalse($res['success'], "$p must be protected");
             $this->assertSame('Cannot delete protected file', $res['error']);
