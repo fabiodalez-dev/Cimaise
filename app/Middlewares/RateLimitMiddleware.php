@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Middlewares;
@@ -40,7 +41,7 @@ class RateLimitMiddleware implements MiddlewareInterface
             $trustedList = array_map('trim', explode(',', $trustedProxies));
 
             // Validate each proxy IP (except wildcard)
-            $trustedList = array_filter($trustedList, fn($ip) => $ip === '*' || filter_var($ip, FILTER_VALIDATE_IP) !== false);
+            $trustedList = array_filter($trustedList, fn ($ip) => $ip === '*' || filter_var($ip, FILTER_VALIDATE_IP) !== false);
 
             if (empty($trustedList)) {
                 error_log('WARNING: No valid IPs in TRUSTED_PROXIES configuration');
@@ -230,7 +231,7 @@ class RateLimitMiddleware implements MiddlewareInterface
         $attempts = $this->getAttempts($key);
 
         // Purge old attempts outside the window
-        $attempts = array_filter($attempts, fn($ts) => $now - (int)$ts < $this->windowSec);
+        $attempts = array_filter($attempts, fn ($ts) => $now - (int)$ts < $this->windowSec);
 
         if (\count($attempts) >= $this->maxAttempts) {
             $remaining = $this->windowSec - $now + min($attempts);
@@ -316,7 +317,7 @@ class RateLimitMiddleware implements MiddlewareInterface
                 }
 
                 // Failed attempt - purge old and add new
-                $filtered = array_filter($currentAttempts, fn($ts) => $now - (int)$ts < $this->windowSec);
+                $filtered = array_filter($currentAttempts, fn ($ts) => $now - (int)$ts < $this->windowSec);
                 $filtered[] = $now;
 
                 return array_values($filtered);

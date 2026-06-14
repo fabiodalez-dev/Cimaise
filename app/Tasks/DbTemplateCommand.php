@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Tasks;
@@ -94,7 +95,7 @@ class DbTemplateCommand extends Command
             $this->buildFrom($sql, $this->templatePath);
             $tableCount = count(array_filter(
                 array_keys($freshShape['objects']),
-                static fn(string $k): bool => str_starts_with($k, 'table ')
+                static fn (string $k): bool => str_starts_with($k, 'table ')
             ));
             $output->writeln(sprintf(
                 '<info>Regenerated template.sqlite</info> (%d tables, %d settings).',
@@ -138,7 +139,7 @@ class DbTemplateCommand extends Command
              ORDER BY type, name"
         )->fetchAll(PDO::FETCH_ASSOC);
         foreach ($rows as $r) {
-            $objects[(string) $r['type'] . ' ' . (string) $r['name']] = $this->normalizeSql((string) $r['sql']);
+            $objects[$r['type'] . ' ' . $r['name']] = $this->normalizeSql((string) $r['sql']);
         }
 
         $settings = [];

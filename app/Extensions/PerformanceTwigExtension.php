@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Extensions;
@@ -14,7 +15,8 @@ class PerformanceTwigExtension extends AbstractExtension
 {
     public function __construct(
         private PerformanceService $performanceService
-    ) {}
+    ) {
+    }
 
     public function getFunctions(): array
     {

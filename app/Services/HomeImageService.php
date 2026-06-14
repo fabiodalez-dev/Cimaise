@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services;
@@ -384,7 +385,7 @@ class HomeImageService
 
         // Build exclude clause
         $excludeClause = '';
-        $excludeIds = array_filter(array_map('intval', $excludeImageIds), fn($id) => $id > 0);
+        $excludeIds = array_filter(array_map('intval', $excludeImageIds), fn ($id) => $id > 0);
         if (!empty($excludeIds)) {
             $placeholders = implode(',', array_fill(0, count($excludeIds), '?'));
             $excludeClause = " AND i.id NOT IN ({$placeholders})";
@@ -426,13 +427,13 @@ class HomeImageService
         // ignoring exclusions (simulating a loop back to the top)
         if (count($images) < $limit) {
             $needed = $limit - count($images);
-            
+
             $loopSql = $baseSql . "
                 GROUP BY i.id
                 ORDER BY a.published_at DESC, a.id DESC, i.sort_order ASC
                 LIMIT ?
             ";
-            
+
             $loopStmt = $pdo->prepare($loopSql);
             $loopStmt->bindValue(1, $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
             $loopStmt->bindValue(2, $needed, \PDO::PARAM_INT);
@@ -440,7 +441,7 @@ class HomeImageService
             $loopImages = $this->normalizeCategorySlugs($loopStmt->fetchAll(\PDO::FETCH_ASSOC));
 
             $images = array_merge($images, $loopImages);
-            
+
             // Edge case: If DB has very few images (fewer than needed), we might still be short.
             // Duplicate them to fill the request if necessary, or just return what we have.
             // For now, returning what we found (partial + wrap-around) is usually sufficient.
@@ -567,10 +568,8 @@ class HomeImageService
         // Calculate remaining images after this batch
         // Include any unprocessed new-album images when we hit the limit early
         $remainingFromUnprocessed = 0;
-        if (!empty($unprocessedNewAlbumIds)) {
-            foreach ($unprocessedNewAlbumIds as $albumId) {
-                $remainingFromUnprocessed += count($newAlbumImages[$albumId] ?? []);
-            }
+        foreach ($unprocessedNewAlbumIds as $albumId) {
+            $remainingFromUnprocessed += count($newAlbumImages[$albumId] ?? []);
         }
         $totalRemaining = max(0, $remainingFromUnprocessed + count($fillPool) - $usedFromFillPool);
         $hasMore = $totalRemaining > 0;

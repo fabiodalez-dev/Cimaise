@@ -1,7 +1,9 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
+
 use App\Controllers\BaseController;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -347,7 +349,7 @@ class TemplatesController extends BaseController
                 ':libs' => json_encode($libs),
                 ':id' => $id
             ]);
-            $this->invalidateTemplateCaches((int) $id);
+            $this->invalidateTemplateCaches($id);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.template_updated')];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic')];

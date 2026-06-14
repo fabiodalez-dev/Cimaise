@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 use App\Support\Database;
@@ -12,9 +13,14 @@ if (!defined('CIMAISE_VERSION')) {
 }
 
 if (!function_exists('envv')) {
-    function envv(string $key, $default = null) {
-        if (array_key_exists($key, $_ENV)) return $_ENV[$key];
-        if (array_key_exists($key, $_SERVER)) return $_SERVER[$key];
+    function envv(string $key, $default = null)
+    {
+        if (array_key_exists($key, $_ENV)) {
+            return $_ENV[$key];
+        }
+        if (array_key_exists($key, $_SERVER)) {
+            return $_SERVER[$key];
+        }
         $v = getenv($key);
         return $v !== false ? $v : $default;
     }
@@ -36,20 +42,24 @@ date_default_timezone_set(envv('APP_TIMEZONE', 'UTC'));
 // subsequent dgettext() / setlocale() resolve from libc state, never from
 // Core Foundation. Harmless on Linux/Docker because C.UTF-8 is the standard
 // container default; on systems without C.UTF-8 we fall back to POSIX/C.
-if (!getenv('LANG'))   { putenv('LANG=C.UTF-8'); }
-if (!getenv('LC_ALL')) { putenv('LC_ALL=C.UTF-8'); }
+if (!getenv('LANG')) {
+    putenv('LANG=C.UTF-8');
+}
+if (!getenv('LC_ALL')) {
+    putenv('LC_ALL=C.UTF-8');
+}
 @setlocale(LC_ALL, 'C.UTF-8', 'C.utf8', 'C', 'POSIX');
 
 // Support both MySQL and SQLite - default to SQLite for installer compatibility
 $connection = (string)envv('DB_CONNECTION', 'sqlite');
 if ($connection === 'sqlite') {
     $dbPath = (string)envv('DB_DATABASE', dirname(__DIR__, 1) . '/database/database.sqlite');
-    
+
     // If the path is relative, make it absolute relative to project root
     if (!str_starts_with($dbPath, '/')) {
         $dbPath = $root . '/' . $dbPath;
     }
-    
+
     $db = new Database(database: $dbPath, isSqlite: true);
 } else {
     $db = new Database(

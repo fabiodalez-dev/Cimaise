@@ -1,7 +1,9 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
+
 use App\Controllers\BaseController;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -10,7 +12,7 @@ use Slim\Views\Twig;
 
 class DiagnosticsController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view) 
+    public function __construct(private Database $db, private Twig $view)
     {
         parent::__construct();
     }
@@ -18,7 +20,7 @@ class DiagnosticsController extends BaseController
     public function index(Request $request, Response $response): Response
     {
         $diagnostics = $this->runDiagnostics();
-        
+
         return $this->view->render($response, 'admin/diagnostics.twig', [
             'diagnostics' => $diagnostics,
             'page_title' => 'System Diagnostics'
@@ -28,7 +30,7 @@ class DiagnosticsController extends BaseController
     private function runDiagnostics(): array
     {
         $results = [];
-        
+
         // PHP Version
         $results['php'] = [
             'name' => 'PHP Version',
@@ -40,7 +42,7 @@ class DiagnosticsController extends BaseController
                 'Current' => PHP_VERSION
             ]
         ];
-        
+
         // Database Connection
         try {
             $this->db->pdo();
@@ -58,7 +60,7 @@ class DiagnosticsController extends BaseController
                 'message' => 'Database connection failed: ' . $e->getMessage()
             ];
         }
-        
+
         // Extensions
         $extensions = [
             'PDO' => 'Database access',
@@ -70,15 +72,15 @@ class DiagnosticsController extends BaseController
             'gd' => 'Image processing with GD (recommended)',
             'imagick' => 'Image processing with ImageMagick (recommended)'
         ];
-        
+
         foreach ($extensions as $ext => $description) {
             $loaded = extension_loaded($ext);
             $isOptional = in_array($ext, ['exif', 'imagick']);
             $isRecommended = in_array($ext, ['gd', 'imagick']);
-            
+
             $status = 'ok';
             $message = "Extension loaded";
-            
+
             if (!$loaded) {
                 if ($isOptional) {
                     $status = 'warning';
@@ -91,7 +93,7 @@ class DiagnosticsController extends BaseController
                     $message = "Extension not loaded (required)";
                 }
             }
-            
+
             $results['ext_' . $ext] = [
                 'name' => "Extension: $ext",
                 'status' => $status,
@@ -99,7 +101,7 @@ class DiagnosticsController extends BaseController
                 'message' => "$message - $description"
             ];
         }
-        
+
         // Directory Permissions
         $directories = [
             'storage' => dirname(__DIR__, 2) . '/storage',
@@ -107,11 +109,11 @@ class DiagnosticsController extends BaseController
             'storage/tmp' => dirname(__DIR__, 2) . '/storage/tmp',
             'public/media' => dirname(__DIR__, 2) . '/public/media'
         ];
-        
+
         foreach ($directories as $name => $path) {
             $exists = is_dir($path);
             $writable = $exists && is_writable($path);
-            
+
             if (!$exists) {
                 $status = 'error';
                 $message = 'Directory does not exist';
@@ -125,7 +127,7 @@ class DiagnosticsController extends BaseController
                 $message = 'Directory exists and is writable';
                 $value = 'OK';
             }
-            
+
             $results['dir_' . str_replace('/', '_', $name)] = [
                 'name' => "Directory: $name",
                 'status' => $status,
@@ -138,30 +140,30 @@ class DiagnosticsController extends BaseController
                 ]
             ];
         }
-        
+
         // Memory Limit
         $memoryLimit = ini_get('memory_limit');
         $memoryBytes = $this->parseMemoryLimit($memoryLimit);
         $recommendedBytes = 256 * 1024 * 1024; // 256MB
-        
+
         $results['memory'] = [
             'name' => 'Memory Limit',
             'status' => $memoryBytes >= $recommendedBytes ? 'ok' : 'warning',
             'value' => $memoryLimit,
-            'message' => $memoryBytes >= $recommendedBytes ? 
-                'Memory limit is sufficient' : 
+            'message' => $memoryBytes >= $recommendedBytes ?
+                'Memory limit is sufficient' :
                 'Memory limit may be low for image processing',
             'details' => [
                 'Current' => $memoryLimit,
                 'Recommended' => '256M+'
             ]
         ];
-        
+
         // Upload Settings
         $maxFilesize = ini_get('upload_max_filesize');
         $maxPost = ini_get('post_max_size');
         $maxExecutionTime = ini_get('max_execution_time');
-        
+
         $results['upload'] = [
             'name' => 'Upload Settings',
             'status' => 'info',
@@ -173,21 +175,21 @@ class DiagnosticsController extends BaseController
                 'Max execution time' => $maxExecutionTime . 's'
             ]
         ];
-        
+
         // Database Stats
         try {
             $pdo = $this->db->pdo();
-            
+
             $stats = [];
             $tables = ['albums', 'images', 'categories', 'tags', 'cameras', 'lenses', 'films', 'developers', 'labs'];
-            
+
             foreach ($tables as $table) {
                 $stmt = $pdo->prepare("SELECT COUNT(*) FROM $table");
                 $stmt->execute();
                 $count = $stmt->fetchColumn();
                 $stats[$table] = $count;
             }
-            
+
             $results['db_stats'] = [
                 'name' => 'Database Statistics',
                 'status' => 'info',
@@ -195,7 +197,7 @@ class DiagnosticsController extends BaseController
                 'message' => 'Database contains data',
                 'details' => $stats
             ];
-            
+
         } catch (\Throwable $e) {
             $results['db_stats'] = [
                 'name' => 'Database Statistics',
@@ -204,7 +206,7 @@ class DiagnosticsController extends BaseController
                 'message' => 'Could not retrieve database statistics: ' . $e->getMessage()
             ];
         }
-        
+
         // System Info
         $results['system'] = [
             'name' => 'System Information',
@@ -218,7 +220,7 @@ class DiagnosticsController extends BaseController
                 'Document Root' => $_SERVER['DOCUMENT_ROOT'] ?? 'Unknown'
             ]
         ];
-        
+
         return $results;
     }
 
@@ -227,11 +229,11 @@ class DiagnosticsController extends BaseController
         if ($limit === '-1') {
             return PHP_INT_MAX;
         }
-        
+
         $limit = trim($limit);
         $last = strtolower($limit[strlen($limit) - 1]);
         $value = (int)$limit;
-        
+
         switch ($last) {
             case 'g':
                 $value *= 1024;
@@ -242,7 +244,7 @@ class DiagnosticsController extends BaseController
             case 'k':
                 $value *= 1024;
         }
-        
+
         return $value;
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
@@ -24,8 +25,7 @@ class AuthController extends BaseController
         private Database $db,
         private Twig $view,
         private SettingsService $settings
-    )
-    {
+    ) {
         parent::__construct();
     }
 

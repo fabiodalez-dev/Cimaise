@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
@@ -407,7 +408,9 @@ class PluginsController extends BaseController
      */
     private function cleanupTemp(string $dir): void
     {
-        if (!is_dir($dir)) return;
+        if (!is_dir($dir)) {
+            return;
+        }
 
         $files = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($dir, \RecursiveDirectoryIterator::SKIP_DOTS),
@@ -598,7 +601,9 @@ class PluginsController extends BaseController
         );
 
         foreach ($iterator as $file) {
-            if (!$file->isFile()) continue;
+            if (!$file->isFile()) {
+                continue;
+            }
 
             $extension = strtolower(pathinfo($file->getFilename(), PATHINFO_EXTENSION));
 
@@ -645,10 +650,14 @@ class PluginsController extends BaseController
             }
 
             // Only scan PHP files for code patterns
-            if ($extension !== 'php') continue;
+            if ($extension !== 'php') {
+                continue;
+            }
 
             $content = file_get_contents($file->getRealPath());
-            if ($content === false) continue;
+            if ($content === false) {
+                continue;
+            }
 
             // Remove comments and strings for more accurate pattern matching
             $strippedContent = $this->stripCommentsAndStrings($content);

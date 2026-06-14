@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Middlewares;
@@ -13,7 +14,8 @@ class CompressionMiddleware implements MiddlewareInterface
 {
     public function __construct(
         private SettingsService $settings
-    ) {}
+    ) {
+    }
 
     public function process(Request $request, Handler $handler): Response
     {

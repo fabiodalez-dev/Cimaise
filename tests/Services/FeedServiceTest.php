@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 use App\Services\FeedService;
@@ -48,7 +49,7 @@ final class FeedServiceTest extends TestCase
 
     public function testOnlyVisibleAlbumsNewestFirstNullsLast(): void
     {
-        $slugs = array_map(static fn($a) => $a['slug'], (new FeedService($this->db))->recentPublishedAlbums());
+        $slugs = array_map(static fn ($a) => $a['slug'], (new FeedService($this->db))->recentPublishedAlbums());
 
         // Draft / locked / nsfw excluded; newest first; the no-date album last.
         self::assertSame(['newest', 'older', 'nodate'], $slugs);

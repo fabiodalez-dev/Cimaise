@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services;
@@ -39,7 +40,7 @@ class LensfunService
 
         if (empty($query)) {
             $total = count($makers);
-            $results = array_slice(array_map(fn($m) => ['maker' => $m], $makers), 0, $limit);
+            $results = array_slice(array_map(fn ($m) => ['maker' => $m], $makers), 0, $limit);
             return $withCount ? ['results' => $results, 'total' => $total] : $results;
         }
 
@@ -76,7 +77,9 @@ class LensfunService
         $cameraPool = $this->cameras;
         if ($maker !== null && $maker !== '') {
             $makerLower = strtolower(trim($maker));
-            $cameraPool = array_filter($this->cameras, fn($c) =>
+            $cameraPool = array_filter(
+                $this->cameras,
+                fn ($c) =>
                 strtolower($c['maker']) === $makerLower
             );
         }
@@ -132,7 +135,9 @@ class LensfunService
         $lensPool = $this->lenses;
         if ($maker !== null && $maker !== '') {
             $makerLower = strtolower(trim($maker));
-            $lensPool = array_filter($this->lenses, fn($l) =>
+            $lensPool = array_filter(
+                $this->lenses,
+                fn ($l) =>
                 strtolower($l['maker']) === $makerLower
             );
         }
@@ -187,7 +192,7 @@ class LensfunService
 
         if (empty($query)) {
             $total = count($makers);
-            $results = array_slice(array_map(fn($m) => ['maker' => $m], $makers), 0, $limit);
+            $results = array_slice(array_map(fn ($m) => ['maker' => $m], $makers), 0, $limit);
             return $withCount ? ['results' => $results, 'total' => $total] : $results;
         }
 
@@ -230,7 +235,9 @@ class LensfunService
     public function getCamerasByMaker(string $maker): array
     {
         $this->loadData();
-        return array_values(array_filter($this->cameras, fn($c) =>
+        return array_values(array_filter(
+            $this->cameras,
+            fn ($c) =>
             strcasecmp($c['maker'], $maker) === 0
         ));
     }
@@ -241,7 +248,9 @@ class LensfunService
     public function getLensesByMaker(string $maker): array
     {
         $this->loadData();
-        return array_values(array_filter($this->lenses, fn($l) =>
+        return array_values(array_filter(
+            $this->lenses,
+            fn ($l) =>
             strcasecmp($l['maker'], $maker) === 0
         ));
     }
@@ -354,10 +363,14 @@ class LensfunService
         }
 
         // Sort alphabetically
-        usort($this->cameras, fn($a, $b) =>
+        usort(
+            $this->cameras,
+            fn ($a, $b) =>
             strcasecmp($a['maker'] . ' ' . $a['model'], $b['maker'] . ' ' . $b['model'])
         );
-        usort($this->lenses, fn($a, $b) =>
+        usort(
+            $this->lenses,
+            fn ($a, $b) =>
             strcasecmp($a['maker'] . ' ' . $a['model'], $b['maker'] . ' ' . $b['model'])
         );
 

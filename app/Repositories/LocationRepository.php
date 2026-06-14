@@ -68,7 +68,7 @@ class LocationRepository
         // First remove references from albums and images
         $this->db->pdo()->prepare('UPDATE albums SET location_id = NULL WHERE location_id = ?')->execute([$id]);
         $this->db->pdo()->prepare('UPDATE images SET location_id = NULL WHERE location_id = ?')->execute([$id]);
-        
+
         // Then delete the location
         $stmt = $this->db->pdo()->prepare('DELETE FROM locations WHERE id = ?');
         $stmt->execute([$id]);

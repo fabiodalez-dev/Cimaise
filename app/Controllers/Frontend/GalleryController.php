@@ -1,7 +1,9 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Frontend;
+
 use App\Controllers\BaseController;
 use App\Services\NavigationService;
 use App\Services\SettingsService;
@@ -158,7 +160,7 @@ class GalleryController extends BaseController
             // Use default template from settings
             $settingsService = new SettingsService($this->db);
             $defaultTemplateId = $settingsService->get('gallery.default_template_id');
-            
+
             if ($defaultTemplateId) {
                 // Use the predefined template from settings
                 $templateId = (int)$defaultTemplateId;
@@ -193,11 +195,12 @@ class GalleryController extends BaseController
             $cstmt = $pdo->prepare('SELECT c.id, c.name, c.slug FROM categories c JOIN album_category ac ON ac.category_id = c.id WHERE ac.album_id = :id ORDER BY c.sort_order, c.name');
             $cstmt->execute([':id' => $album['id']]);
             $cats = $cstmt->fetchAll() ?: [];
-        } catch (\Throwable) {}
+        } catch (\Throwable) {
+        }
 
         // Equipment (album-level pivot lists)
-        $equipment = [ 'cameras'=>[], 'lenses'=>[], 'film'=>[], 'developers'=>[], 'labs'=>[], 'locations'=>[] ];
-        
+        $equipment = [ 'cameras' => [], 'lenses' => [], 'film' => [], 'developers' => [], 'labs' => [], 'locations' => [] ];
+
         // Load equipment: first try custom fields, then relationships, then images as fallback
         try {
             // Try custom equipment fields first (if present, they take priority)
@@ -207,25 +210,25 @@ class GalleryController extends BaseController
                 $cameraStmt = $pdo->prepare('SELECT c.make, c.model FROM cameras c JOIN album_camera ac ON c.id = ac.camera_id WHERE ac.album_id = :a');
                 $cameraStmt->execute([':a' => $album['id']]);
                 $cameras = $cameraStmt->fetchAll();
-                $equipment['cameras'] = array_map(fn($c) => trim(($c['make'] ?? '') . ' ' . ($c['model'] ?? '')), $cameras);
+                $equipment['cameras'] = array_map(fn ($c) => trim(($c['make'] ?? '') . ' ' . ($c['model'] ?? '')), $cameras);
             }
-            
+
             if (!empty($album['custom_lenses'])) {
                 $equipment['lenses'] = array_filter(array_map('trim', explode("\n", $album['custom_lenses'])));
             } else {
                 $lensStmt = $pdo->prepare('SELECT l.brand, l.model FROM lenses l JOIN album_lens al ON l.id = al.lens_id WHERE al.album_id = :a');
                 $lensStmt->execute([':a' => $album['id']]);
                 $lenses = $lensStmt->fetchAll();
-                $equipment['lenses'] = array_map(fn($l) => trim(($l['brand'] ?? '') . ' ' . ($l['model'] ?? '')), $lenses);
+                $equipment['lenses'] = array_map(fn ($l) => trim(($l['brand'] ?? '') . ' ' . ($l['model'] ?? '')), $lenses);
             }
-            
+
             if (!empty($album['custom_films'])) {
                 $equipment['film'] = array_filter(array_map('trim', explode("\n", $album['custom_films'])));
             } else {
                 $filmStmt = $pdo->prepare('SELECT f.brand, f.name, f.iso, f.format FROM films f JOIN album_film af ON f.id = af.film_id WHERE af.album_id = :a');
                 $filmStmt->execute([':a' => $album['id']]);
                 $films = $filmStmt->fetchAll();
-                $equipment['film'] = array_map(function($f) {
+                $equipment['film'] = array_map(function ($f) {
                     $name = trim(($f['brand'] ?? '') . ' ' . ($f['name'] ?? ''));
                     return [
                         'name' => $name,
@@ -234,34 +237,34 @@ class GalleryController extends BaseController
                     ];
                 }, $films);
             }
-            
+
             if (!empty($album['custom_developers'])) {
                 $equipment['developers'] = array_filter(array_map('trim', explode("\n", $album['custom_developers'])));
             } else {
                 $devStmt = $pdo->prepare('SELECT d.name FROM developers d JOIN album_developer ad ON d.id = ad.developer_id WHERE ad.album_id = :a');
                 $devStmt->execute([':a' => $album['id']]);
                 $developers = $devStmt->fetchAll();
-                $equipment['developers'] = array_map(fn($d) => $d['name'], $developers);
+                $equipment['developers'] = array_map(fn ($d) => $d['name'], $developers);
             }
-            
+
             if (!empty($album['custom_labs'])) {
                 $equipment['labs'] = array_filter(array_map('trim', explode("\n", $album['custom_labs'])));
             } else {
                 $labStmt = $pdo->prepare('SELECT l.name FROM labs l JOIN album_lab al ON l.id = al.lab_id WHERE al.album_id = :a');
                 $labStmt->execute([':a' => $album['id']]);
                 $labs = $labStmt->fetchAll();
-                $equipment['labs'] = array_map(fn($l) => $l['name'], $labs);
+                $equipment['labs'] = array_map(fn ($l) => $l['name'], $labs);
             }
-            
+
             // Locations
             $locStmt = $pdo->prepare('SELECT l.name FROM locations l JOIN album_location al ON l.id = al.location_id WHERE al.album_id = :a ORDER BY l.name');
             $locStmt->execute([':a' => $album['id']]);
             $locations = $locStmt->fetchAll();
-            $equipment['locations'] = array_map(fn($l) => $l['name'], $locations);
+            $equipment['locations'] = array_map(fn ($l) => $l['name'], $locations);
         } catch (\Throwable) {
             // Equipment tables might not exist or have issues, continue with empty equipment
         }
-        
+
         // If empty, fallback from images (populated below)
 
         // Images with per-photo metadata
@@ -358,31 +361,59 @@ class GalleryController extends BaseController
             $cameraDisp = $img['camera_name'] ?? ($img['custom_camera'] ?? null);
             $lensDisp = $img['lens_name'] ?? ($img['custom_lens'] ?? null);
             $filmDisp = $img['film_name'] ?? ($img['custom_film'] ?? null);
-            if (!empty($cameraDisp)) { $metaParts[] = '📷 ' . $cameraDisp; }
-            if (!empty($lensDisp)) { $metaParts[] = '🔭 ' . $lensDisp; }
-            if (!empty($filmDisp)) { $metaParts[] = '🎞️ ' . $filmDisp; }
-            if (!empty($img['iso'])) { $metaParts[] = 'ISO ' . (int)$img['iso']; }
-            if (!empty($img['shutter_speed'])) { $metaParts[] = $this->formatShutterSpeed($img['shutter_speed']) ?? (string)$img['shutter_speed']; }
-            if (!empty($img['aperture'])) { $metaParts[] = 'f/' . number_format((float)$img['aperture'], 1); }
+            if (!empty($cameraDisp)) {
+                $metaParts[] = '📷 ' . $cameraDisp;
+            }
+            if (!empty($lensDisp)) {
+                $metaParts[] = '🔭 ' . $lensDisp;
+            }
+            if (!empty($filmDisp)) {
+                $metaParts[] = '🎞️ ' . $filmDisp;
+            }
+            if (!empty($img['iso'])) {
+                $metaParts[] = 'ISO ' . (int)$img['iso'];
+            }
+            if (!empty($img['shutter_speed'])) {
+                $metaParts[] = $this->formatShutterSpeed($img['shutter_speed']) ?? (string)$img['shutter_speed'];
+            }
+            if (!empty($img['aperture'])) {
+                $metaParts[] = 'f/' . number_format((float)$img['aperture'], 1);
+            }
 
-            $enhancedCaption = trim(($img['caption'] ?? '') . (count($metaParts) ? ( ($img['caption'] ?? '') !== '' ? ' — ' : '' ) . implode(' • ', $metaParts) : ''));
+            $enhancedCaption = trim(($img['caption'] ?? '') . (count($metaParts) ? (($img['caption'] ?? '') !== '' ? ' — ' : '') . implode(' • ', $metaParts) : ''));
 
             // HTML caption with FA icons for lightbox UIs that support HTML (fallback uses this)
             $equipBits = [];
-            if (!empty($cameraDisp)) { $equipBits[] = '<i class="fa-solid fa-camera mr-1"></i>' . htmlspecialchars($cameraDisp, ENT_QUOTES); }
-            if (!empty($lensDisp)) { $equipBits[] = '<i class="fa-solid fa-dot-circle mr-1"></i>' . htmlspecialchars($lensDisp, ENT_QUOTES); }
-            if (!empty($filmDisp)) { $equipBits[] = '<i class="fa-solid fa-film mr-1"></i>' . htmlspecialchars($filmDisp, ENT_QUOTES); }
-            if (!empty($img['developer_name'])) { $equipBits[] = '<i class="fa-solid fa-flask mr-1"></i>' . htmlspecialchars((string)$img['developer_name'], ENT_QUOTES); }
-            if (!empty($img['lab_name'])) { $equipBits[] = '<i class="fa-solid fa-industry mr-1"></i>' . htmlspecialchars((string)$img['lab_name'], ENT_QUOTES); }
-            if (!empty($img['iso'])) { $equipBits[] = '<i class="fa-solid fa-signal mr-1"></i>ISO ' . (int)$img['iso']; }
-            if (!empty($img['shutter_speed'])) { $equipBits[] = '<i class="fa-regular fa-clock mr-1"></i>' . htmlspecialchars($this->formatShutterSpeed($img['shutter_speed']) ?? (string)$img['shutter_speed'], ENT_QUOTES); }
-            if (!empty($img['aperture'])) { $equipBits[] = '<i class="fa-solid fa-circle-half-stroke mr-1"></i>f/' . number_format((float)$img['aperture'], 1); }
+            if (!empty($cameraDisp)) {
+                $equipBits[] = '<i class="fa-solid fa-camera mr-1"></i>' . htmlspecialchars($cameraDisp, ENT_QUOTES);
+            }
+            if (!empty($lensDisp)) {
+                $equipBits[] = '<i class="fa-solid fa-dot-circle mr-1"></i>' . htmlspecialchars($lensDisp, ENT_QUOTES);
+            }
+            if (!empty($filmDisp)) {
+                $equipBits[] = '<i class="fa-solid fa-film mr-1"></i>' . htmlspecialchars($filmDisp, ENT_QUOTES);
+            }
+            if (!empty($img['developer_name'])) {
+                $equipBits[] = '<i class="fa-solid fa-flask mr-1"></i>' . htmlspecialchars((string)$img['developer_name'], ENT_QUOTES);
+            }
+            if (!empty($img['lab_name'])) {
+                $equipBits[] = '<i class="fa-solid fa-industry mr-1"></i>' . htmlspecialchars((string)$img['lab_name'], ENT_QUOTES);
+            }
+            if (!empty($img['iso'])) {
+                $equipBits[] = '<i class="fa-solid fa-signal mr-1"></i>ISO ' . (int)$img['iso'];
+            }
+            if (!empty($img['shutter_speed'])) {
+                $equipBits[] = '<i class="fa-regular fa-clock mr-1"></i>' . htmlspecialchars($this->formatShutterSpeed($img['shutter_speed']) ?? (string)$img['shutter_speed'], ENT_QUOTES);
+            }
+            if (!empty($img['aperture'])) {
+                $equipBits[] = '<i class="fa-solid fa-circle-half-stroke mr-1"></i>f/' . number_format((float)$img['aperture'], 1);
+            }
             $captionHtml = '';
             if (!empty($img['caption'])) {
                 $captionHtml .= '<div class="mb-2">' . htmlspecialchars((string)$img['caption'], ENT_QUOTES) . '</div>';
             }
             if ($equipBits) {
-                $captionHtml .= '<div class="flex flex-wrap gap-x-3 gap-y-1 justify-center text-sm">' . implode(' ', array_map(fn($x)=>'<span class="inline-flex items-center">'.$x.'</span>', $equipBits)) . '</div>';
+                $captionHtml .= '<div class="flex flex-wrap gap-x-3 gap-y-1 justify-center text-sm">' . implode(' ', array_map(fn ($x) => '<span class="inline-flex items-center">'.$x.'</span>', $equipBits)) . '</div>';
             }
 
             $images[] = [
@@ -440,11 +471,21 @@ class GalleryController extends BaseController
         }
 
         // Fallback equipment aggregation from images if album-level empty
-        if (!$equipment['cameras']) { $equipment['cameras'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['camera_name'] ?? ($r['custom_camera'] ?? null), $imagesRows)))); }
-        if (!$equipment['lenses']) { $equipment['lenses'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['lens_name'] ?? ($r['custom_lens'] ?? null), $imagesRows)))); }
-        if (!$equipment['film'])   { $equipment['film'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['film_name'] ?? ($r['custom_film'] ?? null), $imagesRows)))); }
-        if (!$equipment['developers']) { $equipment['developers'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['developer_name'] ?? null, $imagesRows)))); }
-        if (!$equipment['labs']) { $equipment['labs'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['lab_name'] ?? null, $imagesRows)))); }
+        if (!$equipment['cameras']) {
+            $equipment['cameras'] = array_values(array_unique(array_filter(array_map(fn ($r) => $r['camera_name'] ?? ($r['custom_camera'] ?? null), $imagesRows))));
+        }
+        if (!$equipment['lenses']) {
+            $equipment['lenses'] = array_values(array_unique(array_filter(array_map(fn ($r) => $r['lens_name'] ?? ($r['custom_lens'] ?? null), $imagesRows))));
+        }
+        if (!$equipment['film']) {
+            $equipment['film'] = array_values(array_unique(array_filter(array_map(fn ($r) => $r['film_name'] ?? ($r['custom_film'] ?? null), $imagesRows))));
+        }
+        if (!$equipment['developers']) {
+            $equipment['developers'] = array_values(array_unique(array_filter(array_map(fn ($r) => $r['developer_name'] ?? null, $imagesRows))));
+        }
+        if (!$equipment['labs']) {
+            $equipment['labs'] = array_values(array_unique(array_filter(array_map(fn ($r) => $r['lab_name'] ?? null, $imagesRows))));
+        }
 
         // Gallery meta mapped from album
         $galleryMeta = [
@@ -465,14 +506,17 @@ class GalleryController extends BaseController
         if (!empty($album['allow_template_switch'])) {
             try {
                 $list = $templateService->getGalleryTemplatesForSwitcher();
-            } catch (\Throwable) { $list = []; }
+            } catch (\Throwable) {
+                $list = [];
+            }
         }
 
         // Nav categories for header
         $navCats = [];
         try {
             $navCats = (new NavigationService($this->db))->getNavigationCategories();
-        } catch (\Throwable) {}
+        } catch (\Throwable) {
+        }
 
         // Get cover image for Open Graph
         $coverImage = null;
@@ -490,14 +534,15 @@ class GalleryController extends BaseController
                 if ($cover && !empty($cover['preview_path'])) {
                     $coverImage = $cover['preview_path'];
                 }
-            } catch (\Throwable) {}
+            } catch (\Throwable) {
+            }
         }
-        
+
         // Fallback to first image if no cover image set
         if (!$coverImage && !empty($images)) {
             $coverImage = $images[0]['lightbox_url'] ?? $images[0]['url'] ?? null;
         }
-        
+
         // Ensure cover image is a full URL for Open Graph
         $metaImage = null;
         if ($coverImage) {
@@ -509,7 +554,7 @@ class GalleryController extends BaseController
                 $host = $request->getUri()->getHost();
                 $port = $request->getUri()->getPort();
                 $portStr = ($port && $port != 80 && $port != 443) ? ":$port" : '';
-                
+
                 $baseUrl = "{$scheme}://{$host}{$portStr}";
                 $metaImage = $baseUrl . (str_starts_with($coverImage, '/') ? $coverImage : '/' . $coverImage);
             }
@@ -521,13 +566,13 @@ class GalleryController extends BaseController
         if (!is_array($enabledSocials)) {
             $enabledSocials = ['behance', 'whatsapp', 'facebook', 'x', 'deviantart', 'instagram', 'pinterest', 'telegram', 'threads', 'bluesky'];
         }
-        
+
         // Get social order
         $socialOrder = $settingsService->get('social.order', []);
         if (!is_array($socialOrder)) {
             $socialOrder = $enabledSocials;
         }
-        
+
         // Use order for enabled socials
         $orderedSocials = [];
         foreach ($socialOrder as $social) {
@@ -541,7 +586,7 @@ class GalleryController extends BaseController
                 $orderedSocials[] = $social;
             }
         }
-        
+
         $availableSocials = $this->getAvailableSocials();
 
         $homeSvc = new SettingsService($this->db);
@@ -607,7 +652,7 @@ class GalleryController extends BaseController
             if (session_status() === PHP_SESSION_NONE) {
                 session_start();
             }
-            
+
             $params = $request->getQueryParams();
             $albumParam = $params['album'] ?? null; // slug or id
             $templateId = isset($params['template']) ? (int)$params['template'] : null;
@@ -627,7 +672,7 @@ class GalleryController extends BaseController
                 $stmt = $pdo->prepare('SELECT a.*, a.template_id, c.name as category_name, c.slug as category_slug, t.settings as template_settings, t.name as template_name FROM albums a JOIN categories c ON c.id = a.category_id LEFT JOIN templates t ON t.id = a.template_id WHERE a.slug = :slug AND a.is_published = 1');
                 $stmt->execute([':slug' => (string)$albumParam]);
             }
-            
+
             $album = $stmt->fetch();
             if (!$album) {
                 $response->getBody()->write('Album not found');
@@ -668,7 +713,7 @@ class GalleryController extends BaseController
             }
 
             // Load album-level equipment for fallback when images don't have per-image metadata
-            $equipment = [ 'cameras'=>[], 'lenses'=>[], 'film'=>[], 'developers'=>[], 'labs'=>[], 'locations'=>[] ];
+            $equipment = [ 'cameras' => [], 'lenses' => [], 'film' => [], 'developers' => [], 'labs' => [], 'locations' => [] ];
 
             // 1. Cameras
             try {
@@ -678,9 +723,10 @@ class GalleryController extends BaseController
                     $cameraStmt = $pdo->prepare('SELECT c.make, c.model FROM cameras c JOIN album_camera ac ON c.id = ac.camera_id WHERE ac.album_id = :a');
                     $cameraStmt->execute([':a' => $album['id']]);
                     $cameras = $cameraStmt->fetchAll();
-                    $equipment['cameras'] = array_map(fn($c) => trim(($c['make'] ?? '') . ' ' . ($c['model'] ?? '')), $cameras);
+                    $equipment['cameras'] = array_map(fn ($c) => trim(($c['make'] ?? '') . ' ' . ($c['model'] ?? '')), $cameras);
                 }
-            } catch (\Throwable) {}
+            } catch (\Throwable) {
+            }
 
             // 2. Lenses
             try {
@@ -690,9 +736,10 @@ class GalleryController extends BaseController
                     $lensStmt = $pdo->prepare('SELECT l.brand, l.model FROM lenses l JOIN album_lens al ON l.id = al.lens_id WHERE al.album_id = :a');
                     $lensStmt->execute([':a' => $album['id']]);
                     $lenses = $lensStmt->fetchAll();
-                    $equipment['lenses'] = array_map(fn($l) => trim(($l['brand'] ?? '') . ' ' . ($l['model'] ?? '')), $lenses);
+                    $equipment['lenses'] = array_map(fn ($l) => trim(($l['brand'] ?? '') . ' ' . ($l['model'] ?? '')), $lenses);
                 }
-            } catch (\Throwable) {}
+            } catch (\Throwable) {
+            }
 
             // 3. Films
             try {
@@ -702,9 +749,10 @@ class GalleryController extends BaseController
                     $filmStmt = $pdo->prepare('SELECT f.brand, f.name FROM films f JOIN album_film af ON f.id = af.film_id WHERE af.album_id = :a');
                     $filmStmt->execute([':a' => $album['id']]);
                     $films = $filmStmt->fetchAll();
-                    $equipment['film'] = array_map(fn($f) => trim(($f['brand'] ?? '') . ' ' . ($f['name'] ?? '')), $films);
+                    $equipment['film'] = array_map(fn ($f) => trim(($f['brand'] ?? '') . ' ' . ($f['name'] ?? '')), $films);
                 }
-            } catch (\Throwable) {}
+            } catch (\Throwable) {
+            }
 
             // 4. Developers
             try {
@@ -714,9 +762,10 @@ class GalleryController extends BaseController
                     $devStmt = $pdo->prepare('SELECT d.name FROM developers d JOIN album_developer ad ON d.id = ad.developer_id WHERE ad.album_id = :a');
                     $devStmt->execute([':a' => $album['id']]);
                     $developers = $devStmt->fetchAll();
-                    $equipment['developers'] = array_map(fn($d) => $d['name'], $developers);
+                    $equipment['developers'] = array_map(fn ($d) => $d['name'], $developers);
                 }
-            } catch (\Throwable) {}
+            } catch (\Throwable) {
+            }
 
             // 5. Labs
             try {
@@ -726,17 +775,19 @@ class GalleryController extends BaseController
                     $labStmt = $pdo->prepare('SELECT l.name FROM labs l JOIN album_lab al ON l.id = al.lab_id WHERE al.album_id = :a');
                     $labStmt->execute([':a' => $album['id']]);
                     $labs = $labStmt->fetchAll();
-                    $equipment['labs'] = array_map(fn($l) => $l['name'], $labs);
+                    $equipment['labs'] = array_map(fn ($l) => $l['name'], $labs);
                 }
-            } catch (\Throwable) {}
+            } catch (\Throwable) {
+            }
 
             // 6. Locations
             try {
                 $locStmt = $pdo->prepare('SELECT l.name FROM locations l JOIN album_location al ON l.id = al.location_id WHERE al.album_id = :a ORDER BY l.name');
                 $locStmt->execute([':a' => $album['id']]);
                 $locations = $locStmt->fetchAll();
-                $equipment['locations'] = array_map(fn($l) => $l['name'], $locations);
-            } catch (\Throwable) {}
+                $equipment['locations'] = array_map(fn ($l) => $l['name'], $locations);
+            } catch (\Throwable) {
+            }
 
             // Images with per-photo metadata
             $imgStmt = $pdo->prepare('SELECT * FROM images WHERE album_id = :id ORDER BY sort_order ASC, id ASC');
@@ -925,11 +976,11 @@ class GalleryController extends BaseController
                     }
 
                     $templateAssets['css'] = array_map(
-                        fn($path) => rtrim($this->basePath, '/') . '/plugins/custom-templates-pro/' . ltrim($path, '/'),
+                        fn ($path) => rtrim($this->basePath, '/') . '/plugins/custom-templates-pro/' . ltrim($path, '/'),
                         (array)($metadata['css_paths'] ?? [])
                     );
                     $templateAssets['js'] = array_map(
-                        fn($path) => rtrim($this->basePath, '/') . '/plugins/custom-templates-pro/' . ltrim($path, '/'),
+                        fn ($path) => rtrim($this->basePath, '/') . '/plugins/custom-templates-pro/' . ltrim($path, '/'),
                         (array)($metadata['js_paths'] ?? [])
                     );
                 }
@@ -953,7 +1004,7 @@ class GalleryController extends BaseController
 
             $response->getBody()->write($settingsScript . $renderedHtml);
             return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
-            
+
         } catch (\Throwable $e) {
             // Log the actual error for debugging
             Logger::critical('GalleryController::template error', [

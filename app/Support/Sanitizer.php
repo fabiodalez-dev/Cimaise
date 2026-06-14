@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Support;
@@ -31,7 +32,9 @@ final class Sanitizer
 
         // Get the root element (the div we wrapped around the content)
         $root = $dom->documentElement;
-        if (!$root) return '';
+        if (!$root) {
+            return '';
+        }
 
         self::sanitizeNode($root, $allowedTags, $allowedAttributes);
 

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services;
@@ -40,7 +41,7 @@ class AlbumEnrichmentService
      */
     public function loadListingCoverImages(array $imageIds): array
     {
-        $imageIds = array_values(array_filter(array_map('intval', $imageIds), fn($id) => $id > 0));
+        $imageIds = array_values(array_filter(array_map('intval', $imageIds), fn ($id) => $id > 0));
         if (!$imageIds) {
             return [];
         }
@@ -73,7 +74,7 @@ class AlbumEnrichmentService
      */
     public function loadFallbackCoverImages(array $albumIds): array
     {
-        $albumIds = array_values(array_filter(array_map('intval', $albumIds), fn($id) => $id > 0));
+        $albumIds = array_values(array_filter(array_map('intval', $albumIds), fn ($id) => $id > 0));
         if (!$albumIds) {
             return [];
         }
@@ -114,7 +115,7 @@ class AlbumEnrichmentService
      */
     public function loadPageCoverImagesWithVariants(array $imageIds): array
     {
-        $imageIds = array_values(array_filter(array_map('intval', $imageIds), fn($id) => $id > 0));
+        $imageIds = array_values(array_filter(array_map('intval', $imageIds), fn ($id) => $id > 0));
         if (!$imageIds) {
             return ['images' => [], 'variants' => []];
         }
@@ -147,7 +148,7 @@ class AlbumEnrichmentService
      */
     public function loadImageCounts(array $albumIds): array
     {
-        $albumIds = array_values(array_filter(array_map('intval', $albumIds), fn($id) => $id > 0));
+        $albumIds = array_values(array_filter(array_map('intval', $albumIds), fn ($id) => $id > 0));
         if (!$albumIds) {
             return [];
         }
@@ -173,7 +174,7 @@ class AlbumEnrichmentService
      */
     public function loadTags(array $albumIds): array
     {
-        $albumIds = array_values(array_filter(array_map('intval', $albumIds), fn($id) => $id > 0));
+        $albumIds = array_values(array_filter(array_map('intval', $albumIds), fn ($id) => $id > 0));
         if (!$albumIds) {
             return [];
         }
@@ -204,7 +205,7 @@ class AlbumEnrichmentService
      */
     public function loadLocations(array $albumIds): array
     {
-        $albumIds = array_values(array_filter(array_map('intval', $albumIds), fn($id) => $id > 0));
+        $albumIds = array_values(array_filter(array_map('intval', $albumIds), fn ($id) => $id > 0));
         if (!$albumIds) {
             return [];
         }

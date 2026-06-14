@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Tasks;
@@ -35,4 +36,3 @@ class NormalizeMediaPathsCommand extends Command
         return Command::SUCCESS;
     }
 }
-

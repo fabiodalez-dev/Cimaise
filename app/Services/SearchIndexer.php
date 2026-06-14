@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services;
@@ -202,7 +203,7 @@ SQL;
      */
     private function columnList(string $alias, array $columns): string
     {
-        return implode(', ', array_map(static fn(string $c): string => "{$alias}.{$c}", $columns));
+        return implode(', ', array_map(static fn (string $c): string => "{$alias}.{$c}", $columns));
     }
 
     // --- MySQL --------------------------------------------------------------

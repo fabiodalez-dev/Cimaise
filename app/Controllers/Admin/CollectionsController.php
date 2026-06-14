@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
@@ -310,7 +311,7 @@ final class CollectionsController extends BaseController
             'total' => $total,
             'page' => $page,
             'per_page' => self::PICKER_PER_PAGE,
-            'total_pages' => (int) max(1, (int) ceil($total / self::PICKER_PER_PAGE)),
+            'total_pages' => max(1, (int) ceil($total / self::PICKER_PER_PAGE)),
         ]);
     }
 

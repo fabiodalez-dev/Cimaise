@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services;
@@ -6,7 +7,6 @@ namespace App\Services;
 use App\Support\Database;
 use App\Support\Logger;
 use App\Traits\RegistersImageVariants;
-use finfo;
 use RuntimeException;
 
 class UploadService
@@ -16,8 +16,8 @@ class UploadService
     /** Maximum total pixel count accepted (decompression-bomb guard, ~40 megapixel). */
     private const MAX_IMAGE_PIXELS = 40000000;
 
-    private array $allowed = ['image/jpeg'=>'.jpg','image/png'=>'.png', 'image/webp'=>'.webp'];
-    
+    private array $allowed = ['image/jpeg' => '.jpg','image/png' => '.png', 'image/webp' => '.webp'];
+
     // Magic number signatures for image validation
     private array $magicNumbers = [
         'image/jpeg' => ["\xFF\xD8\xFF"],
@@ -73,7 +73,7 @@ class UploadService
         Logger::warning('UploadService: refused unlink outside allowed roots', ['path' => $path], 'security');
         return false;
     }
-    
+
     /**
      * Validates file using both MIME type detection and magic number verification
      */
@@ -83,32 +83,32 @@ class UploadService
         if (!is_file($filePath) || !is_readable($filePath)) {
             throw new RuntimeException('File not accessible');
         }
-        
+
         // 2. Check file size (prevent DoS attacks)
         $fileSize = filesize($filePath);
         if ($fileSize === false || $fileSize > 50 * 1024 * 1024) { // 50MB limit
             throw new RuntimeException('File too large');
         }
-        
+
         if ($fileSize < 12) { // Minimum size for valid image headers
             throw new RuntimeException('File too small to be a valid image');
         }
-        
+
         // 3. Detect MIME type using fileinfo
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $detectedMime = finfo_file($finfo, $filePath);
         finfo_close($finfo);
-        
+
         if (!$detectedMime || !isset($this->allowed[$detectedMime])) {
             throw new RuntimeException('Unsupported file type: ' . ($detectedMime ?: 'unknown'));
         }
-        
+
         // 4. Validate magic numbers (file header signatures)
         $fileHeader = file_get_contents($filePath, false, null, 0, 12);
         if ($fileHeader === false) {
             throw new RuntimeException('Cannot read file header');
         }
-        
+
         $isValidMagic = false;
         if (isset($this->magicNumbers[$detectedMime])) {
             foreach ($this->magicNumbers[$detectedMime] as $signature) {
@@ -126,17 +126,17 @@ class UploadService
                 }
             }
         }
-        
+
         if (!$isValidMagic) {
             throw new RuntimeException('File header does not match expected format');
         }
-        
+
         // 5. Additional validation: try to get image dimensions
         $imageInfo = getimagesize($filePath);
         if ($imageInfo === false) {
             throw new RuntimeException('Invalid image file - cannot read dimensions');
         }
-        
+
         // 6. Validate image dimensions (prevent processing of malicious files)
         [$width, $height] = $imageInfo;
         if ($width <= 0 || $height <= 0 || $width > 20000 || $height > 20000) {
@@ -158,21 +158,21 @@ class UploadService
         if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
             throw new RuntimeException('Upload error: ' . $this->getUploadErrorMessage($file['error'] ?? UPLOAD_ERR_NO_FILE));
         }
-        
+
         $tmp = $file['tmp_name'];
         if (empty($tmp)) {
             throw new RuntimeException('No temporary file provided');
         }
-        
+
         // SECURITY: Comprehensive file validation with magic number check
         $mime = $this->validateImageFile($tmp);
-        
+
         $hash = sha1_file($tmp) ?: bin2hex(random_bytes(20));
         $ext = $this->allowed[$mime];
         $storageDir = dirname(__DIR__, 2) . '/storage/originals';
         ImagesService::ensureDir($storageDir);
         $dest = $storageDir . '/' . $hash . $ext;
-        
+
         if (!@move_uploaded_file($tmp, $dest)) {
             // Fallback for CLI env
             if (!@rename($tmp, $dest)) {
@@ -188,12 +188,12 @@ class UploadService
                 }
             }
         }
-        
+
         // Verify file was moved successfully and re-validate
         if (!is_file($dest)) {
             throw new RuntimeException('File upload verification failed');
         }
-        
+
         // Re-validate the moved file for additional security
         try {
             $this->validateImageFile($dest);
@@ -202,13 +202,13 @@ class UploadService
             self::safeUnlink($dest);
             throw new RuntimeException('File validation failed after upload: ' . $e->getMessage());
         }
-        
+
         [$width, $height] = getimagesize($dest) ?: [0,0];
         // Extract EXIF and map lookups (best effort)
         $exifSvc = new \App\Services\ExifService($this->db);
         $exif = $exifSvc->extract($dest);
         $map = $exifSvc->mapToLookups($exif);
-        
+
         // Normalize image orientation if needed
         if (isset($exif['Orientation']) && $exif['Orientation'] > 1) {
             $exifSvc->normalizeOrientation($dest, (int)$exif['Orientation']);
@@ -249,19 +249,19 @@ class UploadService
         }
 
         $stmt->execute([
-            ':a'=>$albumId,
-            ':p'=>str_replace(dirname(__DIR__, 2), '', $dest),
-            ':h'=>$hash,
-            ':w'=>$width,
-            ':h2'=>$height,
-            ':m'=>$mime,
-            ':exif'=> json_encode($exif, JSON_UNESCAPED_SLASHES),
-            ':cam'=> $map['camera_id'],
-            ':lens'=> $map['lens_id'],
-            ':iso'=> isset($exif['ISOSpeedRatings']) ? (int)(is_array($exif['ISOSpeedRatings']) ? ($exif['ISOSpeedRatings'][0] ?? 0) : $exif['ISOSpeedRatings']) : null,
-            ':sh'=> $exifSvc->formatShutterSpeed($exif['ExposureTime'] ?? null),
-            ':ap'=> $exif['FNumber'] ?? null,
-            ':s'=>0,
+            ':a' => $albumId,
+            ':p' => str_replace(dirname(__DIR__, 2), '', $dest),
+            ':h' => $hash,
+            ':w' => $width,
+            ':h2' => $height,
+            ':m' => $mime,
+            ':exif' => json_encode($exif, JSON_UNESCAPED_SLASHES),
+            ':cam' => $map['camera_id'],
+            ':lens' => $map['lens_id'],
+            ':iso' => isset($exif['ISOSpeedRatings']) ? (int)(is_array($exif['ISOSpeedRatings']) ? ($exif['ISOSpeedRatings'][0] ?? 0) : $exif['ISOSpeedRatings']) : null,
+            ':sh' => $exifSvc->formatShutterSpeed($exif['ExposureTime'] ?? null),
+            ':ap' => $exif['FNumber'] ?? null,
+            ':s' => 0,
             ':exif_make' => $exif['Make'] ?? null,
             ':exif_model' => $exif['Model'] ?? null,
             ':exif_lens_maker' => $exif['LensMake'] ?? null,
@@ -313,7 +313,7 @@ class UploadService
             $previewSize = @getimagesize($preview) ?: [$previewW, 0];
             $replaceKeyword = $this->db->replaceKeyword();
             $pdo->prepare(sprintf('%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)', $replaceKeyword))
-                ->execute([$imageId,'sm','jpg',$relUrl,$previewW,(int)$previewSize[1], (int)filesize($preview)]);
+                ->execute([$imageId,'sm','jpg',$relUrl,$previewW,$previewSize[1], (int)filesize($preview)]);
             $previewRel = $relUrl;
         } else {
             $previewRel = null;
@@ -336,7 +336,7 @@ class UploadService
                 ->execute([':imageId' => $imageId, ':albumId' => $albumId]);
         }
 
-        return ['id'=>$imageId,'path'=>$dest,'mime'=>$mime,'width'=>$width,'height'=>$height,'preview_url'=>$previewRel];
+        return ['id' => $imageId,'path' => $dest,'mime' => $mime,'width' => $width,'height' => $height,'preview_url' => $previewRel];
     }
 
     private function resizeWithImagick(string $src, string $dest, int $targetW, string $format, int $quality): bool
@@ -379,53 +379,65 @@ class UploadService
         }
         // GD fallback JPEG only
         $info = @getimagesize($src);
-        if (!$info) return false;
+        if (!$info) {
+            return false;
+        }
         [$w, $h] = $info;
         $ratio = $h > 0 ? $w / $h : 1;
-        $newW = $targetW; $newH = (int)round($targetW / $ratio);
+        $newW = $targetW;
+        $newH = (int)round($targetW / $ratio);
         $srcImg = match ($info['mime']) {
             'image/jpeg' => @imagecreatefromjpeg($src),
             'image/png' => @imagecreatefrompng($src),
             default => null,
         };
-        if (!$srcImg) return false;
+        if (!$srcImg) {
+            return false;
+        }
         $dst = imagecreatetruecolor($newW, $newH);
-        imagecopyresampled($dst, $srcImg, 0,0,0,0, $newW,$newH, $w,$h);
+        imagecopyresampled($dst, $srcImg, 0, 0, 0, 0, $newW, $newH, $w, $h);
         @mkdir(dirname($dest), 0775, true);
         $ok = imagejpeg($dst, $dest, $quality);
-        imagedestroy($srcImg); imagedestroy($dst);
-        return (bool)$ok;
+        imagedestroy($srcImg);
+        imagedestroy($dst);
+        return $ok;
     }
 
     private function resizeWithGdWebp(string $src, string $dest, int $targetW, int $quality): bool
     {
         // GD WebP generation
         $info = @getimagesize($src);
-        if (!$info) return false;
+        if (!$info) {
+            return false;
+        }
         [$w, $h] = $info;
         $ratio = $h > 0 ? $w / $h : 1;
-        $newW = $targetW; $newH = (int)round($targetW / $ratio);
+        $newW = $targetW;
+        $newH = (int)round($targetW / $ratio);
         $srcImg = match ($info['mime']) {
             'image/jpeg' => @imagecreatefromjpeg($src),
             'image/png' => @imagecreatefrompng($src),
             default => null,
         };
-        if (!$srcImg) return false;
+        if (!$srcImg) {
+            return false;
+        }
         $dst = imagecreatetruecolor($newW, $newH);
-        
+
         // Preserve transparency for PNG sources
         if ($info['mime'] === 'image/png') {
             imagealphablending($dst, false);
             imagesavealpha($dst, true);
         }
-        
-        imagecopyresampled($dst, $srcImg, 0,0,0,0, $newW,$newH, $w,$h);
+
+        imagecopyresampled($dst, $srcImg, 0, 0, 0, 0, $newW, $newH, $w, $h);
         @mkdir(dirname($dest), 0775, true);
         $ok = imagewebp($dst, $dest, $quality);
-        imagedestroy($srcImg); imagedestroy($dst);
-        return (bool)$ok;
+        imagedestroy($srcImg);
+        imagedestroy($dst);
+        return $ok;
     }
-    
+
     /**
      * Generate variants for an image that was uploaded in fast mode
      * Returns array with statistics: ['generated' => int, 'failed' => int, 'skipped' => int]
@@ -478,7 +490,7 @@ class UploadService
         $existingStmt->execute([$imageId]);
         $existingVariants = [];
         foreach ($existingStmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-            $key = (string)$row['variant'] . '|' . (string)$row['format'];
+            $key = $row['variant'] . '|' . $row['format'];
             $existingVariants[$key] = (string)($row['path'] ?? '');
         }
 
@@ -526,7 +538,7 @@ class UploadService
 
                 $destRelUrl = "/media/{$imageId}_{$variant}.{$fmt}";
                 $destPath = $mediaDir . "/{$imageId}_{$variant}.{$fmt}";
-                $key = (string)$variant . '|' . (string)$fmt;
+                $key = $variant . '|' . $fmt;
 
                 // Check if variant already exists in DB
                 $existsInDb = isset($existingVariants[$key]);
@@ -572,7 +584,7 @@ class UploadService
                     [$vw, $vh] = getimagesize($destPath) ?: [$targetW, 0];
                     $replaceKeyword = $this->db->replaceKeyword();
                     $pdo->prepare(sprintf('%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)', $replaceKeyword))
-                        ->execute([$imageId, (string)$variant, (string)$fmt, $destRelUrl, (int)$vw, (int)$vh, $size]);
+                        ->execute([$imageId, (string)$variant, (string)$fmt, $destRelUrl, (int)$vw, $vh, $size]);
                     $stats['generated']++;
                 } else {
                     $stats['failed']++;
@@ -870,7 +882,7 @@ class UploadService
         $ok = imagejpeg($blurred, $dest, 60);
         imagedestroy($blurred);
 
-        return (bool)$ok;
+        return $ok;
     }
 
     /**
@@ -1278,6 +1290,6 @@ class UploadService
         $ok = imagejpeg($tiny, $dest, 75);
         imagedestroy($tiny);
 
-        return (bool)$ok;
+        return $ok;
     }
 }

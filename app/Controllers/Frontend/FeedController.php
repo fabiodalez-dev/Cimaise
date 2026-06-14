@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Frontend;
@@ -202,7 +203,7 @@ final class FeedController extends BaseController
             }
         }
 
-        $missing = array_values(array_filter(array_map(static fn($a) => (int) $a['id'], $albums), static fn($id) => !isset($out[$id])));
+        $missing = array_values(array_filter(array_map(static fn ($a) => (int) $a['id'], $albums), static fn ($id) => !isset($out[$id])));
         foreach ($enrich->loadFallbackCoverImages($missing) as $albumId => $img) {
             if (!empty($img['preview_path'])) {
                 $out[(int) $albumId] = (string) $img['preview_path'];

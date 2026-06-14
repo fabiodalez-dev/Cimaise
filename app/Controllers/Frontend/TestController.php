@@ -1,7 +1,9 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Frontend;
+
 use App\Controllers\BaseController;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -50,7 +52,9 @@ class TestController extends BaseController
         if ($templateId === null && !empty($album['template_id'])) {
             $templateId = (int)$album['template_id'];
         }
-        if (!$templateId) { $templateId = 1; }
+        if (!$templateId) {
+            $templateId = 1;
+        }
         $template = $templateService->getGalleryTemplateById($templateId)
             ?: ['name' => 'Classic Grid', 'settings' => ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1], 'masonry' => false]];
         $templateSettings = $template['settings'] ?? [];
@@ -80,23 +84,33 @@ class TestController extends BaseController
         ];
         $q = $pdo->prepare('SELECT make, model FROM cameras c JOIN album_camera ac ON ac.camera_id = c.id WHERE ac.album_id = :id');
         $q->execute([':id' => $album['id']]);
-        foreach ($q->fetchAll() as $r) { $equipment['cameras'][] = trim(($r['make'] ?? '') . ' ' . ($r['model'] ?? '')); }
+        foreach ($q->fetchAll() as $r) {
+            $equipment['cameras'][] = trim(($r['make'] ?? '') . ' ' . ($r['model'] ?? ''));
+        }
         $q = $pdo->prepare('SELECT brand, model FROM lenses l JOIN album_lens al ON al.lens_id = l.id WHERE al.album_id = :id');
         $q->execute([':id' => $album['id']]);
-        foreach ($q->fetchAll() as $r) { $equipment['lenses'][] = trim(($r['brand'] ?? '') . ' ' . ($r['model'] ?? '')); }
+        foreach ($q->fetchAll() as $r) {
+            $equipment['lenses'][] = trim(($r['brand'] ?? '') . ' ' . ($r['model'] ?? ''));
+        }
         $q = $pdo->prepare('SELECT brand, name, iso FROM films f JOIN album_film af ON af.film_id = f.id WHERE af.album_id = :id');
         $q->execute([':id' => $album['id']]);
         foreach ($q->fetchAll() as $r) {
             $label = trim(($r['brand'] ?? '') . ' ' . ($r['name'] ?? ''));
-            if (!empty($r['iso'])) { $label .= ' ' . (int)$r['iso']; }
+            if (!empty($r['iso'])) {
+                $label .= ' ' . (int)$r['iso'];
+            }
             $equipment['film'][] = $label;
         }
         $q = $pdo->prepare('SELECT name FROM developers d JOIN album_developer ad ON ad.developer_id = d.id WHERE ad.album_id = :id');
         $q->execute([':id' => $album['id']]);
-        foreach ($q->fetchAll() as $r) { $equipment['developers'][] = $r['name']; }
+        foreach ($q->fetchAll() as $r) {
+            $equipment['developers'][] = $r['name'];
+        }
         $q = $pdo->prepare('SELECT name FROM labs lb JOIN album_lab alb ON alb.lab_id = lb.id WHERE alb.album_id = :id');
         $q->execute([':id' => $album['id']]);
-        foreach ($q->fetchAll() as $r) { $equipment['labs'][] = $r['name']; }
+        foreach ($q->fetchAll() as $r) {
+            $equipment['labs'][] = $r['name'];
+        }
 
         // Images
         $imgStmt = $pdo->prepare('SELECT * FROM images WHERE album_id = :id ORDER BY sort_order ASC, id ASC');
@@ -119,9 +133,12 @@ class TestController extends BaseController
                     $s = $pdo->prepare('SELECT brand, name FROM films WHERE id = :id');
                     $s->execute([':id' => $ir['film_id']]);
                     $fr = $s->fetch();
-                    if ($fr) { $ir['film_name'] = trim(($fr['brand'] ?? '') . ' ' . ($fr['name'] ?? '')); }
+                    if ($fr) {
+                        $ir['film_name'] = trim(($fr['brand'] ?? '') . ' ' . ($fr['name'] ?? ''));
+                    }
                 }
-            } catch (\Throwable) {}
+            } catch (\Throwable) {
+            }
         }
         $images = [];
         foreach ($imagesRows as $img) {
@@ -143,21 +160,21 @@ class TestController extends BaseController
 
         // Fallback equipment aggregation from images if album-level empty
         if (!$equipment['cameras']) {
-            $equipment['cameras'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['custom_camera'] ?? null, $imagesRows))));
+            $equipment['cameras'] = array_values(array_unique(array_filter(array_map(fn ($r) => $r['custom_camera'] ?? null, $imagesRows))));
         }
         if (!$equipment['lenses']) {
-            $equipment['lenses'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['custom_lens'] ?? null, $imagesRows))));
+            $equipment['lenses'] = array_values(array_unique(array_filter(array_map(fn ($r) => $r['custom_lens'] ?? null, $imagesRows))));
         }
         if (!$equipment['film']) {
-            $equipment['film'] = array_values(array_unique(array_filter(array_map(function($r){
+            $equipment['film'] = array_values(array_unique(array_filter(array_map(function ($r) {
                 return $r['custom_film'] ?? ($r['film_name'] ?? null);
             }, $imagesRows))));
         }
         if (!$equipment['developers']) {
-            $equipment['developers'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['developer_name'] ?? null, $imagesRows))));
+            $equipment['developers'] = array_values(array_unique(array_filter(array_map(fn ($r) => $r['developer_name'] ?? null, $imagesRows))));
         }
         if (!$equipment['labs']) {
-            $equipment['labs'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['lab_name'] ?? null, $imagesRows))));
+            $equipment['labs'] = array_values(array_unique(array_filter(array_map(fn ($r) => $r['lab_name'] ?? null, $imagesRows))));
         }
 
         // Gallery meta mapped from album
@@ -175,13 +192,16 @@ class TestController extends BaseController
         // Available templates for icon switcher
         try {
             $list = $templateService->getGalleryTemplatesForSwitcher();
-        } catch (\Throwable) { $list = []; }
+        } catch (\Throwable) {
+            $list = [];
+        }
 
         // Nav categories for header
         $navCats = [];
         try {
             $navCats = $pdo->query('SELECT id, name, slug FROM categories ORDER BY sort_order, name')->fetchAll() ?: [];
-        } catch (\Throwable) {}
+        } catch (\Throwable) {
+        }
 
         return $this->view->render($response, 'frontend/test-gallery.twig', [
             'album' => $galleryMeta,

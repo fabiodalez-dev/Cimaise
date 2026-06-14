@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Tasks;
@@ -97,4 +98,3 @@ class UserUpdateCommand extends Command
         return Command::SUCCESS;
     }
 }
-

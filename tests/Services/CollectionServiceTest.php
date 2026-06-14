@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 use App\Services\CollectionService;
@@ -37,7 +38,7 @@ final class CollectionServiceTest extends TestCase
     public function testVisibleImageRowsExcludesHiddenAlbums(): void
     {
         $rows = (new CollectionService($this->db))->visibleImageRows(1);
-        $ids = array_map(static fn($r) => (int) $r['id'], $rows);
+        $ids = array_map(static fn ($r) => (int) $r['id'], $rows);
 
         self::assertContains(10, $ids, 'photo from a public album is visible');
         self::assertNotContains(20, $ids, 'photo from an unpublished album must be hidden');
@@ -53,7 +54,7 @@ final class CollectionServiceTest extends TestCase
         $this->db->pdo()->exec("INSERT INTO collection_images (collection_id, image_id, sort_order) VALUES (1, 11, -1)");
 
         $rows = (new CollectionService($this->db))->visibleImageRows(1);
-        $ids = array_map(static fn($r) => (int) $r['id'], $rows);
+        $ids = array_map(static fn ($r) => (int) $r['id'], $rows);
         self::assertSame([11, 10], $ids, 'rows follow collection sort_order');
     }
 
@@ -63,7 +64,7 @@ final class CollectionServiceTest extends TestCase
         $this->db->pdo()->exec("INSERT INTO collections (id, title, slug, is_published) VALUES (2, 'Hidden Only', 'hidden-only', 1)");
         $this->db->pdo()->exec("INSERT INTO collection_images (collection_id, image_id, sort_order) VALUES (2, 20, 0)");
 
-        $slugs = array_map(static fn($c) => $c['slug'], (new CollectionService($this->db))->publishedCollections());
+        $slugs = array_map(static fn ($c) => $c['slug'], (new CollectionService($this->db))->publishedCollections());
         self::assertContains('public-coll', $slugs);
         self::assertNotContains('hidden-only', $slugs, 'a collection with no visible photo is not listed');
     }
