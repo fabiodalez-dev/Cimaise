@@ -1,11 +1,11 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Support;
 
 use PDO;
 use RuntimeException;
-use App\Support\Logger;
 
 class Database
 {
@@ -24,7 +24,7 @@ class Database
         bool $isSqlite = false
     ) {
         $this->isSqlite = $isSqlite;
-        
+
         if ($this->isSqlite) {
             // SQLite mode
             $dir = dirname($this->database);

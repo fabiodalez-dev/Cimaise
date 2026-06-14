@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Tasks;
@@ -37,7 +38,8 @@ class MaintenanceRunCommand extends Command
         $this->setDescription('Run daily maintenance tasks (variant generation, blur for protected albums)')
              ->addOption('force', 'f', InputOption::VALUE_NONE, 'Force run even if already run today')
              ->addOption('quiet-mode', null, InputOption::VALUE_NONE, 'Suppress all output (for cron)')
-             ->setHelp(<<<'HELP'
+             ->setHelp(
+                 <<<'HELP'
 The <info>maintenance:run</info> command runs daily maintenance tasks:
 
   <info>php bin/console maintenance:run</info>
@@ -56,7 +58,7 @@ To force a run even if already run today:
 
   <info>php bin/console maintenance:run --force</info>
 HELP
-);
+             );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services;
@@ -88,8 +89,12 @@ class FaviconService
             $success = imagecopyresampled(
                 $resized,
                 $sourceImage,
-                0, 0, 0, 0,
-                $size, $size,
+                0,
+                0,
+                0,
+                0,
+                $size,
+                $size,
                 imagesx($sourceImage),
                 imagesy($sourceImage)
             );

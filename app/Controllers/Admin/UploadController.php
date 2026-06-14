@@ -1,7 +1,9 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
+
 use App\Controllers\BaseController;
 use App\Services\UploadService;
 use App\Services\ImagesService;
@@ -123,11 +125,15 @@ class UploadController extends BaseController
                     $fallbackStmt = $this->db->pdo()->prepare('SELECT category_id FROM albums WHERE id = ?');
                     $fallbackStmt->execute([$albumId]);
                     $fbId = (int)($fallbackStmt->fetchColumn() ?: 0);
-                    if ($fbId > 0) { $categoryIds[] = $fbId; }
+                    if ($fbId > 0) {
+                        $categoryIds[] = $fbId;
+                    }
                 }
                 $tags = CacheTags::albumRelated($albumId);
                 foreach ($categoryIds as $cid) {
-                    if ($cid > 0) { $tags[] = CacheTags::category($cid); }
+                    if ($cid > 0) {
+                        $tags[] = CacheTags::category($cid);
+                    }
                 }
                 $settings = new SettingsService($this->db);
                 $pcs = new PageCacheService($settings, $this->db);
@@ -299,14 +305,17 @@ class UploadController extends BaseController
                 throw new \RuntimeException('Unsupported file type for logo');
             }
             $info = @getimagesizefromstring($contents);
-            if ($info === false)
+            if ($info === false) {
                 throw new \RuntimeException('Invalid image file');
+            }
             [$w, $h] = $info;
-            if ($w <= 0 || $h <= 0 || $w > 10000 || $h > 10000)
+            if ($w <= 0 || $h <= 0 || $w > 10000 || $h > 10000) {
                 throw new \RuntimeException('Invalid image dimensions');
+            }
             // Decompression-bomb guard before favicon generation decodes the image.
-            if ($w * $h > 40000000)
+            if ($w * $h > 40000000) {
                 throw new \RuntimeException('Image resolution too high');
+            }
 
             $hash = sha1($contents);
             $ext = $allowed[$mime];

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services;
@@ -167,7 +168,7 @@ final class SearchService
         if (empty($tokens)) {
             return '';
         }
-        return implode(' ', array_map(static fn(string $t): string => $t . '*', $tokens));
+        return implode(' ', array_map(static fn (string $t): string => $t . '*', $tokens));
     }
 
     // --- MySQL FULLTEXT -----------------------------------------------------

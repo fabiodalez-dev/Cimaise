@@ -1,7 +1,9 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
+
 use App\Controllers\BaseController;
 use App\Services\SettingsService;
 use App\Support\Database;
@@ -87,7 +89,7 @@ class SocialController extends BaseController
         }
 
         $svc = new SettingsService($this->db);
-        
+
         // Determine enabled socials
         $enabledSocials = [];
         $availableSocials = $this->getAvailableSocials();
@@ -109,11 +111,11 @@ class SocialController extends BaseController
                 }
             }
         }
-        
+
         // Get social order from form data (if provided)
         $socialOrder = [];
         if (isset($data['order']) && is_array($data['order'])) {
-            $orderData = array_values(array_filter($data['order'], fn($k) => in_array($k, $availableKeys, true)));
+            $orderData = array_values(array_filter($data['order'], fn ($k) => in_array($k, $availableKeys, true)));
             // Filter order to only include enabled socials, preserve provided order
             $socialOrder = array_values(array_intersect($orderData, $enabledSocials));
             // Add any enabled socials not in the order to the end
@@ -121,21 +123,21 @@ class SocialController extends BaseController
         } elseif (isset($data['social_order']) && is_string($data['social_order'])) {
             $orderData = json_decode($data['social_order'], true);
             if (is_array($orderData)) {
-                $orderData = array_values(array_filter($orderData, fn($k) => in_array($k, $availableKeys, true)));
+                $orderData = array_values(array_filter($orderData, fn ($k) => in_array($k, $availableKeys, true)));
                 $socialOrder = array_values(array_intersect($orderData, $enabledSocials));
                 $socialOrder = array_values(array_merge($socialOrder, array_diff($enabledSocials, $socialOrder)));
             }
         }
-        
+
         // If no order provided, use enabled socials in default order
         if (empty($socialOrder)) {
             $socialOrder = $enabledSocials;
         }
-        
+
         // Save settings
         $svc->set('social.enabled', $enabledSocials);
         $svc->set('social.order', $socialOrder);
-        
+
         // AJAX request support: return JSON instead of redirect
         if ($this->isAjaxRequest($request)) {
             return $this->jsonResponse($response, [
@@ -145,7 +147,7 @@ class SocialController extends BaseController
             ]);
         }
 
-        $_SESSION['flash'][] = ['type'=>'success','message'=>trans('admin.flash.social_saved')];
+        $_SESSION['flash'][] = ['type' => 'success','message' => trans('admin.flash.social_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/social'))->withStatus(302);
     }
 

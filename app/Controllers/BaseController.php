@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers;
@@ -291,7 +292,7 @@ abstract class BaseController
         if (!empty($album['cover']) && !empty($album['cover']['variants']) && is_array($album['cover']['variants'])) {
             $blurVariants = array_values(array_filter(
                 $album['cover']['variants'],
-                fn($variant) => isset($variant['variant']) && $variant['variant'] === 'blur'
+                fn ($variant) => isset($variant['variant']) && $variant['variant'] === 'blur'
             ));
 
             if ($blurVariants !== []) {

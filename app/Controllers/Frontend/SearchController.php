@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Frontend;
@@ -104,7 +105,7 @@ final class SearchController extends BaseController
         }
         unset($album);
 
-        $needsFallback = array_keys(array_filter($byId, static fn($a) => empty($a['cover_image'])));
+        $needsFallback = array_keys(array_filter($byId, static fn ($a) => empty($a['cover_image'])));
         foreach ($enrich->loadFallbackCoverImages($needsFallback) as $albumId => $img) {
             if (isset($byId[$albumId]) && empty($byId[$albumId]['cover_image'])) {
                 $byId[$albumId]['cover_image'] = $img;

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Middlewares;
@@ -70,11 +71,11 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
         $isHttps = CookieHelper::isHttps();
 
         $response = $response
-            ->withHeader('X-Content-Type-Options','nosniff')
+            ->withHeader('X-Content-Type-Options', 'nosniff')
             ->withHeader('X-Frame-Options', 'DENY')
             ->withHeader('X-XSS-Protection', '1; mode=block')
-            ->withHeader('Referrer-Policy','strict-origin-when-cross-origin')
-            ->withHeader('Permissions-Policy','geolocation=(), microphone=(), camera=(), payment=(), usb=(), accelerometer=(), gyroscope=(), magnetometer=(), midi=(), fullscreen=(self)')
+            ->withHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+            ->withHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=(), usb=(), accelerometer=(), gyroscope=(), magnetometer=(), midi=(), fullscreen=(self)')
             ->withHeader('Cross-Origin-Opener-Policy', 'same-origin')
             ->withHeader('X-Permitted-Cross-Domain-Policies', 'none');
 

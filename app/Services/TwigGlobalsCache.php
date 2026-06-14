@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services;
@@ -42,7 +43,7 @@ class TwigGlobalsCache
 
         return QueryCache::getInstance()->remember(
             $cacheKey,
-            fn() => self::buildGlobals($db, $basePath, $isAdminRoute),
+            fn () => self::buildGlobals($db, $basePath, $isAdminRoute),
             self::TTL
         );
     }

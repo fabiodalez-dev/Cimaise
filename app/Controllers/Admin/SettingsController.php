@@ -1,7 +1,9 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
+
 use App\Controllers\BaseController;
 use App\Services\SettingsService;
 use App\Support\Database;
@@ -22,7 +24,7 @@ class SettingsController extends BaseController
     {
         $svc = new SettingsService($this->db);
         $settings = $svc->all();
-        
+
         // Load templates for dropdown (core + custom)
         $templates = [];
         try {
@@ -114,7 +116,7 @@ class SettingsController extends BaseController
         if (isset($data['default_template_id']) && $data['default_template_id'] !== '' && $data['default_template_id'] !== '0') {
             $defaultTemplateId = (int)$data['default_template_id'];
         }
-        
+
         // Site settings
         $siteSettings = [
             'title' => trim((string)($data['site_title'] ?? '')),
@@ -123,7 +125,7 @@ class SettingsController extends BaseController
             'copyright' => trim((string)($data['site_copyright'] ?? '')),
             'email' => trim((string)($data['site_email'] ?? ''))
         ];
-        
+
         $paginationLimit = max(1, min(100, (int)($data['pagination_limit'] ?? 12)));
         $disableRightClick = isset($data['disable_right_click']);
 
@@ -137,12 +139,12 @@ class SettingsController extends BaseController
         $svc->set('image.breakpoints', $breakpoints);
         $svc->set('image.variants_async', $variantsAsync);
         $svc->set('lightbox.show_exif', $showExif);
-        
+
         $galleryPageTemplate = (string)($data['gallery_page_template'] ?? 'classic');
         $allowedPageTemplates = array_merge(
             ['classic', 'hero', 'magazine'],
             array_values(array_filter(array_map(
-                static fn(array $template) => is_string($template['value'] ?? null) ? $template['value'] : null,
+                static fn (array $template) => is_string($template['value'] ?? null) ? $template['value'] : null,
                 $this->getPluginAlbumPageTemplates()
             )))
         );
@@ -294,7 +296,7 @@ class SettingsController extends BaseController
         $svc->set('maintenance.show_logo', isset($data['maintenance_show_logo']));
         $svc->set('maintenance.show_countdown', isset($data['maintenance_show_countdown']));
 
-        $_SESSION['flash'][] = ['type'=>'success','message'=> trans('admin.flash.settings_saved')];
+        $_SESSION['flash'][] = ['type' => 'success','message' => trans('admin.flash.settings_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
     }
 

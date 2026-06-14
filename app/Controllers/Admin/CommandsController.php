@@ -1,7 +1,9 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
+
 use App\Controllers\BaseController;
 use App\Support\Database;
 use App\Services\BaseUrlService;
@@ -21,7 +23,7 @@ class CommandsController extends BaseController
     public function index(Request $request, Response $response): Response
     {
         $baseUrl = BaseUrlService::getCurrentBaseUrl();
-        
+
         return $this->view->render($response, 'admin/commands.twig', [
             'page_title' => 'System Commands',
             'detected_base_url' => $baseUrl,
@@ -35,12 +37,12 @@ class CommandsController extends BaseController
         $command = $data['command'] ?? '';
         $args = $data['args'] ?? [];
         $csrf = (string)($data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token'));
-        
+
         // SECURITY: Verify CSRF token
         if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             return $this->jsonResponse($response, ['error' => 'Invalid CSRF token', 'success' => false], 403);
         }
-        
+
         if (!$command) {
             return $this->jsonResponse($response, ['error' => 'No command specified', 'success' => false], 400);
         }
@@ -62,7 +64,7 @@ class CommandsController extends BaseController
         $allowedCommands = [
             'init',
             'db:migrate',
-            'db:seed', 
+            'db:seed',
             'db:test',
             'images:generate',
             'sitemap:build',
@@ -90,7 +92,7 @@ class CommandsController extends BaseController
 
         // Build command (M11: escape paths to prevent injection)
         $cmd = escapeshellarg($phpBinary) . " " . escapeshellarg($consolePath) . " " . escapeshellarg($command);
-        
+
         // Add arguments safely
         foreach ($args as $key => $value) {
             if (is_string($key) && !empty($key)) {
@@ -112,20 +114,20 @@ class CommandsController extends BaseController
 
         // Add timeout and error handling
         $cmd .= " 2>&1";
-        
+
         $startTime = microtime(true);
-        
+
         // Execute command
         $exitCode = 0;
         $output = [];
-        
+
         // $cmd is built only from an allow-listed command name (see $allowedCommands),
         // a resolved PHP binary path and console path, all passed through
         // escapeshellarg(); option keys are validated against /^[a-zA-Z0-9-]+$/.
         exec($cmd, $output, $exitCode); // nosemgrep
-        
+
         $duration = round(microtime(true) - $startTime, 2);
-        
+
         return [
             'success' => $exitCode === 0,
             'output' => implode("\n", $output),

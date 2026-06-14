@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
@@ -54,20 +55,26 @@ class CategoriesController extends BaseController
         } catch (\Throwable $e) {
             // Fallback for pre-migration DBs (no parent_id column)
             $stmt = $pdo->query('SELECT id, name, slug, sort_order FROM categories ORDER BY sort_order ASC, name ASC');
-            $rows = array_map(function(array $r){ $r['parent_id'] = 0; $r['image_path'] = null; return $r; }, $stmt->fetchAll() ?: []);
+            $rows = array_map(function (array $r) {
+                $r['parent_id'] = 0;
+                $r['image_path'] = null;
+                return $r;
+            }, $stmt->fetchAll() ?: []);
         }
-        
+
         // Create flat structure with level information for WordPress-style interface
         $categories = $this->buildFlatHierarchy($rows);
-        
+
         // Also keep the old structure for backward compatibility
         $byParent = [];
         foreach ($rows as $r) {
             $pid = (int)($r['parent_id'] ?? 0);
-            if (!isset($byParent[$pid])) $byParent[$pid] = [];
+            if (!isset($byParent[$pid])) {
+                $byParent[$pid] = [];
+            }
             $byParent[$pid][] = $r;
         }
-        
+
         return $this->view->render($response, 'admin/categories/index.twig', [
             'categories' => $categories,
             'byParent' => $byParent,
@@ -92,11 +99,13 @@ class CategoriesController extends BaseController
         $pdo->beginTransaction();
         try {
             $update = $pdo->prepare('UPDATE categories SET parent_id = :parent, sort_order = :sort WHERE id = :id');
-            $apply = function(array $nodes, int $parentId) use (&$apply, $update): void {
+            $apply = function (array $nodes, int $parentId) use (&$apply, $update): void {
                 $sort = 0;
                 foreach ($nodes as $n) {
                     $id = (int)($n['id'] ?? 0);
-                    if ($id <= 0) continue;
+                    if ($id <= 0) {
+                        continue;
+                    }
                     $update->execute([':parent' => $parentId ?: null, ':sort' => $sort++, ':id' => $id]);
                     if (!empty($n['children']) && is_array($n['children'])) {
                         $apply($n['children'], $id);
@@ -107,11 +116,11 @@ class CategoriesController extends BaseController
             $pdo->commit();
         } catch (\Throwable $e) {
             $pdo->rollBack();
-            $response->getBody()->write(json_encode(['ok'=>false,'error'=>$e->getMessage()]));
-            return $response->withStatus(400)->withHeader('Content-Type','application/json');
+            $response->getBody()->write(json_encode(['ok' => false,'error' => $e->getMessage()]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
-        $response->getBody()->write(json_encode(['ok'=>true]));
-        return $response->withHeader('Content-Type','application/json');
+        $response->getBody()->write(json_encode(['ok' => true]));
+        return $response->withHeader('Content-Type', 'application/json');
     }
 
     public function create(Request $request, Response $response): Response
@@ -120,7 +129,7 @@ class CategoriesController extends BaseController
         $pdo = $this->db->pdo();
         $stmt = $pdo->query('SELECT id, name FROM categories WHERE parent_id IS NULL OR parent_id = 0 ORDER BY sort_order ASC, name ASC');
         $parents = $stmt->fetchAll() ?: [];
-        
+
         return $this->view->render($response, 'admin/categories/create.twig', [
             'parents' => $parents,
             'csrf' => $_SESSION['csrf'] ?? ''
@@ -150,13 +159,13 @@ class CategoriesController extends BaseController
         }
         // Handle parent_id
         $parentId = !empty($data['parent_id']) ? (int)$data['parent_id'] : null;
-        
+
         // Handle image upload with enhanced security validation
         $imagePath = null;
         $uploadedFiles = $request->getUploadedFiles();
         if (isset($uploadedFiles['image']) && $uploadedFiles['image']->getError() === UPLOAD_ERR_OK) {
             $uploadedFile = $uploadedFiles['image'];
-            
+
             // SECURITY: Validate file using magic numbers and MIME type
             $tmpPath = $uploadedFile->getStream()->getMetadata('uri');
             if (!$this->validateImageUpload($tmpPath)) {
@@ -166,7 +175,7 @@ class CategoriesController extends BaseController
                 if ($extension) {
                     $filename = $slug . '_' . time() . $extension;
                     $uploadPath = '/media/categories/' . $filename;
-                    
+
                     // Create directory if it doesn't exist (absolute to project public dir)
                     $publicDir = dirname(__DIR__, 3) . '/public';
                     $fullPath = $publicDir . '/media/categories/' . $filename;
@@ -174,10 +183,10 @@ class CategoriesController extends BaseController
                     if (!is_dir($dir)) {
                         mkdir($dir, 0755, true);
                     }
-                    
+
                     try {
                         $uploadedFile->moveTo($fullPath);
-                        
+
                         // Re-validate after move for additional security
                         if ($this->validateImageUpload($fullPath)) {
                             $imagePath = $uploadPath;
@@ -227,7 +236,7 @@ class CategoriesController extends BaseController
         $stmt = $pdo->prepare('SELECT id, name FROM categories WHERE (parent_id IS NULL OR parent_id = 0) AND id != :id ORDER BY sort_order ASC, name ASC');
         $stmt->execute([':id' => $id]);
         $parents = $stmt->fetchAll() ?: [];
-        
+
         return $this->view->render($response, 'admin/categories/edit.twig', [
             'item' => $cat,
             'parents' => $parents,
@@ -260,18 +269,18 @@ class CategoriesController extends BaseController
         } else {
             $slug = \App\Support\Str::slug($slug);
         }
-        
+
         // Get current category data for image handling
         $stmt = $this->db->pdo()->prepare('SELECT image_path FROM categories WHERE id = :id');
         $stmt->execute([':id' => $id]);
         $currentCategory = $stmt->fetch();
         $imagePath = $currentCategory['image_path'] ?? null;
-        
+
         // Handle image upload
         $uploadedFiles = $request->getUploadedFiles();
         if (isset($uploadedFiles['image']) && $uploadedFiles['image']->getError() === UPLOAD_ERR_OK) {
             $uploadedFile = $uploadedFiles['image'];
-            
+
             // SECURITY: Validate file using magic numbers and MIME type
             $tmpPath = $uploadedFile->getStream()->getMetadata('uri');
             if (!$this->validateImageUpload($tmpPath)) {
@@ -281,7 +290,7 @@ class CategoriesController extends BaseController
                 if ($extension) {
                     $filename = $slug . '_' . time() . $extension;
                     $uploadPath = '/media/categories/' . $filename;
-                    
+
                     // Create directory if it doesn't exist (absolute to project public dir)
                     $publicDir = dirname(__DIR__, 3) . '/public';
                     $fullPath = $publicDir . '/media/categories/' . $filename;
@@ -289,10 +298,10 @@ class CategoriesController extends BaseController
                     if (!is_dir($dir)) {
                         mkdir($dir, 0755, true);
                     }
-                    
+
                     try {
                         $uploadedFile->moveTo($fullPath);
-                        
+
                         // Re-validate after move for additional security
                         if ($this->validateImageUpload($fullPath)) {
                             // Delete old image if exists
@@ -313,7 +322,7 @@ class CategoriesController extends BaseController
                 }
             }
         }
-        
+
         // Handle image removal if requested
         if (isset($data['remove_image']) && $data['remove_image'] === '1') {
             $publicDir = dirname(__DIR__, 3) . '/public';
@@ -322,7 +331,7 @@ class CategoriesController extends BaseController
             }
             $imagePath = null;
         }
-        
+
         $stmt = $this->db->pdo()->prepare('UPDATE categories SET name=:n, slug=:s, sort_order=:o, parent_id=:p, image_path=:i WHERE id=:id');
         try {
             $stmt->execute([':n' => $name, ':s' => $slug, ':o' => $sort, ':p' => $parentId, ':i' => $imagePath, ':id' => $id]);
@@ -383,10 +392,10 @@ class CategoriesController extends BaseController
             $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Invalid hierarchy data']));
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
-        
+
         $pdo = $this->db->pdo();
         $pdo->beginTransaction();
-        
+
         try {
             $update = $pdo->prepare('UPDATE categories SET parent_id = :parent_id, sort_order = :sort_order WHERE id = :id');
             $sortCounters = [];
@@ -406,12 +415,12 @@ class CategoriesController extends BaseController
                     ':sort_order' => $sortOrder
                 ]);
             }
-            
+
             $pdo->commit();
-            
+
             $response->getBody()->write(json_encode(['ok' => true]));
             return $response->withHeader('Content-Type', 'application/json');
-            
+
         } catch (\Throwable $e) {
             $pdo->rollBack();
             $response->getBody()->write(json_encode(['ok' => false, 'error' => $e->getMessage()]));
@@ -435,7 +444,7 @@ class CategoriesController extends BaseController
         }
 
         foreach ($byParent as &$group) {
-            usort($group, static function(array $a, array $b): int {
+            usort($group, static function (array $a, array $b): int {
                 $orderA = (int)($a['sort_order'] ?? 0);
                 $orderB = (int)($b['sort_order'] ?? 0);
                 if ($orderA !== $orderB) {
@@ -445,11 +454,11 @@ class CategoriesController extends BaseController
             });
         }
         unset($group);
-        
+
         // Then flatten it with level information
         $result = [];
         $this->addToFlatHierarchy($byParent, 0, 0, $result);
-        
+
         return $result;
     }
 
@@ -461,11 +470,11 @@ class CategoriesController extends BaseController
         if (!isset($byParent[$parentId])) {
             return;
         }
-        
+
         foreach ($byParent[$parentId] as $category) {
             $category['level'] = $level;
             $result[] = $category;
-            
+
             // Recursively add children
             $this->addToFlatHierarchy($byParent, (int)$category['id'], $level + 1, $result);
         }
@@ -480,43 +489,43 @@ class CategoriesController extends BaseController
         if (!is_file($filePath) || !is_readable($filePath)) {
             return false;
         }
-        
+
         // Check file size (prevent DoS attacks)
         $fileSize = filesize($filePath);
         if ($fileSize === false || $fileSize > 10 * 1024 * 1024) { // 10MB limit for category images
             return false;
         }
-        
+
         if ($fileSize < 12) { // Minimum size for valid image headers
             return false;
         }
-        
+
         // Detect MIME type using fileinfo
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         if (!$finfo) {
             return false;
         }
-        
+
         $detectedMime = finfo_file($finfo, $filePath);
         finfo_close($finfo);
-        
+
         $allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
         if (!$detectedMime || !in_array($detectedMime, $allowedMimes, true)) {
             return false;
         }
-        
+
         // Validate magic numbers (file header signatures)
         $fileHeader = file_get_contents($filePath, false, null, 0, 12);
         if ($fileHeader === false) {
             return false;
         }
-        
+
         $magicNumbers = [
             'image/jpeg' => ["\xFF\xD8\xFF"],
             'image/png' => ["\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"],
             'image/webp' => ["RIFF", "WEBP"] // RIFF...WEBP
         ];
-        
+
         $isValidMagic = false;
         foreach ($magicNumbers[$detectedMime] as $signature) {
             if ($detectedMime === 'image/webp') {
@@ -536,19 +545,19 @@ class CategoriesController extends BaseController
         if (!$isValidMagic) {
             return false;
         }
-        
+
         // Additional validation: try to get image dimensions
         $imageInfo = getimagesize($filePath);
         if ($imageInfo === false) {
             return false;
         }
-        
+
         // Validate image dimensions (prevent processing of malicious files)
         [$width, $height] = $imageInfo;
         if ($width <= 0 || $height <= 0 || $width > 10000 || $height > 10000) {
             return false;
         }
-        
+
         return true;
     }
 
@@ -561,10 +570,10 @@ class CategoriesController extends BaseController
         if (!$finfo) {
             return null;
         }
-        
+
         $detectedMime = finfo_file($finfo, $filePath);
         finfo_close($finfo);
-        
+
         return match ($detectedMime) {
             'image/jpeg' => '.jpg',
             'image/png' => '.png',

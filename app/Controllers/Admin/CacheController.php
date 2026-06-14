@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
@@ -199,9 +200,15 @@ class CacheController extends BaseController
 
         // Build details list to avoid unbalanced parentheses
         $details = [];
-        if ($stats['home']) $details[] = 'home';
-        if ($stats['galleries']) $details[] = 'galleries';
-        if ($stats['albums'] > 0) $details[] = "{$stats['albums']} albums";
+        if ($stats['home']) {
+            $details[] = 'home';
+        }
+        if ($stats['galleries']) {
+            $details[] = 'galleries';
+        }
+        if ($stats['albums'] > 0) {
+            $details[] = "{$stats['albums']} albums";
+        }
 
         if (!empty($details)) {
             $message .= ' (' . implode(', ', $details) . ')';

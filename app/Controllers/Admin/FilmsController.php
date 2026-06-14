@@ -1,7 +1,9 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
+
 use App\Controllers\BaseController;
 use App\Support\Database;
 use App\Support\Hooks;
@@ -54,7 +56,9 @@ class FilmsController extends BaseController
     public function index(Request $request, Response $response): Response
     {
         $page = max(1, (int)($request->getQueryParams()['page'] ?? 1));
-        $per = 10; $off = ($page-1)*$per; $pdo = $this->db->pdo();
+        $per = 10;
+        $off = ($page - 1) * $per;
+        $pdo = $this->db->pdo();
         $total = (int)$pdo->query('SELECT COUNT(*) FROM films')->fetchColumn();
         $st = $pdo->prepare('SELECT id, brand, name, iso, format, type FROM films ORDER BY brand, name LIMIT :l OFFSET :o');
         $st->bindValue(':l', $per, \PDO::PARAM_INT);
@@ -63,7 +67,7 @@ class FilmsController extends BaseController
         return $this->view->render($response, 'admin/films/index.twig', [
             'items' => $st->fetchAll(),
             'page' => $page,
-            'pages' => (int)ceil(max(0,$total)/$per),
+            'pages' => (int)ceil(max(0, $total) / $per),
             'film_types' => self::FILM_TYPES,
             'film_formats' => self::FILM_FORMATS
         ]);

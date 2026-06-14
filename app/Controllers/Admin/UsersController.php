@@ -1,7 +1,9 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
+
 use App\Controllers\BaseController;
 use App\Middlewares\AuthMiddleware;
 use App\Support\Database;
@@ -22,10 +24,10 @@ class UsersController extends BaseController
         $page = max(1, (int)($request->getQueryParams()['page'] ?? 1));
         $perPage = 15;
         $offset = ($page - 1) * $perPage;
-        
+
         $pdo = $this->db->pdo();
         $total = (int)$pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
-        
+
         $stmt = $pdo->prepare('
             SELECT id, email, first_name, last_name, role, is_active, last_login, created_at 
             FROM users 
@@ -36,9 +38,9 @@ class UsersController extends BaseController
         $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
         $stmt->execute();
         $users = $stmt->fetchAll();
-        
+
         $pages = (int)ceil(($total ?: 0) / $perPage);
-        
+
         return $this->view->render($response, 'admin/users/index.twig', [
             'users' => $users,
             'page' => $page,
@@ -73,7 +75,7 @@ class UsersController extends BaseController
         $password = (string)($data['password'] ?? '');
         $confirmPassword = (string)($data['confirm_password'] ?? '');
         $isActive = isset($data['is_active']) ? 1 : 0;
-        
+
         // Validation
         if (empty($email) || empty($firstName) || empty($lastName) || empty($password)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.all_fields_required')];
@@ -98,21 +100,21 @@ class UsersController extends BaseController
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.email_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/users/create'))->withStatus(302);
         }
-        
+
         if (strlen($password) < 8) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.password_min_length')];
             return $response->withHeader('Location', $this->redirect('/admin/users/create'))->withStatus(302);
         }
-        
+
         if ($password !== $confirmPassword) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.passwords_no_match')];
             return $response->withHeader('Location', $this->redirect('/admin/users/create'))->withStatus(302);
         }
-        
+
         if (!in_array($role, ['admin', 'user'])) {
             $role = 'user';
         }
-        
+
         // Check if email already exists
         $stmt = $this->db->pdo()->prepare('SELECT id FROM users WHERE email = :email LIMIT 1');
         $stmt->execute([':email' => $email]);
@@ -120,14 +122,14 @@ class UsersController extends BaseController
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.email_already_used')];
             return $response->withHeader('Location', $this->redirect('/admin/users/create'))->withStatus(302);
         }
-        
+
         // Create user
         $passwordHash = password_hash($password, PASSWORD_ARGON2ID);
         $stmt = $this->db->pdo()->prepare('
             INSERT INTO users (email, first_name, last_name, password_hash, role, is_active) 
             VALUES (:email, :first_name, :last_name, :password_hash, :role, :is_active)
         ');
-        
+
         try {
             $stmt->execute([
                 ':email' => $email,
@@ -137,7 +139,7 @@ class UsersController extends BaseController
                 ':role' => $role,
                 ':is_active' => $isActive
             ]);
-            
+
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.user_created')];
             return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
         } catch (\Throwable $e) {
@@ -153,7 +155,7 @@ class UsersController extends BaseController
         $stmt = $this->db->pdo()->prepare('SELECT * FROM users WHERE id = :id');
         $stmt->execute([':id' => $id]);
         $user = $stmt->fetch();
-        
+
         if (!$user) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.user_not_found')];
             return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
@@ -181,7 +183,7 @@ class UsersController extends BaseController
         $stmt = $this->db->pdo()->prepare('SELECT * FROM users WHERE id = :id');
         $stmt->execute([':id' => $id]);
         $currentUser = $stmt->fetch();
-        
+
         if (!$currentUser) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.user_not_found')];
             return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
@@ -195,7 +197,7 @@ class UsersController extends BaseController
         $isActive = isset($data['is_active']) ? 1 : 0;
         $password = (string)($data['password'] ?? '');
         $confirmPassword = (string)($data['confirm_password'] ?? '');
-        
+
         // Validation
         if (empty($email) || empty($firstName) || empty($lastName)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.name_email_required')];
@@ -232,11 +234,11 @@ class UsersController extends BaseController
                 return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit'))->withStatus(302);
             }
         }
-        
+
         if (!in_array($role, ['admin', 'user'])) {
             $role = 'user';
         }
-        
+
         // If demoting or deactivating an active admin, ensure at least one active admin remains
         if ($currentUser['role'] === 'admin' && (int)$currentUser['is_active'] === 1
             && ($role !== 'admin' || $isActive === 0)) {
@@ -256,7 +258,7 @@ class UsersController extends BaseController
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.email_already_used')];
             return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit'))->withStatus(302);
         }
-        
+
         // Update user
         $now = $this->db->nowExpression();
         if (!empty($password)) {
@@ -293,7 +295,7 @@ class UsersController extends BaseController
                 ':id' => $id
             ];
         }
-        
+
         try {
             $stmt->execute($params);
             AuthMiddleware::invalidateVerification();

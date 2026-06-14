@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Middlewares;
@@ -21,24 +22,24 @@ class CsrfMiddleware implements MiddlewareInterface
 
         $method = strtoupper($request->getMethod());
         $path = $request->getUri()->getPath();
-        
+
         // Skip CSRF validation for installer and public analytics tracking routes
         // Note: /admin/login now requires CSRF for security hardening
         if ((strpos($path, '/install/') === 0 && $method === 'POST') ||
             ($path === '/api/analytics/track' && $method === 'POST')) {
             return $handler->handle($request);
         }
-        
+
         if (in_array($method, $this->validateMethods, true)) {
             $parsed = (array)($request->getParsedBody() ?? []);
             $token = $parsed['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
-            
+
             if (!is_string($token) || !hash_equals($_SESSION['csrf'], $token)) {
                 $response = new \Slim\Psr7\Response(400);
                 $accept = $request->getHeaderLine('Accept');
                 if (stripos($accept, 'application/json') !== false) {
-                    $response->getBody()->write(json_encode(['ok'=>false,'error'=>'Invalid CSRF token']));
-                    return $response->withHeader('Content-Type','application/json');
+                    $response->getBody()->write(json_encode(['ok' => false,'error' => 'Invalid CSRF token']));
+                    return $response->withHeader('Content-Type', 'application/json');
                 }
                 $response->getBody()->write('Invalid CSRF token');
                 return $response;

@@ -1,7 +1,9 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
+
 use App\Controllers\BaseController;
 use App\Services\CacheTags;
 use App\Services\ImagesService;
@@ -26,15 +28,25 @@ class PagesController extends BaseController
     {
         $settings = new SettingsService($this->db);
         $aboutSlug = (string)($settings->get('about.slug', 'about') ?? 'about');
-        if ($aboutSlug === '') { $aboutSlug = 'about'; }
+        if ($aboutSlug === '') {
+            $aboutSlug = 'about';
+        }
         $galleriesSlug = (string)($settings->get('galleries.slug', 'galleries') ?? 'galleries');
-        if ($galleriesSlug === '') { $galleriesSlug = 'galleries'; }
+        if ($galleriesSlug === '') {
+            $galleriesSlug = 'galleries';
+        }
         $licenseSlug = (string)($settings->get('license.slug', 'license') ?? 'license');
-        if ($licenseSlug === '') { $licenseSlug = 'license'; }
+        if ($licenseSlug === '') {
+            $licenseSlug = 'license';
+        }
         $privacySlug = (string)($settings->get('privacy.slug', 'privacy-policy') ?? 'privacy-policy');
-        if ($privacySlug === '') { $privacySlug = 'privacy-policy'; }
+        if ($privacySlug === '') {
+            $privacySlug = 'privacy-policy';
+        }
         $cookieSlug = (string)($settings->get('cookie.slug', 'cookie-policy') ?? 'cookie-policy');
-        if ($cookieSlug === '') { $cookieSlug = 'cookie-policy'; }
+        if ($cookieSlug === '') {
+            $cookieSlug = 'cookie-policy';
+        }
 
         $pages = [
             [
@@ -272,7 +284,7 @@ class PagesController extends BaseController
         $photo = $files['about_photo'] ?? null;
         if ($photo && $photo->getError() === UPLOAD_ERR_OK) {
             $tmp = $photo->getStream()->getMetadata('uri') ?? '';
-            
+
             // SECURITY: Comprehensive image validation with magic number checking
             if ($this->validateImageUpload($tmp)) {
                 $fi = new finfo(FILEINFO_MIME_TYPE);
@@ -289,7 +301,7 @@ class PagesController extends BaseController
                     $dest = $mediaDir . '/' . $hash . $ext;
                     // store original
                     @move_uploaded_file($tmp, $dest) || @rename($tmp, $dest);
-                    
+
                     // Re-validate after move for additional security
                     if ($this->validateImageUpload($dest)) {
                         // also create a resized web version (max 1600px width)
@@ -353,10 +365,10 @@ class PagesController extends BaseController
         } catch (\Throwable) {
             $albumPageTemplates = [];
         }
-        
+
         // Get current filter settings for reference
         $filterSettings = $this->getFilterSettings();
-        
+
         return $this->view->render($response, 'admin/pages/galleries.twig', [
             'settings' => $settings,
             'filter_settings' => $filterSettings,
@@ -405,7 +417,9 @@ class PagesController extends BaseController
         } catch (\Throwable) {
             // Ignore plugin errors; fallback to core templates.
         }
-        if (!in_array($pageTemplate, $allowedTemplates, true)) { $pageTemplate = 'classic'; }
+        if (!in_array($pageTemplate, $allowedTemplates, true)) {
+            $pageTemplate = 'classic';
+        }
         $svc->set('gallery.page_template', $pageTemplate);
 
         // /galleries listing template — whitelist is the single source of truth
@@ -585,12 +599,12 @@ class PagesController extends BaseController
     private function getFilterSettings(): array
     {
         $pdo = $this->db->pdo();
-        
+
         try {
             $stmt = $pdo->prepare('SELECT setting_key, setting_value FROM filter_settings ORDER BY sort_order ASC');
             $stmt->execute();
             $rawSettings = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
-            
+
             return [
                 'enabled' => (bool)($rawSettings['enabled'] ?? true),
                 'show_categories' => (bool)($rawSettings['show_categories'] ?? true),
@@ -636,42 +650,42 @@ class PagesController extends BaseController
         if (!is_file($filePath) || !is_readable($filePath)) {
             return false;
         }
-        
+
         // Check file size (prevent DoS attacks)
         $fileSize = filesize($filePath);
         if ($fileSize === false || $fileSize > 5 * 1024 * 1024) { // 5MB limit for about photos
             return false;
         }
-        
+
         if ($fileSize < 12) { // Minimum size for valid image headers
             return false;
         }
-        
+
         // Detect MIME type using fileinfo
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         if (!$finfo) {
             return false;
         }
-        
+
         $detectedMime = finfo_file($finfo, $filePath);
         finfo_close($finfo);
-        
+
         $allowedMimes = ['image/jpeg', 'image/png'];
         if (!$detectedMime || !in_array($detectedMime, $allowedMimes, true)) {
             return false;
         }
-        
+
         // Validate magic numbers (file header signatures)
         $fileHeader = file_get_contents($filePath, false, null, 0, 12);
         if ($fileHeader === false) {
             return false;
         }
-        
+
         $magicNumbers = [
             'image/jpeg' => ["\xFF\xD8\xFF"],
             'image/png' => ["\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"]
         ];
-        
+
         $isValidMagic = false;
         foreach ($magicNumbers[$detectedMime] as $signature) {
             if (str_starts_with($fileHeader, $signature)) {
@@ -683,19 +697,19 @@ class PagesController extends BaseController
         if (!$isValidMagic) {
             return false;
         }
-        
+
         // Additional validation: try to get image dimensions
         $imageInfo = getimagesize($filePath);
         if ($imageInfo === false) {
             return false;
         }
-        
+
         // Validate image dimensions (prevent processing of malicious files)
         [$width, $height] = $imageInfo;
         if ($width <= 0 || $height <= 0 || $width > 5000 || $height > 5000) {
             return false;
         }
-        
+
         return true;
     }
 }

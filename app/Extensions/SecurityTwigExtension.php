@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Extensions;
@@ -49,7 +50,7 @@ class SecurityTwigExtension extends AbstractExtension
         $doc = new \DOMDocument();
         $doc->strictErrorChecking = false;
         libxml_use_internal_errors(true);
-        $doc->loadHTML('<meta http-equiv="Content-Type" content="text/html; charset=utf-8">'.$html, LIBXML_HTML_NOIMPLIED|LIBXML_HTML_NODEFDTD);
+        $doc->loadHTML('<meta http-equiv="Content-Type" content="text/html; charset=utf-8">'.$html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
         libxml_clear_errors();
 
         $this->sanitizeNode($doc, $allowedTags, $allowedAttrs);
@@ -121,4 +122,3 @@ class SecurityTwigExtension extends AbstractExtension
         }
     }
 }
-

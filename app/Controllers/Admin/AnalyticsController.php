@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
@@ -124,7 +125,7 @@ class AnalyticsController extends BaseController
                 session_start();
             }
             $_SESSION['flash'][] = [
-                'type' => 'warning', 
+                'type' => 'warning',
                 'message' => 'Analytics tables not found. Please run: php bin/console db:migrate to set up analytics functionality.'
             ];
         }
@@ -217,7 +218,7 @@ class AnalyticsController extends BaseController
                 'csrf' => $_SESSION['csrf'] ?? ''
             ]);
         }
-        
+
         if (!$this->analytics->getSetting('export_enabled', true)) {
             return $response->withStatus(403);
         }
@@ -232,7 +233,7 @@ class AnalyticsController extends BaseController
 
         if ($format === 'csv') {
             $csvData = $this->analytics->exportData($type, $startDate, $endDate, $includeBots, $limit);
-            
+
             $response->getBody()->write($csvData);
             return $response
                 ->withHeader('Content-Type', 'text/csv')
@@ -386,10 +387,13 @@ class AnalyticsController extends BaseController
 
         try {
             $driver = 'mysql';
-            try { $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME) ?: 'mysql'; } catch (\Throwable) {}
+            try {
+                $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME) ?: 'mysql';
+            } catch (\Throwable) {
+            }
             $isSqlite = ($driver === 'sqlite');
             $minus5min = $isSqlite ? "datetime('now', '-5 minutes')" : 'DATE_SUB(NOW(), INTERVAL 5 MINUTE)';
-            $minus1h   = $isSqlite ? "datetime('now', '-1 hour')"     : 'DATE_SUB(NOW(), INTERVAL 1 HOUR)';
+            $minus1h   = $isSqlite ? "datetime('now', '-1 hour')" : 'DATE_SUB(NOW(), INTERVAL 1 HOUR)';
             // Get current visitors (last 5 minutes)
             $stmt = $this->db->prepare('
                 SELECT
@@ -450,14 +454,14 @@ class AnalyticsController extends BaseController
         }
 
         $body = $request->getBody()->getContents();
-        
+
         // Enhanced input validation
         if (strlen($body) > 8192) { // Max 8KB payload
             return $response->withStatus(413); // Payload too large
         }
-        
+
         $data = json_decode($body, true);
-        
+
         // Even if data is empty or invalid, return 204 to avoid browser errors
         if (!$data || !is_array($data)) {
             return $response->withStatus(204);
@@ -478,11 +482,11 @@ class AnalyticsController extends BaseController
                     }
                     $this->analytics->trackPageView($data);
                     break;
-                    
+
                 case 'event':
                     $this->analytics->trackEvent($data);
                     break;
-                    
+
                 case 'heartbeat':
                 case 'page_end':
                     // Update session duration and page time - with exception handling
@@ -503,7 +507,7 @@ class AnalyticsController extends BaseController
             }
 
             return $response->withStatus(204); // No content
-            
+
         } catch (\Exception $e) {
             Logger::error('AnalyticsController::track error', [
                 'event_type' => $data['event_type'] ?? null,
@@ -552,7 +556,7 @@ class AnalyticsController extends BaseController
                 session_start();
             }
             $_SESSION['flash'][] = [
-                'type' => 'warning', 
+                'type' => 'warning',
                 'message' => 'Analytics tables not found. Please run: php bin/console db:migrate to set up analytics functionality.'
             ];
         }
@@ -581,17 +585,17 @@ class AnalyticsController extends BaseController
 
             try {
                 $deletedRecords = $this->analytics->cleanupOldData();
-                
+
                 if (session_status() === PHP_SESSION_NONE) {
                     session_start();
                 }
                 $_SESSION['flash'][] = [
-                    'type' => 'success', 
+                    'type' => 'success',
                     'message' => "Cleaned up {$deletedRecords} old analytics records"
                 ];
             } catch (\Exception $e) {
                 $_SESSION['flash'][] = [
-                    'type' => 'error', 
+                    'type' => 'error',
                     'message' => 'Error during cleanup: ' . $e->getMessage()
                 ];
             }
@@ -601,7 +605,7 @@ class AnalyticsController extends BaseController
 
         return $response->withStatus(405); // Method not allowed
     }
-    
+
     /**
      * Get albums data for export
      */
@@ -611,7 +615,7 @@ class AnalyticsController extends BaseController
             // Sanitize limit parameter to prevent SQL injection
             $limitValue = $limit !== null ? filter_var($limit, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 1000]]) : false;
             $limitClause = $limitValue !== false ? "LIMIT {$limitValue}" : "";
-            
+
             $stmt = $this->db->prepare("
                 SELECT 
                     p.album_id,
@@ -649,11 +653,11 @@ class AnalyticsController extends BaseController
 
         // Sanitize common fields
         $sanitized = ['type' => $type];
-        
+
         // Common validation rules
         $stringFields = [
             'page_url' => 2048,      // Max URL length
-            'page_title' => 200,     // Reasonable title length  
+            'page_title' => 200,     // Reasonable title length
             'page_type' => 50,
             'session_id' => 128,     // Reasonable session ID length
             'event_type' => 50,
@@ -684,10 +688,10 @@ class AnalyticsController extends BaseController
 
         // Validate integer fields
         $intFields = [
-            'album_id', 'category_id', 'tag_id', 'image_id', 
+            'album_id', 'category_id', 'tag_id', 'image_id',
             'viewport_width', 'viewport_height', 'time_on_page', 'event_value'
         ];
-        
+
         foreach ($intFields as $field) {
             if (isset($data[$field])) {
                 $value = filter_var($data[$field], FILTER_VALIDATE_INT);
@@ -713,14 +717,14 @@ class AnalyticsController extends BaseController
                     return null;
                 }
                 break;
-                
+
             case 'event':
                 // Events should have category and action
                 if (empty($sanitized['event_category']) || empty($sanitized['event_action'])) {
                     return null;
                 }
                 break;
-                
+
             case 'heartbeat':
             case 'page_end':
                 // These should have session_id and time data

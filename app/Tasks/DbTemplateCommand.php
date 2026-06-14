@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Tasks;
@@ -94,7 +95,7 @@ class DbTemplateCommand extends Command
             $this->buildFrom($sql, $this->templatePath);
             $tableCount = count(array_filter(
                 array_keys($freshShape['objects']),
-                static fn(string $k): bool => str_starts_with($k, 'table ')
+                static fn (string $k): bool => str_starts_with($k, 'table ')
             ));
             $output->writeln(sprintf(
                 '<info>Regenerated template.sqlite</info> (%d tables, %d settings).',

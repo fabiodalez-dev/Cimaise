@@ -1,7 +1,9 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Frontend;
+
 use App\Controllers\BaseController;
 use App\Services\AnalyticsService;
 use App\Services\CacheTags;
@@ -1221,14 +1223,15 @@ class PageController extends BaseController
                 $captionHtml .= '<div class="mb-2">' . htmlspecialchars((string) $image['caption'], ENT_QUOTES) . '</div>';
             }
             if ($equipBits) {
-                $captionHtml .= '<div class="flex flex-wrap gap-x-3 gap-y-1 justify-center text-sm">' . implode(' ', array_map(fn($x) => '<span class="inline-flex items-center">' . $x . '</span>', $equipBits)) . '</div>';
+                $captionHtml .= '<div class="flex flex-wrap gap-x-3 gap-y-1 justify-center text-sm">' . implode(' ', array_map(fn ($x) => '<span class="inline-flex items-center">' . $x . '</span>', $equipBits)) . '</div>';
             }
 
             // Build responsive sources for <picture>
             $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
             foreach (($image['variants'] ?? []) as $v) {
-                if (!isset($sources[$v['format']]))
+                if (!isset($sources[$v['format']])) {
                     continue;
+                }
                 if (!empty($v['path']) && !str_starts_with((string) $v['path'], '/storage/')) {
                     // For protected albums, use protected media URLs
                     if ($isProtectedAlbum && !$isAdmin) {
@@ -1723,7 +1726,7 @@ class PageController extends BaseController
                     $cameraStmt = $pdo->prepare('SELECT c.make, c.model FROM cameras c JOIN album_camera ac ON c.id = ac.camera_id WHERE ac.album_id = :a');
                     $cameraStmt->execute([':a' => $album['id']]);
                     $cameras = $cameraStmt->fetchAll();
-                    $equipment['cameras'] = array_map(fn($c) => trim(($c['make'] ?? '') . ' ' . ($c['model'] ?? '')), $cameras);
+                    $equipment['cameras'] = array_map(fn ($c) => trim(($c['make'] ?? '') . ' ' . ($c['model'] ?? '')), $cameras);
                 }
 
                 if (!empty($album['custom_lenses'])) {
@@ -1732,7 +1735,7 @@ class PageController extends BaseController
                     $lensStmt = $pdo->prepare('SELECT l.brand, l.model FROM lenses l JOIN album_lens al ON l.id = al.lens_id WHERE al.album_id = :a');
                     $lensStmt->execute([':a' => $album['id']]);
                     $lenses = $lensStmt->fetchAll();
-                    $equipment['lenses'] = array_map(fn($l) => trim(($l['brand'] ?? '') . ' ' . ($l['model'] ?? '')), $lenses);
+                    $equipment['lenses'] = array_map(fn ($l) => trim(($l['brand'] ?? '') . ' ' . ($l['model'] ?? '')), $lenses);
                 }
 
                 if (!empty($album['custom_films'])) {
@@ -1741,7 +1744,7 @@ class PageController extends BaseController
                     $filmStmt = $pdo->prepare('SELECT f.brand, f.name FROM films f JOIN album_film af ON f.id = af.film_id WHERE af.album_id = :a');
                     $filmStmt->execute([':a' => $album['id']]);
                     $films = $filmStmt->fetchAll();
-                    $equipment['film'] = array_map(fn($f) => trim(($f['brand'] ?? '') . ' ' . ($f['name'] ?? '')), $films);
+                    $equipment['film'] = array_map(fn ($f) => trim(($f['brand'] ?? '') . ' ' . ($f['name'] ?? '')), $films);
                 }
 
                 if (!empty($album['custom_developers'])) {
@@ -1750,7 +1753,7 @@ class PageController extends BaseController
                     $devStmt = $pdo->prepare('SELECT d.name FROM developers d JOIN album_developer ad ON d.id = ad.developer_id WHERE ad.album_id = :a');
                     $devStmt->execute([':a' => $album['id']]);
                     $developers = $devStmt->fetchAll();
-                    $equipment['developers'] = array_map(fn($d) => $d['name'], $developers);
+                    $equipment['developers'] = array_map(fn ($d) => $d['name'], $developers);
                 }
 
                 if (!empty($album['custom_labs'])) {
@@ -1759,13 +1762,13 @@ class PageController extends BaseController
                     $labStmt = $pdo->prepare('SELECT l.name FROM labs l JOIN album_lab al ON l.id = al.lab_id WHERE al.album_id = :a');
                     $labStmt->execute([':a' => $album['id']]);
                     $labs = $labStmt->fetchAll();
-                    $equipment['labs'] = array_map(fn($l) => $l['name'], $labs);
+                    $equipment['labs'] = array_map(fn ($l) => $l['name'], $labs);
                 }
 
                 $locStmt = $pdo->prepare('SELECT l.name FROM locations l JOIN album_location al ON l.id = al.location_id WHERE al.album_id = :a ORDER BY l.name');
                 $locStmt->execute([':a' => $album['id']]);
                 $locations = $locStmt->fetchAll();
-                $equipment['locations'] = array_map(fn($l) => $l['name'], $locations);
+                $equipment['locations'] = array_map(fn ($l) => $l['name'], $locations);
             } catch (\Throwable) {
                 // Optional tables may be missing in early setups.
             }

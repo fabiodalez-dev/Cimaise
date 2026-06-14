@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services;
@@ -14,7 +15,8 @@ class PerformanceService
         private Database $db,
         private SettingsService $settings,
         private string $basePath
-    ) {}
+    ) {
+    }
 
     /**
      * Get resource hints (dns-prefetch, preconnect) based on settings

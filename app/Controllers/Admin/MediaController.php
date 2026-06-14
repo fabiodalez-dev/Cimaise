@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
@@ -36,11 +37,15 @@ class MediaController extends BaseController
                 $fallbackStmt = $this->db->pdo()->prepare('SELECT category_id FROM albums WHERE id = ?');
                 $fallbackStmt->execute([$albumId]);
                 $fbId = (int)($fallbackStmt->fetchColumn() ?: 0);
-                if ($fbId > 0) { $categoryIds[] = $fbId; }
+                if ($fbId > 0) {
+                    $categoryIds[] = $fbId;
+                }
             }
             $tags = CacheTags::albumRelated($albumId);
             foreach ($categoryIds as $cid) {
-                if ($cid > 0) { $tags[] = CacheTags::category($cid); }
+                if ($cid > 0) {
+                    $tags[] = CacheTags::category($cid);
+                }
             }
 
             $settings = new SettingsService($this->db);
@@ -154,23 +159,29 @@ class MediaController extends BaseController
         }
 
         $id = (int)($args['id'] ?? 0);
-        if ($id <= 0) return $response->withStatus(400);
+        if ($id <= 0) {
+            return $response->withStatus(400);
+        }
         $pdo = $this->db->pdo();
         // Collect paths and album_id (needed for cache invalidation after delete)
         $stmt = $pdo->prepare('SELECT id, original_path, album_id FROM images WHERE id = :id');
-        $stmt->execute([':id'=>$id]);
+        $stmt->execute([':id' => $id]);
         $row = $stmt->fetch();
-        if (!$row) return $response->withStatus(404);
+        if (!$row) {
+            return $response->withStatus(404);
+        }
         $albumId = (int)($row['album_id'] ?? 0);
         $varStmt = $pdo->prepare('SELECT path FROM image_variants WHERE image_id = :id');
-        $varStmt->execute([':id'=>$id]);
+        $varStmt->execute([':id' => $id]);
         $files = [$row['original_path']];
-        foreach ($varStmt->fetchAll() ?: [] as $v) { $files[] = $v['path']; }
+        foreach ($varStmt->fetchAll() ?: [] as $v) {
+            $files[] = $v['path'];
+        }
         $pdo->beginTransaction();
         try {
-            $pdo->prepare('DELETE FROM image_variants WHERE image_id = :id')->execute([':id'=>$id]);
-            $pdo->prepare('UPDATE albums SET cover_image_id = NULL WHERE cover_image_id = :id')->execute([':id'=>$id]);
-            $pdo->prepare('DELETE FROM images WHERE id = :id')->execute([':id'=>$id]);
+            $pdo->prepare('DELETE FROM image_variants WHERE image_id = :id')->execute([':id' => $id]);
+            $pdo->prepare('UPDATE albums SET cover_image_id = NULL WHERE cover_image_id = :id')->execute([':id' => $id]);
+            $pdo->prepare('DELETE FROM images WHERE id = :id')->execute([':id' => $id]);
             $pdo->commit();
         } catch (\Throwable $e) {
             $pdo->rollBack();
@@ -189,8 +200,8 @@ class MediaController extends BaseController
                 @unlink($root . $p);
             }
         }
-        $response->getBody()->write(json_encode(['ok'=>true]));
-        return $response->withHeader('Content-Type','application/json');
+        $response->getBody()->write(json_encode(['ok' => true]));
+        return $response->withHeader('Content-Type', 'application/json');
     }
 
     public function update(Request $request, Response $response, array $args): Response
@@ -201,7 +212,9 @@ class MediaController extends BaseController
         }
 
         $id = (int)($args['id'] ?? 0);
-        if ($id <= 0) return $response->withStatus(400);
+        if ($id <= 0) {
+            return $response->withStatus(400);
+        }
 
         $d = (array)$request->getParsedBody();
         $pdo = $this->db->pdo();

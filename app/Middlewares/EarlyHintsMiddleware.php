@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Middlewares;
@@ -139,7 +140,7 @@ class EarlyHintsMiddleware implements MiddlewareInterface
         // (file not found). Resources without an integrity key at all (the
         // font preloads above) must pass through — `isset()` alone would
         // silently drop them.
-        return array_filter($resources, fn($r) => !array_key_exists('integrity', $r) || $r['integrity'] !== null);
+        return array_filter($resources, fn ($r) => !array_key_exists('integrity', $r) || $r['integrity'] !== null);
     }
 
     /**

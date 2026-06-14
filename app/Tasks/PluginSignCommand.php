@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Tasks;
@@ -21,10 +22,18 @@ class PluginSignCommand extends Command
     protected function configure(): void
     {
         $this->addArgument('zip', InputArgument::REQUIRED, 'Path to the plugin .zip to sign');
-        $this->addOption('key', 'k', InputOption::VALUE_REQUIRED,
-            'Base64 secret key, or path to a file containing it. Defaults to the PLUGIN_SIGNING_KEY env var.');
-        $this->addOption('out', 'o', InputOption::VALUE_REQUIRED,
-            'Output signature path. Defaults to <zip>.sig');
+        $this->addOption(
+            'key',
+            'k',
+            InputOption::VALUE_REQUIRED,
+            'Base64 secret key, or path to a file containing it. Defaults to the PLUGIN_SIGNING_KEY env var.'
+        );
+        $this->addOption(
+            'out',
+            'o',
+            InputOption::VALUE_REQUIRED,
+            'Output signature path. Defaults to <zip>.sig'
+        );
     }
 
     /**

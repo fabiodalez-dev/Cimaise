@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
@@ -64,7 +65,9 @@ class LocationsController extends BaseController
     {
         $id = (int)($args['id'] ?? 0);
         $loc = $this->locations->getById($id);
-        if (!$loc) { return $response->withStatus(404); }
+        if (!$loc) {
+            return $response->withStatus(404);
+        }
         return $this->view->render($response, 'admin/locations/edit.twig', [
             'location' => $loc,
             'csrf' => $_SESSION['csrf'] ?? ''

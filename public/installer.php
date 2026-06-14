@@ -45,7 +45,9 @@ if (file_exists($markerPath) && file_exists($envPath)) {
                 $envVars = [];
                 foreach (explode("\n", $envContent) as $line) {
                     $line = trim($line);
-                    if ($line === '' || str_starts_with($line, '#')) continue;
+                    if ($line === '' || str_starts_with($line, '#')) {
+                        continue;
+                    }
                     if (str_contains($line, '=')) {
                         [$key, $val] = explode('=', $line, 2);
                         // F018 follow-up: values are written via envEscape() (quoted +
@@ -71,7 +73,10 @@ if (file_exists($markerPath) && file_exists($envPath)) {
                         ];
                         $isBlocked = false;
                         foreach ($blocked as $b) {
-                            if (strcasecmp($pinnedIp, $b) === 0) { $isBlocked = true; break; }
+                            if (strcasecmp($pinnedIp, $b) === 0) {
+                                $isBlocked = true;
+                                break;
+                            }
                         }
                         if (!$isBlocked
                             && stripos($pinnedIp, 'fe80:') !== 0
@@ -132,7 +137,8 @@ $errors = [];
 $success = false;
 
 // Load available frontend languages from translation JSON files
-function getAvailableLanguages(): array {
+function getAvailableLanguages(): array
+{
     $translationsDir = dirname(__DIR__) . '/storage/translations';
     $languages = [];
     $files = glob($translationsDir . '/*.json');
@@ -140,9 +146,13 @@ function getAvailableLanguages(): array {
         foreach ($files as $file) {
             $basename = basename($file, '.json');
             // Skip admin translation files
-            if (str_contains($basename, '_admin')) continue;
+            if (str_contains($basename, '_admin')) {
+                continue;
+            }
             $data = json_decode(file_get_contents($file), true);
-            if (!$data || !isset($data['_meta']['code'], $data['_meta']['language'])) continue;
+            if (!$data || !isset($data['_meta']['code'], $data['_meta']['language'])) {
+                continue;
+            }
             $languages[$data['_meta']['code']] = [
                 'label' => $data['_meta']['language'],
                 'seeds' => $data['_seeds'] ?? [],
@@ -159,7 +169,8 @@ function getAvailableLanguages(): array {
 $availableLanguages = getAvailableLanguages();
 
 // Helper functions
-function checkRequirements() {
+function checkRequirements()
+{
     $rootPath = dirname(__DIR__);
     $checks = [
         'php_version' => version_compare(PHP_VERSION, '8.2.0', '>='),
@@ -175,15 +186,16 @@ function checkRequirements() {
         'writable_public' => is_writable($rootPath . '/public'),
         'schema_file_exists' => file_exists($rootPath . '/database/schema.sqlite.sql')
     ];
-    
+
     // Check if we can create storage directories
     $storageParent = $rootPath;
     $checks['can_create_storage'] = is_writable($storageParent);
-    
+
     return $checks;
 }
 
-function testDatabaseConnection($config) {
+function testDatabaseConnection($config)
+{
     try {
         if ($config['type'] === 'sqlite') {
             $dbPath = dirname(__DIR__) . '/database/' . $config['database'];
@@ -213,7 +225,8 @@ function testDatabaseConnection($config) {
     }
 }
 
-function getCurrentUrl() {
+function getCurrentUrl()
+{
     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
     $scriptPath = $_SERVER['SCRIPT_NAME'] ?? '';
@@ -243,7 +256,8 @@ function getCurrentUrl() {
  * @param string $value Raw, user-supplied value.
  * @return string Quoted+escaped value ready to append after `KEY=`.
  */
-function envEscape(string $value): string {
+function envEscape(string $value): string
+{
     // Order matters: escape backslashes first so subsequent escapes aren't re-escaped.
     $escaped = str_replace(
         ['\\',  '"',  '$',  "\r", "\n"],
@@ -267,7 +281,8 @@ function envEscape(string $value): string {
  * @param string $value Raw on-disk value (possibly quoted+escaped).
  * @return string Decoded value matching what envEscape() received.
  */
-function envUnescape(string $value): string {
+function envUnescape(string $value): string
+{
     $value = trim($value);
     if (strlen($value) >= 2 && $value[0] === '"' && substr($value, -1) === '"') {
         $value = substr($value, 1, -1);
@@ -297,7 +312,8 @@ function envUnescape(string $value): string {
 }
 
 // Create required storage directories
-function createStorageDirectories($rootPath) {
+function createStorageDirectories($rootPath)
+{
     $directories = [
         $rootPath . '/storage',
         $rootPath . '/storage/originals',
@@ -310,7 +326,7 @@ function createStorageDirectories($rootPath) {
         $rootPath . '/public/media/albums',
         $rootPath . '/public/media/thumbnails'
     ];
-    
+
     foreach ($directories as $dir) {
         if (!is_dir($dir)) {
             if (!mkdir($dir, 0755, true)) {
@@ -318,7 +334,7 @@ function createStorageDirectories($rootPath) {
             }
         }
     }
-    
+
     // Create .gitkeep files to preserve empty directories in git
     $keepFiles = [
         $rootPath . '/storage/originals/.gitkeep',
@@ -327,7 +343,7 @@ function createStorageDirectories($rootPath) {
         $rootPath . '/storage/logs/.gitkeep',
         $rootPath . '/public/media/.gitkeep'
     ];
-    
+
     foreach ($keepFiles as $keepFile) {
         if (!file_exists($keepFile)) {
             file_put_contents($keepFile, '');
@@ -341,7 +357,8 @@ function createStorageDirectories($rootPath) {
 }
 
 // Create security files to protect sensitive directories
-function createSecurityFiles($rootPath) {
+function createSecurityFiles($rootPath)
+{
     // 1. Create main .htaccess in root (if not exists)
     $rootHtaccess = $rootPath . '/.htaccess';
     if (!file_exists($rootHtaccess)) {
@@ -357,7 +374,7 @@ function createSecurityFiles($rootPath) {
 HTACCESS;
         file_put_contents($rootHtaccess, $rootHtaccessContent);
     }
-    
+
     // 2. Create public/.htaccess (if not exists)
     $publicHtaccess = $rootPath . '/public/.htaccess';
     if (!file_exists($publicHtaccess)) {
@@ -426,7 +443,7 @@ HTACCESS;
 
     // 5. Protect vendor directory
     file_put_contents($rootPath . '/vendor/.htaccess', $denyAllContent);
-    
+
     // 6. Protect .env file specifically
     $envHtaccess = $rootPath . '/.htaccess';
     $envProtection = '
@@ -444,7 +461,7 @@ HTACCESS;
         Deny from all
     </FilesMatch>
 </IfModule>';
-    
+
     // Add protection to existing root .htaccess
     if (file_exists($rootHtaccess)) {
         $currentContent = file_get_contents($rootHtaccess);
@@ -452,7 +469,7 @@ HTACCESS;
             file_put_contents($rootHtaccess, $currentContent . $envProtection);
         }
     }
-    
+
     // 7. Create robots.txt to prevent indexing of sensitive areas
     $robotsTxt = $rootPath . '/public/robots.txt';
     if (!file_exists($robotsTxt)) {
@@ -498,9 +515,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Validate
         if ($dbConfig['type'] === 'mysql') {
-            if (empty($dbConfig['host'])) $errors['db_host'] = 'Host is required for MySQL';
-            if (empty($dbConfig['database'])) $errors['db_database'] = 'Database name is required';
-            if (empty($dbConfig['username'])) $errors['db_username'] = 'Username is required for MySQL';
+            if (empty($dbConfig['host'])) {
+                $errors['db_host'] = 'Host is required for MySQL';
+            }
+            if (empty($dbConfig['database'])) {
+                $errors['db_database'] = 'Database name is required';
+            }
+            if (empty($dbConfig['username'])) {
+                $errors['db_username'] = 'Username is required for MySQL';
+            }
 
             // F018: Reject CR/LF in any value destined for the .env file. While envEscape()
             // neutralizes them, refusing the request gives the user clearer feedback
@@ -545,27 +568,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $candidateIps = [];
                     if (function_exists('dns_get_record')) {
                         foreach (dns_get_record($host, DNS_A) ?: [] as $rec) {
-                            if (!empty($rec['ip'])) $candidateIps[] = $rec['ip'];
+                            if (!empty($rec['ip'])) {
+                                $candidateIps[] = $rec['ip'];
+                            }
                         }
                         foreach (dns_get_record($host, DNS_AAAA) ?: [] as $rec) {
-                            if (!empty($rec['ipv6'])) $candidateIps[] = $rec['ipv6'];
+                            if (!empty($rec['ipv6'])) {
+                                $candidateIps[] = $rec['ipv6'];
+                            }
                         }
                     }
                     if (empty($candidateIps)) {
                         $legacy = gethostbyname($host);
-                        if ($legacy !== $host) $candidateIps[] = $legacy;
+                        if ($legacy !== $host) {
+                            $candidateIps[] = $legacy;
+                        }
                     }
                     $safeIp = null;
                     foreach ($candidateIps as $ip) {
                         $blockedHere = false;
                         foreach ($blockedPatterns as $blocked) {
-                            if (stripos($ip, $blocked) !== false) { $blockedHere = true; break; }
+                            if (stripos($ip, $blocked) !== false) {
+                                $blockedHere = true;
+                                break;
+                            }
                         }
                         if ($blockedHere) {
                             $errors['db_host'] = 'This host resolves to a restricted IP address.';
                             break;
                         }
-                        if ($safeIp === null) $safeIp = $ip;
+                        if ($safeIp === null) {
+                            $safeIp = $ip;
+                        }
                     }
                     if (empty($errors) && $safeIp !== null) {
                         // F019: Store resolved IP separately in DB_HOST_PINNED_IP for
@@ -601,7 +635,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // echoed back into the HTML source after a failed connection test.
         $_SESSION['db_form_data'] = array_diff_key($dbConfig, ['password' => true]);
     }
-    
+
     if (empty($errors) && $step === 'admin') {
         $adminPassword = $_POST['admin_password'] ?? '';
         $adminPasswordConfirm = $_POST['admin_password_confirm'] ?? '';
@@ -610,10 +644,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'email' => trim($_POST['admin_email'] ?? ''),
         ];
 
-        if (empty($adminData['name'])) $errors['admin_name'] = 'Full name is required';
-        if (empty($adminData['email']) || !filter_var($adminData['email'], FILTER_VALIDATE_EMAIL)) $errors['admin_email'] = 'Valid email is required';
-        if (strlen($adminPassword) < 8) $errors['admin_password'] = 'Password must be at least 8 characters';
-        if ($adminPassword !== $adminPasswordConfirm) $errors['admin_password'] = 'Passwords do not match';
+        if (empty($adminData['name'])) {
+            $errors['admin_name'] = 'Full name is required';
+        }
+        if (empty($adminData['email']) || !filter_var($adminData['email'], FILTER_VALIDATE_EMAIL)) {
+            $errors['admin_email'] = 'Valid email is required';
+        }
+        if (strlen($adminPassword) < 8) {
+            $errors['admin_password'] = 'Password must be at least 8 characters';
+        }
+        if ($adminPassword !== $adminPasswordConfirm) {
+            $errors['admin_password'] = 'Passwords do not match';
+        }
 
         if (empty($errors)) {
             // H4: Hash password immediately, never store plaintext in session
@@ -626,7 +668,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['admin_errors'] = $errors;
         $_SESSION['admin_form_data'] = $adminData;
     }
-    
+
     if (empty($errors) && $step === 'settings') {
         $settingsData = [
             'site_title' => trim($_POST['site_title'] ?? 'My Photography'),
@@ -646,14 +688,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Validate allowed values
         $validLangCodes = array_keys(getAvailableLanguages());
         $validTimezones = \DateTimeZone::listIdentifiers();
-        if (!in_array($settingsData['site_language'], $validLangCodes, true)) $settingsData['site_language'] = 'en';
-        if (!in_array($settingsData['admin_language'], $validLangCodes, true)) $settingsData['admin_language'] = 'en';
-        if (!in_array($settingsData['timezone'], $validTimezones, true)) $settingsData['timezone'] = 'UTC';
-        if (!in_array($settingsData['date_format'], ['Y-m-d', 'd-m-Y', 'm/d/Y'], true)) $settingsData['date_format'] = 'Y-m-d';
+        if (!in_array($settingsData['site_language'], $validLangCodes, true)) {
+            $settingsData['site_language'] = 'en';
+        }
+        if (!in_array($settingsData['admin_language'], $validLangCodes, true)) {
+            $settingsData['admin_language'] = 'en';
+        }
+        if (!in_array($settingsData['timezone'], $validTimezones, true)) {
+            $settingsData['timezone'] = 'UTC';
+        }
+        if (!in_array($settingsData['date_format'], ['Y-m-d', 'd-m-Y', 'm/d/Y'], true)) {
+            $settingsData['date_format'] = 'Y-m-d';
+        }
         // Must match PageController's valid home templates (no 'hero' — not a real template).
         $validHomeTemplates = ['classic', 'modern', 'parallax', 'masonry', 'snap', 'gallery', 'editorial', 'justified', 'slideshow', 'split', 'bento', 'filmstrip'];
-        if (!in_array($settingsData['home_template'], $validHomeTemplates, true)) $settingsData['home_template'] = 'classic';
-        if (!in_array($settingsData['gallery_template_id'], ['1','2','3','4','5','6','7'], true)) $settingsData['gallery_template_id'] = '4';
+        if (!in_array($settingsData['home_template'], $validHomeTemplates, true)) {
+            $settingsData['home_template'] = 'classic';
+        }
+        if (!in_array($settingsData['gallery_template_id'], ['1','2','3','4','5','6','7'], true)) {
+            $settingsData['gallery_template_id'] = '4';
+        }
 
         // Handle logo upload
         $settingsData['site_logo'] = null;
@@ -695,7 +749,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        if (empty($settingsData['site_title'])) $errors['site_title'] = 'Site title is required';
+        if (empty($settingsData['site_title'])) {
+            $errors['site_title'] = 'Site title is required';
+        }
         if (empty($settingsData['site_email']) || !filter_var($settingsData['site_email'], FILTER_VALIDATE_EMAIL)) {
             $errors['site_email'] = 'Valid contact email is required';
         }
@@ -708,17 +764,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['settings_errors'] = $errors;
         $_SESSION['settings_form_data'] = $settingsData;
     }
-    
+
     if (empty($errors) && $step === 'install') {
         try {
             $dbConfig = $_SESSION['db_config'] ?? [];
             $adminData = $_SESSION['admin_data'] ?? [];
             $settingsData = $_SESSION['settings_data'] ?? [];
-            
+
             if (empty($dbConfig) || empty($adminData) || empty($settingsData)) {
                 throw new Exception('Installation data incomplete. Please start over.');
             }
-            
+
             // Create .env file
             // F018: Every interpolated value passes through envEscape() to neutralize
             // embedded #/whitespace/quotes/$/CR/LF that would otherwise corrupt the
@@ -762,13 +818,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $envContent .= 'LOG_LEVEL=' . envEscape('warning') . "\n";
             $envContent .= 'LOG_MAX_FILES=' . envEscape('30') . "\n";
             $envContent .= 'LOG_PATH=' . envEscape('storage/logs') . "\n";
-            
+
             if (!file_put_contents($envPath, $envContent)) {
                 throw new Exception('Could not create .env file. Check file permissions.');
             }
             // H5: Restrict .env file permissions
             @chmod($envPath, 0600);
-            
+
             // Set up database
             if ($dbConfig['type'] === 'sqlite') {
                 // Build the SQLite database from schema.sqlite.sql — the single source
@@ -799,7 +855,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception('MySQL connection failed: ' . $testResult['error']);
                 }
                 $pdo = $testResult['pdo'];
-                
+
                 // Run complete MySQL schema with data
                 $schemaFile = $rootPath . '/database/schema.mysql.sql';
                 if (file_exists($schemaFile)) {
@@ -901,9 +957,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception('MySQL schema file not found.');
                 }
             }
-            
+
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            
+
             // Create admin user (H4: password already hashed in session)
             $nameParts = explode(' ', $adminData['name'], 2);
             $firstName = $nameParts[0];
@@ -919,7 +975,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $lastName,
                 date('Y-m-d H:i:s')
             ]);
-            
+
             // Update settings
             $cacheVal = $settingsData['cache_enabled'] === '1' ? 'true' : 'false';
             $compressionVal = $settingsData['compression_enabled'] === '1' ? 'true' : 'false';
@@ -958,7 +1014,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $stmt->execute([$key, $value, date('Y-m-d H:i:s')]);
             }
-            
+
             // Localize home page texts based on site language (read from JSON _seeds)
             $langs = getAvailableLanguages();
             $langCode = $settingsData['site_language'];
@@ -984,7 +1040,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $files = glob($cacheDir . '/*');
                 if ($files) {
                     foreach ($files as $file) {
-                        if (is_file($file)) unlink($file);
+                        if (is_file($file)) {
+                            unlink($file);
+                        }
                     }
                 }
             }
@@ -1001,7 +1059,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $success = true;
             $step = 'complete';
-            
+
         } catch (Exception $e) {
             $errors['install'] = $e->getMessage();
         }
@@ -1656,9 +1714,9 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                                             'bento'     => 'Bento (Mosaic)',
                                             'filmstrip' => 'Filmstrip (Contact sheet)',
                                         ];
-                                        $selectedHome = $settingsFormData['home_template'] ?? 'classic';
-                                        foreach ($homeTemplates as $val => $label):
-                                        ?>
+$selectedHome = $settingsFormData['home_template'] ?? 'classic';
+foreach ($homeTemplates as $val => $label):
+    ?>
                                         <option value="<?= $val ?>" <?= $selectedHome === $val ? 'selected' : '' ?>><?= htmlspecialchars($label, ENT_QUOTES) ?></option>
                                         <?php endforeach; ?>
                                     </select>
