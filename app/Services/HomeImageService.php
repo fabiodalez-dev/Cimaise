@@ -568,10 +568,8 @@ class HomeImageService
         // Calculate remaining images after this batch
         // Include any unprocessed new-album images when we hit the limit early
         $remainingFromUnprocessed = 0;
-        if (!empty($unprocessedNewAlbumIds)) {
-            foreach ($unprocessedNewAlbumIds as $albumId) {
-                $remainingFromUnprocessed += count($newAlbumImages[$albumId] ?? []);
-            }
+        foreach ($unprocessedNewAlbumIds as $albumId) {
+            $remainingFromUnprocessed += count($newAlbumImages[$albumId] ?? []);
         }
         $totalRemaining = max(0, $remainingFromUnprocessed + count($fillPool) - $usedFromFillPool);
         $hasMore = $totalRemaining > 0;

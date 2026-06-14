@@ -794,7 +794,7 @@ class Installer
             if (str_starts_with($dbPath, $this->rootPath . '/')) {
                 $dbPath = substr($dbPath, strlen($this->rootPath) + 1);
             }
-            $envContent .= 'DB_DATABASE=' . $this->envEscape((string)$dbPath) . "\n";
+            $envContent .= 'DB_DATABASE=' . $this->envEscape($dbPath) . "\n";
         } else {
             // F019: DB_HOST stays the original hostname for TLS SNI on managed MySQL
             // (RDS, Cloud SQL, …). If a resolved IP is available, also persist it as

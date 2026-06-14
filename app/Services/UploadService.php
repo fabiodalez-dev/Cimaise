@@ -313,7 +313,7 @@ class UploadService
             $previewSize = @getimagesize($preview) ?: [$previewW, 0];
             $replaceKeyword = $this->db->replaceKeyword();
             $pdo->prepare(sprintf('%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)', $replaceKeyword))
-                ->execute([$imageId,'sm','jpg',$relUrl,$previewW,(int)$previewSize[1], (int)filesize($preview)]);
+                ->execute([$imageId,'sm','jpg',$relUrl,$previewW,$previewSize[1], (int)filesize($preview)]);
             $previewRel = $relUrl;
         } else {
             $previewRel = null;
@@ -400,7 +400,7 @@ class UploadService
         $ok = imagejpeg($dst, $dest, $quality);
         imagedestroy($srcImg);
         imagedestroy($dst);
-        return (bool)$ok;
+        return $ok;
     }
 
     private function resizeWithGdWebp(string $src, string $dest, int $targetW, int $quality): bool
@@ -435,7 +435,7 @@ class UploadService
         $ok = imagewebp($dst, $dest, $quality);
         imagedestroy($srcImg);
         imagedestroy($dst);
-        return (bool)$ok;
+        return $ok;
     }
 
     /**
@@ -490,7 +490,7 @@ class UploadService
         $existingStmt->execute([$imageId]);
         $existingVariants = [];
         foreach ($existingStmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-            $key = (string)$row['variant'] . '|' . (string)$row['format'];
+            $key = $row['variant'] . '|' . $row['format'];
             $existingVariants[$key] = (string)($row['path'] ?? '');
         }
 
@@ -538,7 +538,7 @@ class UploadService
 
                 $destRelUrl = "/media/{$imageId}_{$variant}.{$fmt}";
                 $destPath = $mediaDir . "/{$imageId}_{$variant}.{$fmt}";
-                $key = (string)$variant . '|' . (string)$fmt;
+                $key = $variant . '|' . $fmt;
 
                 // Check if variant already exists in DB
                 $existsInDb = isset($existingVariants[$key]);
@@ -584,7 +584,7 @@ class UploadService
                     [$vw, $vh] = getimagesize($destPath) ?: [$targetW, 0];
                     $replaceKeyword = $this->db->replaceKeyword();
                     $pdo->prepare(sprintf('%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)', $replaceKeyword))
-                        ->execute([$imageId, (string)$variant, (string)$fmt, $destRelUrl, (int)$vw, (int)$vh, $size]);
+                        ->execute([$imageId, (string)$variant, (string)$fmt, $destRelUrl, (int)$vw, $vh, $size]);
                     $stats['generated']++;
                 } else {
                     $stats['failed']++;
@@ -882,7 +882,7 @@ class UploadService
         $ok = imagejpeg($blurred, $dest, 60);
         imagedestroy($blurred);
 
-        return (bool)$ok;
+        return $ok;
     }
 
     /**
@@ -1290,6 +1290,6 @@ class UploadService
         $ok = imagejpeg($tiny, $dest, 75);
         imagedestroy($tiny);
 
-        return (bool)$ok;
+        return $ok;
     }
 }

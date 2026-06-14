@@ -20,7 +20,7 @@ trait RegistersImageVariants
         $size = 0;
         if (is_file($destPath)) {
             $filesize = filesize($destPath);
-            $size = ($filesize !== false) ? (int)$filesize : 0;
+            $size = ($filesize !== false) ? $filesize : 0;
         }
         $dims = @getimagesize($destPath) ?: [$fallbackWidth, 0];
         if ($stmt === null) {
@@ -29,6 +29,6 @@ trait RegistersImageVariants
                 $replaceKeyword
             ));
         }
-        $stmt->execute([$imageId, $variant, $format, $destRelUrl, (int)$dims[0], (int)$dims[1], $size]);
+        $stmt->execute([$imageId, $variant, $format, $destRelUrl, $dims[0], $dims[1], $size]);
     }
 }

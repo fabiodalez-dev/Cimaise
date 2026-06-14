@@ -36,8 +36,8 @@ class AnalyticsService
     private function nowMinusHoursExpr(int $hours): string
     {
         return $this->isSqlite()
-            ? "datetime('now', '-" . (int)$hours . " hours')"
-            : 'DATE_SUB(NOW(), INTERVAL ' . (int)$hours . ' HOUR)';
+            ? "datetime('now', '-" . $hours . " hours')"
+            : 'DATE_SUB(NOW(), INTERVAL ' . $hours . ' HOUR)';
     }
 
     /**
@@ -241,7 +241,7 @@ class AnalyticsService
                 ['error' => $e->getMessage()],
                 'analytics'
             );
-            $fresh = hash('sha256', uniqid('', true) . microtime(true) . (string)getmypid());
+            $fresh = hash('sha256', uniqid('', true) . microtime(true) . getmypid());
         }
 
         // F012: persistIpSalt may discover that another worker already wrote

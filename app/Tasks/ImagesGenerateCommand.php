@@ -43,7 +43,7 @@ class ImagesGenerateCommand extends Command
         $raw = function_exists('envv')
             ? envv('CIMAISE_DISABLE_IMAGICK', 'false')
             : ($_ENV['CIMAISE_DISABLE_IMAGICK'] ?? $_SERVER['CIMAISE_DISABLE_IMAGICK'] ?? 'false');
-        return $this->imagickDisabled = (bool) filter_var((string) $raw, FILTER_VALIDATE_BOOLEAN);
+        return $this->imagickDisabled = filter_var((string) $raw, FILTER_VALIDATE_BOOLEAN);
     }
 
     protected function configure(): void
@@ -71,7 +71,7 @@ class ImagesGenerateCommand extends Command
 
         $q = 'SELECT id, original_path FROM images';
         if ($limit > 0) {
-            $q .= ' LIMIT ' . (int)$limit;
+            $q .= ' LIMIT ' . $limit;
         }
         $images = $pdo->query($q)->fetchAll();
         if (!$images) {
@@ -127,7 +127,7 @@ class ImagesGenerateCommand extends Command
             $existingStmt->execute([$imageId]);
             $existingVariants = [];
             foreach ($existingStmt->fetchAll() as $row) {
-                $key = (string)$row['variant'] . '|' . (string)$row['format'];
+                $key = $row['variant'] . '|' . $row['format'];
                 $existingVariants[$key] = (string)($row['path'] ?? '');
             }
 
@@ -139,7 +139,7 @@ class ImagesGenerateCommand extends Command
                     }
                     $destRelUrl = "/media/{$imageId}_{$variant}.{$fmt}";
                     $dest = dirname(__DIR__, 2) . '/public/media/' . "{$imageId}_{$variant}.{$fmt}";
-                    $key = (string)$variant . '|' . (string)$fmt;
+                    $key = $variant . '|' . $fmt;
                     $existsInDb = isset($existingVariants[$key]);
                     $existsOnDisk = is_file($dest);
 
@@ -262,7 +262,7 @@ class ImagesGenerateCommand extends Command
 
         imagedestroy($srcImg);
         imagedestroy($dst);
-        return (bool)$ok;
+        return $ok;
     }
 
     private function resizeWithGdWebp(string $src, string $dest, int $targetW, int $quality): bool
@@ -307,6 +307,6 @@ class ImagesGenerateCommand extends Command
 
         imagedestroy($srcImg);
         imagedestroy($dst);
-        return (bool)$ok;
+        return $ok;
     }
 }
