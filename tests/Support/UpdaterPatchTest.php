@@ -28,9 +28,14 @@ final class UpdaterPatchTest extends TestCase
     private Updater $updater;
     private string $root;
     private string $dbFile;
+    /** @var string|false */
+    private $origSigningPubkey = false;
 
     protected function setUp(): void
     {
+        // Snapshot the signing pubkey so tests that clear it don't leak the
+        // change into sibling tests that may rely on the configured value.
+        $this->origSigningPubkey = getenv('PLUGIN_SIGNING_PUBKEY');
         $this->root = sys_get_temp_dir() . '/cimaise_patch_' . uniqid();
         mkdir($this->root . '/storage/tmp', 0775, true);
         $this->dbFile = $this->root . '/test.sqlite';
@@ -46,6 +51,15 @@ final class UpdaterPatchTest extends TestCase
     protected function tearDown(): void
     {
         $this->rrmdir($this->root);
+        // Restore the original signing pubkey captured in setUp().
+        if ($this->origSigningPubkey === false) {
+            putenv('PLUGIN_SIGNING_PUBKEY');
+            unset($_ENV['PLUGIN_SIGNING_PUBKEY'], $_SERVER['PLUGIN_SIGNING_PUBKEY']);
+        } else {
+            putenv('PLUGIN_SIGNING_PUBKEY=' . $this->origSigningPubkey);
+            $_ENV['PLUGIN_SIGNING_PUBKEY'] = $this->origSigningPubkey;
+            $_SERVER['PLUGIN_SIGNING_PUBKEY'] = $this->origSigningPubkey;
+        }
     }
 
     private function setProp(string $name, mixed $value): void
@@ -72,6 +86,7 @@ final class UpdaterPatchTest extends TestCase
                 continue;
             }
             $path = $dir . '/' . $f;
+            // nosemgrep: php.lang.security.unlink-use.unlink-use -- test teardown over $this->root, a self-created sys_get_temp_dir() fixture tree.
             is_dir($path) ? $this->rrmdir($path) : @unlink($path);
         }
         @rmdir($dir);
@@ -165,6 +180,7 @@ final class UpdaterPatchTest extends TestCase
             $this->assertFalse($res['success'], 'must refuse a path resolving outside root');
             $this->assertFileExists($outside, 'the outside file must survive');
         } finally {
+            // nosemgrep: php.lang.security.unlink-use.unlink-use -- cleanup of a test-created fixture under sys_get_temp_dir(); $outside is built by the test, not external input.
             @unlink($outside);
         }
     }
@@ -184,6 +200,10 @@ final class UpdaterPatchTest extends TestCase
             'TRUNCATE TABLE users',
             'TRUNCATE users',
             'DELETE FROM users WHERE 1',
+            'DELETE FROM users',
+            'DELETE FROM users;',
+            'DELETE FROM users WHERE true',
+            'DELETE FROM users WHERE 1=1',
         ] as $sql) {
             $res = $this->call('executePostInstallSql', $sql);
             $this->assertFalse($res['success'], "must block: $sql");
