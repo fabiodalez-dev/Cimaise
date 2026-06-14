@@ -1064,7 +1064,7 @@ class AlbumsController extends BaseController
             foreach ($files as $p) {
                 if (str_starts_with((string)$p, '/media/')) {
                     if (!$protectedStorage->deleteVariantCopies((string)$p)) {
-                        $failedDeletions[] = (string)$p . ' (protected/public variant copies could not be removed)';
+                        $failedDeletions[] = $p . ' (protected/public variant copies could not be removed)';
                     }
                     continue;
                 }

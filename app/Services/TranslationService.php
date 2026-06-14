@@ -144,10 +144,8 @@ class TranslationService
         $value = $this->cache[$key] ?? $default ?? $key;
 
         // Parameter interpolation: {param} -> value
-        if (!empty($params)) {
-            foreach ($params as $name => $val) {
-                $value = str_replace('{' . $name . '}', (string)$val, $value);
-            }
+        foreach ($params as $name => $val) {
+            $value = str_replace('{' . $name . '}', (string)$val, $value);
         }
 
         return $value;

@@ -56,7 +56,7 @@ final class SearchController extends BaseController
         }
 
         $total = (int) $result['total'];
-        $totalPages = (int) max(1, (int) ceil($total / $perPage));
+        $totalPages = max(1, (int) ceil($total / $perPage));
 
         return $this->view->render($response, 'frontend/search.twig', [
             'query' => $result['query'],

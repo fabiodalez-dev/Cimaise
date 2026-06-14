@@ -139,7 +139,7 @@ class DbTemplateCommand extends Command
              ORDER BY type, name"
         )->fetchAll(PDO::FETCH_ASSOC);
         foreach ($rows as $r) {
-            $objects[(string) $r['type'] . ' ' . (string) $r['name']] = $this->normalizeSql((string) $r['sql']);
+            $objects[$r['type'] . ' ' . $r['name']] = $this->normalizeSql((string) $r['sql']);
         }
 
         $settings = [];

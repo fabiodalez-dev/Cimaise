@@ -273,7 +273,7 @@ if ($container['db'] !== null && !$isInstallerRoute) {
                 if (!is_dir($cacheDir)) {
                     @mkdir($cacheDir, 0775, true);
                 }
-                $payload = json_encode(['time' => time(), 'active' => (bool)$isActive]);
+                $payload = json_encode(['time' => time(), 'active' => $isActive]);
                 if ($payload !== false && is_dir($cacheDir)) {
                     $tmpFile = $cacheFile . '.tmp';
                     if (@file_put_contents($tmpFile, $payload, LOCK_EX) !== false) {

@@ -190,8 +190,8 @@ class SeedDemoAlbumsCommand extends Command
                     ':a' => $albumId,
                     ':p' => '/storage/originals/' . $hash . '.jpg',
                     ':h' => $hash,
-                    ':w' => (int) $size[0],
-                    ':ht' => (int) $size[1],
+                    ':w' => $size[0],
+                    ':ht' => $size[1],
                     ':m' => 'image/jpeg',
                     ':alt' => $title . ' photo ' . ($j + 1),
                     ':cap' => null,
@@ -365,7 +365,7 @@ class SeedDemoAlbumsCommand extends Command
                 CURLOPT_SSL_VERIFYPEER => true,
             ]);
             $body = curl_exec($ch);
-            $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
             return ($body !== false && $code === 200) ? (string) $body : null;
         }

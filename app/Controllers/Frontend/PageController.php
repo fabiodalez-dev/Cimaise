@@ -229,11 +229,11 @@ class PageController extends BaseController
 
         $metaImg = $imagePath ?: $logo;
         if ($metaImg) {
-            if (!str_starts_with((string) $metaImg, 'http')) {
-                if (str_starts_with((string) $metaImg, '/')) {
+            if (!str_starts_with($metaImg, 'http')) {
+                if (str_starts_with($metaImg, '/')) {
                     $metaImg = $base . $metaImg;
                 } else {
-                    $metaImg = $base . '/' . ltrim((string) $metaImg, '/');
+                    $metaImg = $base . '/' . ltrim($metaImg, '/');
                 }
             }
         } else {
