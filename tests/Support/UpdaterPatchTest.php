@@ -86,6 +86,7 @@ final class UpdaterPatchTest extends TestCase
                 continue;
             }
             $path = $dir . '/' . $f;
+            // nosemgrep: php.lang.security.unlink-use.unlink-use -- test teardown over $this->root, a self-created sys_get_temp_dir() fixture tree.
             is_dir($path) ? $this->rrmdir($path) : @unlink($path);
         }
         @rmdir($dir);
@@ -179,6 +180,7 @@ final class UpdaterPatchTest extends TestCase
             $this->assertFalse($res['success'], 'must refuse a path resolving outside root');
             $this->assertFileExists($outside, 'the outside file must survive');
         } finally {
+            // nosemgrep: php.lang.security.unlink-use.unlink-use -- cleanup of a test-created fixture under sys_get_temp_dir(); $outside is built by the test, not external input.
             @unlink($outside);
         }
     }

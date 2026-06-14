@@ -174,6 +174,67 @@ class Updater
     }
 
     /**
+     * Delete a single file, refusing any target that resolves outside the
+     * application root. Every unlink in this class funnels through here so a
+     * traversal path in a malicious/malformed update package or patch
+     * instruction can never remove a file outside the install tree.
+     *
+     * The final path component is NOT dereferenced (parent realpath + basename),
+     * so a symlink is removed as the link itself, and a symlinked target is
+     * never followed out of the root for the containment check.
+     *
+     * Idempotent: a missing file counts as success. Returns false (and logs to
+     * the security channel) when the resolved path escapes $this->rootPath.
+     */
+    private function safeUnlink(string $path): bool
+    {
+        if (!is_file($path) && !is_link($path)) {
+            return true; // already gone — idempotent
+        }
+
+        $root   = realpath($this->rootPath);
+        $parent = realpath(dirname($path));
+        $real   = ($parent === false) ? false : $parent . DIRECTORY_SEPARATOR . basename($path);
+
+        if ($root === false || $real === false
+            || !str_starts_with($real, $root . DIRECTORY_SEPARATOR)) {
+            Logger::warning(
+                '[Updater] refused unlink outside application root',
+                ['path' => $path],
+                'security'
+            );
+            return false;
+        }
+
+        // nosemgrep: php.lang.security.unlink-use.unlink-use -- $real is realpath-confined to $this->rootPath directly above; this is the single audited deletion sink for the class.
+        return @unlink($real);
+    }
+
+    /**
+     * Last-resort directory removal when the ordinary recursive delete left
+     * entries behind (typically read-only files/dirs). Recursively relaxes
+     * permissions, then retries the normal PHP delete — no shell, so there is
+     * no command-injection surface. Best-effort: callers re-check is_dir().
+     */
+    private function forceDeleteDirectory(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+
+        @chmod($dir, 0777);
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($dir, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($iterator as $item) {
+            @chmod($item->getPathname(), 0777);
+        }
+
+        $this->deleteDirectory($dir);
+    }
+
+    /**
      * Safely delete a directory (for cleanup, doesn't throw on failure)
      */
     private function deleteDirectorySafe(string $dir): void
@@ -195,7 +256,7 @@ class Updater
             if (is_dir($path)) {
                 $this->deleteDirectorySafe($path);
             } else {
-                @unlink($path);
+                $this->safeUnlink($path);
             }
         }
         @rmdir($dir);
@@ -1428,7 +1489,7 @@ class Updater
                 fclose($handle);
             }
             if (file_exists($filepath)) {
-                @unlink($filepath);
+                $this->safeUnlink($filepath);
             }
             throw $e;
         }
@@ -1495,7 +1556,7 @@ class Updater
                 fclose($handle);
             }
             if (file_exists($filepath)) {
-                @unlink($filepath);
+                $this->safeUnlink($filepath);
             }
             throw $e;
         }
@@ -1788,7 +1849,7 @@ class Updater
                 if ($item->isDir()) {
                     @rmdir($item->getPathname());
                 } else {
-                    @unlink($item->getPathname());
+                    $this->safeUnlink($item->getPathname());
                     $this->debugLog('DEBUG', 'Removed orphan file', ['path' => $fullRelativePath]);
                 }
             }
@@ -1859,10 +1920,9 @@ class Updater
                     // Verify directory was actually deleted
                     if (is_dir($targetPath)) {
                         $this->debugLog('ERROR', 'Failed to delete directory, attempting force removal', ['path' => $relativePath]);
-                        // Try shell command as fallback
-                        if (PHP_OS_FAMILY !== 'Windows') {
-                            @exec('rm -rf ' . escapeshellarg($targetPath) . ' 2>/dev/null');
-                        }
+                        // Force removal in pure PHP (no shell): relax permissions
+                        // recursively, then retry the normal recursive delete.
+                        $this->forceDeleteDirectory($targetPath);
                         // Final check
                         clearstatcache(true, $targetPath);
                         if (is_dir($targetPath)) {
@@ -1873,7 +1933,7 @@ class Updater
                 // Also handle symlinks pointing to directories
                 if (is_link($targetPath)) {
                     $this->debugLog('WARNING', 'Removing symlink to replace with file', ['path' => $relativePath]);
-                    @unlink($targetPath);
+                    $this->safeUnlink($targetPath);
                 }
                 if (!copy($item->getPathname(), $targetPath)) {
                     throw new Exception(sprintf('Error copying file: %s', $relativePath));
@@ -2424,7 +2484,7 @@ class Updater
     {
         $maintenanceFile = $this->rootPath . '/storage/.maintenance';
         if (file_exists($maintenanceFile)) {
-            unlink($maintenanceFile);
+            $this->safeUnlink($maintenanceFile);
         }
     }
 
@@ -2448,7 +2508,7 @@ class Updater
             if (is_dir($path)) {
                 $this->deleteDirectory($path);
             } else {
-                @unlink($path);
+                $this->safeUnlink($path);
             }
         }
 
@@ -2676,11 +2736,11 @@ class Updater
                 error_log("[Updater] FATAL ERROR during update: " . json_encode($error));
 
                 if (file_exists($maintenanceFile)) {
-                    @unlink($maintenanceFile);
+                    $this->safeUnlink($maintenanceFile);
                 }
 
                 if (file_exists($lockFile)) {
-                    @unlink($lockFile);
+                    $this->safeUnlink($lockFile);
                 }
             }
         });
@@ -2789,7 +2849,7 @@ class Updater
             }
 
             if (file_exists($lockFile)) {
-                @unlink($lockFile);
+                $this->safeUnlink($lockFile);
             }
         }
 
@@ -2900,7 +2960,7 @@ class Updater
             $this->debugLog('ERROR', 'Patch file failed to load', ['error' => $e->getMessage()]);
             $definition = null;
         } finally {
-            @unlink($tmp);
+            $this->safeUnlink($tmp);
             if (function_exists('opcache_invalidate')) {
                 @opcache_invalidate($tmp, true);
             }
@@ -3047,7 +3107,7 @@ class Updater
         if ($root === false || strpos($real, $root . DIRECTORY_SEPARATOR) !== 0) {
             return ['success' => false, 'error' => 'Invalid file path'];
         }
-        if (is_file($real) && @unlink($real)) {
+        if (is_file($real) && $this->safeUnlink($real)) {
             return ['success' => true, 'error' => null];
         }
         return ['success' => false, 'error' => 'Cannot delete file'];
@@ -3136,6 +3196,7 @@ class Updater
 
         $maxAge = 30 * 60;
         if ((time() - $data['time']) > $maxAge) {
+            // nosemgrep: php.lang.security.unlink-use.unlink-use -- static method: $maintenanceFile is the constant install-relative path dirname(__DIR__, 2).'/storage/.maintenance', no external input. safeUnlink() is unavailable here (no $this).
             @unlink($maintenanceFile);
             Logger::warning('[Updater] Maintenance mode automatically removed (expired)', [
                 'started' => date('Y-m-d H:i:s', $data['time']),
