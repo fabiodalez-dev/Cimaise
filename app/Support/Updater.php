@@ -3069,7 +3069,7 @@ class Updater
         $dangerous = [
             '/\bDROP\s+DATABASE\b/i',
             '/\bTRUNCATE\s+(?:TABLE\s+)?`?users`?\b/i',
-            '/\bDELETE\s+FROM\s+`?users`?\s+WHERE\s+1\b/i',
+            '/\bDELETE\s+FROM\s+`?users`?(?:\s*;|\s*$|\s+WHERE\s+(?:1|true|1\s*=\s*1)\b)/i',
         ];
         foreach ($dangerous as $p) {
             if (preg_match($p, $sql)) {

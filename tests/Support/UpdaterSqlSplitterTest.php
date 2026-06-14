@@ -48,6 +48,13 @@ final class UpdaterSqlSplitterTest extends TestCase
         return $this->call('migrationNeedsDelimiterParser', $sql);
     }
 
+    private function createInMemorySqlite(): PDO
+    {
+        $db = new PDO('sqlite::memory:');
+        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        return $db;
+    }
+
     // ---- migrationNeedsDelimiterParser() -----------------------------------
 
     public function testSelectorTrueOnCreateTrigger(): void
@@ -226,8 +233,7 @@ final class UpdaterSqlSplitterTest extends TestCase
 
     public function testTriggerMigrationAppliesAndFiresOnSqlite(): void
     {
-        $db = new PDO('sqlite::memory:');
-        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $db = $this->createInMemorySqlite();
 
         $migration = "CREATE TABLE images (id INTEGER PRIMARY KEY, title TEXT);\n"
             . "CREATE TABLE audit (msg TEXT);\n"
@@ -248,8 +254,7 @@ final class UpdaterSqlSplitterTest extends TestCase
 
     public function testPlainMigrationAppliesViaQuoteAwarePathOnSqlite(): void
     {
-        $db = new PDO('sqlite::memory:');
-        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $db = $this->createInMemorySqlite();
 
         $migration = "CREATE TABLE t (id INTEGER PRIMARY KEY, css TEXT);\n"
             . "INSERT INTO t(id, css) VALUES(1, 'a:1; b:2; c:3');";
