@@ -6,11 +6,8 @@ use App\Support\Database;
 
 class LocationRepository
 {
-    private Database $db;
-
-    public function __construct(Database $db)
+    public function __construct(private readonly Database $db)
     {
-        $this->db = $db;
     }
 
     public function getAll(): array

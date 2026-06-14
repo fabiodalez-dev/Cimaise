@@ -14,14 +14,14 @@ class SecurityTwigExtension extends AbstractExtension
     public function getFilters(): array
     {
         return [
-            new TwigFilter('safe_html', [$this, 'sanitizeHtml'], ['is_safe' => ['html']]),
+            new TwigFilter('safe_html', $this->sanitizeHtml(...), ['is_safe' => ['html']]),
         ];
     }
 
     public function getFunctions(): array
     {
         return [
-            new TwigFunction('csp_nonce', [$this, 'getCspNonce']),
+            new TwigFunction('csp_nonce', $this->getCspNonce(...)),
         ];
     }
 
@@ -98,11 +98,9 @@ class SecurityTwigExtension extends AbstractExtension
                             continue;
                         }
                         // Check for dangerous protocols on DOM-decoded values
-                        if ($tag === 'a' && $name === 'href') {
-                            if (!$this->isAllowedHref((string)$attr->nodeValue)) {
-                                $node->removeAttribute('href');
-                                continue;
-                            }
+                        if ($tag === 'a' && $name === 'href' && !$this->isAllowedHref((string)$attr->nodeValue)) {
+                            $node->removeAttribute('href');
+                            continue;
                         }
                         if ($tag === 'a' && $name === 'target') {
                             // Normalize target
@@ -112,11 +110,7 @@ class SecurityTwigExtension extends AbstractExtension
                 }
             }
         }
-        // Recurse on children (snapshot list as it may change)
-        $children = [];
-        foreach (iterator_to_array($node->childNodes) as $child) {
-            $children[] = $child;
-        }
+        $children = iterator_to_array($node->childNodes);
         foreach ($children as $child) {
             $this->sanitizeNode($child, $allowedTags, $allowedAttrs);
         }

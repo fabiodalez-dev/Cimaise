@@ -13,7 +13,7 @@ use PDO;
  * Reuses the same visibility rule as collections (published, not
  * password-protected, not NSFW) so private work never appears in a feed.
  */
-final class FeedService
+final readonly class FeedService
 {
     private const DEFAULT_LIMIT = 30;
     private const MAX_LIMIT = 100;

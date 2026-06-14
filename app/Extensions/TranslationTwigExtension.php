@@ -10,15 +10,15 @@ use Twig\TwigFunction;
 
 class TranslationTwigExtension extends AbstractExtension
 {
-    public function __construct(private TranslationService $translationService)
+    public function __construct(private readonly TranslationService $translationService)
     {
     }
 
     public function getFunctions(): array
     {
         return [
-            new TwigFunction('trans', [$this, 'translate']),
-            new TwigFunction('__', [$this, 'translate']), // Alias
+            new TwigFunction('trans', $this->translate(...)),
+            new TwigFunction('__', $this->translate(...)), // Alias
         ];
     }
 

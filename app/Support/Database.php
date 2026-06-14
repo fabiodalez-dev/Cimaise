@@ -10,24 +10,21 @@ use RuntimeException;
 class Database
 {
     private PDO $pdo;
-    private bool $isSqlite = false;
     private ?string $sqliteVersionCache = null;
 
     public function __construct(
-        private ?string $host = null,
-        private ?int $port = null,
-        private ?string $database = null,
-        private ?string $username = null,
-        private ?string $password = null,
-        private string $charset = 'utf8mb4',
-        private string $collation = 'utf8mb4_unicode_ci',
-        bool $isSqlite = false
+        private readonly ?string $host = null,
+        private readonly ?int $port = null,
+        private readonly ?string $database = null,
+        private readonly ?string $username = null,
+        private readonly ?string $password = null,
+        private readonly string $charset = 'utf8mb4',
+        private readonly string $collation = 'utf8mb4_unicode_ci',
+        private readonly bool $isSqlite = false
     ) {
-        $this->isSqlite = $isSqlite;
-
         if ($this->isSqlite) {
             // SQLite mode
-            $dir = dirname($this->database);
+            $dir = dirname((string) $this->database);
             if (!is_dir($dir)) {
                 mkdir($dir, 0755, true);
             }
@@ -191,16 +188,15 @@ class Database
                 'database' => $this->database,
                 'file_size' => file_exists($this->database) ? filesize($this->database) : 0,
             ];
-        } else {
-            $row = $this->pdo->query('SELECT VERSION() AS version')->fetch();
-            return [
-                'driver' => 'mysql',
-                'version' => $row['version'] ?? null,
-                'database' => $this->database,
-                'host' => $this->host,
-                'port' => $this->port,
-            ];
         }
+        $row = $this->pdo->query('SELECT VERSION() AS version')->fetch();
+        return [
+            'driver' => 'mysql',
+            'version' => $row['version'] ?? null,
+            'database' => $this->database,
+            'host' => $this->host,
+            'port' => $this->port,
+        ];
     }
 
     public function execSqlFile(string $path): void
@@ -264,7 +260,7 @@ class Database
             // Handle line comments (-- must be followed by space, control char, or EOF per MySQL rules)
             if (!$inSingleQuote && !$inDoubleQuote && !$inBlockComment && $char === '-' && $next === '-') {
                 $after = $i + 2 < $len ? $sql[$i + 2] : '';
-                if ($after === ' ' || $after === "\t" || $after === "\r" || $after === "\n" || $after === '') {
+                if (in_array($after, [' ', "\t", "\r", "\n", ''], true)) {
                     $inLineComment = true;
                     continue;
                 }
@@ -355,9 +351,8 @@ class Database
         }
         if ($this->isSqlite) {
             return "CASE WHEN {$column} IS NULL THEN 1 ELSE 0 END, {$column}";
-        } else {
-            return "{$column} IS NULL, {$column}";
         }
+        return "{$column} IS NULL, {$column}";
     }
 
     // Helper keyword for portable INSERT IGNORE
@@ -379,7 +374,7 @@ class Database
             // SQLite doesn't support 'weeks' modifier — convert to days
             $sqliteInterval = strtolower($interval);
             if ($sqliteInterval === 'weeks' || $sqliteInterval === 'week') {
-                $value = $value * 7;
+                $value *= 7;
                 $sqliteInterval = 'days';
             }
             return "datetime('now', '-{$value} {$sqliteInterval}')";

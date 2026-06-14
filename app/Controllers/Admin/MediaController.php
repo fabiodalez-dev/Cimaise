@@ -17,9 +17,9 @@ use Slim\Views\Twig;
 class MediaController extends BaseController
 {
     public function __construct(
-        private Database $db,
-        private Twig $view,
-        private ExifService $exifService
+        private readonly Database $db,
+        private readonly Twig $view,
+        private readonly ExifService $exifService
     ) {
         parent::__construct();
     }
@@ -32,7 +32,7 @@ class MediaController extends BaseController
             // Collect all categories from pivot table (multi-category support)
             $pivotStmt = $this->db->pdo()->prepare('SELECT category_id FROM album_category WHERE album_id = ?');
             $pivotStmt->execute([$albumId]);
-            $categoryIds = array_map('intval', $pivotStmt->fetchAll(\PDO::FETCH_COLUMN) ?: []);
+            $categoryIds = array_map(intval(...), $pivotStmt->fetchAll(\PDO::FETCH_COLUMN) ?: []);
             if ($categoryIds === []) {
                 $fallbackStmt = $this->db->pdo()->prepare('SELECT category_id FROM albums WHERE id = ?');
                 $fallbackStmt->execute([$albumId]);
@@ -183,7 +183,7 @@ class MediaController extends BaseController
             $pdo->prepare('UPDATE albums SET cover_image_id = NULL WHERE cover_image_id = :id')->execute([':id' => $id]);
             $pdo->prepare('DELETE FROM images WHERE id = :id')->execute([':id' => $id]);
             $pdo->commit();
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             $pdo->rollBack();
             return $response->withStatus(500);
         }
@@ -236,9 +236,9 @@ class MediaController extends BaseController
             'iso' => ($d['iso'] ?? '') !== '' ? (int)$d['iso'] : null,
             'shutter_speed' => $d['shutter_speed'] ?? null,
             'aperture' => ($d['aperture'] ?? '') !== '' ? (float)$d['aperture'] : null,
-            'custom_camera' => !empty($d['custom_camera']) ? trim(substr((string)$d['custom_camera'], 0, 160)) : null,
-            'custom_lens' => !empty($d['custom_lens']) ? trim(substr((string)$d['custom_lens'], 0, 160)) : null,
-            'custom_film' => !empty($d['custom_film']) ? trim(substr((string)$d['custom_film'], 0, 160)) : null,
+            'custom_camera' => empty($d['custom_camera']) ? null : trim(substr((string)$d['custom_camera'], 0, 160)),
+            'custom_lens' => empty($d['custom_lens']) ? null : trim(substr((string)$d['custom_lens'], 0, 160)),
+            'custom_film' => empty($d['custom_film']) ? null : trim(substr((string)$d['custom_film'], 0, 160)),
         ];
 
         $setParts = [];
@@ -287,7 +287,7 @@ class MediaController extends BaseController
         }
 
         $exifData = $this->exifService->getExifForEditor($id);
-        if (empty($exifData)) {
+        if ($exifData === []) {
             $response->getBody()->write(json_encode(['error' => 'Image not found']));
             return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
         }

@@ -23,7 +23,7 @@ use Throwable;
  *
  * Only published, non password-protected albums are ever returned.
  */
-final class SearchService
+final readonly class SearchService
 {
     private const MAX_TERMS = 10;
     private const CANDIDATE_LIMIT = 500; // safety cap per source query
@@ -85,18 +85,16 @@ final class SearchService
             $matchedImages[$id][] = (int) $row['image_id'];
         }
 
-        if (empty($scores)) {
+        if ($scores === []) {
             return $empty;
         }
 
         // Rank: score desc, stable by album id for determinism.
-        uksort($scores, static function (int $a, int $b) use ($scores): int {
-            return ($scores[$b] <=> $scores[$a]) ?: ($a <=> $b);
-        });
+        uksort($scores, static fn (int $a, int $b): int => ($scores[$b] <=> $scores[$a]) ?: ($a <=> $b));
 
         $total = count($scores);
         $pageIds = array_slice(array_keys($scores), ($page - 1) * $perPage, $perPage);
-        if (empty($pageIds)) {
+        if ($pageIds === []) {
             return ['query' => $rawQuery, 'total' => $total, 'page' => $page, 'per_page' => $perPage, 'albums' => []];
         }
 
@@ -153,7 +151,7 @@ final class SearchService
                   AND (a.password_hash IS NULL OR a.password_hash = '')
                 ORDER BY score DESC
                 LIMIT " . self::CANDIDATE_LIMIT;
-        return $this->fetchScored($sql, [':q' => $match], true);
+        return $this->fetchScored($sql, [':q' => $match]);
     }
 
     /**
@@ -165,7 +163,7 @@ final class SearchService
         $clean = preg_replace('/[^\p{L}\p{N}\s]+/u', ' ', $raw) ?? '';
         $tokens = preg_split('/\s+/u', trim($clean), -1, PREG_SPLIT_NO_EMPTY) ?: [];
         $tokens = array_slice($tokens, 0, self::MAX_TERMS);
-        if (empty($tokens)) {
+        if ($tokens === []) {
             return '';
         }
         return implode(' ', array_map(static fn (string $t): string => $t . '*', $tokens));
@@ -203,7 +201,7 @@ final class SearchService
                   AND (a.password_hash IS NULL OR a.password_hash = '')
                 ORDER BY score DESC
                 LIMIT " . self::CANDIDATE_LIMIT;
-        return $this->fetchScored($sql, [':score_q' => $raw, ':where_q' => $raw], true);
+        return $this->fetchScored($sql, [':score_q' => $raw, ':where_q' => $raw]);
     }
 
     // --- LIKE fallback ------------------------------------------------------
@@ -233,7 +231,7 @@ final class SearchService
                   AND (i.caption LIKE :q OR i.alt_text LIKE :q
                        OR i.custom_camera LIKE :q OR i.custom_lens LIKE :q OR i.custom_film LIKE :q)
                 LIMIT " . self::CANDIDATE_LIMIT;
-        return $this->fetchScored($sql, [':q' => $like], true);
+        return $this->fetchScored($sql, [':q' => $like]);
     }
 
     // --- shared helpers -----------------------------------------------------
@@ -242,7 +240,7 @@ final class SearchService
      * @param array<string, mixed> $params
      * @return array<int, array<string, mixed>>
      */
-    private function fetchScored(string $sql, array $params, bool $withImage = false): array
+    private function fetchScored(string $sql, array $params): array
     {
         $stmt = $this->db->pdo()->prepare($sql);
         $stmt->execute($params);
@@ -258,8 +256,8 @@ final class SearchService
      */
     private function loadAlbums(array $ids): array
     {
-        $ids = array_values(array_filter(array_map('intval', $ids)));
-        if (empty($ids)) {
+        $ids = array_values(array_filter(array_map(intval(...), $ids)));
+        if ($ids === []) {
             return [];
         }
         $placeholders = implode(',', array_fill(0, count($ids), '?'));

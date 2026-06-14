@@ -12,9 +12,9 @@ use App\Support\Database;
 class PerformanceService
 {
     public function __construct(
-        private Database $db,
-        private SettingsService $settings,
-        private string $basePath
+        private readonly Database $db,
+        private readonly SettingsService $settings,
+        private readonly string $basePath
     ) {
     }
 
@@ -91,7 +91,7 @@ class PerformanceService
             if ($fontFamily && is_string($fontFamily) && str_contains($fontFamily, 'google')) {
                 return true;
             }
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // Table might not exist yet
         }
 

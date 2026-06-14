@@ -39,7 +39,7 @@ class CamerasController extends BaseController
         'other' => 'Other',
     ];
 
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
     }

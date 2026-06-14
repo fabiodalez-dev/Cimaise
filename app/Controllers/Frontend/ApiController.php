@@ -12,7 +12,7 @@ use Slim\Views\Twig;
 
 class ApiController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
     }
@@ -194,7 +194,7 @@ class ApiController extends BaseController
             foreach ($images as &$img) {
                 $img['variants'] = $variantsByImage[$img['id']] ?? [];
                 if ($img['exif']) {
-                    $exif = json_decode($img['exif'], true) ?: [];
+                    $exif = json_decode((string) $img['exif'], true) ?: [];
                     $img['exif_display'] = $this->formatExifForDisplay($exif, $img);
                 }
             }
@@ -347,11 +347,7 @@ class ApiController extends BaseController
             $make = $row['exif_make'] ?? '';
             $model = $row['exif_model'] ?? '';
             // Avoid duplication if Model already contains Make
-            if ($make && $model && stripos($model, $make) === 0) {
-                $cameraName = $model;
-            } else {
-                $cameraName = trim($make . ' ' . $model);
-            }
+            $cameraName = $make && $model && stripos((string) $model, (string) $make) === 0 ? $model : trim($make . ' ' . $model);
         } elseif (!empty($row['camera_make']) || !empty($row['camera_model'])) {
             $cameraName = trim(($row['camera_make'] ?? '') . ' ' . ($row['camera_model'] ?? ''));
         }
@@ -383,7 +379,7 @@ class ApiController extends BaseController
             $equipment[] = ['label' => 'Film', 'value' => $filmName, 'icon' => 'fa-film'];
         }
 
-        if (!empty($equipment)) {
+        if ($equipment !== []) {
             $result['sections'][] = ['title' => 'Equipment', 'items' => $equipment];
         }
 
@@ -405,7 +401,7 @@ class ApiController extends BaseController
         if ($row['exposure_bias'] !== null && $row['exposure_bias'] != 0) {
             $exposure[] = ['label' => 'Exposure Bias', 'value' => ($row['exposure_bias'] >= 0 ? '+' : '') . $row['exposure_bias'] . ' EV', 'icon' => 'fa-adjust'];
         }
-        if (!empty($exposure)) {
+        if ($exposure !== []) {
             $result['sections'][] = ['title' => 'Exposure', 'items' => $exposure];
         }
 
@@ -430,7 +426,7 @@ class ApiController extends BaseController
         if ($row['white_balance'] !== null) {
             $mode[] = ['label' => 'White Balance', 'value' => $row['white_balance'] == 0 ? 'Auto' : 'Manual', 'icon' => 'fa-thermometer-half'];
         }
-        if (!empty($mode)) {
+        if ($mode !== []) {
             $result['sections'][] = ['title' => 'Mode', 'items' => $mode];
         }
 
@@ -442,7 +438,7 @@ class ApiController extends BaseController
         if ($row['color_space'] !== null) {
             $details[] = ['label' => 'Color Space', 'value' => $row['color_space'] == 1 ? 'sRGB' : 'Adobe RGB', 'icon' => 'fa-palette'];
         }
-        if (!empty($details)) {
+        if ($details !== []) {
             $result['sections'][] = ['title' => 'Details', 'items' => $details];
         }
 
@@ -452,7 +448,7 @@ class ApiController extends BaseController
             && $row['gps_lat'] !== '' && $row['gps_lng'] !== '') {
             $location[] = ['label' => 'GPS', 'value' => round((float)$row['gps_lat'], 6) . ', ' . round((float)$row['gps_lng'], 6), 'icon' => 'fa-map-marker-alt'];
         }
-        if (!empty($location)) {
+        if ($location !== []) {
             $result['sections'][] = ['title' => 'Location', 'items' => $location];
         }
 
@@ -467,7 +463,7 @@ class ApiController extends BaseController
         if (!empty($row['software'])) {
             $info[] = ['label' => 'Software', 'value' => $row['software'], 'icon' => 'fa-wand-magic-sparkles'];
         }
-        if (!empty($info)) {
+        if ($info !== []) {
             $result['sections'][] = ['title' => 'Info', 'items' => $info];
         }
 
@@ -496,7 +492,8 @@ class ApiController extends BaseController
                     $speed = $num / $den;
                     if ($speed >= 1) {
                         return (int)round($speed) . 's';
-                    } elseif ($speed > 0) {
+                    }
+                    if ($speed > 0) {
                         return '1/' . (int)round(1 / $speed) . 's';
                     }
                 }

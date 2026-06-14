@@ -16,7 +16,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 #[AsCommand(name: 'nsfw:generate-blur')]
 class NsfwBlurGenerateCommand extends Command
 {
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
         parent::__construct();
     }
@@ -101,46 +101,44 @@ class NsfwBlurGenerateCommand extends Command
                     $totalStats['generated'] += $stats['generated'];
                     $totalStats['failed'] += $stats['failed'];
                     $totalStats['skipped'] += $stats['skipped'];
-                } else {
+                } elseif ($album['cover_image_id']) {
                     // Only generate blur for cover image
-                    if ($album['cover_image_id']) {
+                    try {
+                        $result = $uploadService->generateBlurredVariant((int)$album['cover_image_id'], $force);
+                        if ($result !== null) {
+                            $totalStats['generated']++;
+                            $output->writeln("  <fg=green>Generated blur for cover image #{$album['cover_image_id']}</>");
+                        } else {
+                            $totalStats['failed']++;
+                            $errors[] = "Album #{$album['id']}: Failed to generate blur for cover";
+                        }
+                    } catch (\Throwable $e) {
+                        $totalStats['failed']++;
+                        $errors[] = "Album #{$album['id']}: " . $e->getMessage();
+                    }
+                } else {
+                    // Try first image as cover
+                    $imgStmt = $pdo->prepare('SELECT id FROM images WHERE album_id = ? ORDER BY sort_order ASC, id ASC LIMIT 1');
+                    $imgStmt->execute([$album['id']]);
+                    $firstImage = $imgStmt->fetch();
+
+                    if ($firstImage) {
                         try {
-                            $result = $uploadService->generateBlurredVariant((int)$album['cover_image_id'], $force);
+                            $result = $uploadService->generateBlurredVariant((int)$firstImage['id'], $force);
                             if ($result !== null) {
                                 $totalStats['generated']++;
-                                $output->writeln("  <fg=green>Generated blur for cover image #{$album['cover_image_id']}</>");
+                                $output->writeln("  <fg=green>Generated blur for first image #{$firstImage['id']}</>");
                             } else {
                                 $totalStats['failed']++;
-                                $errors[] = "Album #{$album['id']}: Failed to generate blur for cover";
+                                $errors[] = "Album #{$album['id']}: Failed to generate blur for first image";
                             }
                         } catch (\Throwable $e) {
                             $totalStats['failed']++;
                             $errors[] = "Album #{$album['id']}: " . $e->getMessage();
                         }
                     } else {
-                        // Try first image as cover
-                        $imgStmt = $pdo->prepare('SELECT id FROM images WHERE album_id = ? ORDER BY sort_order ASC, id ASC LIMIT 1');
-                        $imgStmt->execute([$album['id']]);
-                        $firstImage = $imgStmt->fetch();
-
-                        if ($firstImage) {
-                            try {
-                                $result = $uploadService->generateBlurredVariant((int)$firstImage['id'], $force);
-                                if ($result !== null) {
-                                    $totalStats['generated']++;
-                                    $output->writeln("  <fg=green>Generated blur for first image #{$firstImage['id']}</>");
-                                } else {
-                                    $totalStats['failed']++;
-                                    $errors[] = "Album #{$album['id']}: Failed to generate blur for first image";
-                                }
-                            } catch (\Throwable $e) {
-                                $totalStats['failed']++;
-                                $errors[] = "Album #{$album['id']}: " . $e->getMessage();
-                            }
-                        } else {
-                            $totalStats['skipped']++;
-                            $output->writeln("  <fg=yellow>No images in album</>");
-                        }
+                        $totalStats['skipped']++;
+                        $output->writeln("  <fg=yellow>No images in album</>");
                     }
                 }
             }

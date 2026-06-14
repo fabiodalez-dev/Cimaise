@@ -11,15 +11,13 @@ class Installer
 {
     private ?Database $db = null;
     private array $config = [];
-    private string $rootPath;
     private bool $envWritten = false;
     private bool $dbCreated = false;
     private ?string $createdDbPath = null;
     private bool $permissionsFixed = false;
 
-    public function __construct(string $rootPath)
+    public function __construct(private readonly string $rootPath)
     {
-        $this->rootPath = $rootPath;
     }
 
     public function isInstalled(): bool
@@ -35,8 +33,8 @@ class Installer
 
         $lines = explode("\n", $envContent);
         foreach ($lines as $line) {
-            if (strpos($line, '=') !== false && strpos($line, '#') !== 0) {
-                list($key, $value) = explode('=', $line, 2);
+            if (str_contains($line, '=') && !str_starts_with($line, '#')) {
+                [$key, $value] = explode('=', $line, 2);
                 // F018: values written by createEnvFile() pass through envEscape()
                 // (quoted + backslash-escaped). Apply the inverse here so consumers
                 // (DB_CONNECTION, DB_HOST, credentials, …) compare/use the original
@@ -50,7 +48,7 @@ class Installer
 
             if ($connection === 'sqlite') {
                 $dbPath = $this->config['DB_DATABASE'] ?? $this->rootPath . '/database/database.sqlite';
-                if (!str_starts_with($dbPath, '/')) {
+                if (!str_starts_with((string) $dbPath, '/')) {
                     $dbPath = $this->rootPath . '/' . $dbPath;
                 }
                 if (!file_exists($dbPath)) {
@@ -160,7 +158,7 @@ class Installer
         }
 
         // For MySQL, drop tables if schema was partially applied
-        if ($this->db !== null && !$this->db->isSqlite()) {
+        if ($this->db instanceof \App\Support\Database && !$this->db->isSqlite()) {
             try {
                 $tablesToDrop = [
                     'album_tag', 'album_category', 'album_camera', 'album_lens',
@@ -204,13 +202,11 @@ class Installer
         }
 
         $dir = dirname($tokenPath);
-        if (!is_dir($dir)) {
-            if (!mkdir($dir, 0775, true) && !is_dir($dir)) {
-                Logger::warning('Installer: Failed to create permissions token directory', [
-                    'path' => $dir,
-                ], 'installer');
-                return;
-            }
+        if (!is_dir($dir) && (!mkdir($dir, 0775, true) && !is_dir($dir))) {
+            Logger::warning('Installer: Failed to create permissions token directory', [
+                'path' => $dir,
+            ], 'installer');
+            return;
         }
 
         try {
@@ -237,13 +233,11 @@ class Installer
 
         $marker = $this->rootPath . '/storage/tmp/permissions_fix_done';
         $dir = dirname($marker);
-        if (!is_dir($dir)) {
-            if (!mkdir($dir, 0775, true) && !is_dir($dir)) {
-                Logger::warning('Installer: Failed to create permissions marker directory', [
-                    'path' => $dir,
-                ], 'installer');
-                return;
-            }
+        if (!is_dir($dir) && (!mkdir($dir, 0775, true) && !is_dir($dir))) {
+            Logger::warning('Installer: Failed to create permissions marker directory', [
+                'path' => $dir,
+            ], 'installer');
+            return;
         }
 
         if (is_file($marker)) {
@@ -265,14 +259,14 @@ class Installer
     {
         $errors = $this->collectRequirementErrors($data, true);
 
-        if (!empty($errors)) {
+        if ($errors !== []) {
             throw new \RuntimeException(implode("\n", $errors));
         }
     }
 
     private function runPluginInstallHooks(): void
     {
-        if ($this->db === null) {
+        if (!$this->db instanceof \App\Support\Database) {
             return;
         }
 
@@ -321,10 +315,6 @@ class Installer
     {
         $errors = [];
 
-        if (version_compare(PHP_VERSION, '8.2.0', '<')) {
-            $errors[] = 'PHP 8.2 or higher is required. Current version: ' . PHP_VERSION;
-        }
-
         // Core required extensions
         $requiredExtensions = ['pdo', 'gd', 'mbstring', 'openssl', 'json', 'fileinfo'];
         foreach ($requiredExtensions as $ext) {
@@ -367,13 +357,11 @@ class Installer
         }
 
         foreach ($writablePaths as $path => $name) {
-            if ($createDirectories) {
-                // Create directory if it doesn't exist
-                if (!is_dir($path)) {
-                    if (!@mkdir($path, 0755, true)) {
-                        $errors[] = "Cannot create directory '{$name}'";
-                        continue;
-                    }
+            // Create directory if it doesn't exist
+            if ($createDirectories && !is_dir($path)) {
+                if (!@mkdir($path, 0755, true)) {
+                    $errors[] = "Cannot create directory '{$name}'";
+                    continue;
                 }
             }
             if (!is_dir($path) || !is_writable($path)) {
@@ -406,17 +394,15 @@ class Installer
             $dbPath = $data['sqlite_path'] ?? ($this->rootPath . '/database/database.sqlite');
 
             // Handle relative paths
-            if (!str_starts_with($dbPath, '/')) {
+            if (!str_starts_with((string) $dbPath, '/')) {
                 $dbPath = $this->rootPath . '/' . $dbPath;
             }
 
-            $dir = dirname($dbPath);
-            if (!is_dir($dir)) {
-                if (!mkdir($dir, 0755, true)) {
-                    throw new \RuntimeException("Cannot create database directory: {$dir}");
-                }
+            $dir = dirname((string) $dbPath);
+            if (!is_dir($dir) && !mkdir($dir, 0755, true)) {
+                throw new \RuntimeException("Cannot create database directory: {$dir}");
             }
-            $dbPath = rtrim($dir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . basename($dbPath);
+            $dbPath = rtrim($dir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . basename((string) $dbPath);
             if (file_exists($dbPath)) {
                 unlink($dbPath);
             }
@@ -469,7 +455,7 @@ class Installer
      */
     private function testMySQLPrivileges(): void
     {
-        if ($this->db === null || $this->db->isSqlite()) {
+        if (!$this->db instanceof \App\Support\Database || $this->db->isSqlite()) {
             return;
         }
 
@@ -494,15 +480,13 @@ class Installer
                 $pdo->exec('DROP TABLE IF EXISTS _install_test');
             } catch (\Throwable) {
             }
-            throw new \RuntimeException(
-                "Insufficient MySQL privileges. The database user needs CREATE, ALTER, INSERT, UPDATE, DELETE privileges. Error: " . $e->getMessage()
-            );
+            throw new \RuntimeException("Insufficient MySQL privileges. The database user needs CREATE, ALTER, INSERT, UPDATE, DELETE privileges. Error: " . $e->getMessage(), $e->getCode(), $e);
         }
     }
 
     private function installSchema(): void
     {
-        if ($this->db === null) {
+        if (!$this->db instanceof \App\Support\Database) {
             throw new \RuntimeException('Database connection not established');
         }
 
@@ -536,7 +520,7 @@ class Installer
             $this->db->pdo()->exec('DELETE FROM users');
         }
 
-        $password = password_hash($data['admin_password'], PASSWORD_ARGON2ID);
+        $password = password_hash((string) $data['admin_password'], PASSWORD_ARGON2ID);
         $createdAt = date('Y-m-d H:i:s');
 
         $stmt = $this->db->pdo()->prepare(
@@ -745,7 +729,7 @@ class Installer
     private function envUnescape(string $value): string
     {
         $value = trim($value);
-        if (strlen($value) >= 2 && $value[0] === '"' && substr($value, -1) === '"') {
+        if (strlen($value) >= 2 && $value[0] === '"' && str_ends_with($value, '"')) {
             $value = substr($value, 1, -1);
         }
         // Single-pass character scan — produces correct decoding for inputs that
@@ -905,82 +889,82 @@ class Installer
      */
     private function createUniversalRootIndex(): void
     {
-        $content = <<<'PHP'
-<?php
-declare(strict_types=1);
-/**
- * Universal Router for Cimaise CMS
- * Auto-generated by installer for flexible deployment
- */
-
-// Detect base path from SCRIPT_NAME
-$scriptName = $_SERVER['SCRIPT_NAME'] ?? '/index.php';
-$basePath = dirname($scriptName);
-if ($basePath === '/' || $basePath === '\\' || $basePath === '.') {
-    $basePath = '';
-}
-
-// Get request path
-$requestUri = $_SERVER['REQUEST_URI'] ?? '/';
-$fullPath = parse_url($requestUri, PHP_URL_PATH);
-if ($fullPath === '' || $fullPath === false) {
-    $fullPath = '/';
-}
-
-// Remove base path to get relative path
-$path = $fullPath;
-if ($basePath !== '' && str_starts_with($path, $basePath)) {
-    $path = substr($path, strlen($basePath));
-    if ($path === '' || $path === false) {
-        $path = '/';
-    }
-}
-if (!str_starts_with($path, '/')) {
-    $path = '/' . $path;
-}
-
-// Security: Block sensitive paths
-$blockedPatterns = ['/^\/\./', '/\.sqlite$/i', '/\.log$/i', '/^\/vendor\//i',
-    '/^\/storage\//i', '/^\/app\//i', '/^\/database\//i', '/^\/config\//i', '/^\/bin\//i'];
-foreach ($blockedPatterns as $pattern) {
-    if (preg_match($pattern, $path)) {
-        http_response_code(403);
-        exit('403 Forbidden');
-    }
-}
-
-// MIME types for static files
-$mimeTypes = [
-    'js' => 'application/javascript', 'css' => 'text/css', 'json' => 'application/json',
-    'png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif',
-    'webp' => 'image/webp', 'avif' => 'image/avif', 'svg' => 'image/svg+xml', 'ico' => 'image/x-icon',
-    'woff' => 'font/woff', 'woff2' => 'font/woff2', 'ttf' => 'font/ttf', 'webmanifest' => 'application/manifest+json',
-];
-
-// Check for static file in public/ (except /media/* which needs PHP routing)
-if (!preg_match('/^\/media\//', $path)) {
-    $publicFile = __DIR__ . '/public' . $path;
-    $realPath = realpath($publicFile);
-    $publicDir = realpath(__DIR__ . '/public');
-
-    if ($realPath !== false && $publicDir !== false && str_starts_with($realPath, $publicDir) && is_file($realPath)) {
-        $ext = strtolower(pathinfo($realPath, PATHINFO_EXTENSION));
-        if (isset($mimeTypes[$ext])) {
-            header('Content-Type: ' . $mimeTypes[$ext]);
-            header('Cache-Control: public, max-age=31536000, immutable');
-            readfile($realPath);
-            exit;
+        $content = <<<'PHP_WRAP'
+        <?php
+        declare(strict_types=1);
+        /**
+         * Universal Router for Cimaise CMS
+         * Auto-generated by installer for flexible deployment
+         */
+        
+        // Detect base path from SCRIPT_NAME
+        $scriptName = $_SERVER['SCRIPT_NAME'] ?? '/index.php';
+        $basePath = dirname($scriptName);
+        if ($basePath === '/' || $basePath === '\\' || $basePath === '.') {
+            $basePath = '';
         }
-    }
-}
-
-// Route through PHP application
-chdir(__DIR__ . '/public');
-$_SERVER['SCRIPT_FILENAME'] = __DIR__ . '/public/index.php';
-$_SERVER['SCRIPT_NAME'] = $basePath . '/index.php';
-$_SERVER['PHP_SELF'] = $basePath . '/index.php';
-require __DIR__ . '/public/index.php';
-PHP;
+        
+        // Get request path
+        $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
+        $fullPath = parse_url($requestUri, PHP_URL_PATH);
+        if ($fullPath === '' || $fullPath === false) {
+            $fullPath = '/';
+        }
+        
+        // Remove base path to get relative path
+        $path = $fullPath;
+        if ($basePath !== '' && str_starts_with($path, $basePath)) {
+            $path = substr($path, strlen($basePath));
+            if ($path === '' || $path === false) {
+                $path = '/';
+            }
+        }
+        if (!str_starts_with($path, '/')) {
+            $path = '/' . $path;
+        }
+        
+        // Security: Block sensitive paths
+        $blockedPatterns = ['/^\/\./', '/\.sqlite$/i', '/\.log$/i', '/^\/vendor\//i',
+            '/^\/storage\//i', '/^\/app\//i', '/^\/database\//i', '/^\/config\//i', '/^\/bin\//i'];
+        foreach ($blockedPatterns as $pattern) {
+            if (preg_match($pattern, $path)) {
+                http_response_code(403);
+                exit('403 Forbidden');
+            }
+        }
+        
+        // MIME types for static files
+        $mimeTypes = [
+            'js' => 'application/javascript', 'css' => 'text/css', 'json' => 'application/json',
+            'png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif',
+            'webp' => 'image/webp', 'avif' => 'image/avif', 'svg' => 'image/svg+xml', 'ico' => 'image/x-icon',
+            'woff' => 'font/woff', 'woff2' => 'font/woff2', 'ttf' => 'font/ttf', 'webmanifest' => 'application/manifest+json',
+        ];
+        
+        // Check for static file in public/ (except /media/* which needs PHP routing)
+        if (!preg_match('/^\/media\//', $path)) {
+            $publicFile = __DIR__ . '/public' . $path;
+            $realPath = realpath($publicFile);
+            $publicDir = realpath(__DIR__ . '/public');
+        
+            if ($realPath !== false && $publicDir !== false && str_starts_with($realPath, $publicDir) && is_file($realPath)) {
+                $ext = strtolower(pathinfo($realPath, PATHINFO_EXTENSION));
+                if (isset($mimeTypes[$ext])) {
+                    header('Content-Type: ' . $mimeTypes[$ext]);
+                    header('Cache-Control: public, max-age=31536000, immutable');
+                    readfile($realPath);
+                    exit;
+                }
+            }
+        }
+        
+        // Route through PHP application
+        chdir(__DIR__ . '/public');
+        $_SERVER['SCRIPT_FILENAME'] = __DIR__ . '/public/index.php';
+        $_SERVER['SCRIPT_NAME'] = $basePath . '/index.php';
+        $_SERVER['PHP_SELF'] = $basePath . '/index.php';
+        require __DIR__ . '/public/index.php';
+        PHP_WRAP;
 
         $targetPath = $this->rootPath . '/index.php';
         if (file_put_contents($targetPath, $content) === false) {
@@ -1066,7 +1050,7 @@ HTACCESS;
         // Get host
         $host = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost';
         // Remove port from host if standard
-        $host = preg_replace('/:(80|443)$/', '', $host);
+        $host = preg_replace('/:(80|443)$/', '', (string) $host);
 
         // Detect base path from SCRIPT_NAME
         // Examples:
@@ -1075,10 +1059,10 @@ HTACCESS;
         //   Subdirectory via public/: /portfolio/public/index.php → basePath = "/portfolio"
         //   Subdirectory via root router: /portfolio/index.php → basePath = "/portfolio"
         $scriptName = $_SERVER['SCRIPT_NAME'] ?? '/index.php';
-        $basePath = dirname($scriptName);
+        $basePath = dirname((string) $scriptName);
 
         // Normalize base path
-        if ($basePath === '/' || $basePath === '\\' || $basePath === '.') {
+        if (in_array($basePath, ['/', '\\', '.'], true)) {
             $basePath = '';
         }
 
@@ -1151,12 +1135,10 @@ HTACCESS;
             }
         }
 
-        if ($newContent !== $content) {
-            // $newContent is guaranteed string here — the early return at the
-            // top of the function already handled the preg_replace null case.
-            if (file_put_contents($htaccessPath, $newContent) === false) {
-                throw new \RuntimeException('Failed to write public/.htaccess file');
-            }
+        // $newContent is guaranteed string here — the early return at the
+        // top of the function already handled the preg_replace null case.
+        if ($newContent !== $content && file_put_contents($htaccessPath, $newContent) === false) {
+            throw new \RuntimeException('Failed to write public/.htaccess file');
         }
     }
 
@@ -1304,7 +1286,10 @@ HTACCESS;
             }
 
             foreach ($items as $item) {
-                if ($item === '.' || $item === '..') {
+                if ($item === '.') {
+                    continue;
+                }
+                if ($item === '..') {
                     continue;
                 }
                 $this->fixPermissionsRecursive(

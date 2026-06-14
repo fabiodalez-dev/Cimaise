@@ -22,7 +22,7 @@ class AuthMiddleware implements MiddlewareInterface
     /** Verification cache TTL in seconds */
     private const CACHE_TTL = 15;
 
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
     }
 
@@ -42,7 +42,7 @@ class AuthMiddleware implements MiddlewareInterface
 
     public function process(Request $request, Handler $handler): Response
     {
-        $basePath = dirname($_SERVER['SCRIPT_NAME']);
+        $basePath = dirname((string) $_SERVER['SCRIPT_NAME']);
         $basePath = $basePath === '/' ? '' : $basePath;
 
         // Remove /public from the path if present (since document root should be public/)
@@ -52,7 +52,7 @@ class AuthMiddleware implements MiddlewareInterface
 
         // Skip auth check for login/logout routes
         $path = $request->getUri()->getPath();
-        if (in_array($path, ['/admin/login'])) {
+        if ($path === '/admin/login') {
             return $handler->handle($request);
         }
 
@@ -68,9 +68,6 @@ class AuthMiddleware implements MiddlewareInterface
         // Try auto-login with remember token if no session
         if (empty($_SESSION['admin_id'])) {
             $this->tryRememberLogin();
-        }
-
-        if (empty($_SESSION['admin_id'])) {
             $response = new \Slim\Psr7\Response(302);
             return $response->withHeader('Location', $basePath . '/admin/login');
         }
@@ -129,7 +126,7 @@ class AuthMiddleware implements MiddlewareInterface
         $rawToken = $_COOKIE['remember_token'];
 
         // Hash the cookie token to compare with database
-        $hashedToken = hash('sha256', $rawToken);
+        $hashedToken = hash('sha256', (string) $rawToken);
 
         // SECURITY: Fetch users with non-expired tokens, then use constant-time comparison
         // This prevents timing attacks that could leak token information via response times

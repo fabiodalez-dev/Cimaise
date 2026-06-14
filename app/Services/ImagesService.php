@@ -26,7 +26,7 @@ class ImagesService
      */
     public static function enrichWithMetadata(\PDO $pdo, array &$imagesRows, string $context = 'images'): void
     {
-        if (empty($imagesRows)) {
+        if ($imagesRows === []) {
             return;
         }
 
@@ -62,7 +62,7 @@ class ImagesService
 
             // Batch fetch cameras
             $cameras = [];
-            if (!empty($cameraIds)) {
+            if ($cameraIds !== []) {
                 $ids = array_keys($cameraIds);
                 $placeholders = implode(',', array_fill(0, count($ids), '?'));
                 $s = $pdo->prepare("SELECT id, make, model FROM cameras WHERE id IN ($placeholders)");
@@ -74,7 +74,7 @@ class ImagesService
 
             // Batch fetch lenses
             $lenses = [];
-            if (!empty($lensIds)) {
+            if ($lensIds !== []) {
                 $ids = array_keys($lensIds);
                 $placeholders = implode(',', array_fill(0, count($ids), '?'));
                 $s = $pdo->prepare("SELECT id, brand, model FROM lenses WHERE id IN ($placeholders)");
@@ -86,7 +86,7 @@ class ImagesService
 
             // Batch fetch developers
             $developers = [];
-            if (!empty($developerIds)) {
+            if ($developerIds !== []) {
                 $ids = array_keys($developerIds);
                 $placeholders = implode(',', array_fill(0, count($ids), '?'));
                 $s = $pdo->prepare("SELECT id, name FROM developers WHERE id IN ($placeholders)");
@@ -98,7 +98,7 @@ class ImagesService
 
             // Batch fetch labs
             $labs = [];
-            if (!empty($labIds)) {
+            if ($labIds !== []) {
                 $ids = array_keys($labIds);
                 $placeholders = implode(',', array_fill(0, count($ids), '?'));
                 $s = $pdo->prepare("SELECT id, name FROM labs WHERE id IN ($placeholders)");
@@ -110,7 +110,7 @@ class ImagesService
 
             // Batch fetch films
             $films = [];
-            if (!empty($filmIds)) {
+            if ($filmIds !== []) {
                 $ids = array_keys($filmIds);
                 $placeholders = implode(',', array_fill(0, count($ids), '?'));
                 $s = $pdo->prepare("SELECT id, brand, name, iso, format FROM films WHERE id IN ($placeholders)");
@@ -138,7 +138,7 @@ class ImagesService
 
             // Batch fetch locations
             $locations = [];
-            if (!empty($locationIds)) {
+            if ($locationIds !== []) {
                 $ids = array_keys($locationIds);
                 $placeholders = implode(',', array_fill(0, count($ids), '?'));
                 $s = $pdo->prepare("SELECT id, name FROM locations WHERE id IN ($placeholders)");

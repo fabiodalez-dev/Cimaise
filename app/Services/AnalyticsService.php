@@ -10,16 +10,14 @@ use GeoIp2\Database\Reader;
 
 class AnalyticsService
 {
-    private PDO $db;
     private array $settings;
     private ?Reader $geoReader = null;
     private string $driver = 'mysql';
     /** F043: cached IP-pseudonymization salt resolved lazily on first hashIp() call. */
     private ?string $ipSalt = null;
 
-    public function __construct(PDO $db)
+    public function __construct(private readonly PDO $db)
     {
-        $this->db = $db;
         try {
             $this->driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME) ?: 'mysql';
         } catch (\Throwable) {
@@ -87,7 +85,7 @@ class AnalyticsService
 
                 $this->settings[$row['setting_key']] = $value;
             }
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Analytics tables don't exist yet - use default settings
             // This happens with existing installations that predate the analytics system
             $this->settings = [
@@ -310,7 +308,7 @@ class AnalyticsService
                         usleep(20_000); // 20ms
                     }
                 }
-            } catch (\PDOException $inner) {
+            } catch (\PDOException) {
                 // Fall through to log.
             }
             // Non-fatal: log and continue with the in-memory salt. CR-1: do NOT
@@ -344,7 +342,7 @@ class AnalyticsService
                 $stmt = $this->db->prepare("UPDATE {$table} SET ip_hash = NULL WHERE ip_hash IS NOT NULL");
                 $stmt->execute();
                 $total += $stmt->rowCount();
-            } catch (\PDOException $e) {
+            } catch (\PDOException) {
                 // Table may not exist or column may differ — ignore.
             }
         }
@@ -430,7 +428,7 @@ class AnalyticsService
             $geoData['country_code'] = $record->country->isoCode;
             $geoData['region'] = $record->mostSpecificSubdivision->name;
             $geoData['city'] = $record->city->name;
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             // Silently fail if IP lookup fails
         }
 
@@ -474,7 +472,7 @@ class AnalyticsService
                 return $sessionId; // Return but don't store
             }
 
-            $referrerDomain = $referrer ? parse_url($referrer, PHP_URL_HOST) : null;
+            $referrerDomain = $referrer ? parse_url((string) $referrer, PHP_URL_HOST) : null;
 
             $stmt = $this->db->prepare('
                 INSERT INTO analytics_sessions (
@@ -656,7 +654,7 @@ class AnalyticsService
                 'top_pages' => $topPages,
                 'top_countries' => $topCountries
             ];
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Analytics tables don't exist - return empty stats
             return [
                 'realtime' => ['active_sessions' => 0, 'pageviews_24h' => 0],
@@ -725,7 +723,7 @@ class AnalyticsService
                 'devices' => $deviceData,
                 'browsers' => $browserData
             ];
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Analytics tables don't exist - return empty charts data
             return [
                 'sessions' => [],
@@ -804,7 +802,7 @@ class AnalyticsService
             fclose($output);
 
             return $csv;
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Analytics tables don't exist - return empty CSV with headers only
             $headers = ['No Data Available - Analytics tables not found'];
             $output = fopen('php://temp', 'r+');
@@ -868,7 +866,7 @@ class AnalyticsService
 
             $stmt->execute([$rangeStart, $rangeEnd]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Analytics tables don't exist - return empty array
             return [];
         }
@@ -887,7 +885,7 @@ class AnalyticsService
             $stmt = $this->db->prepare('DELETE FROM analytics_sessions WHERE started_at < ' . $expr);
             $stmt->execute();
             return $stmt->rowCount();
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Analytics tables don't exist - return 0
             return 0;
         }
@@ -928,7 +926,7 @@ class AnalyticsService
             }
 
             return $hourlyData;
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             return array_fill(0, 24, ['pageviews' => 0, 'sessions' => 0]);
         }
     }
@@ -1016,7 +1014,7 @@ class AnalyticsService
                 'previous_start' => $prevStart->format('Y-m-d'),
                 'previous_end' => $prevEnd->format('Y-m-d')
             ];
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             return [
                 'current' => ['sessions' => 0, 'pageviews' => 0, 'events' => 0],
                 'previous' => ['sessions' => 0, 'pageviews' => 0, 'events' => 0],
@@ -1125,7 +1123,7 @@ class AnalyticsService
                 'top_downloads' => $topDownloads,
                 'top_lightbox_views' => $topLightbox
             ];
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             return [
                 'lightbox' => ['total' => 0, 'unique_users' => 0],
                 'downloads' => ['total' => 0, 'unique_users' => 0],
@@ -1160,7 +1158,7 @@ class AnalyticsService
             ");
             $stmt->execute([$rangeStart, $rangeEnd]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             return [];
         }
     }
@@ -1191,7 +1189,7 @@ class AnalyticsService
             ");
             $stmt->execute([$rangeStart, $rangeEnd]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             return [];
         }
     }
@@ -1233,7 +1231,7 @@ class AnalyticsService
                 'total' => (int)($total['total'] ?? 0),
                 'pages' => $pages
             ];
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             return ['total' => 0, 'pages' => []];
         }
     }

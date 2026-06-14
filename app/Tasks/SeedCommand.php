@@ -14,7 +14,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 #[AsCommand(name: 'db:seed', description: 'Run seed SQL files from database/seeds')]
 class SeedCommand extends Command
 {
-    public function __construct(private Database $db, private string $seedsDir)
+    public function __construct(private readonly Database $db, private readonly string $seedsDir)
     {
         parent::__construct();
     }
@@ -47,7 +47,7 @@ class SeedCommand extends Command
         $files = glob(rtrim($seedsPath, '/'). '/*.sql') ?: [];
         sort($files, SORT_NATURAL);
         if ($only) {
-            $files = array_filter($files, fn ($f) => basename($f) === $only);
+            $files = array_filter($files, fn ($f) => basename((string) $f) === $only);
         }
         if (!$files) {
             $output->writeln('<comment>No seed files to run.</comment>');

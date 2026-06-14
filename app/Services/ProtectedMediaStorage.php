@@ -14,7 +14,7 @@ use App\Support\Logger;
  * MediaController resolves those URLs to storage/protected-media after access
  * checks. Blur variants deliberately remain public.
  */
-final class ProtectedMediaStorage
+final readonly class ProtectedMediaStorage
 {
     private const MIGRATION_MARKER = '/storage/tmp/protected-media-v1.done';
     private const MIGRATION_LOCK = '/storage/tmp/protected-media-v1.lock';
@@ -173,7 +173,7 @@ final class ProtectedMediaStorage
             $summary = ['moved' => 0, 'deleted' => 0, 'skipped' => 0];
             foreach ($albumIds as $albumId) {
                 $stats = $this->relocateAlbumVariants((int)$albumId, true);
-                foreach ($summary as $key => $_) {
+                foreach (array_keys($summary) as $key) {
                     $summary[$key] += $stats[$key];
                 }
             }

@@ -16,7 +16,7 @@ use Slim\Views\Twig;
 
 class CategoriesController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
     }
@@ -52,7 +52,7 @@ class CategoriesController extends BaseController
         try {
             $stmt = $pdo->query('SELECT id, name, slug, sort_order, image_path, COALESCE(parent_id, 0) AS parent_id FROM categories ORDER BY COALESCE(parent_id, 0) ASC, sort_order ASC, name ASC');
             $rows = $stmt->fetchAll() ?: [];
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // Fallback for pre-migration DBs (no parent_id column)
             $stmt = $pdo->query('SELECT id, name, slug, sort_order FROM categories ORDER BY sort_order ASC, name ASC');
             $rows = array_map(function (array $r) {
@@ -152,13 +152,9 @@ class CategoriesController extends BaseController
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.name_required')];
             return $response->withHeader('Location', $this->redirect('/admin/categories/create'))->withStatus(302);
         }
-        if ($slug === '') {
-            $slug = \App\Support\Str::slug($name);
-        } else {
-            $slug = \App\Support\Str::slug($slug);
-        }
+        $slug = $slug === '' ? \App\Support\Str::slug($name) : \App\Support\Str::slug($slug);
         // Handle parent_id
-        $parentId = !empty($data['parent_id']) ? (int)$data['parent_id'] : null;
+        $parentId = empty($data['parent_id']) ? null : (int)$data['parent_id'];
 
         // Handle image upload with enhanced security validation
         $imagePath = null;
@@ -258,17 +254,13 @@ class CategoriesController extends BaseController
         $name = trim((string)($data['name'] ?? ''));
         $slug = trim((string)($data['slug'] ?? ''));
         $sort = (int)($data['sort_order'] ?? 0);
-        $parentId = !empty($data['parent_id']) ? (int)$data['parent_id'] : null;
+        $parentId = empty($data['parent_id']) ? null : (int)$data['parent_id'];
 
         if ($name === '') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.name_required')];
             return $response->withHeader('Location', $this->redirect('/admin/categories/'.$id.'/edit'))->withStatus(302);
         }
-        if ($slug === '') {
-            $slug = \App\Support\Str::slug($name);
-        } else {
-            $slug = \App\Support\Str::slug($slug);
-        }
+        $slug = $slug === '' ? \App\Support\Str::slug($name) : \App\Support\Str::slug($slug);
 
         // Get current category data for image handling
         $stmt = $this->db->pdo()->prepare('SELECT image_path FROM categories WHERE id = :id');
@@ -405,7 +397,7 @@ class CategoriesController extends BaseController
                 if ($id <= 0) {
                     continue;
                 }
-                $parentId = !empty($item['parent_id']) ? (int)$item['parent_id'] : 0;
+                $parentId = empty($item['parent_id']) ? 0 : (int)$item['parent_id'];
                 $sortOrder = $sortCounters[$parentId] ?? 0;
                 $sortCounters[$parentId] = $sortOrder + 1;
 
@@ -534,11 +526,9 @@ class CategoriesController extends BaseController
                     $isValidMagic = true;
                     break;
                 }
-            } else {
-                if (str_starts_with($fileHeader, $signature)) {
-                    $isValidMagic = true;
-                    break;
-                }
+            } elseif (str_starts_with($fileHeader, $signature)) {
+                $isValidMagic = true;
+                break;
             }
         }
 
@@ -554,11 +544,7 @@ class CategoriesController extends BaseController
 
         // Validate image dimensions (prevent processing of malicious files)
         [$width, $height] = $imageInfo;
-        if ($width <= 0 || $height <= 0 || $width > 10000 || $height > 10000) {
-            return false;
-        }
-
-        return true;
+        return !($width <= 0 || $height <= 0 || $width > 10000 || $height > 10000);
     }
 
     /**

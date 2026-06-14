@@ -118,11 +118,9 @@ class UploadService
                         $isValidMagic = true;
                         break;
                     }
-                } else {
-                    if (str_starts_with($fileHeader, $signature)) {
-                        $isValidMagic = true;
-                        break;
-                    }
+                } elseif (str_starts_with($fileHeader, (string) $signature)) {
+                    $isValidMagic = true;
+                    break;
                 }
             }
         }
@@ -173,19 +171,17 @@ class UploadService
         ImagesService::ensureDir($storageDir);
         $dest = $storageDir . '/' . $hash . $ext;
 
-        if (!@move_uploaded_file($tmp, $dest)) {
-            // Fallback for CLI env
-            if (!@rename($tmp, $dest)) {
-                // Final fallback: copy+unlink (works across filesystems)
-                if (!@copy($tmp, $dest)) {
-                    throw new RuntimeException('Failed to move uploaded file');
-                }
-                if (!self::safeUnlink($tmp)) {
-                    Logger::warning('UploadService: Failed to cleanup temp file after copy', [
-                        'tmp' => $tmp,
-                        'dest' => $dest,
-                    ], 'upload');
-                }
+        // Fallback for CLI env
+        if (!@move_uploaded_file($tmp, $dest) && !@rename($tmp, $dest)) {
+            // Final fallback: copy+unlink (works across filesystems)
+            if (!@copy($tmp, $dest)) {
+                throw new RuntimeException('Failed to move uploaded file');
+            }
+            if (!self::safeUnlink($tmp)) {
+                Logger::warning('UploadService: Failed to cleanup temp file after copy', [
+                    'tmp' => $tmp,
+                    'dest' => $dest,
+                ], 'upload');
             }
         }
 
@@ -200,7 +196,7 @@ class UploadService
         } catch (RuntimeException $e) {
             // Clean up the invalid file
             self::safeUnlink($dest);
-            throw new RuntimeException('File validation failed after upload: ' . $e->getMessage());
+            throw new RuntimeException('File validation failed after upload: ' . $e->getMessage(), $e->getCode(), $e);
         }
 
         [$width, $height] = getimagesize($dest) ?: [0,0];
@@ -471,7 +467,7 @@ class UploadService
         $possiblePaths = [
             dirname(__DIR__, 2) . $dbPath,           // /media/originals/...
             dirname(__DIR__, 2) . '/public' . $dbPath, // /public/media/originals/...
-            dirname(__DIR__, 2) . '/storage/originals/' . basename($dbPath), // /storage/originals/...
+            dirname(__DIR__, 2) . '/storage/originals/' . basename((string) $dbPath), // /storage/originals/...
         ];
 
         $originalPath = null;
@@ -566,10 +562,8 @@ class UploadService
                 } elseif ($fmt === 'webp') {
                     if ($haveImagick) {
                         $ok = $this->resizeWithImagick($originalPath, $destPath, $targetW, 'webp', (int)($quality['webp'] ?? 75));
-                    } else {
-                        if (function_exists('imagewebp')) {
-                            $ok = $this->resizeWithGdWebp($originalPath, $destPath, $targetW, (int)($quality['webp'] ?? 75));
-                        }
+                    } elseif (function_exists('imagewebp')) {
+                        $ok = $this->resizeWithGdWebp($originalPath, $destPath, $targetW, (int)($quality['webp'] ?? 75));
                     }
                 } elseif ($haveImagick) {
                     // Remaining format: 'avif' (narrowed by the if/elseif chain
@@ -676,7 +670,7 @@ class UploadService
             $possiblePaths = [
                 dirname(__DIR__, 2) . $dbPath,
                 dirname(__DIR__, 2) . '/public' . $dbPath,
-                dirname(__DIR__, 2) . '/storage/originals/' . basename($dbPath),
+                dirname(__DIR__, 2) . '/storage/originals/' . basename((string) $dbPath),
             ];
             $triedPaths = array_merge($triedPaths, $possiblePaths);
             foreach ($possiblePaths as $path) {
@@ -1070,7 +1064,7 @@ class UploadService
         $root = dirname(__DIR__, 2);
 
         if ($mdPath) {
-            $tryPath = $root . '/public/' . ltrim($mdPath, '/');
+            $tryPath = $root . '/public/' . ltrim((string) $mdPath, '/');
             $triedPaths[] = $tryPath;
             if (is_file($tryPath)) {
                 $sourcePath = $tryPath;
@@ -1082,13 +1076,11 @@ class UploadService
             $imgStmt->execute([$imageId]);
             $origPath = $imgStmt->fetchColumn();
 
-            if ($origPath) {
-                if (str_starts_with($origPath, '/storage/originals/')) {
-                    $tryPath = $root . $origPath;
-                    $triedPaths[] = $tryPath;
-                    if (is_file($tryPath)) {
-                        $sourcePath = $tryPath;
-                    }
+            if ($origPath && str_starts_with((string) $origPath, '/storage/originals/')) {
+                $tryPath = $root . $origPath;
+                $triedPaths[] = $tryPath;
+                if (is_file($tryPath)) {
+                    $sourcePath = $tryPath;
                 }
             }
         }

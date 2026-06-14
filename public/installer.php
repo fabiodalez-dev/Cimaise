@@ -45,7 +45,10 @@ if (file_exists($markerPath) && file_exists($envPath)) {
                 $envVars = [];
                 foreach (explode("\n", $envContent) as $line) {
                     $line = trim($line);
-                    if ($line === '' || str_starts_with($line, '#')) {
+                    if ($line === '') {
+                        continue;
+                    }
+                    if (str_starts_with($line, '#')) {
                         continue;
                     }
                     if (str_contains($line, '=')) {
@@ -105,7 +108,7 @@ if (file_exists($markerPath) && file_exists($envPath)) {
                 $installed = true;
             }
         }
-    } catch (Exception $e) {
+    } catch (Exception) {
         // Not installed or DB unreachable
     }
 }
@@ -113,8 +116,8 @@ if (file_exists($markerPath) && file_exists($envPath)) {
 if ($installed) {
     // Detect correct redirect URL
     $scriptPath = $_SERVER['SCRIPT_NAME'] ?? '';
-    $basePath = dirname($scriptPath);
-    if ($basePath === '/' || $basePath === '\\' || $basePath === '' || $basePath === '.') {
+    $basePath = dirname((string) $scriptPath);
+    if (in_array($basePath, ['/', '\\', '', '.'], true)) {
         $basePath = '/';
     }
     header('Location: ' . $basePath);
@@ -150,7 +153,10 @@ function getAvailableLanguages(): array
                 continue;
             }
             $data = json_decode(file_get_contents($file), true);
-            if (!$data || !isset($data['_meta']['code'], $data['_meta']['language'])) {
+            if (!$data) {
+                continue;
+            }
+            if (!isset($data['_meta']['code'], $data['_meta']['language'])) {
                 continue;
             }
             $languages[$data['_meta']['code']] = [
@@ -160,7 +166,7 @@ function getAvailableLanguages(): array
         }
     }
     // Fallback if no files found
-    if (empty($languages)) {
+    if ($languages === []) {
         $languages['en'] = ['label' => 'English', 'seeds' => []];
     }
     return $languages;
@@ -203,7 +209,7 @@ function testDatabaseConnection($config)
         } else {
             // Validate MySQL database name (prevent SQL injection)
             $dbName = (string)($config['database'] ?? '');
-            if (!preg_match('/^[A-Za-z0-9_]+$/', $dbName)) {
+            if (!preg_match('/^\w+$/', $dbName)) {
                 throw new InvalidArgumentException('Invalid MySQL database name. Use only letters, numbers and underscores.');
             }
 
@@ -230,7 +236,7 @@ function getCurrentUrl()
     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
     $scriptPath = $_SERVER['SCRIPT_NAME'] ?? '';
-    $basePath = dirname($scriptPath);
+    $basePath = dirname((string) $scriptPath);
     if ($basePath === '/' || $basePath === '\\') {
         $basePath = '';
     }
@@ -284,7 +290,7 @@ function envEscape(string $value): string
 function envUnescape(string $value): string
 {
     $value = trim($value);
-    if (strlen($value) >= 2 && $value[0] === '"' && substr($value, -1) === '"') {
+    if (strlen($value) >= 2 && $value[0] === '"' && str_ends_with($value, '"')) {
         $value = substr($value, 1, -1);
     }
     // Single-pass character scan — produces correct decoding for inputs that
@@ -328,11 +334,13 @@ function createStorageDirectories($rootPath)
     ];
 
     foreach ($directories as $dir) {
-        if (!is_dir($dir)) {
-            if (!mkdir($dir, 0755, true)) {
-                throw new Exception('Could not create directory: ' . $dir);
-            }
+        if (is_dir($dir)) {
+            continue;
         }
+        if (mkdir($dir, 0755, true)) {
+            continue;
+        }
+        throw new Exception('Could not create directory: ' . $dir);
     }
 
     // Create .gitkeep files to preserve empty directories in git
@@ -401,7 +409,7 @@ HTACCESS;
     // document root that actually serves installer.php. Idempotent via a marker comment.
     if (file_exists($publicHtaccess)) {
         $publicContent = (string)file_get_contents($publicHtaccess);
-        if (strpos($publicContent, '# Block installer after setup') === false) {
+        if (!str_contains($publicContent, '# Block installer after setup')) {
             $installerBlock = <<<'HTACCESS'
 
 
@@ -465,7 +473,7 @@ HTACCESS;
     // Add protection to existing root .htaccess
     if (file_exists($rootHtaccess)) {
         $currentContent = file_get_contents($rootHtaccess);
-        if (strpos($currentContent, '# Protect sensitive files') === false) {
+        if (!str_contains($currentContent, '# Protect sensitive files')) {
             file_put_contents($rootHtaccess, $currentContent . $envProtection);
         }
     }
@@ -497,7 +505,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['csrf'] = 'Invalid or missing CSRF token. Please reload the page.';
     }
 
-    if (empty($errors) && $step === 'database') {
+    if ($errors === [] && $step === 'database') {
         // C2: Validate db_type against allowlist
         $dbType = $_POST['db_type'] ?? 'sqlite';
         if (!in_array($dbType, ['sqlite', 'mysql'], true)) {
@@ -530,7 +538,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // and ensures no surprise interpolation in tools that re-read .env.
             foreach (['username' => 'db_username', 'database' => 'db_database', 'password' => 'db_password'] as $cfgKey => $errKey) {
                 $val = (string)$dbConfig[$cfgKey];
-                if ($val !== '' && (strpos($val, "\n") !== false || strpos($val, "\r") !== false)) {
+                if ($val !== '' && (str_contains($val, "\n") || str_contains($val, "\r"))) {
                     $errors[$errKey] = 'Line breaks are not allowed in this field.';
                 }
             }
@@ -548,7 +556,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 // Validate as IP or hostname
-                if (empty($errors)) {
+                if ($errors === []) {
                     $isValidIp = filter_var($host, FILTER_VALIDATE_IP);
                     $isValidHostname = preg_match('/^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$/', $host);
                     if (!$isValidIp && !$isValidHostname) {
@@ -558,13 +566,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Note: private/reserved IPs are legitimate for database hosts
                 // (127.0.0.1, 10.x, 192.168.x, etc. are standard DB setups).
                 // Cloud metadata endpoints are already blocked above.
-                $isValidIp = $isValidIp ?? false;
-                $isValidHostname = $isValidHostname ?? false;
+                $isValidIp ??= false;
+                $isValidHostname ??= false;
                 // DNS resolution check for hostnames — use resolved IP in DSN to prevent TOCTOU.
                 // Resolve both A (IPv4) and AAAA (IPv6) records: an IPv6-only host has
                 // no A record, so gethostbyname() returns the input unchanged and the
                 // SSRF/DNS-rebinding pinning would not activate.
-                if (empty($errors) && !$isValidIp && $isValidHostname) {
+                if ($errors === [] && !$isValidIp && $isValidHostname) {
                     $candidateIps = [];
                     if (function_exists('dns_get_record')) {
                         foreach (dns_get_record($host, DNS_A) ?: [] as $rec) {
@@ -578,7 +586,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             }
                         }
                     }
-                    if (empty($candidateIps)) {
+                    if ($candidateIps === []) {
                         $legacy = gethostbyname($host);
                         if ($legacy !== $host) {
                             $candidateIps[] = $legacy;
@@ -588,7 +596,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     foreach ($candidateIps as $ip) {
                         $blockedHere = false;
                         foreach ($blockedPatterns as $blocked) {
-                            if (stripos($ip, $blocked) !== false) {
+                            if (stripos((string) $ip, $blocked) !== false) {
                                 $blockedHere = true;
                                 break;
                             }
@@ -601,7 +609,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $safeIp = $ip;
                         }
                     }
-                    if (empty($errors) && $safeIp !== null) {
+                    if ($errors === [] && $safeIp !== null) {
                         // F019: Store resolved IP separately in DB_HOST_PINNED_IP for
                         // runtime DNS-rebinding TOCTOU prevention; DB_HOST keeps the
                         // hostname for TLS SNI on managed MySQL (RDS, Cloud SQL, ...).
@@ -618,7 +626,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // SQLite validation removed - we use fixed database name
 
         // Test connection
-        if (empty($errors)) {
+        if ($errors === []) {
             $testResult = testDatabaseConnection($dbConfig);
             if (!$testResult['success']) {
                 $errors['connection'] = 'Database connection failed. Please check your credentials and try again.';
@@ -636,7 +644,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['db_form_data'] = array_diff_key($dbConfig, ['password' => true]);
     }
 
-    if (empty($errors) && $step === 'admin') {
+    if ($errors === [] && $step === 'admin') {
         $adminPassword = $_POST['admin_password'] ?? '';
         $adminPasswordConfirm = $_POST['admin_password_confirm'] ?? '';
         $adminData = [
@@ -650,16 +658,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($adminData['email']) || !filter_var($adminData['email'], FILTER_VALIDATE_EMAIL)) {
             $errors['admin_email'] = 'Valid email is required';
         }
-        if (strlen($adminPassword) < 8) {
+        if (strlen((string) $adminPassword) < 8) {
             $errors['admin_password'] = 'Password must be at least 8 characters';
         }
         if ($adminPassword !== $adminPasswordConfirm) {
             $errors['admin_password'] = 'Passwords do not match';
         }
 
-        if (empty($errors)) {
+        if ($errors === []) {
             // H4: Hash password immediately, never store plaintext in session
-            $adminData['password_hash'] = password_hash($adminPassword, PASSWORD_ARGON2ID);
+            $adminData['password_hash'] = password_hash((string) $adminPassword, PASSWORD_ARGON2ID);
             unset($adminPassword, $adminPasswordConfirm);
             $_SESSION['admin_data'] = $adminData;
             header('Location: installer.php?step=settings');
@@ -669,7 +677,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['admin_form_data'] = $adminData;
     }
 
-    if (empty($errors) && $step === 'settings') {
+    if ($errors === [] && $step === 'settings') {
         $settingsData = [
             'site_title' => trim($_POST['site_title'] ?? 'My Photography'),
             'site_description' => trim($_POST['site_description'] ?? 'A beautiful photography portfolio'),
@@ -756,7 +764,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors['site_email'] = 'Valid contact email is required';
         }
 
-        if (empty($errors)) {
+        if ($errors === []) {
             $_SESSION['settings_data'] = $settingsData;
             header('Location: installer.php?step=install');
             exit;
@@ -765,7 +773,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['settings_form_data'] = $settingsData;
     }
 
-    if (empty($errors) && $step === 'install') {
+    if ($errors === [] && $step === 'install') {
         try {
             $dbConfig = $_SESSION['db_config'] ?? [];
             $adminData = $_SESSION['admin_data'] ?? [];
@@ -910,7 +918,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             // Enter line comment (-- followed by space/tab/newline/EOF)
                             if (!$inSingleQuote && !$inDoubleQuote && $ch === '-' && $next === '-') {
                                 $after = $i + 2 < $len ? $sql[$i + 2] : '';
-                                if ($after === ' ' || $after === "\t" || $after === "\r" || $after === "\n" || $after === '') {
+                                if (in_array($after, [' ', "\t", "\r", "\n", ''], true)) {
                                     $inLineComment = true;
                                     $i++;
                                     continue;
@@ -961,7 +969,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
             // Create admin user (H4: password already hashed in session)
-            $nameParts = explode(' ', $adminData['name'], 2);
+            $nameParts = explode(' ', (string) $adminData['name'], 2);
             $firstName = $nameParts[0];
             $lastName = $nameParts[1] ?? '';
 
@@ -1079,7 +1087,7 @@ unset($_SESSION['db_errors'], $_SESSION['admin_errors'], $_SESSION['settings_err
 
 // Get requirements check
 $requirements = checkRequirements();
-$requirementsPassed = !in_array(false, array_values($requirements));
+$requirementsPassed = !in_array(false, $requirements);
 ?><!DOCTYPE html>
 <html lang="en" class="h-full">
 <head>
@@ -1401,7 +1409,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                         <div class="mt-8 pt-6 border-t border-gray-100">
                             <div class="text-center">
                                 <p class="text-sm text-gray-600 mb-4">
-                                    Detected Installation URL: <strong><?= htmlspecialchars(getCurrentUrl()) ?></strong>
+                                    Detected Installation URL: <strong><?= htmlspecialchars((string) getCurrentUrl()) ?></strong>
                                 </p>
                                 
                                 <?php if ($requirementsPassed): ?>
@@ -1433,7 +1441,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                         <?php endif; ?>
                         
                         <form method="post" action="installer.php?step=database">
-                            <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrfToken) ?>">
+                            <input type="hidden" name="_csrf" value="<?= htmlspecialchars((string) $csrfToken) ?>">
                             <div class="mb-6">
                                 <label class="block text-sm font-medium text-gray-700 mb-3">Database Type</label>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1534,7 +1542,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                         <p class="text-gray-600 mb-8">Create your first admin user account to manage Cimaise.</p>
                         
                         <form method="post" action="installer.php?step=admin">
-                            <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrfToken) ?>">
+                            <input type="hidden" name="_csrf" value="<?= htmlspecialchars((string) $csrfToken) ?>">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
@@ -1599,7 +1607,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                         <p class="text-gray-600 mb-8">Configure your site's information and preferences.</p>
 
                         <form method="post" action="installer.php?step=settings" enctype="multipart/form-data">
-                            <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrfToken) ?>">
+                            <input type="hidden" name="_csrf" value="<?= htmlspecialchars((string) $csrfToken) ?>">
                             <!-- Site Identity -->
                             <h3 class="text-lg font-medium text-gray-900 mb-4"><i class="fas fa-globe mr-2"></i>Site Identity</h3>
 
@@ -1630,7 +1638,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Contact Email <span class="text-red-500">*</span></label>
                                     <input type="email" name="site_email" class="form-input w-full"
-                                           value="<?= htmlspecialchars($settingsFormData['site_email'] ?? ($_SESSION['admin_data']['email'] ?? '')) ?>" placeholder="contact@example.com" required>
+                                           value="<?= htmlspecialchars((string) ($settingsFormData['site_email'] ?? $_SESSION['admin_data']['email'] ?? '')) ?>" placeholder="contact@example.com" required>
                                     <div class="text-sm text-gray-500 mt-1">For contact form submissions</div>
                                 </div>
 
@@ -1650,7 +1658,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Site Language</label>
                                     <select name="site_language" class="form-input w-full">
                                         <?php foreach ($availableLanguages as $code => $lang): ?>
-                                            <option value="<?= htmlspecialchars($code) ?>" <?= ($settingsFormData['site_language'] ?? 'en') === $code ? 'selected' : '' ?>><?= htmlspecialchars($lang['label']) ?></option>
+                                            <option value="<?= htmlspecialchars((string) $code) ?>" <?= ($settingsFormData['site_language'] ?? 'en') === $code ? 'selected' : '' ?>><?= htmlspecialchars((string) $lang['label']) ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                     <div class="text-sm text-gray-500 mt-1">Frontend language</div>
@@ -1660,7 +1668,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Admin Language</label>
                                     <select name="admin_language" class="form-input w-full">
                                         <?php foreach ($availableLanguages as $code => $lang): ?>
-                                            <option value="<?= htmlspecialchars($code) ?>" <?= ($settingsFormData['admin_language'] ?? 'en') === $code ? 'selected' : '' ?>><?= htmlspecialchars($lang['label']) ?></option>
+                                            <option value="<?= htmlspecialchars((string) $code) ?>" <?= ($settingsFormData['admin_language'] ?? 'en') === $code ? 'selected' : '' ?>><?= htmlspecialchars((string) $lang['label']) ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                     <div class="text-sm text-gray-500 mt-1">Admin panel language</div>
@@ -1817,7 +1825,7 @@ foreach ($homeTemplates as $val => $label):
                                     <div class="bg-gray-50 p-4 rounded-lg">
                                         <div class="text-sm">
                                             <div><strong>Title:</strong> <?= htmlspecialchars($_SESSION['settings_data']['site_title'] ?? '') ?></div>
-                                            <div><strong>URL:</strong> <?= htmlspecialchars(getCurrentUrl()) ?></div>
+                                            <div><strong>URL:</strong> <?= htmlspecialchars((string) getCurrentUrl()) ?></div>
                                             <div><strong>Timezone:</strong> <?= htmlspecialchars($_SESSION['settings_data']['timezone'] ?? 'Europe/Rome') ?></div>
                                         </div>
                                     </div>
@@ -1849,7 +1857,7 @@ foreach ($homeTemplates as $val => $label):
                             </div>
                             
                             <form method="post" action="installer.php?step=install">
-                                <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrfToken) ?>">
+                                <input type="hidden" name="_csrf" value="<?= htmlspecialchars((string) $csrfToken) ?>">
                                 <div class="flex justify-between">
                                     <a href="installer.php?step=settings" class="btn-secondary px-6 py-3 rounded-lg font-medium inline-flex items-center">
                                         <i class="fas fa-arrow-left mr-2"></i>Back
@@ -1895,11 +1903,11 @@ foreach ($homeTemplates as $val => $label):
                         </div>
                         
                         <div class="space-y-4">
-                            <a href="<?= htmlspecialchars(getCurrentUrl()) ?>" class="btn-primary px-8 py-4 rounded-lg font-medium inline-flex items-center text-lg">
+                            <a href="<?= htmlspecialchars((string) getCurrentUrl()) ?>" class="btn-primary px-8 py-4 rounded-lg font-medium inline-flex items-center text-lg">
                                 <i class="fas fa-home mr-2"></i>Visit Your Site
                             </a>
                             <div>
-                                <a href="<?= htmlspecialchars(getCurrentUrl()) ?>/admin/login" class="btn-secondary px-6 py-3 rounded-lg font-medium inline-flex items-center">
+                                <a href="<?= htmlspecialchars((string) getCurrentUrl()) ?>/admin/login" class="btn-secondary px-6 py-3 rounded-lg font-medium inline-flex items-center">
                                     <i class="fas fa-sign-in-alt mr-2"></i>Admin Login
                                 </a>
                             </div>

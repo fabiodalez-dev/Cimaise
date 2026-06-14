@@ -16,7 +16,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 #[AsCommand(name: 'sitemap:build')]
 class SitemapCommand extends Command
 {
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
         parent::__construct();
     }
@@ -37,7 +37,7 @@ class SitemapCommand extends Command
         $seoBaseUrl = $settingsService->get('seo.canonical_base_url', '');
 
         $baseUrl = $cliBaseUrl ?: ($seoBaseUrl ?: BaseUrlService::getCurrentBaseUrl());
-        $baseUrl = rtrim($baseUrl, '/');
+        $baseUrl = rtrim((string) $baseUrl, '/');
 
         $publicDir = dirname(__DIR__, 2) . '/public';
 
@@ -82,7 +82,7 @@ class SitemapCommand extends Command
         foreach ($categories as $category) {
             $urls[] = [
                 'loc' => $baseUrl . '/category/' . $category['slug'],
-                'lastmod' => $category['last_updated'] ? date('Y-m-d', strtotime($category['last_updated'])) : date('Y-m-d'),
+                'lastmod' => $category['last_updated'] ? date('Y-m-d', strtotime((string) $category['last_updated'])) : date('Y-m-d'),
                 'changefreq' => 'weekly',
                 'priority' => '0.8'
             ];
@@ -103,7 +103,7 @@ class SitemapCommand extends Command
         foreach ($tags as $tag) {
             $urls[] = [
                 'loc' => $baseUrl . '/tag/' . $tag['slug'],
-                'lastmod' => $tag['last_updated'] ? date('Y-m-d', strtotime($tag['last_updated'])) : date('Y-m-d'),
+                'lastmod' => $tag['last_updated'] ? date('Y-m-d', strtotime((string) $tag['last_updated'])) : date('Y-m-d'),
                 'changefreq' => 'weekly',
                 'priority' => '0.6'
             ];
@@ -127,7 +127,7 @@ class SitemapCommand extends Command
             $lastmod = $album['updated_at'] ?: $album['published_at'];
             $urls[] = [
                 'loc' => $baseUrl . '/album/' . $album['slug'],
-                'lastmod' => date('Y-m-d', strtotime($lastmod)),
+                'lastmod' => date('Y-m-d', strtotime((string) $lastmod)),
                 'changefreq' => 'monthly',
                 'priority' => '0.9'
             ];
@@ -155,15 +155,13 @@ class SitemapCommand extends Command
 
         foreach ($urls as $url) {
             $xml .= '  <url>' . "\n";
-            $xml .= '    <loc>' . htmlspecialchars($url['loc']) . '</loc>' . "\n";
+            $xml .= '    <loc>' . htmlspecialchars((string) $url['loc']) . '</loc>' . "\n";
             $xml .= '    <lastmod>' . $url['lastmod'] . '</lastmod>' . "\n";
             $xml .= '    <changefreq>' . $url['changefreq'] . '</changefreq>' . "\n";
             $xml .= '    <priority>' . $url['priority'] . '</priority>' . "\n";
             $xml .= '  </url>' . "\n";
         }
-
-        $xml .= '</urlset>' . "\n";
-        return $xml;
+        return $xml . ('</urlset>' . "\n");
     }
 
     private function generateSitemapIndex(string $baseUrl): string
@@ -174,8 +172,7 @@ class SitemapCommand extends Command
         $xml .= '    <loc>' . $baseUrl . '/sitemap.xml</loc>' . "\n";
         $xml .= '    <lastmod>' . date('Y-m-d') . '</lastmod>' . "\n";
         $xml .= '  </sitemap>' . "\n";
-        $xml .= '</sitemapindex>' . "\n";
-        return $xml;
+        return $xml . ('</sitemapindex>' . "\n");
     }
 
     private function generateRobotsTxt(string $baseUrl, string $publicDir): void

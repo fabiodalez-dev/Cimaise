@@ -25,9 +25,9 @@ final class SearchController extends BaseController
 {
     private const MATCHED_THUMBS_PER_ALBUM = 5;
 
-    private SearchService $search;
+    private readonly SearchService $search;
 
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
         $this->search = new SearchService($db);
@@ -80,7 +80,7 @@ final class SearchController extends BaseController
      */
     private function enrichAlbums(array $albums): array
     {
-        if (empty($albums)) {
+        if ($albums === []) {
             return [];
         }
 
@@ -158,7 +158,7 @@ final class SearchController extends BaseController
         }
 
         $thumbs = [];
-        if (!empty($allIds)) {
+        if ($allIds !== []) {
             $enrich = new AlbumEnrichmentService($this->db->pdo());
             $thumbs = $enrich->loadListingCoverImages(array_values(array_unique($allIds)));
         }

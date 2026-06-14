@@ -12,7 +12,7 @@ use Slim\Views\Twig;
 
 class TestController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
     }
@@ -166,9 +166,7 @@ class TestController extends BaseController
             $equipment['lenses'] = array_values(array_unique(array_filter(array_map(fn ($r) => $r['custom_lens'] ?? null, $imagesRows))));
         }
         if (!$equipment['film']) {
-            $equipment['film'] = array_values(array_unique(array_filter(array_map(function ($r) {
-                return $r['custom_film'] ?? ($r['film_name'] ?? null);
-            }, $imagesRows))));
+            $equipment['film'] = array_values(array_unique(array_filter(array_map(fn ($r) => $r['custom_film'] ?? ($r['film_name'] ?? null), $imagesRows))));
         }
         if (!$equipment['developers']) {
             $equipment['developers'] = array_values(array_unique(array_filter(array_map(fn ($r) => $r['developer_name'] ?? null, $imagesRows))));

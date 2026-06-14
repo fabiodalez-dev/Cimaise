@@ -16,12 +16,12 @@ use Slim\Views\Twig;
 
 class CacheController extends BaseController
 {
-    private PageCacheService $pageCacheService;
+    private readonly PageCacheService $pageCacheService;
 
     public function __construct(
-        private Database $db,
-        private Twig $view,
-        private SettingsService $settings
+        private readonly Database $db,
+        private readonly Twig $view,
+        private readonly SettingsService $settings
     ) {
         parent::__construct();
         $this->pageCacheService = new PageCacheService($this->settings, $this->db);
@@ -114,7 +114,7 @@ class CacheController extends BaseController
                 // Clear all album caches
                 $stats = $this->pageCacheService->getStats();
                 foreach ($stats['items'] as $item) {
-                    if (str_starts_with($item['type'], 'album:')) {
+                    if (str_starts_with((string) $item['type'], 'album:')) {
                         $cleared += $this->pageCacheService->invalidate($item['type']);
                     }
                 }
@@ -210,7 +210,7 @@ class CacheController extends BaseController
             $details[] = "{$stats['albums']} albums";
         }
 
-        if (!empty($details)) {
+        if ($details !== []) {
             $message .= ' (' . implode(', ', $details) . ')';
         }
 
@@ -443,10 +443,8 @@ class CacheController extends BaseController
         foreach ($items as $item) {
             if ($item->isDir()) {
                 @rmdir($item->getPathname());
-            } else {
-                if (@unlink($item->getPathname())) {
-                    $deleted++;
-                }
+            } elseif (@unlink($item->getPathname())) {
+                $deleted++;
             }
         }
 

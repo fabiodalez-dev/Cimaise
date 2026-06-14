@@ -8,11 +8,8 @@ use App\Support\Hooks;
 
 class CustomFieldService
 {
-    private \PDO $db;
-
-    public function __construct(\PDO $db)
+    public function __construct(private readonly \PDO $db)
     {
-        $this->db = $db;
     }
 
     /**
@@ -350,10 +347,12 @@ class CustomFieldService
         ');
 
         foreach ($values as $value) {
-            if ($value === '' || $value === null) {
+            if ($value === '') {
                 continue;
             }
-
+            if ($value === null) {
+                continue;
+            }
             if (is_numeric($value)) {
                 $stmt->execute([$albumId, $fieldTypeId, (int)$value, null]);
             } else {
@@ -648,7 +647,7 @@ class CustomFieldService
      */
     public function enrichImagesWithCustomFields(array $images, int $albumId): array
     {
-        if (empty($images)) {
+        if ($images === []) {
             return $images;
         }
 

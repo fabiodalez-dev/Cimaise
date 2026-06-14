@@ -11,7 +11,7 @@ class NavigationService
 {
     private const CACHE_TTL = 300; // 5 minutes
 
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
     }
 

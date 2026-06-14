@@ -21,7 +21,7 @@ class AlbumsController extends BaseController
     private ?CustomFieldService $customFieldService = null;
     private ?PageCacheService $pageCacheService = null;
 
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
         try {
@@ -45,7 +45,7 @@ class AlbumsController extends BaseController
     {
         try {
             $settings = new SettingsService($this->db);
-            if ($this->pageCacheService === null) {
+            if (!$this->pageCacheService instanceof \App\Services\PageCacheService) {
                 $this->pageCacheService = new PageCacheService($settings, $this->db);
             }
 
@@ -56,7 +56,7 @@ class AlbumsController extends BaseController
                 try {
                     $pivotStmt = $this->db->pdo()->prepare('SELECT category_id FROM album_category WHERE album_id = ?');
                     $pivotStmt->execute([$albumId]);
-                    $categoryIds = array_map('intval', $pivotStmt->fetchAll(\PDO::FETCH_COLUMN) ?: []);
+                    $categoryIds = array_map(intval(...), $pivotStmt->fetchAll(\PDO::FETCH_COLUMN) ?: []);
                 } catch (\Throwable) {
                     // Schema legacy: pivot table may not exist yet
                 }
@@ -155,7 +155,7 @@ class AlbumsController extends BaseController
         $stmt->execute();
         $rows = $stmt->fetchAll();
 
-        $pages = (int)ceil(($total ?: 0) / $perPage);
+        $pages = (int)ceil(($total) / $perPage);
         $pagination = [
             'page' => $page,
             'per_page' => $perPage,
@@ -184,7 +184,7 @@ class AlbumsController extends BaseController
         $templates = [];
         try {
             $templates = (new \App\Services\TemplateService($this->db))->getGalleryTemplatesForDropdown();
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // Templates table doesn't exist yet, continue without templates
         }
         // Load equipment data
@@ -252,7 +252,7 @@ class AlbumsController extends BaseController
         $d = (array)$request->getParsedBody();
         $title = trim((string)($d['title'] ?? ''));
         $slug = trim((string)($d['slug'] ?? ''));
-        $categoryIds = array_map('intval', (array)($d['categories'] ?? []));
+        $categoryIds = array_map(intval(...), (array)($d['categories'] ?? []));
         $category_id = (int)($d['category_id'] ?? ($categoryIds[0] ?? 0));
         $excerpt = trim(strip_tags((string)($d['excerpt'] ?? ''))) ?: null;
         $bodyRaw = trim((string)($d['body'] ?? '')) ?: null;
@@ -265,18 +265,18 @@ class AlbumsController extends BaseController
         $template_id = $templateSelection['template_id'];
         $custom_template_id = $templateSelection['custom_template_id'];
         $albumPageTemplate = $this->normalizeAlbumPageTemplate((string)($d['album_page_template'] ?? ''));
-        $tagIds = array_map('intval', (array)($d['tags'] ?? []));
+        $tagIds = array_map(intval(...), (array)($d['tags'] ?? []));
         $allow_downloads = isset($d['allow_downloads']) ? 1 : 0;
         $is_nsfw = isset($d['is_nsfw']) ? 1 : 0;
         $allow_template_switch = isset($d['allow_template_switch']) ? 1 : 0;
         $passwordRaw = (string)($d['password'] ?? '');
         $password_hash = $passwordRaw !== '' ? password_hash($passwordRaw, PASSWORD_ARGON2ID) : null;
-        $cameraIds = array_map('intval', (array)($d['cameras'] ?? []));
-        $lensIds = array_map('intval', (array)($d['lenses'] ?? []));
-        $filmIds = array_map('intval', (array)($d['films'] ?? []));
-        $developerIds = array_map('intval', (array)($d['developers'] ?? []));
-        $labIds = array_map('intval', (array)($d['labs'] ?? []));
-        $locationIds = array_map('intval', (array)($d['locations'] ?? []));
+        $cameraIds = array_map(intval(...), (array)($d['cameras'] ?? []));
+        $lensIds = array_map(intval(...), (array)($d['lenses'] ?? []));
+        $filmIds = array_map(intval(...), (array)($d['films'] ?? []));
+        $developerIds = array_map(intval(...), (array)($d['developers'] ?? []));
+        $labIds = array_map(intval(...), (array)($d['labs'] ?? []));
+        $locationIds = array_map(intval(...), (array)($d['locations'] ?? []));
 
         // SEO fields for new albums (set defaults)
         $seoTitle = trim((string)($d['seo_title'] ?? '')) ?: null;
@@ -338,7 +338,7 @@ class AlbumsController extends BaseController
             try {
                 $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, body, shoot_date, show_date, is_published, published_at, sort_order, template_id, allow_downloads, is_nsfw, allow_template_switch, password_hash) VALUES(:t,:s,:c,:e,:b,:sd,:sh,:p,:pa,:o,:ti,:dl,:nsfw,:ats,:ph)');
                 $stmt->execute([':t' => $title,':s' => $slug,':c' => $category_id,':e' => $excerpt,':b' => $body,':sd' => $shoot_date,':sh' => $show_date,':p' => $is_published,':pa' => $published_at,':o' => $sort_order,':ti' => $template_id, ':dl' => $allow_downloads, ':nsfw' => $is_nsfw, ':ats' => $allow_template_switch, ':ph' => $password_hash]);
-            } catch (\Throwable $e2) {
+            } catch (\Throwable) {
                 // Final fallback
                 $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, body, shoot_date, show_date, is_published, published_at, sort_order, allow_downloads) VALUES(:t,:s,:c,:e,:b,:sd,:sh,:p,:pa,:o,:dl)');
                 $stmt->execute([':t' => $title,':s' => $slug,':c' => $category_id,':e' => $excerpt,':b' => $body,':sd' => $shoot_date,':sh' => $show_date,':p' => $is_published,':pa' => $published_at,':o' => $sort_order, ':dl' => $allow_downloads]);
@@ -346,16 +346,12 @@ class AlbumsController extends BaseController
         }
         try {
             $albumId = (int)$pdo->lastInsertId();
-            // sync categories (pivot) — $category_id is guaranteed > 0 by the
-            // upstream "title or category required" guard.
-            {
-                $cats = array_unique(array_filter(array_map('intval', array_merge([$category_id], $categoryIds))));
-                if ($cats) {
-                    $sql = $this->db->insertIgnoreKeyword() . ' INTO album_category(album_id, category_id) VALUES(:a,:c)';
-                    $catStmt = $pdo->prepare($sql);
-                    foreach ($cats as $cid) {
-                        $catStmt->execute([':a' => $albumId, ':c' => $cid]);
-                    }
+            $cats = array_unique(array_filter(array_map(intval(...), array_merge([$category_id], $categoryIds))));
+            if ($cats) {
+                $sql = $this->db->insertIgnoreKeyword() . ' INTO album_category(album_id, category_id) VALUES(:a,:c)';
+                $catStmt = $pdo->prepare($sql);
+                foreach ($cats as $cid) {
+                    $catStmt->execute([':a' => $albumId, ':c' => $cid]);
                 }
             }
             if ($tagIds) {
@@ -426,7 +422,7 @@ class AlbumsController extends BaseController
                     foreach ($customFields as $typeId => $values) {
                         // Filter empty values, keep both numeric IDs and string values
                         $values = array_filter((array)$values, fn ($v) => $v !== '' && $v !== null);
-                        if (!empty($values)) {
+                        if ($values !== []) {
                             $this->customFieldService->setAlbumMetadata($albumId, (int)$typeId, array_values($values));
                         }
                     }
@@ -512,12 +508,12 @@ class AlbumsController extends BaseController
 
         $curTags = $pdo->prepare('SELECT tag_id FROM album_tag WHERE album_id = :a');
         $curTags->execute([':a' => $id]);
-        $tagIds = array_map('intval', array_column($curTags->fetchAll(), 'tag_id'));
+        $tagIds = array_map(intval(...), array_column($curTags->fetchAll(), 'tag_id'));
         $curCatsStmt = $pdo->prepare('SELECT category_id FROM album_category WHERE album_id = :a');
         $curCatsStmt->execute([':a' => $id]);
         $baseCats = $item['category_id'] ? [(int)$item['category_id']] : [];
         $additionalCats = array_column($curCatsStmt->fetchAll() ?: [], 'category_id');
-        $categoryIds = array_values(array_unique(array_map('intval', array_merge($baseCats, $additionalCats))));
+        $categoryIds = array_values(array_unique(array_map(intval(...), array_merge($baseCats, $additionalCats))));
 
         // Load current equipment associations
         $cameraIds = [];
@@ -530,32 +526,32 @@ class AlbumsController extends BaseController
         try {
             $cameraStmt = $pdo->prepare('SELECT camera_id FROM album_camera WHERE album_id = :a');
             $cameraStmt->execute([':a' => $id]);
-            $cameraIds = array_map('intval', array_column($cameraStmt->fetchAll(), 'camera_id'));
+            $cameraIds = array_map(intval(...), array_column($cameraStmt->fetchAll(), 'camera_id'));
 
             $lensStmt = $pdo->prepare('SELECT lens_id FROM album_lens WHERE album_id = :a');
             $lensStmt->execute([':a' => $id]);
-            $lensIds = array_map('intval', array_column($lensStmt->fetchAll(), 'lens_id'));
+            $lensIds = array_map(intval(...), array_column($lensStmt->fetchAll(), 'lens_id'));
 
             $filmStmt = $pdo->prepare('SELECT film_id FROM album_film WHERE album_id = :a');
             $filmStmt->execute([':a' => $id]);
-            $filmIds = array_map('intval', array_column($filmStmt->fetchAll(), 'film_id'));
+            $filmIds = array_map(intval(...), array_column($filmStmt->fetchAll(), 'film_id'));
 
             $developerStmt = $pdo->prepare('SELECT developer_id FROM album_developer WHERE album_id = :a');
             $developerStmt->execute([':a' => $id]);
-            $developerIds = array_map('intval', array_column($developerStmt->fetchAll(), 'developer_id'));
+            $developerIds = array_map(intval(...), array_column($developerStmt->fetchAll(), 'developer_id'));
 
             $labStmt = $pdo->prepare('SELECT lab_id FROM album_lab WHERE album_id = :a');
             $labStmt->execute([':a' => $id]);
-            $labIds = array_map('intval', array_column($labStmt->fetchAll(), 'lab_id'));
+            $labIds = array_map(intval(...), array_column($labStmt->fetchAll(), 'lab_id'));
             // Locations
             try {
                 $locStmt = $pdo->prepare('SELECT location_id FROM album_location WHERE album_id = :a');
                 $locStmt->execute([':a' => $id]);
-                $locationIds = array_map('intval', array_column($locStmt->fetchAll(), 'location_id'));
+                $locationIds = array_map(intval(...), array_column($locStmt->fetchAll(), 'location_id'));
             } catch (\Throwable) {
                 $locationIds = [];
             }
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // Equipment tables might not exist yet
         }
 
@@ -708,7 +704,7 @@ class AlbumsController extends BaseController
         $d = (array)$request->getParsedBody();
         $title = trim((string)($d['title'] ?? ''));
         $slug = trim((string)($d['slug'] ?? ''));
-        $categoryIds = array_map('intval', (array)($d['categories'] ?? []));
+        $categoryIds = array_map(intval(...), (array)($d['categories'] ?? []));
         $category_id = (int)($d['category_id'] ?? ($categoryIds[0] ?? 0));
         $excerpt = trim(strip_tags((string)($d['excerpt'] ?? ''))) ?: null;
         $bodyRaw = trim((string)($d['body'] ?? '')) ?: null;
@@ -726,13 +722,13 @@ class AlbumsController extends BaseController
         $allow_template_switch = isset($d['allow_template_switch']) ? 1 : 0;
         $passwordRaw = (string)($d['password'] ?? '');
         $clearPassword = !empty($d['password_clear']);
-        $tagIds = array_map('intval', (array)($d['tags'] ?? []));
-        $cameraIds = array_map('intval', (array)($d['cameras'] ?? []));
-        $lensIds = array_map('intval', (array)($d['lenses'] ?? []));
-        $filmIds = array_map('intval', (array)($d['films'] ?? []));
-        $developerIds = array_map('intval', (array)($d['developers'] ?? []));
-        $labIds = array_map('intval', (array)($d['labs'] ?? []));
-        $locationIds = array_map('intval', (array)($d['locations'] ?? []));
+        $tagIds = array_map(intval(...), (array)($d['tags'] ?? []));
+        $cameraIds = array_map(intval(...), (array)($d['cameras'] ?? []));
+        $lensIds = array_map(intval(...), (array)($d['lenses'] ?? []));
+        $filmIds = array_map(intval(...), (array)($d['films'] ?? []));
+        $developerIds = array_map(intval(...), (array)($d['developers'] ?? []));
+        $labIds = array_map(intval(...), (array)($d['labs'] ?? []));
+        $locationIds = array_map(intval(...), (array)($d['locations'] ?? []));
 
         // SEO fields
         $seoTitle = trim((string)($d['seo_title'] ?? '')) ?: null;
@@ -769,7 +765,7 @@ class AlbumsController extends BaseController
         // Preserve the original publication timestamp when re-saving an already-published
         // album; only stamp "now" the first time it becomes published.
         $published_at = $is_published
-            ? (!empty($oldAlbumData['published_at']) ? (string) $oldAlbumData['published_at'] : date('Y-m-d H:i:s'))
+            ? (empty($oldAlbumData['published_at']) ? date('Y-m-d H:i:s') : (string) $oldAlbumData['published_at'])
             : null;
 
         // Ensure unique slug by appending numeric suffix if needed (exclude current album)
@@ -797,7 +793,7 @@ class AlbumsController extends BaseController
             try {
                 $stmt = $pdo->prepare('UPDATE albums SET title=:t, slug=:s, category_id=:c, excerpt=:e, body=:b, shoot_date=:sd, show_date=:sh, is_published=:p, published_at=:pa, sort_order=:o, template_id=:ti WHERE id=:id');
                 $stmt->execute([':t' => $title,':s' => $slug,':c' => $category_id,':e' => $excerpt,':b' => $body,':sd' => $shoot_date,':sh' => $show_date,':p' => $is_published,':pa' => $published_at,':o' => $sort_order,':ti' => $template_id, ':id' => $id]);
-            } catch (\Throwable $e2) {
+            } catch (\Throwable) {
                 // Final fallback
                 $stmt = $pdo->prepare('UPDATE albums SET title=:t, slug=:s, category_id=:c, excerpt=:e, body=:b, shoot_date=:sd, show_date=:sh, is_published=:p, published_at=:pa, sort_order=:o WHERE id=:id');
                 $stmt->execute([':t' => $title,':s' => $slug,':c' => $category_id,':e' => $excerpt,':b' => $body,':sd' => $shoot_date,':sh' => $show_date,':p' => $is_published,':pa' => $published_at,':o' => $sort_order, ':id' => $id]);
@@ -812,7 +808,7 @@ class AlbumsController extends BaseController
                     ':schema_type' => $schemaType, ':schema_data' => $schemaData, ':canonical_url' => $canonicalUrl,
                     ':robots_index' => $robotsIndex, ':robots_follow' => $robotsFollow, ':id' => $id
                 ]);
-            } catch (\Throwable $e3) {
+            } catch (\Throwable) {
                 // SEO fields don't exist yet, continue without error
             }
         }
@@ -868,14 +864,12 @@ class AlbumsController extends BaseController
             // sync categories pivot — $category_id is guaranteed > 0 by the
             // upstream "title or category required" guard.
             $pdo->prepare('DELETE FROM album_category WHERE album_id=:a')->execute([':a' => $id]);
-            {
-                $cats = array_unique(array_filter(array_map('intval', array_merge([$category_id], $categoryIds))));
-                if ($cats) {
-                    $sql = $this->db->insertIgnoreKeyword() . ' INTO album_category(album_id, category_id) VALUES(:a,:c)';
-                    $catStmt = $pdo->prepare($sql);
-                    foreach ($cats as $cid) {
-                        $catStmt->execute([':a' => $id, ':c' => $cid]);
-                    }
+            $cats = array_unique(array_filter(array_map(intval(...), array_merge([$category_id], $categoryIds))));
+            if ($cats) {
+                $sql = $this->db->insertIgnoreKeyword() . ' INTO album_category(album_id, category_id) VALUES(:a,:c)';
+                $catStmt = $pdo->prepare($sql);
+                foreach ($cats as $cid) {
+                    $catStmt->execute([':a' => $id, ':c' => $cid]);
                 }
             }
 
@@ -1038,7 +1032,7 @@ class AlbumsController extends BaseController
         }
 
         // H6: Batch variant query instead of N+1
-        if (!empty($imageIds)) {
+        if ($imageIds !== []) {
             $placeholders = implode(',', array_fill(0, count($imageIds), '?'));
             $vstmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id IN ({$placeholders})");
             $vstmt->execute($imageIds);
@@ -1227,7 +1221,7 @@ class AlbumsController extends BaseController
         }
 
         $data = json_decode((string)$request->getBody(), true) ?: [];
-        $ids = array_map('intval', (array)($data['order'] ?? []));
+        $ids = array_map(intval(...), (array)($data['order'] ?? []));
         if (!$ids) {
             $response->getBody()->write(json_encode(['ok' => false,'error' => 'No IDs']));
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
@@ -1245,7 +1239,7 @@ class AlbumsController extends BaseController
             // Avoids N redundant HOME+GALLERIES invalidations
             try {
                 $settings = new SettingsService($this->db);
-                if ($this->pageCacheService === null) {
+                if (!$this->pageCacheService instanceof \App\Services\PageCacheService) {
                     $this->pageCacheService = new PageCacheService($settings, $this->db);
                 }
                 $allTags = [];
@@ -1254,7 +1248,7 @@ class AlbumsController extends BaseController
                 foreach ($ids as $id) {
                     $allTags = array_merge($allTags, CacheTags::albumRelated($id));
                     $pivotStmt->execute([$id]);
-                    $catIds = array_map('intval', $pivotStmt->fetchAll(\PDO::FETCH_COLUMN) ?: []);
+                    $catIds = array_map(intval(...), $pivotStmt->fetchAll(\PDO::FETCH_COLUMN) ?: []);
                     if ($catIds === []) {
                         $fallbackStmt->execute([$id]);
                         $fbId = (int) ($fallbackStmt->fetchColumn() ?: 0);
@@ -1290,7 +1284,7 @@ class AlbumsController extends BaseController
 
         $albumId = (int)($args['id'] ?? 0);
         $data = json_decode((string)$request->getBody(), true) ?: [];
-        $tagIds = array_map('intval', (array)($data['tags'] ?? []));
+        $tagIds = array_map(intval(...), (array)($data['tags'] ?? []));
         $pdo = $this->db->pdo();
         $pdo->beginTransaction();
         try {
@@ -1342,7 +1336,7 @@ class AlbumsController extends BaseController
             $pdo->prepare('UPDATE albums SET cover_image_id=NULL WHERE id=:a AND cover_image_id=:img')->execute([':a' => $albumId, ':img' => $imageId]);
             $pdo->prepare('DELETE FROM images WHERE id=:img AND album_id=:a')->execute([':img' => $imageId, ':a' => $albumId]);
             $pdo->commit();
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             $pdo->rollBack();
             return $response->withStatus(500);
         }
@@ -1367,7 +1361,7 @@ class AlbumsController extends BaseController
 
         $albumId = (int)($args['id'] ?? 0);
         $data = json_decode((string)$request->getBody(), true) ?: [];
-        $ids = array_map('intval', (array)($data['ids'] ?? []));
+        $ids = array_map(intval(...), (array)($data['ids'] ?? []));
         if (!$ids) {
             return $response->withStatus(400);
         }
@@ -1399,7 +1393,7 @@ class AlbumsController extends BaseController
             }
             $pdo->prepare('DELETE FROM images WHERE album_id=? AND id IN (' . $in . ')')->execute(array_merge([$albumId], $ids));
             $pdo->commit();
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             $pdo->rollBack();
             return $response->withStatus(500);
         }
@@ -1519,7 +1513,7 @@ class AlbumsController extends BaseController
                 }
             }
             $pdo->commit();
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }

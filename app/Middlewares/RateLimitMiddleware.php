@@ -15,9 +15,9 @@ use Psr\Http\Server\RequestHandlerInterface as Handler;
  */
 class RateLimitMiddleware implements MiddlewareInterface
 {
-    private string $storageDir;
+    private readonly string $storageDir;
 
-    public function __construct(private int $maxAttempts = 5, private int $windowSec = 600)
+    public function __construct(private readonly int $maxAttempts = 5, private readonly int $windowSec = 600)
     {
         // Use storage directory for rate limit data
         $this->storageDir = dirname(__DIR__, 2) . '/storage/rate_limits';
@@ -38,12 +38,12 @@ class RateLimitMiddleware implements MiddlewareInterface
         // Only trust X-Forwarded-For if request comes from a trusted proxy
         $trustedProxies = getenv('TRUSTED_PROXIES') ?: '';
         if ($trustedProxies !== '' && $remoteAddr !== 'unknown') {
-            $trustedList = array_map('trim', explode(',', $trustedProxies));
+            $trustedList = array_map(trim(...), explode(',', $trustedProxies));
 
             // Validate each proxy IP (except wildcard)
             $trustedList = array_filter($trustedList, fn ($ip) => $ip === '*' || filter_var($ip, FILTER_VALIDATE_IP) !== false);
 
-            if (empty($trustedList)) {
+            if ($trustedList === []) {
                 error_log('WARNING: No valid IPs in TRUSTED_PROXIES configuration');
                 return $remoteAddr;
             }
@@ -64,7 +64,7 @@ class RateLimitMiddleware implements MiddlewareInterface
                 if ($forwardedFor !== '') {
                     // X-Forwarded-For can contain multiple IPs: client, proxy1, proxy2
                     // The leftmost IP is the original client
-                    $ips = array_map('trim', explode(',', $forwardedFor));
+                    $ips = array_map(trim(...), explode(',', $forwardedFor));
                     $clientIp = $ips[0] ?? '';
 
                     // Validate IP format to prevent spoofing
@@ -130,7 +130,7 @@ class RateLimitMiddleware implements MiddlewareInterface
     {
         $file = "{$this->storageDir}/{$key}.json";
 
-        if (empty($attempts)) {
+        if ($attempts === []) {
             @unlink($file);
             return;
         }

@@ -14,7 +14,7 @@ use Slim\Views\Twig;
 
 class UsersController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
     }
@@ -39,7 +39,7 @@ class UsersController extends BaseController
         $stmt->execute();
         $users = $stmt->fetchAll();
 
-        $pages = (int)ceil(($total ?: 0) / $perPage);
+        $pages = (int)ceil(($total) / $perPage);
 
         return $this->view->render($response, 'admin/users/index.twig', [
             'users' => $users,

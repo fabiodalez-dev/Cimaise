@@ -14,7 +14,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 #[AsCommand(name: 'user:create', description: 'Create an admin user and print the password')]
 class UserCreateCommand extends Command
 {
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
         parent::__construct();
     }
@@ -50,13 +50,12 @@ class UserCreateCommand extends Command
             $output->writeln('<info>Password updated for:</info> ' . $email);
             $output->writeln('<comment>New Password:</comment> ' . $password);
             return Command::SUCCESS;
-        } else {
-            $sql = 'INSERT INTO users (email, password_hash, role) VALUES (:email, :hash, \'admin\')';
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([':email' => $email, ':hash' => $hash]);
-            $output->writeln('<info>Admin created:</info> ' . $email);
-            $output->writeln('<comment>Password:</comment> ' . $password);
         }
+        $sql = 'INSERT INTO users (email, password_hash, role) VALUES (:email, :hash, \'admin\')';
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([':email' => $email, ':hash' => $hash]);
+        $output->writeln('<info>Admin created:</info> ' . $email);
+        $output->writeln('<comment>Password:</comment> ' . $password);
         return Command::SUCCESS;
     }
 }

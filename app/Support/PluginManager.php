@@ -51,7 +51,7 @@ class PluginManager
 
     public static function getInstance(): self
     {
-        if (self::$instance === null) {
+        if (!self::$instance instanceof \App\Support\PluginManager) {
             self::$instance = new self();
         }
         return self::$instance;
@@ -703,7 +703,7 @@ class PluginManager
     public function getStats(): array
     {
         $totalHooks = count($this->hooks);
-        $totalCallbacks = array_sum(array_map('count', $this->hooks));
+        $totalCallbacks = array_sum(array_map(count(...), $this->hooks));
 
         return [
             'total_hooks' => $totalHooks,

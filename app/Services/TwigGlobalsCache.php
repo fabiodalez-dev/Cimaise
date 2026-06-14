@@ -84,7 +84,7 @@ class TwigGlobalsCache
 
                 // Site identity
                 'site_title' => $siteTitle,
-                'site_logo' => $settings->get('site.logo', null),
+                'site_logo' => $settings->get('site.logo'),
                 'logo_type' => (string) ($settings->get('site.logo_type', 'text') ?? 'text'),
                 'site_copyright' => (string) ($settings->get('site.copyright', '') ?? ''),
 

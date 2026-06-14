@@ -15,7 +15,7 @@ use Slim\Views\Twig;
 
 class SettingsController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
     }
@@ -43,7 +43,7 @@ class SettingsController extends BaseController
             $stmt->execute(['maintenance-mode']);
             $pluginStatus = $stmt->fetch(\PDO::FETCH_ASSOC);
             $maintenancePluginActive = $pluginStatus && $pluginStatus['is_active'];
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // Plugin table doesn't exist yet
         }
 
@@ -254,19 +254,19 @@ class SettingsController extends BaseController
             $customCss = preg_replace('/<!--.*?-->/s', '', $customCss);
 
             // 4. Security: Remove javascript: protocol and data: URIs in url()
-            $customCss = preg_replace('/url\s*\(\s*[\'"]?\s*(?:javascript|data):/i', 'url(#blocked:', $customCss);
+            $customCss = preg_replace('/url\s*\(\s*[\'"]?\s*(?:javascript|data):/i', 'url(#blocked:', (string) $customCss);
 
             // 5. Remove @import rules (can be used to load external malicious CSS)
-            $customCss = preg_replace('/@import\s+(?:url\s*\()?[^;]+;/i', '/* @import blocked */', $customCss);
+            $customCss = preg_replace('/@import\s+(?:url\s*\()?[^;]+;/i', '/* @import blocked */', (string) $customCss);
 
             // 6. Remove expression() (old IE CSS expressions - potential XSS)
-            $customCss = preg_replace('/expression\s*\(/i', '/* expression blocked */ (', $customCss);
+            $customCss = preg_replace('/expression\s*\(/i', '/* expression blocked */ (', (string) $customCss);
 
             // 7. Remove behavior: property (IE-specific, can execute scripts)
-            $customCss = preg_replace('/behavior\s*:\s*url\s*\([^)]+\)/i', '/* behavior blocked */', $customCss);
+            $customCss = preg_replace('/behavior\s*:\s*url\s*\([^)]+\)/i', '/* behavior blocked */', (string) $customCss);
 
             // 8. Trim whitespace
-            $customCss = trim($customCss);
+            $customCss = trim((string) $customCss);
         }
 
         $svc->set('frontend.custom_css', $customCss);
@@ -377,10 +377,8 @@ class SettingsController extends BaseController
 
             // Download XML files from GitHub
             $dataDir = dirname(__DIR__, 3) . '/storage/lensfun';
-            if (!is_dir($dataDir)) {
-                if (!mkdir($dataDir, 0775, true)) {
-                    throw new \RuntimeException('Failed to create lensfun directory');
-                }
+            if (!is_dir($dataDir) && !mkdir($dataDir, 0775, true)) {
+                throw new \RuntimeException('Failed to create lensfun directory');
             }
 
             $xmlFiles = [
@@ -423,7 +421,7 @@ class SettingsController extends BaseController
             }
 
             // Log any errors but continue if at least some files downloaded
-            if (!empty($errors)) {
+            if ($errors !== []) {
                 Logger::warning('Lensfun download issues', ['errors' => array_slice($errors, 0, 5), 'total_errors' => count($errors)], 'app');
             }
 

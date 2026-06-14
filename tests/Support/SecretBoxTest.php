@@ -72,7 +72,7 @@ final class SecretBoxTest extends TestCase
         }
         $enc = SecretBox::encrypt('secret');
         // Flip a character in the base64 body.
-        $body = substr($enc, 4);
+        $body = substr((string) $enc, 4);
         $body[10] = ($body[10] === 'A') ? 'B' : 'A';
         $this->assertNull(SecretBox::decrypt('ENC:' . $body), 'auth tag must reject tampering');
     }

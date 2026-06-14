@@ -23,7 +23,7 @@ trait RegistersImageVariants
             $size = ($filesize !== false) ? $filesize : 0;
         }
         $dims = @getimagesize($destPath) ?: [$fallbackWidth, 0];
-        if ($stmt === null) {
+        if (!$stmt instanceof \PDOStatement) {
             $stmt = $pdo->prepare(sprintf(
                 '%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)',
                 $replaceKeyword

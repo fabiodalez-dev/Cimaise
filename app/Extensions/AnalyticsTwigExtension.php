@@ -74,8 +74,8 @@ class AnalyticsTwigExtension extends AbstractExtension
     public function getFilters(): array
     {
         return [
-            new TwigFilter('country_name', [$this, 'getCountryName']),
-            new TwigFilter('country_flag', [$this, 'getCountryFlag']),
+            new TwigFilter('country_name', $this->getCountryName(...)),
+            new TwigFilter('country_flag', $this->getCountryFlag(...)),
         ];
     }
 

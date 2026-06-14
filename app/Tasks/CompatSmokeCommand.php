@@ -13,7 +13,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 #[AsCommand(name: 'compat:smoke', description: 'Run a quick DB-compat smoke test (tags/equipment pivots)')]
 class CompatSmokeCommand extends Command
 {
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
         parent::__construct();
     }

@@ -1,7 +1,7 @@
 <?php
 
 // Router for PHP built-in server: routes non-existent files to index.php
-$uri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+$uri = urldecode(parse_url((string) $_SERVER['REQUEST_URI'], PHP_URL_PATH));
 $file = __DIR__ . $uri;
 
 // SECURITY: Route /media/* through PHP for access control (NSFW/password protection)

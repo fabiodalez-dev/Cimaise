@@ -16,7 +16,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(name: 'analytics:cleanup', description: 'Clean up old analytics data based on retention settings')]
 class AnalyticsCleanupCommand extends Command
 {
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
         parent::__construct();
     }
@@ -30,8 +30,7 @@ class AnalyticsCleanupCommand extends Command
                 'days',
                 'd',
                 InputOption::VALUE_OPTIONAL,
-                'Override retention days (default: use settings)',
-                null
+                'Override retention days (default: use settings)'
             )
             ->addOption(
                 'dry-run',

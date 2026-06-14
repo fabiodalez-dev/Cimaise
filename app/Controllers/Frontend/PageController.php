@@ -31,7 +31,7 @@ class PageController extends BaseController
     private ?NavigationService $navigationService = null;
     private ?PageCacheService $pageCacheService = null;
 
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
     }
@@ -41,7 +41,7 @@ class PageController extends BaseController
      */
     private function getPageCacheService(): PageCacheService
     {
-        if ($this->pageCacheService === null) {
+        if (!$this->pageCacheService instanceof \App\Services\PageCacheService) {
             $settings = new \App\Services\SettingsService($this->db);
             $this->pageCacheService = new PageCacheService($settings, $this->db);
         }
@@ -69,7 +69,7 @@ class PageController extends BaseController
                     UNION
                     SELECT id + 1000 FROM custom_templates WHERE type = \'gallery\' AND is_active = 1
                 ');
-                $cache = array_map('intval', $stmt->fetchAll(\PDO::FETCH_COLUMN));
+                $cache = array_map(intval(...), $stmt->fetchAll(\PDO::FETCH_COLUMN));
             } catch (\Throwable $e) {
                 Logger::warning('Failed to load valid template IDs: ' . $e->getMessage(), [], 'security');
                 $cache = [];
@@ -230,11 +230,7 @@ class PageController extends BaseController
         $metaImg = $imagePath ?: $logo;
         if ($metaImg) {
             if (!str_starts_with($metaImg, 'http')) {
-                if (str_starts_with($metaImg, '/')) {
-                    $metaImg = $base . $metaImg;
-                } else {
-                    $metaImg = $base . '/' . ltrim($metaImg, '/');
-                }
+                $metaImg = str_starts_with($metaImg, '/') ? $base . $metaImg : $base . '/' . ltrim($metaImg, '/');
             }
         } else {
             $metaImg = '';
@@ -500,7 +496,7 @@ class PageController extends BaseController
         $loadedCategorySlugs = [];
         foreach ($allImages as $image) {
             if (!empty($image['category_slugs'])) {
-                foreach (explode(',', $image['category_slugs']) as $slug) {
+                foreach (explode(',', (string) $image['category_slugs']) as $slug) {
                     $slug = trim($slug);
                     if ($slug !== '') {
                         $loadedCategorySlugs[$slug] = true;
@@ -510,9 +506,7 @@ class PageController extends BaseController
         }
 
         // Filter categories to only include those with loaded images
-        $categories = array_filter($categories, function ($cat) use ($loadedCategorySlugs) {
-            return isset($loadedCategorySlugs[$cat['slug']]);
-        });
+        $categories = array_filter($categories, fn ($cat) => isset($loadedCategorySlugs[$cat['slug']]));
         $categories = array_values($categories); // Re-index array
 
         // Also filter parent_categories for mega menu consistency
@@ -531,9 +525,7 @@ class PageController extends BaseController
         });
         // Filter children within each parent category
         foreach ($parentCategories as &$parent) {
-            $parent['children'] = array_filter($parent['children'], function ($child) use ($loadedCategorySlugs) {
-                return isset($loadedCategorySlugs[$child['slug']]);
-            });
+            $parent['children'] = array_filter($parent['children'], fn ($child) => isset($loadedCategorySlugs[$child['slug']]));
             $parent['children'] = array_values($parent['children']);
         }
         unset($parent); // Break reference
@@ -621,10 +613,10 @@ class PageController extends BaseController
         $params = $request->getQueryParams();
         $maxExcludes = 1000;
         $excludeImageIds = isset($params['exclude'])
-            ? array_slice(array_filter(array_map('intval', explode(',', $params['exclude']))), 0, $maxExcludes)
+            ? array_slice(array_filter(array_map(intval(...), explode(',', $params['exclude']))), 0, $maxExcludes)
             : [];
         $excludeAlbumIds = isset($params['excludeAlbums'])
-            ? array_slice(array_filter(array_map('intval', explode(',', $params['excludeAlbums']))), 0, $maxExcludes)
+            ? array_slice(array_filter(array_map(intval(...), explode(',', $params['excludeAlbums']))), 0, $maxExcludes)
             : [];
         $limit = max(1, min(100, (int) ($params['limit'] ?? 20)));
         $mode = ($params['mode'] ?? '') === 'masonry' ? 'masonry' : 'default';
@@ -663,7 +655,7 @@ class PageController extends BaseController
                     $sources = $img['sources'][$format] ?? [];
                     if (!empty($sources)) {
                         // Sources are in format "path widthw" - extract path
-                        $parts = explode(' ', $sources[0]);
+                        $parts = explode(' ', (string) $sources[0]);
                         $path = $parts[0] ?? '';
                         if ($path !== '' && !str_starts_with($path, '/storage/')) {
                             $publicUrl = $path;
@@ -701,7 +693,7 @@ class PageController extends BaseController
         foreach ($sources as $fmt => $srcs) {
             $formatted[$fmt] = [];
             foreach ($srcs as $src) {
-                $parts = explode(' ', $src);
+                $parts = explode(' ', (string) $src);
                 $url = $parts[0];
                 if (str_starts_with($url, '/')) {
                     $url = $basePath . $url;
@@ -874,7 +866,7 @@ class PageController extends BaseController
         if ($template && !empty($template['settings'])) {
             $templateSettings = is_array($template['settings'])
                 ? $template['settings']
-                : (json_decode($template['settings'], true) ?: []);
+                : (json_decode((string) $template['settings'], true) ?: []);
         } else {
             // Final fallback to a basic grid if no template could be resolved at all
             $template = [
@@ -917,19 +909,19 @@ class PageController extends BaseController
 
         // 1. Check custom fields first (they take priority over DB relationships)
         if (!empty($album['custom_cameras'])) {
-            $equipment['cameras'] = array_filter(array_map('trim', explode("\n", $album['custom_cameras'])));
+            $equipment['cameras'] = array_filter(array_map(trim(...), explode("\n", (string) $album['custom_cameras'])));
         }
         if (!empty($album['custom_lenses'])) {
-            $equipment['lenses'] = array_filter(array_map('trim', explode("\n", $album['custom_lenses'])));
+            $equipment['lenses'] = array_filter(array_map(trim(...), explode("\n", (string) $album['custom_lenses'])));
         }
         if (!empty($album['custom_films'])) {
-            $equipment['film'] = array_filter(array_map('trim', explode("\n", $album['custom_films'])));
+            $equipment['film'] = array_filter(array_map(trim(...), explode("\n", (string) $album['custom_films'])));
         }
         if (!empty($album['custom_developers'])) {
-            $equipment['developers'] = array_filter(array_map('trim', explode("\n", $album['custom_developers'])));
+            $equipment['developers'] = array_filter(array_map(trim(...), explode("\n", (string) $album['custom_developers'])));
         }
         if (!empty($album['custom_labs'])) {
-            $equipment['labs'] = array_filter(array_map('trim', explode("\n", $album['custom_labs'])));
+            $equipment['labs'] = array_filter(array_map(trim(...), explode("\n", (string) $album['custom_labs'])));
         }
 
         // 2. For any equipment types not set via custom fields, load from DB in ONE query.
@@ -1022,13 +1014,13 @@ class PageController extends BaseController
                 }
             }
             // Use image data as fallback if album equipment is empty
-            if (empty($equipment['cameras']) && !empty($imgCameras)) {
+            if (empty($equipment['cameras']) && $imgCameras !== []) {
                 $equipment['cameras'] = $imgCameras;
             }
-            if (empty($equipment['lenses']) && !empty($imgLenses)) {
+            if (empty($equipment['lenses']) && $imgLenses !== []) {
                 $equipment['lenses'] = $imgLenses;
             }
-            if (empty($equipment['film']) && !empty($imgFilms)) {
+            if (empty($equipment['film']) && $imgFilms !== []) {
                 $equipment['film'] = $imgFilms;
             }
         }
@@ -1551,7 +1543,7 @@ class PageController extends BaseController
 
             $sessionId = trim((string) ($data['analytics_session_id'] ?? ''));
             if ($sessionId !== '') {
-                $isValidSessionId = preg_match('/^sess_[0-9]{10,20}_[a-z0-9]+$/', $sessionId) === 1;
+                $isValidSessionId = preg_match('/^sess_\d{10,20}_[a-z0-9]+$/', $sessionId) === 1;
                 if (!$isValidSessionId || strlen($sessionId) > 128) {
                     $sessionId = '';
                 }
@@ -1637,7 +1629,7 @@ class PageController extends BaseController
         }
 
         session_regenerate_id(true);
-        $this->grantNsfwConsent(null);
+        $this->grantNsfwConsent();
 
         return $response->withStatus(204);
     }
@@ -1721,7 +1713,7 @@ class PageController extends BaseController
             $equipment = ['cameras' => [], 'lenses' => [], 'film' => [], 'developers' => [], 'labs' => [], 'locations' => []];
             try {
                 if (!empty($album['custom_cameras'])) {
-                    $equipment['cameras'] = array_filter(array_map('trim', explode("\n", $album['custom_cameras'])));
+                    $equipment['cameras'] = array_filter(array_map(trim(...), explode("\n", (string) $album['custom_cameras'])));
                 } else {
                     $cameraStmt = $pdo->prepare('SELECT c.make, c.model FROM cameras c JOIN album_camera ac ON c.id = ac.camera_id WHERE ac.album_id = :a');
                     $cameraStmt->execute([':a' => $album['id']]);
@@ -1730,7 +1722,7 @@ class PageController extends BaseController
                 }
 
                 if (!empty($album['custom_lenses'])) {
-                    $equipment['lenses'] = array_filter(array_map('trim', explode("\n", $album['custom_lenses'])));
+                    $equipment['lenses'] = array_filter(array_map(trim(...), explode("\n", (string) $album['custom_lenses'])));
                 } else {
                     $lensStmt = $pdo->prepare('SELECT l.brand, l.model FROM lenses l JOIN album_lens al ON l.id = al.lens_id WHERE al.album_id = :a');
                     $lensStmt->execute([':a' => $album['id']]);
@@ -1739,7 +1731,7 @@ class PageController extends BaseController
                 }
 
                 if (!empty($album['custom_films'])) {
-                    $equipment['film'] = array_filter(array_map('trim', explode("\n", $album['custom_films'])));
+                    $equipment['film'] = array_filter(array_map(trim(...), explode("\n", (string) $album['custom_films'])));
                 } else {
                     $filmStmt = $pdo->prepare('SELECT f.brand, f.name FROM films f JOIN album_film af ON f.id = af.film_id WHERE af.album_id = :a');
                     $filmStmt->execute([':a' => $album['id']]);
@@ -1748,7 +1740,7 @@ class PageController extends BaseController
                 }
 
                 if (!empty($album['custom_developers'])) {
-                    $equipment['developers'] = array_filter(array_map('trim', explode("\n", $album['custom_developers'])));
+                    $equipment['developers'] = array_filter(array_map(trim(...), explode("\n", (string) $album['custom_developers'])));
                 } else {
                     $devStmt = $pdo->prepare('SELECT d.name FROM developers d JOIN album_developer ad ON d.id = ad.developer_id WHERE ad.album_id = :a');
                     $devStmt->execute([':a' => $album['id']]);
@@ -1757,7 +1749,7 @@ class PageController extends BaseController
                 }
 
                 if (!empty($album['custom_labs'])) {
-                    $equipment['labs'] = array_filter(array_map('trim', explode("\n", $album['custom_labs'])));
+                    $equipment['labs'] = array_filter(array_map(trim(...), explode("\n", (string) $album['custom_labs'])));
                 } else {
                     $labStmt = $pdo->prepare('SELECT l.name FROM labs l JOIN album_lab al ON l.id = al.lab_id WHERE al.album_id = :a');
                     $labStmt->execute([':a' => $album['id']]);
@@ -1794,7 +1786,7 @@ class PageController extends BaseController
             // Build gallery items for the template
             $images = [];
             $variantsByImage = [];
-            if (!empty($imagesRows)) {
+            if ($imagesRows !== []) {
                 $imageIds = array_column($imagesRows, 'id');
                 $placeholders = implode(',', array_fill(0, count($imageIds), '?'));
                 $variantsStmt = $pdo->prepare("
@@ -1959,10 +1951,10 @@ class PageController extends BaseController
                     $metadata = $integration->getTemplateMetadata((int) $template['custom_id']);
                     if ($metadata) {
                         foreach ($metadata['css_paths'] ?? [] as $path) {
-                            $templateAssets['css'][] = rtrim($this->basePath, '/') . '/plugins/custom-templates-pro/' . ltrim($path, '/');
+                            $templateAssets['css'][] = rtrim($this->basePath, '/') . '/plugins/custom-templates-pro/' . ltrim((string) $path, '/');
                         }
                         foreach ($metadata['js_paths'] ?? [] as $path) {
-                            $templateAssets['js'][] = rtrim($this->basePath, '/') . '/plugins/custom-templates-pro/' . ltrim($path, '/');
+                            $templateAssets['js'][] = rtrim($this->basePath, '/') . '/plugins/custom-templates-pro/' . ltrim((string) $path, '/');
                         }
                         if (!empty($metadata['twig_path'])) {
                             $resolved = $integration->resolveTwigTemplatePath((string) $metadata['twig_path'], 'galleries');
@@ -2362,7 +2354,7 @@ class PageController extends BaseController
         // Strict header injection prevention
         // Remove ALL control characters (including tabs) from name and subject
         $safeName = preg_replace('/[\x00-\x1F\x7F]/', '', $name);
-        $safeName = mb_substr($safeName, 0, 100); // Limit length
+        $safeName = mb_substr((string) $safeName, 0, 100); // Limit length
 
         // Additional email validation - must match the validated email exactly
         // FILTER_VALIDATE_EMAIL already passed, but double-check for header chars
@@ -2520,7 +2512,7 @@ class PageController extends BaseController
      */
     private function enrichAlbumsBatch(array $albums): array
     {
-        if (empty($albums)) {
+        if ($albums === []) {
             return [];
         }
 
@@ -2561,7 +2553,7 @@ class PageController extends BaseController
 
     private function filterAlbumsByAccess(array $albums, bool $isAdmin, bool $nsfwConsent): array
     {
-        if (empty($albums)) {
+        if ($albums === []) {
             return [];
         }
 
@@ -2597,7 +2589,10 @@ class PageController extends BaseController
         $chosen = null;
 
         foreach ($variants as $variant) {
-            if (!isset($variant['path']) || str_starts_with((string) $variant['path'], '/storage/')) {
+            if (!isset($variant['path'])) {
+                continue;
+            }
+            if (str_starts_with((string) $variant['path'], '/storage/')) {
                 continue;
             }
             $vVar = strtolower((string) ($variant['variant'] ?? ''));
@@ -2630,20 +2625,15 @@ class PageController extends BaseController
                 continue;
             }
 
-            if ($width === $chosen['width']) {
-                if (
-                    $formatRank < $chosen['format_rank']
-                    || ($formatRank === $chosen['format_rank'] && $variantRank < $chosen['variant_rank'])
-                ) {
-                    $chosen = [
-                        'width' => $width,
-                        'format_rank' => $formatRank,
-                        'variant_rank' => $variantRank,
-                        'variant' => $vVar,
-                        'format' => $vFmt,
-                        'path' => $variant['path']
-                    ];
-                }
+            if ($width === $chosen['width'] && ($formatRank < $chosen['format_rank'] || $formatRank === $chosen['format_rank'] && $variantRank < $chosen['variant_rank'])) {
+                $chosen = [
+                    'width' => $width,
+                    'format_rank' => $formatRank,
+                    'variant_rank' => $variantRank,
+                    'variant' => $vVar,
+                    'format' => $vFmt,
+                    'path' => $variant['path']
+                ];
             }
         }
 
@@ -2687,7 +2677,7 @@ class PageController extends BaseController
         }
 
         if ($image['process']) {
-            $display['process'] = ucfirst($image['process']);
+            $display['process'] = ucfirst((string) $image['process']);
         }
 
         return $display;
@@ -2714,9 +2704,8 @@ class PageController extends BaseController
                     $f = $num / $den;
                     if ($f >= 1) {
                         return (int) round($f) . 's';
-                    } else {
-                        return '1/' . (int) round(1 / $f) . 's';
                     }
+                    return '1/' . (int) round(1 / $f) . 's';
                 }
             }
         }
@@ -2726,7 +2715,8 @@ class PageController extends BaseController
             $f = (float) $speed;
             if ($f >= 1) {
                 return (int) round($f) . 's';
-            } elseif ($f > 0) {
+            }
+            if ($f > 0) {
                 return '1/' . (int) round(1 / $f) . 's';
             }
         }
@@ -2736,7 +2726,7 @@ class PageController extends BaseController
 
     private function processImageSourcesBatch(array $images, bool $isProtectedAlbum = false): array
     {
-        if (empty($images)) {
+        if ($images === []) {
             return [];
         }
 
@@ -2789,7 +2779,16 @@ class PageController extends BaseController
                 $path = $variant['path'] ?? '';
                 $variantType = $variant['variant'] ?? '';
                 // Skip blur variants and storage paths from srcset
-                if (!isset($sources[$format]) || $path === '' || str_starts_with($path, '/storage/') || $variantType === 'blur') {
+                if (!isset($sources[$format])) {
+                    continue;
+                }
+                if ($path === '') {
+                    continue;
+                }
+                if (str_starts_with($path, '/storage/')) {
+                    continue;
+                }
+                if ($variantType === 'blur') {
                     continue;
                 }
                 // Trust database - variant exists means file exists
@@ -2813,7 +2812,16 @@ class PageController extends BaseController
                 $w = (int) ($variant['width'] ?? 0);
                 $variantType = $variant['variant'] ?? '';
                 // Skip blur variants, storage paths, and invalid widths
-                if ($path === '' || str_starts_with($path, '/storage/') || $w <= 0 || $variantType === 'blur') {
+                if ($path === '') {
+                    continue;
+                }
+                if (str_starts_with($path, '/storage/')) {
+                    continue;
+                }
+                if ($w <= 0) {
+                    continue;
+                }
+                if ($variantType === 'blur') {
                     continue;
                 }
                 if ($w < $bestWidth) {
@@ -2838,7 +2846,7 @@ class PageController extends BaseController
                     if (($variant['variant'] ?? '') === 'lqip' && !empty($variant['path'])) {
                         $lqipPath = $variant['path'];
                         // Only use LQIP if it's a public path
-                        if (!str_starts_with($lqipPath, '/storage/')) {
+                        if (!str_starts_with((string) $lqipPath, '/storage/')) {
                             // Inline base64 data URI only for the first MAX_INLINE_LQIP
                             // images (the ones plausibly above the fold); beyond that use
                             // the file path — templates handle both forms in the same
@@ -3384,7 +3392,7 @@ class PageController extends BaseController
 
     private function getNavigationService(): NavigationService
     {
-        if ($this->navigationService === null) {
+        if (!$this->navigationService instanceof \App\Services\NavigationService) {
             $this->navigationService = new NavigationService($this->db);
         }
         return $this->navigationService;

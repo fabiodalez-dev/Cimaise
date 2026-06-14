@@ -17,7 +17,7 @@ use Symfony\Component\Console\Helper\ProgressBar;
 #[AsCommand(name: 'images:generate-variants')]
 class ImagesGenerateVariantsCommand extends Command
 {
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
         parent::__construct();
     }

@@ -26,8 +26,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 )]
 class DbTemplateCommand extends Command
 {
-    private string $schemaPath;
-    private string $templatePath;
+    private readonly string $schemaPath;
+    private readonly string $templatePath;
 
     public function __construct()
     {
@@ -171,7 +171,7 @@ class DbTemplateCommand extends Command
             foreach (array_diff_key($fresh[$kind], $current[$kind]) as $name => $_) {
                 $out[] = "missing {$label} in template: {$name}";
             }
-            foreach (array_diff_key($current[$kind], $fresh[$kind]) as $name => $_) {
+            foreach (array_keys(array_diff_key($current[$kind], $fresh[$kind])) as $name) {
                 $out[] = "stale {$label} in template (not in schema): {$name}";
             }
             foreach ($fresh[$kind] as $name => $value) {

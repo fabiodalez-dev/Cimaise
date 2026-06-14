@@ -23,9 +23,9 @@ use Slim\Views\Twig;
  */
 final class CollectionController extends BaseController
 {
-    private CollectionService $service;
+    private readonly CollectionService $service;
 
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
         $this->service = new CollectionService($db);
@@ -72,7 +72,7 @@ final class CollectionController extends BaseController
     private function collectionGalleryImages(int $collectionId): array
     {
         $rows = $this->service->visibleImageRows($collectionId);
-        if (empty($rows)) {
+        if ($rows === []) {
             return [];
         }
 
@@ -131,7 +131,7 @@ final class CollectionController extends BaseController
      */
     private function attachCovers(array $collections): array
     {
-        if (empty($collections)) {
+        if ($collections === []) {
             return [];
         }
         $pdo = $this->db->pdo();

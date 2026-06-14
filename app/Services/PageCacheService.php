@@ -27,18 +27,16 @@ class PageCacheService
     private const DEFAULT_TTL = 86400; // 24 hours
     private const COMPRESSION_LEVEL = 6;
 
-    private string $cacheDir;
-    private bool $enabled;
+    private readonly string $cacheDir;
+    private readonly bool $enabled;
     private string $backend;
-    private bool $compressionEnabled;
-    private int $compressionLevel;
-    private ?Database $db = null;
+    private readonly bool $compressionEnabled;
+    private readonly int $compressionLevel;
 
     public function __construct(
-        private SettingsService $settings,
-        ?Database $database = null
+        private readonly SettingsService $settings,
+        private readonly ?Database $db = null
     ) {
-        $this->db = $database;
         $this->enabled = (bool) $this->settings->get('cache.pages_enabled', true);
         $this->backend = (string) $this->settings->get('cache.storage_backend', 'database');
         $this->compressionEnabled = (bool) $this->settings->get('cache.compression_enabled', true);
@@ -47,15 +45,11 @@ class PageCacheService
         // File-based storage setup (for legacy backend)
         $this->cacheDir = dirname(__DIR__, 2) . '/storage/cache/pages';
         if ($this->enabled && $this->backend === 'file') {
-            if (!is_dir($this->cacheDir)) {
-                if (!mkdir($this->cacheDir, 0775, true) && !is_dir($this->cacheDir)) {
-                    Logger::warning("PageCacheService: Failed to create cache directory: {$this->cacheDir}");
-                }
+            if (!is_dir($this->cacheDir) && (!mkdir($this->cacheDir, 0775, true) && !is_dir($this->cacheDir))) {
+                Logger::warning("PageCacheService: Failed to create cache directory: {$this->cacheDir}");
             }
-            if (!is_dir($this->cacheDir . '/albums')) {
-                if (!mkdir($this->cacheDir . '/albums', 0775, true) && !is_dir($this->cacheDir . '/albums')) {
-                    Logger::warning("PageCacheService: Failed to create albums cache directory: {$this->cacheDir}/albums");
-                }
+            if (!is_dir($this->cacheDir . '/albums') && (!mkdir($this->cacheDir . '/albums', 0775, true) && !is_dir($this->cacheDir . '/albums'))) {
+                Logger::warning("PageCacheService: Failed to create albums cache directory: {$this->cacheDir}/albums");
             }
         }
     }
@@ -147,9 +141,8 @@ class PageCacheService
 
         // Home and galleries may show this album
         $deleted += $this->invalidate('home');
-        $deleted += $this->invalidate('galleries');
 
-        return $deleted;
+        return $deleted + $this->invalidate('galleries');
     }
 
     /**
@@ -316,7 +309,7 @@ class PageCacheService
      */
     public function getHash(string $type): ?string
     {
-        if ($this->backend !== 'database' || $this->db === null) {
+        if ($this->backend !== 'database' || !$this->db instanceof \App\Support\Database) {
             return null;
         }
 
@@ -339,7 +332,7 @@ class PageCacheService
 
     private function getFromDatabase(string $type, bool $allowStale): ?array
     {
-        if ($this->db === null) {
+        if (!$this->db instanceof \App\Support\Database) {
             return null;
         }
 
@@ -375,7 +368,7 @@ class PageCacheService
 
     private function isExpiredInDatabase(string $type): bool
     {
-        if ($this->db === null) {
+        if (!$this->db instanceof \App\Support\Database) {
             return true;
         }
 
@@ -398,11 +391,11 @@ class PageCacheService
 
     private function setToDatabase(string $type, array $data, ?int $ttl): bool
     {
-        if ($this->db === null) {
+        if (!$this->db instanceof \App\Support\Database) {
             return false;
         }
 
-        $ttl = $ttl ?? (int) $this->settings->get('cache.pages_ttl', self::DEFAULT_TTL);
+        $ttl ??= (int) $this->settings->get('cache.pages_ttl', self::DEFAULT_TTL);
         $cacheKey = $this->getCacheKey($type);
         $cacheType = $this->getCacheType($type);
         $relatedId = $this->getRelatedId($type);
@@ -463,7 +456,7 @@ class PageCacheService
 
     private function invalidateInDatabase(string $type): int
     {
-        if ($this->db === null) {
+        if (!$this->db instanceof \App\Support\Database) {
             return 0;
         }
 
@@ -490,14 +483,14 @@ class PageCacheService
 
     private function clearAllFromDatabase(): int
     {
-        if ($this->db === null) {
+        if (!$this->db instanceof \App\Support\Database) {
             return 0;
         }
 
         // Delete all tags first
         try {
             $this->db->execute('DELETE FROM cache_tags');
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // Table might not exist yet - non-critical
         }
 
@@ -516,7 +509,7 @@ class PageCacheService
             'items' => [],
         ];
 
-        if ($this->db === null) {
+        if (!$this->db instanceof \App\Support\Database) {
             return $stats;
         }
 
@@ -586,7 +579,7 @@ class PageCacheService
 
     private function updateAccessStats(int $id): void
     {
-        if ($this->db === null) {
+        if (!$this->db instanceof \App\Support\Database) {
             return;
         }
 
@@ -610,7 +603,7 @@ class PageCacheService
                 "UPDATE page_cache SET last_accessed_at = {$now}, access_count = access_count + ? WHERE id = ?",
                 [self::ACCESS_STATS_SAMPLE_RATE, $id]
             );
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // Non-critical, ignore errors
         }
     }
@@ -670,12 +663,12 @@ class PageCacheService
             return true;
         }
 
-        return strtotime($cached['expires_at']) < time();
+        return strtotime((string) $cached['expires_at']) < time();
     }
 
     private function setToFile(string $type, array $data, ?int $ttl): bool
     {
-        $ttl = $ttl ?? (int) $this->settings->get('cache.pages_ttl', self::DEFAULT_TTL);
+        $ttl ??= (int) $this->settings->get('cache.pages_ttl', self::DEFAULT_TTL);
 
         $cached = [
             'version' => self::CACHE_VERSION,
@@ -774,7 +767,7 @@ class PageCacheService
                     'size' => $stat ? $stat['size'] : 0,
                     'generated_at' => $cached['generated_at'] ?? null,
                     'expires_at' => $cached['expires_at'] ?? null,
-                    'expired' => isset($cached['expires_at']) && strtotime($cached['expires_at']) < time(),
+                    'expired' => isset($cached['expires_at']) && strtotime((string) $cached['expires_at']) < time(),
                 ];
             }
         }
@@ -798,7 +791,7 @@ class PageCacheService
                         'size' => $stat ? $stat['size'] : 0,
                         'generated_at' => $cached['generated_at'] ?? null,
                         'expires_at' => $cached['expires_at'] ?? null,
-                        'expired' => isset($cached['expires_at']) && strtotime($cached['expires_at']) < time(),
+                        'expired' => isset($cached['expires_at']) && strtotime((string) $cached['expires_at']) < time(),
                     ];
                 }
             }
@@ -875,7 +868,7 @@ class PageCacheService
 
         // Extract slug from type (album:slug-name -> slug-name)
         $slug = substr($type, 6);
-        if (empty($slug) || $this->db === null) {
+        if (empty($slug) || !$this->db instanceof \App\Support\Database) {
             return null;
         }
 
@@ -911,7 +904,7 @@ class PageCacheService
      */
     public function cleanupExpired(): int
     {
-        if ($this->backend !== 'database' || $this->db === null) {
+        if ($this->backend !== 'database' || !$this->db instanceof \App\Support\Database) {
             return 0;
         }
 
@@ -929,7 +922,7 @@ class PageCacheService
     {
         $stats = ['migrated' => 0, 'failed' => 0, 'skipped' => 0];
 
-        if ($this->db === null) {
+        if (!$this->db instanceof \App\Support\Database) {
             return $stats;
         }
 
@@ -995,7 +988,7 @@ class PageCacheService
     {
         $success = $this->set($type, $data, $ttl);
 
-        if ($success && !empty($tags) && $this->db !== null) {
+        if ($success && $tags !== [] && $this->db instanceof \App\Support\Database) {
             $cacheKey = $this->getCacheKey($type);
             $this->saveTags($cacheKey, $tags);
         }
@@ -1011,7 +1004,7 @@ class PageCacheService
      */
     public function invalidateByTag(string $tag): int
     {
-        if ($this->db === null) {
+        if (!$this->db instanceof \App\Support\Database) {
             return 0;
         }
 
@@ -1065,7 +1058,7 @@ class PageCacheService
      */
     private function saveTags(string $cacheKey, array $tags): void
     {
-        if ($this->db === null || empty($tags)) {
+        if (!$this->db instanceof \App\Support\Database || $tags === []) {
             return;
         }
 
@@ -1098,13 +1091,13 @@ class PageCacheService
      */
     private function deleteTags(string $cacheKey): void
     {
-        if ($this->db === null) {
+        if (!$this->db instanceof \App\Support\Database) {
             return;
         }
 
         try {
             $this->db->execute('DELETE FROM cache_tags WHERE cache_key = ?', [$cacheKey]);
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // Non-critical - orphan tags will be cleaned up later
         }
     }
@@ -1117,7 +1110,7 @@ class PageCacheService
      */
     public function getTags(string $type): array
     {
-        if ($this->db === null) {
+        if (!$this->db instanceof \App\Support\Database) {
             return [];
         }
 
@@ -1136,7 +1129,7 @@ class PageCacheService
             $stmt->closeCursor();
 
             return $tags;
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             return [];
         }
     }
@@ -1148,7 +1141,7 @@ class PageCacheService
      */
     public function cleanupOrphanTags(): int
     {
-        if ($this->db === null) {
+        if (!$this->db instanceof \App\Support\Database) {
             return 0;
         }
 

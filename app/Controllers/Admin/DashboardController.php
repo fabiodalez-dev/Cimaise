@@ -11,7 +11,7 @@ use Slim\Views\Twig;
 
 class DashboardController extends BaseController
 {
-    public function __construct(private Twig $view)
+    public function __construct(private readonly Twig $view)
     {
         parent::__construct();
     }

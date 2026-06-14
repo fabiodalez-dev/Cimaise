@@ -26,7 +26,7 @@ final class CollectionsController extends BaseController
 {
     private const PICKER_PER_PAGE = 24;
 
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
     }
@@ -78,7 +78,7 @@ final class CollectionsController extends BaseController
             ':title' => $title,
             ':slug' => $slug,
             ':description' => trim((string) ($data['description'] ?? '')) ?: null,
-            ':is_published' => !empty($data['is_published']) ? 1 : 0,
+            ':is_published' => empty($data['is_published']) ? 0 : 1,
             ':sort_order' => (int) ($data['sort_order'] ?? 0),
         ]);
         $id = (int) $this->db->pdo()->lastInsertId();
@@ -134,7 +134,7 @@ final class CollectionsController extends BaseController
             ':title' => $title,
             ':slug' => $slug,
             ':description' => trim((string) ($data['description'] ?? '')) ?: null,
-            ':is_published' => !empty($data['is_published']) ? 1 : 0,
+            ':is_published' => empty($data['is_published']) ? 0 : 1,
             ':sort_order' => (int) ($data['sort_order'] ?? 0),
             ':id' => $id,
         ]);
@@ -224,7 +224,7 @@ final class CollectionsController extends BaseController
                 $stmt->execute([':s' => $pos, ':c' => $id, ':i' => (int) $imageId]);
             }
             $pdo->commit();
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             $pdo->rollBack();
             return $this->jsonResponse($response, ['ok' => false, 'error' => 'failed'], 500);
         }
