@@ -26,11 +26,11 @@ class CacheWarmService
      */
     private const MAX_INLINE_LQIP = 30;
 
-    private PageCacheService $pageCacheService;
-    private SettingsService $settings;
-    private NavigationService $navigationService;
+    private readonly PageCacheService $pageCacheService;
+    private readonly SettingsService $settings;
+    private readonly NavigationService $navigationService;
 
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
         $this->settings = new SettingsService($this->db);
         $this->pageCacheService = new PageCacheService($this->settings, $this->db);
@@ -261,7 +261,7 @@ class CacheWarmService
         $loadedCategorySlugs = [];
         foreach ($allImages as $image) {
             if (!empty($image['category_slugs'])) {
-                foreach (explode(',', $image['category_slugs']) as $slug) {
+                foreach (explode(',', (string) $image['category_slugs']) as $slug) {
                     $slug = trim($slug);
                     if ($slug !== '') {
                         $loadedCategorySlugs[$slug] = true;
@@ -271,9 +271,7 @@ class CacheWarmService
         }
 
         // Filter categories to only include those with loaded images
-        $categories = array_filter($categories, function ($cat) use ($loadedCategorySlugs) {
-            return isset($loadedCategorySlugs[$cat['slug']]);
-        });
+        $categories = array_filter($categories, fn ($cat) => isset($loadedCategorySlugs[$cat['slug']]));
         $categories = array_values($categories);
 
         // Filter parent_categories
@@ -289,9 +287,7 @@ class CacheWarmService
             return false;
         });
         foreach ($parentCategories as &$parent) {
-            $parent['children'] = array_filter($parent['children'], function ($child) use ($loadedCategorySlugs) {
-                return isset($loadedCategorySlugs[$child['slug']]);
-            });
+            $parent['children'] = array_filter($parent['children'], fn ($child) => isset($loadedCategorySlugs[$child['slug']]));
             $parent['children'] = array_values($parent['children']);
         }
         unset($parent);
@@ -512,7 +508,7 @@ class CacheWarmService
         // Parse template settings
         $templateSettings = [];
         if (!empty($album['template_settings'])) {
-            $templateSettings = json_decode($album['template_settings'], true) ?: [];
+            $templateSettings = json_decode((string) $album['template_settings'], true) ?: [];
         }
 
         // Build cacheable data
@@ -559,7 +555,7 @@ class CacheWarmService
      */
     private function enrichAlbums(array $albums): array
     {
-        if (empty($albums)) {
+        if ($albums === []) {
             return [];
         }
 
@@ -633,7 +629,7 @@ class CacheWarmService
      */
     private function enrichAlbumsForPublicHome(array $albums): array
     {
-        if (empty($albums)) {
+        if ($albums === []) {
             return [];
         }
 
@@ -838,7 +834,7 @@ class CacheWarmService
      */
     private function processImageSourcesBatch(array $images): array
     {
-        if (empty($images)) {
+        if ($images === []) {
             return [];
         }
 
@@ -889,7 +885,16 @@ class CacheWarmService
                 $path = $variant['path'] ?? '';
                 $variantType = $variant['variant'] ?? '';
                 // Skip blur variants and storage paths from srcset
-                if (!isset($sources[$format]) || $path === '' || str_starts_with($path, '/storage/') || $variantType === 'blur') {
+                if (!isset($sources[$format])) {
+                    continue;
+                }
+                if ($path === '') {
+                    continue;
+                }
+                if (str_starts_with($path, '/storage/')) {
+                    continue;
+                }
+                if ($variantType === 'blur') {
                     continue;
                 }
                 // Trust database - variant exists means file exists
@@ -912,7 +917,16 @@ class CacheWarmService
                 $w = (int) ($variant['width'] ?? 0);
                 $variantType = $variant['variant'] ?? '';
                 // Skip blur variants, storage paths, and invalid widths
-                if ($path === '' || str_starts_with($path, '/storage/') || $w <= 0 || $variantType === 'blur') {
+                if ($path === '') {
+                    continue;
+                }
+                if (str_starts_with($path, '/storage/')) {
+                    continue;
+                }
+                if ($w <= 0) {
+                    continue;
+                }
+                if ($variantType === 'blur') {
                     continue;
                 }
                 if ($w < $bestWidth) {
@@ -935,7 +949,7 @@ class CacheWarmService
                 if (($variant['variant'] ?? '') === 'lqip' && !empty($variant['path'])) {
                     $lqipPath = $variant['path'];
                     // Only use LQIP if it's a public path
-                    if (!str_starts_with($lqipPath, '/storage/')) {
+                    if (!str_starts_with((string) $lqipPath, '/storage/')) {
                         // Inline base64 data URI only for the first MAX_INLINE_LQIP
                         // images; beyond that use the file path (same rule as
                         // PageController — templates handle both forms)
@@ -1006,12 +1020,23 @@ class CacheWarmService
                 $lqipPath = $path;
                 continue;
             }
-
             // Skip blur variants, storage paths, and invalid entries
-            if (!empty($var['is_blur']) || str_contains($path, '_blur') || $variantType === 'blur') {
+            if (!empty($var['is_blur'])) {
                 continue;
             }
-            if ($path === '' || str_starts_with($path, '/storage/') || $width <= 0) {
+            if (str_contains($path, '_blur')) {
+                continue;
+            }
+            if ($variantType === 'blur') {
+                continue;
+            }
+            if ($path === '') {
+                continue;
+            }
+            if (str_starts_with($path, '/storage/')) {
+                continue;
+            }
+            if ($width <= 0) {
                 continue;
             }
 
@@ -1057,7 +1082,7 @@ class CacheWarmService
             $stmt = $pdo->prepare('SELECT setting_key, setting_value FROM filter_settings ORDER BY sort_order ASC');
             $stmt->execute();
             $settings = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Table doesn't exist, use defaults
             $settings = [];
         }

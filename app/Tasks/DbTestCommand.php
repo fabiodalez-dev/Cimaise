@@ -13,7 +13,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 #[AsCommand(name: 'db:test', description: 'Test MySQL connection and print server version')]
 class DbTestCommand extends Command
 {
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
         parent::__construct();
     }

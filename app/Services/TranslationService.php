@@ -15,9 +15,9 @@ class TranslationService
     private string $language = 'en';        // Frontend language
     private string $adminLanguage = 'en';   // Admin panel language
     private string $scope = 'frontend';     // Current scope: 'frontend' or 'admin'
-    private string $translationsDir;
+    private readonly string $translationsDir;
 
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
         $this->translationsDir = dirname(__DIR__, 2) . '/storage/translations';
     }
@@ -313,7 +313,7 @@ class TranslationService
             foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                 $this->cache[$row['text_key']] = $row['text_value'];
             }
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Table might not exist yet
         }
 
@@ -377,7 +377,10 @@ class TranslationService
         // Flatten nested structure: category.key => value
         $loadedCount = 0;
         foreach ($data as $context => $translations) {
-            if ($context === '_meta' || !\is_array($translations)) {
+            if ($context === '_meta') {
+                continue;
+            }
+            if (!\is_array($translations)) {
                 continue;
             }
             foreach ($translations as $key => $value) {
@@ -434,7 +437,10 @@ class TranslationService
             }
 
             $data = json_decode($content, true);
-            if (!\is_array($data) || !isset($data['_meta'])) {
+            if (!\is_array($data)) {
+                continue;
+            }
+            if (!isset($data['_meta'])) {
                 continue;
             }
 

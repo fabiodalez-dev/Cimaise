@@ -39,7 +39,7 @@ class SeedDemoAlbumsCommand extends Command
         'Backstreet Stories', 'Winter Tones', 'Festival Crowds', 'Still Waters',
     ];
 
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
         parent::__construct();
     }
@@ -97,7 +97,7 @@ class SeedDemoAlbumsCommand extends Command
 
         // --- 2. Stock photo pool -------------------------------------------
         $pool = $this->acquireStock($albumCount * $photosPer, $stockDir, $output);
-        if (empty($pool)) {
+        if ($pool === []) {
             $output->writeln('<error>No stock photos available (download failed and no --stock-dir).</error>');
             return Command::FAILURE;
         }
@@ -239,7 +239,7 @@ class SeedDemoAlbumsCommand extends Command
         }
         try {
             \App\Services\NavigationService::invalidateCache();
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // best-effort
         }
         // File-based caches (query cache + compiled Twig).
@@ -263,7 +263,13 @@ class SeedDemoAlbumsCommand extends Command
         $originals = realpath($root . '/storage/originals');
         $protectedMedia = realpath($root . '/storage/protected-media');
         foreach (array_unique(array_filter($relPaths)) as $rel) {
-            if (!is_string($rel) || $rel === '' || str_contains($rel, '..')) {
+            if (!is_string($rel)) {
+                continue;
+            }
+            if ($rel === '') {
+                continue;
+            }
+            if (str_contains($rel, '..')) {
                 continue;
             }
             // /media/... lives under public/, /storage/... under root.
@@ -274,7 +280,10 @@ class SeedDemoAlbumsCommand extends Command
             ];
             foreach ($candidates as $abs) {
                 $real = realpath($abs);
-                if (!$real || !is_file($real)) {
+                if (!$real) {
+                    continue;
+                }
+                if (!is_file($real)) {
                     continue;
                 }
                 $inMedia = $publicMedia && str_starts_with($real, $publicMedia . DIRECTORY_SEPARATOR);
@@ -304,7 +313,10 @@ class SeedDemoAlbumsCommand extends Command
                     continue;
                 }
                 $h = md5_file($f);
-                if ($h === false || isset($seen[$h])) {
+                if ($h === false) {
+                    continue;
+                }
+                if (isset($seen[$h])) {
                     continue;
                 }
                 $seen[$h] = true;
@@ -333,7 +345,10 @@ class SeedDemoAlbumsCommand extends Command
             [$w, $h] = $sizes[$seed % count($sizes)];
             $url = 'https://picsum.photos/seed/cimaise-' . $seed . '/' . $w . '/' . $h;
             $data = $this->httpGet($url);
-            if ($data === null || strlen($data) <= 5000) {
+            if ($data === null) {
+                continue;
+            }
+            if (strlen((string) $data) <= 5000) {
                 continue;
             }
             $contentHash = md5($data);

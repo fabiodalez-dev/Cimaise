@@ -12,8 +12,6 @@ namespace App\Services;
  */
 class TypographyService
 {
-    private SettingsService $settings;
-
     /**
      * Available serif fonts organized by category
      * Each font includes name, weights, and category for UI grouping
@@ -311,9 +309,8 @@ class TypographyService
         ],
     ];
 
-    public function __construct(SettingsService $settings)
+    public function __construct(private readonly SettingsService $settings)
     {
-        $this->settings = $settings;
     }
 
     /**
@@ -613,7 +610,7 @@ class TypographyService
     private function getClosestWeight(array $available, int $target): int
     {
         // Defensive check for empty array
-        if (empty($available)) {
+        if ($available === []) {
             return 400; // Default to regular weight
         }
 

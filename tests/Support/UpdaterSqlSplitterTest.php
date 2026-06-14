@@ -30,7 +30,6 @@ final class UpdaterSqlSplitterTest extends TestCase
     private function call(string $method, mixed ...$args)
     {
         $m = new ReflectionMethod(Updater::class, $method);
-        $m->setAccessible(true);
         return $m->invoke($this->updater, ...$args);
     }
 

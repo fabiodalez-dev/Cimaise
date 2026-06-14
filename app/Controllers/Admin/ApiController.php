@@ -11,7 +11,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 class ApiController extends BaseController
 {
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
         parent::__construct();
     }

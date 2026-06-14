@@ -8,11 +8,8 @@ use App\Support\Hooks;
 
 class MetadataExtensionService
 {
-    private \PDO $db;
-
-    public function __construct(\PDO $db)
+    public function __construct(private readonly \PDO $db)
     {
-        $this->db = $db;
     }
 
     /**
@@ -143,12 +140,12 @@ class MetadataExtensionService
      */
     public function enrichEntities(string $entityType, array $entities): array
     {
-        if (empty($entities)) {
+        if ($entities === []) {
             return $entities;
         }
 
         $ids = array_column($entities, 'id');
-        if (empty($ids)) {
+        if ($ids === []) {
             return $entities;
         }
 

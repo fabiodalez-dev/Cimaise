@@ -16,7 +16,7 @@ use Symfony\Component\Console\Question\Question;
 #[AsCommand(name: 'user:update', description: 'Interactively update admin email and/or password')]
 class UserUpdateCommand extends Command
 {
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
         parent::__construct();
     }

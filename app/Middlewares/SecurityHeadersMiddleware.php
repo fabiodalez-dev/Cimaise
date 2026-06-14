@@ -89,7 +89,7 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
 
         // Add HSTS only on HTTPS connections
         if ($isHttps) {
-            $response = $response->withHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+            return $response->withHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         }
 
         return $response;

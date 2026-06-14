@@ -128,7 +128,7 @@ final class SearchServiceTest extends TestCase
             $probe = new PDO('sqlite::memory:');
             $probe->exec('CREATE VIRTUAL TABLE _p USING fts5(x)');
             return true;
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             return false;
         }
     }

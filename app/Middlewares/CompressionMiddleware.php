@@ -13,7 +13,7 @@ use App\Services\SettingsService;
 class CompressionMiddleware implements MiddlewareInterface
 {
     public function __construct(
-        private SettingsService $settings
+        private readonly SettingsService $settings
     ) {
     }
 

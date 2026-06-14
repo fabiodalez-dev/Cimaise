@@ -13,14 +13,14 @@ class BaseUrlService
     {
         // Try to get from environment first
         if (isset($_ENV['APP_URL']) && !empty($_ENV['APP_URL'])) {
-            return rtrim($_ENV['APP_URL'], '/');
+            return rtrim((string) $_ENV['APP_URL'], '/');
         }
 
         // Fallback to automatic detection
         $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
         $scriptPath = $_SERVER['SCRIPT_NAME'] ?? '';
-        $basePath = dirname($scriptPath);
+        $basePath = dirname((string) $scriptPath);
 
         if ($basePath === '/' || $basePath === '\\') {
             $basePath = '';
@@ -52,7 +52,7 @@ class BaseUrlService
     public static function isSubdirectoryInstallation(): bool
     {
         $scriptPath = $_SERVER['SCRIPT_NAME'] ?? '';
-        $basePath = dirname($scriptPath);
+        $basePath = dirname((string) $scriptPath);
 
         return !empty($basePath) && $basePath !== '/' && $basePath !== '\\';
     }
@@ -64,7 +64,7 @@ class BaseUrlService
     {
         // Try to get from APP_URL first (for CLI commands)
         if (isset($_ENV['APP_URL']) && !empty($_ENV['APP_URL'])) {
-            $parsedUrl = parse_url($_ENV['APP_URL']);
+            $parsedUrl = parse_url((string) $_ENV['APP_URL']);
             if (isset($parsedUrl['path']) && !empty($parsedUrl['path'])) {
                 return rtrim($parsedUrl['path'], '/');
             }
@@ -73,7 +73,7 @@ class BaseUrlService
 
         // Fallback to server variables for web requests
         $scriptPath = $_SERVER['SCRIPT_NAME'] ?? '';
-        $basePath = dirname($scriptPath);
+        $basePath = dirname((string) $scriptPath);
 
         if ($basePath === '/' || $basePath === '\\') {
             return '';
@@ -81,7 +81,7 @@ class BaseUrlService
 
         // Remove /public from the path if present
         if (str_ends_with($basePath, '/public')) {
-            $basePath = substr($basePath, 0, -7);
+            return substr($basePath, 0, -7);
         }
 
         return $basePath;

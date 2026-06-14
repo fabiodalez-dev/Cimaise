@@ -13,9 +13,9 @@ use Slim\Views\Twig;
 
 class TextsController extends BaseController
 {
-    private TranslationService $translations;
+    private readonly TranslationService $translations;
 
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
         $this->translations = new TranslationService($this->db);
@@ -351,7 +351,7 @@ class TextsController extends BaseController
 
         // Check file extension
         $filename = $uploadedFile->getClientFilename();
-        if (strtolower(pathinfo($filename, PATHINFO_EXTENSION)) !== 'json') {
+        if (strtolower(pathinfo((string) $filename, PATHINFO_EXTENSION)) !== 'json') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.json_only')];
             return $response->withHeader('Location', $this->redirect('/admin/texts'))->withStatus(302);
         }
@@ -376,7 +376,7 @@ class TextsController extends BaseController
         // Optionally save to storage/translations
         $saveFile = !empty($data['save_file']);
         if ($saveFile && isset($jsonData['_meta']['code'])) {
-            $langCode = preg_replace('/[^a-z0-9_-]/i', '', $jsonData['_meta']['code']);
+            $langCode = preg_replace('/[^a-z0-9_-]/i', '', (string) $jsonData['_meta']['code']);
             $destPath = dirname(__DIR__, 3) . '/storage/translations/' . $langCode . '.json';
             copy($tempPath, $destPath);
         }
@@ -463,7 +463,7 @@ class TextsController extends BaseController
 
                 // Sanitize context: alphanumeric, underscore, hyphen only, max 50 chars
                 $context = preg_replace('/[^a-z0-9_-]/i', '', (string)$context);
-                $context = mb_substr($context, 0, 50);
+                $context = mb_substr((string) $context, 0, 50);
                 if ($context === '') {
                     $context = 'general';
                 }

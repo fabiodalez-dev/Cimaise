@@ -25,9 +25,9 @@ final class FeedController extends BaseController
 {
     private const FEED_ITEMS = 30;
 
-    private FeedService $feed;
+    private readonly FeedService $feed;
 
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
         parent::__construct();
         $this->feed = new FeedService($db);
@@ -188,7 +188,7 @@ final class FeedController extends BaseController
      */
     private function coverPaths(array $albums): array
     {
-        if (empty($albums)) {
+        if ($albums === []) {
             return [];
         }
         $enrich = new AlbumEnrichmentService($this->db->pdo());
@@ -221,7 +221,7 @@ final class FeedController extends BaseController
             if ($val !== false && trim((string) $val) !== '') {
                 return (string) $val;
             }
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // fall through
         }
         return 'Cimaise';

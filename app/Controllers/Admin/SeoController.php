@@ -16,7 +16,7 @@ use Slim\Views\Twig;
 
 class SeoController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
     }

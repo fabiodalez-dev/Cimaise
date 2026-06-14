@@ -14,7 +14,7 @@ use Twig\TwigFunction;
 class ViteTwigExtension extends AbstractExtension
 {
     private ?array $manifest = null;
-    private string $manifestPath;
+    private readonly string $manifestPath;
     private string $basePath;
 
     public function __construct(string $basePath = '')
@@ -33,8 +33,8 @@ class ViteTwigExtension extends AbstractExtension
     public function getFunctions(): array
     {
         return [
-            new TwigFunction('vite_asset', [$this, 'getAssetPath']),
-            new TwigFunction('vite_preload', [$this, 'getPreloadTags'], ['is_safe' => ['html']]),
+            new TwigFunction('vite_asset', $this->getAssetPath(...)),
+            new TwigFunction('vite_preload', $this->getPreloadTags(...), ['is_safe' => ['html']]),
         ];
     }
 

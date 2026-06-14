@@ -12,7 +12,7 @@ use App\Support\Logger;
  */
 class LensfunService
 {
-    private string $dataDir;
+    private readonly string $dataDir;
     private ?array $cameras = null;
     private ?array $lenses = null;
     private ?string $cacheFile = null;
@@ -48,7 +48,7 @@ class LensfunService
         $allMatches = [];
 
         foreach ($makers as $maker) {
-            if (str_contains(strtolower($maker), $query)) {
+            if (str_contains(strtolower((string) $maker), $query)) {
                 $allMatches[] = ['maker' => $maker];
             }
         }
@@ -80,7 +80,7 @@ class LensfunService
             $cameraPool = array_filter(
                 $this->cameras,
                 fn ($c) =>
-                strtolower($c['maker']) === $makerLower
+                strtolower((string) $c['maker']) === $makerLower
             );
         }
 
@@ -138,7 +138,7 @@ class LensfunService
             $lensPool = array_filter(
                 $this->lenses,
                 fn ($l) =>
-                strtolower($l['maker']) === $makerLower
+                strtolower((string) $l['maker']) === $makerLower
             );
         }
 
@@ -200,7 +200,7 @@ class LensfunService
         $allMatches = [];
 
         foreach ($makers as $maker) {
-            if (str_contains(strtolower($maker), $query)) {
+            if (str_contains(strtolower((string) $maker), $query)) {
                 $allMatches[] = ['maker' => $maker];
             }
         }
@@ -238,7 +238,7 @@ class LensfunService
         return array_values(array_filter(
             $this->cameras,
             fn ($c) =>
-            strcasecmp($c['maker'], $maker) === 0
+            strcasecmp((string) $c['maker'], $maker) === 0
         ));
     }
 
@@ -251,7 +251,7 @@ class LensfunService
         return array_values(array_filter(
             $this->lenses,
             fn ($l) =>
-            strcasecmp($l['maker'], $maker) === 0
+            strcasecmp((string) $l['maker'], $maker) === 0
         ));
     }
 

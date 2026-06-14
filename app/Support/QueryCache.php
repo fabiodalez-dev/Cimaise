@@ -15,8 +15,8 @@ class QueryCache
     private const CACHE_MISS = "\x00__CACHE_MISS__\x00"; // Sentinel for cache miss detection
 
     private static ?self $instance = null;
-    private bool $useApcu;
-    private string $cacheDir;
+    private readonly bool $useApcu;
+    private readonly string $cacheDir;
 
     private function __construct()
     {
@@ -32,7 +32,7 @@ class QueryCache
 
     public static function getInstance(): self
     {
-        if (self::$instance === null) {
+        if (!self::$instance instanceof \App\Support\QueryCache) {
             self::$instance = new self();
         }
         return self::$instance;

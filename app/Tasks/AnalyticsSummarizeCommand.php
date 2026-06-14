@@ -16,7 +16,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(name: 'analytics:summarize', description: 'Generate daily analytics summaries for improved performance')]
 class AnalyticsSummarizeCommand extends Command
 {
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
         parent::__construct();
     }
@@ -30,8 +30,7 @@ class AnalyticsSummarizeCommand extends Command
                 'date',
                 'd',
                 InputOption::VALUE_OPTIONAL,
-                'Generate summary for specific date (YYYY-MM-DD)',
-                null
+                'Generate summary for specific date (YYYY-MM-DD)'
             )
             ->addOption(
                 'days',
@@ -72,7 +71,7 @@ class AnalyticsSummarizeCommand extends Command
             $datesToProcess = [];
 
             if ($specificDate) {
-                if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $specificDate)) {
+                if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $specificDate)) {
                     $io->error('Invalid date format. Use YYYY-MM-DD.');
                     return Command::FAILURE;
                 }

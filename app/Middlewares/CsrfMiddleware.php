@@ -25,7 +25,7 @@ class CsrfMiddleware implements MiddlewareInterface
 
         // Skip CSRF validation for installer and public analytics tracking routes
         // Note: /admin/login now requires CSRF for security hardening
-        if ((strpos($path, '/install/') === 0 && $method === 'POST') ||
+        if ((str_starts_with($path, '/install/') && $method === 'POST') ||
             ($path === '/api/analytics/track' && $method === 'POST')) {
             return $handler->handle($request);
         }

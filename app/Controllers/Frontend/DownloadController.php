@@ -11,7 +11,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 class DownloadController extends BaseController
 {
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
         parent::__construct();
     }
@@ -48,19 +48,15 @@ class DownloadController extends BaseController
         }
 
         // Check album password if present
-        if (!empty($row['password_hash'])) {
-            if (!$this->hasAlbumPasswordAccess((int)$row['album_id'])) {
-                return $response->withStatus(403);
-            }
+        if (!empty($row['password_hash']) && !$this->hasAlbumPasswordAccess((int)$row['album_id'])) {
+            return $response->withStatus(403);
         }
 
         // NSFW server-side enforcement: block downloads for unconfirmed NSFW albums
         // Admins bypass this check
         $isAdmin = $this->isAdmin();
-        if ((bool)$row['is_nsfw'] && !$isAdmin) {
-            if (!$this->hasNsfwAlbumConsent((int)$row['album_id'])) {
-                return $response->withStatus(403);
-            }
+        if ((bool)$row['is_nsfw'] && !$isAdmin && !$this->hasNsfwAlbumConsent((int)$row['album_id'])) {
+            return $response->withStatus(403);
         }
 
         $root = dirname(__DIR__, 3);
@@ -70,7 +66,7 @@ class DownloadController extends BaseController
         // Remove all potential traversal sequences
         $originalPath = str_replace(['../', '..\\', '/../', '\\..\\', '../', '..\\'], '', $originalPath);
         $originalPath = preg_replace('/\.{2,}/', '.', $originalPath); // Remove multiple dots
-        $originalPath = ltrim($originalPath, '/');
+        $originalPath = ltrim((string) $originalPath, '/');
 
         // Ensure path is properly normalized and starts with expected directory
         if (!str_starts_with($originalPath, 'storage/')) {
@@ -124,7 +120,7 @@ class DownloadController extends BaseController
         $filename = preg_replace('/[^a-zA-Z0-9._-]/', '_', $filename);
 
         // Remove control characters and line breaks that could cause header injection
-        $filename = preg_replace('/[\x00-\x1F\x7F-\x9F]/', '', $filename);
+        $filename = preg_replace('/[\x00-\x1F\x7F-\x9F]/', '', (string) $filename);
 
         // Remove quotes and other header-breaking characters
         $filename = str_replace(['"', "'", '\\', '\r', '\n', '\t'], '_', $filename);
@@ -168,7 +164,7 @@ class DownloadController extends BaseController
             ->withHeader('X-Frame-Options', 'DENY');
 
         if (!empty($row['password_hash']) || !empty($row['is_nsfw'])) {
-            $result = $result
+            return $result
                 ->withHeader('Cache-Control', 'private, no-store, max-age=0')
                 ->withHeader('Pragma', 'no-cache')
                 ->withHeader('X-Robots-Tag', 'noindex, noimageindex, noarchive');

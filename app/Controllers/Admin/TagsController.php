@@ -16,7 +16,7 @@ use Slim\Views\Twig;
 
 class TagsController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
     }
@@ -64,7 +64,7 @@ class TagsController extends BaseController
         $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
         $stmt->execute();
         $rows = $stmt->fetchAll();
-        $pages = (int)ceil(($total ?: 0) / $perPage);
+        $pages = (int)ceil(($total) / $perPage);
         return $this->view->render($response, 'admin/tags/index.twig', [
             'items' => $rows,
             'page' => $page,
@@ -94,11 +94,7 @@ class TagsController extends BaseController
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.name_required')];
             return $response->withHeader('Location', $this->redirect('/admin/tags/create'))->withStatus(302);
         }
-        if ($slug === '') {
-            $slug = \App\Support\Str::slug($name);
-        } else {
-            $slug = \App\Support\Str::slug($slug);
-        }
+        $slug = $slug === '' ? \App\Support\Str::slug($name) : \App\Support\Str::slug($slug);
         $stmt = $this->db->pdo()->prepare('INSERT INTO tags(name, slug) VALUES(:n, :s)');
         try {
             $stmt->execute([':n' => $name, ':s' => $slug]);
@@ -146,11 +142,7 @@ class TagsController extends BaseController
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.name_required')];
             return $response->withHeader('Location', $this->redirect('/admin/tags/'.$id.'/edit'))->withStatus(302);
         }
-        if ($slug === '') {
-            $slug = \App\Support\Str::slug($name);
-        } else {
-            $slug = \App\Support\Str::slug($slug);
-        }
+        $slug = $slug === '' ? \App\Support\Str::slug($name) : \App\Support\Str::slug($slug);
         $stmt = $this->db->pdo()->prepare('UPDATE tags SET name=:n, slug=:s WHERE id=:id');
         try {
             $stmt->execute([':n' => $name, ':s' => $slug, ':id' => $id]);

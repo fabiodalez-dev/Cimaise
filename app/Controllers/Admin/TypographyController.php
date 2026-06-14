@@ -14,9 +14,9 @@ use Slim\Views\Twig;
 
 class TypographyController extends BaseController
 {
-    private TypographyService $typographyService;
+    private readonly TypographyService $typographyService;
 
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
         $this->typographyService = new TypographyService(new SettingsService($this->db));

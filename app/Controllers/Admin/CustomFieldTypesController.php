@@ -13,9 +13,9 @@ use Slim\Views\Twig;
 
 class CustomFieldTypesController extends BaseController
 {
-    private CustomFieldService $customFieldService;
+    private readonly CustomFieldService $customFieldService;
 
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
         $this->customFieldService = new CustomFieldService($this->db->pdo());
@@ -105,7 +105,7 @@ class CustomFieldTypesController extends BaseController
             ]);
 
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.custom_fields.created')];
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic')];
             return $response->withHeader('Location', $this->basePath . '/admin/custom-field-types/create')->withStatus(302);
         }
@@ -182,7 +182,7 @@ class CustomFieldTypesController extends BaseController
             ]);
 
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.custom_fields.updated')];
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic')];
         }
 
@@ -204,7 +204,7 @@ class CustomFieldTypesController extends BaseController
             } else {
                 $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.custom_fields.cannot_delete_system')];
             }
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic')];
         }
 

@@ -22,9 +22,9 @@ class AuthController extends BaseController
     private const REMEMBER_TOKEN_DAYS = 30;
 
     public function __construct(
-        private Database $db,
-        private Twig $view,
-        private SettingsService $settings
+        private readonly Database $db,
+        private readonly Twig $view,
+        private readonly SettingsService $settings
     ) {
         parent::__construct();
     }
@@ -103,7 +103,7 @@ class AuthController extends BaseController
         $stmt->execute([':email' => $email]);
         $user = $stmt->fetch();
 
-        if (!$user || !password_verify($password, $user['password_hash'])) {
+        if (!$user || !password_verify($password, (string) $user['password_hash'])) {
             return $this->view->render($response, 'admin/login.twig', [
                 'error' => trans('admin.flash.invalid_credentials'),
                 'csrf' => $_SESSION['csrf'] ?? '',
@@ -296,7 +296,7 @@ class AuthController extends BaseController
         $_SESSION = [];
         if (ini_get('session.use_cookies')) {
             $params = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+            setcookie(session_name(), '', ['expires' => time() - 42000, 'path' => $params['path'], 'domain' => $params['domain'], 'secure' => $params['secure'], 'httponly' => $params['httponly']]);
         }
         session_destroy();
         return $response->withHeader('Location', $this->redirect('/admin/login'))->withStatus(302);
@@ -421,7 +421,7 @@ class AuthController extends BaseController
         $stmt->execute([':id' => $_SESSION['admin_id']]);
         $user = $stmt->fetch();
 
-        if (!$user || !password_verify($currentPassword, $user['password_hash'])) {
+        if (!$user || !password_verify($currentPassword, (string) $user['password_hash'])) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.current_password_incorrect')];
             return $response->withHeader('Location', $this->safeReferer('/admin'))->withStatus(302);
         }

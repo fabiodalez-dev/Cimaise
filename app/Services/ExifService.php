@@ -23,7 +23,7 @@ class ExifService
     /** @var array Warnings from the last EXIF write operation */
     private array $lastWriteWarnings = [];
 
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
     }
 
@@ -356,7 +356,10 @@ class ExifService
         if (is_array($value)) {
             $parts = [];
             foreach ($value as $item) {
-                if ($item === null || $item === '') {
+                if ($item === null) {
+                    continue;
+                }
+                if ($item === '') {
                     continue;
                 }
                 if (is_array($item)) {
@@ -391,7 +394,7 @@ class ExifService
     private function rationalToFloat($val): ?float
     {
         if (is_string($val) && str_contains($val, '/')) {
-            [$n, $d] = array_pad(array_map('floatval', explode('/', $val, 2)), 2, 1.0);
+            [$n, $d] = array_pad(array_map(floatval(...), explode('/', $val, 2)), 2, 1.0);
             return $d != 0.0 ? $n / $d : null;
         }
         return is_numeric($val) ? (float)$val : null;
@@ -450,11 +453,11 @@ class ExifService
             $imagickDisabled = filter_var((string)(function_exists('envv') ? envv('CIMAISE_DISABLE_IMAGICK', 'false') : ($_ENV['CIMAISE_DISABLE_IMAGICK'] ?? 'false')), FILTER_VALIDATE_BOOLEAN);
             if (extension_loaded('imagick') && !$imagickDisabled) {
                 return $this->normalizeWithImagick($imagePath, $orientation);
-            } elseif (extension_loaded('gd')) {
-                return $this->normalizeWithGD($imagePath, $orientation);
-            } else {
-                return false;
             }
+            if (extension_loaded('gd')) {
+                return $this->normalizeWithGD($imagePath, $orientation);
+            }
+            return false;
         } catch (\Throwable $e) {
             Logger::warning('ExifService: EXIF orientation fix failed', ['error' => $e->getMessage(), 'path' => $imagePath], 'upload');
             return false;
@@ -664,7 +667,7 @@ class ExifService
 
     private function normalizeModel(string $model): string
     {
-        return trim(preg_replace('/\s+/', ' ', $model));
+        return trim((string) preg_replace('/\s+/', ' ', $model));
     }
 
     private function parseLensModel(string $lensModel): ?array
@@ -717,9 +720,8 @@ class ExifService
 
         if ($speed >= 1) {
             return (int)round($speed) . 's';
-        } else {
-            return '1/' . (int)round(1 / $speed) . 's';
         }
+        return '1/' . (int)round(1 / $speed) . 's';
     }
 
     public function formatAperture(?float $fnumber): ?string
@@ -872,11 +874,7 @@ class ExifService
             $make = $meta['Make'] ?? '';
             $model = $meta['Model'] ?? '';
             // Avoid duplication if Model already contains Make
-            if ($make && $model && stripos($model, $make) === 0) {
-                $cameraName = $model;
-            } else {
-                $cameraName = trim($make . ' ' . $model);
-            }
+            $cameraName = $make && $model && stripos((string) $model, (string) $make) === 0 ? $model : trim($make . ' ' . $model);
             if ($cameraName) {
                 $equipment[] = ['label' => 'Camera', 'value' => $cameraName, 'icon' => 'fa-camera'];
             }
@@ -884,7 +882,7 @@ class ExifService
         if (!empty($meta['LensModel'])) {
             $equipment[] = ['label' => 'Lens', 'value' => $meta['LensModel'], 'icon' => 'fa-circle-dot'];
         }
-        if (!empty($equipment)) {
+        if ($equipment !== []) {
             $result['sections'][] = ['title' => 'Equipment', 'items' => $equipment];
         }
 
@@ -923,7 +921,7 @@ class ExifService
                 $exposure[] = ['label' => 'Exp. Comp.', 'value' => $bias, 'icon' => 'fa-sliders'];
             }
         }
-        if (!empty($exposure)) {
+        if ($exposure !== []) {
             $result['sections'][] = ['title' => 'Exposure', 'items' => $exposure];
         }
 
@@ -947,7 +945,7 @@ class ExifService
                 $mode[] = ['label' => 'Exp. Mode', 'value' => $modeName, 'icon' => 'fa-gear'];
             }
         }
-        if (!empty($mode)) {
+        if ($mode !== []) {
             $result['sections'][] = ['title' => 'Mode', 'items' => $mode];
         }
 
@@ -1016,7 +1014,7 @@ class ExifService
         if (!empty($meta['Copyright'])) {
             $metadata[] = ['label' => 'Copyright', 'value' => $meta['Copyright'], 'icon' => 'fa-copyright'];
         }
-        if (!empty($metadata)) {
+        if ($metadata !== []) {
             $result['sections'][] = ['title' => 'Info', 'items' => $metadata];
         }
 
@@ -1478,7 +1476,7 @@ class ExifService
         }
 
         $hash = $image['file_hash'];
-        $ext = strtolower(pathinfo($image['original_path'], PATHINFO_EXTENSION));
+        $ext = strtolower(pathinfo((string) $image['original_path'], PATHINFO_EXTENSION));
 
         // 1. Write to original (only if JPEG)
         if (in_array($ext, ['jpg', 'jpeg'])) {
@@ -1517,7 +1515,7 @@ class ExifService
 
         // Add warnings for unsupported tags (like LensModel)
         $warnings = $this->getLastWriteWarnings();
-        if (!empty($warnings)) {
+        if ($warnings !== []) {
             $results['warnings'] = $warnings;
         }
 
@@ -1556,7 +1554,7 @@ class ExifService
 
         // For older images, fall back to raw exif JSON if dedicated fields are empty
         if (!empty($data['exif'])) {
-            $rawExif = json_decode($data['exif'], true);
+            $rawExif = json_decode((string) $data['exif'], true);
             if (json_last_error() !== JSON_ERROR_NONE) {
                 Logger::warning('ExifService: Invalid JSON in exif field', [
                     'image_id' => $imageId,
@@ -1606,7 +1604,7 @@ class ExifService
 
         // Decode extended EXIF JSON if present
         if (!empty($data['exif_extended'])) {
-            $extended = json_decode($data['exif_extended'], true);
+            $extended = json_decode((string) $data['exif_extended'], true);
             if (is_array($extended)) {
                 $data = array_merge($data, $extended);
             }

@@ -12,7 +12,7 @@ use Slim\Views\Twig;
 
 class FilterSettingsController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
     }
@@ -28,7 +28,7 @@ class FilterSettingsController extends BaseController
             $cache = new \App\Services\PageCacheService(new \App\Services\SettingsService($this->db), $this->db);
             $cache->invalidateGalleries();
             $cache->invalidateHome();
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // best-effort: never block the save on a cache error
         }
     }
@@ -322,7 +322,7 @@ class FilterSettingsController extends BaseController
 
             return $stats;
 
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return [
                 'categories' => 0,
                 'tags' => 0,

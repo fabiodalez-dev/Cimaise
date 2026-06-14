@@ -35,7 +35,7 @@ class GalleriesController extends BaseController
         'index-minimal'   => 'frontend/galleries_index_minimal.twig',
     ];
 
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
     }
@@ -231,9 +231,7 @@ class GalleriesController extends BaseController
                 'is_locked' => $album['is_locked'] ?? false,
                 'is_nsfw' => $isNsfw,
                 'cover_image' => $coverImage,
-                'tags' => array_map(function ($tag) {
-                    return ['id' => $tag['id'], 'name' => $tag['name'], 'slug' => $tag['slug']];
-                }, $album['tags'] ?? []),
+                'tags' => array_map(fn ($tag) => ['id' => $tag['id'], 'name' => $tag['name'], 'slug' => $tag['slug']], $album['tags'] ?? []),
             ];
         }, $albums);
 
@@ -302,9 +300,7 @@ class GalleriesController extends BaseController
         $filters = [];
         $normalizeList = function ($value): array {
             if (\is_array($value)) {
-                return array_values(array_filter($value, static function ($item): bool {
-                    return $item !== null && $item !== '';
-                }));
+                return array_values(array_filter($value, static fn ($item): bool => $item !== null && $item !== ''));
             }
             if (\is_string($value)) {
                 $value = trim($value);
@@ -312,10 +308,8 @@ class GalleriesController extends BaseController
                     return [];
                 }
                 if (str_contains($value, ',')) {
-                    $parts = array_map('trim', explode(',', $value));
-                    return array_values(array_filter($parts, static function ($item): bool {
-                        return $item !== '';
-                    }));
+                    $parts = array_map(trim(...), explode(',', $value));
+                    return array_values(array_filter($parts, static fn ($item): bool => $item !== ''));
                 }
                 return [$value];
             }
@@ -369,7 +363,7 @@ class GalleriesController extends BaseController
 
         // Search filter
         if (!empty($params['search'])) {
-            $filters['search'] = trim($params['search']);
+            $filters['search'] = trim((string) $params['search']);
         }
 
         // Sort filter
@@ -460,7 +454,7 @@ class GalleriesController extends BaseController
             $params[] = $searchTerm;
         }
 
-        if (!empty($conditions)) {
+        if ($conditions !== []) {
             $sql .= ' AND ' . implode(' AND ', $conditions);
         }
 
@@ -697,7 +691,7 @@ class GalleriesController extends BaseController
      */
     private function enrichAlbumsBatch(array $albums): array
     {
-        if (empty($albums)) {
+        if ($albums === []) {
             return [];
         }
 

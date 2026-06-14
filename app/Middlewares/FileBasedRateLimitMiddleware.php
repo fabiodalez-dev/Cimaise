@@ -23,21 +23,15 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
      */
     private const AUTH_RESULT_HEADER = 'X-Auth-Result';
 
-    private string $storageDir;
-    private int $maxAttempts;
-    private int $windowSec;
-    private string $keyPrefix;
+    private readonly string $storageDir;
 
     public function __construct(
         string $storageDir,
-        int $maxAttempts = 5,
-        int $windowSec = 600,
-        string $keyPrefix = 'rate_limit'
+        private readonly int $maxAttempts = 5,
+        private readonly int $windowSec = 600,
+        private readonly string $keyPrefix = 'rate_limit'
     ) {
         $this->storageDir = rtrim($storageDir, '/');
-        $this->maxAttempts = $maxAttempts;
-        $this->windowSec = $windowSec;
-        $this->keyPrefix = $keyPrefix;
 
         // Ensure storage directory exists
         if (!is_dir($this->storageDir)) {
@@ -92,7 +86,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         // H1: Only trust forwarded headers when TRUSTED_PROXIES is configured
         $trustedProxies = getenv('TRUSTED_PROXIES') ?: '';
         if ($trustedProxies !== '' && $remoteAddr !== 'unknown') {
-            $trustedList = array_map('trim', explode(',', $trustedProxies));
+            $trustedList = array_map(trim(...), explode(',', $trustedProxies));
             $trustedList = array_filter($trustedList, fn ($ip) => $ip === '*' || filter_var($ip, FILTER_VALIDATE_IP) !== false);
 
             $isWildcard = in_array('*', $trustedList, true);
@@ -112,7 +106,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
 
                 foreach ($forwardedHeaders as $header) {
                     if (!empty($serverParams[$header])) {
-                        $ip = trim(explode(',', $serverParams[$header])[0]);
+                        $ip = trim(explode(',', (string) $serverParams[$header])[0]);
                         if (filter_var($ip, FILTER_VALIDATE_IP)) {
                             return $ip;
                         }
@@ -250,10 +244,8 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
 
             foreach ($files as $file) {
                 $mtime = filemtime($file);
-                if ($mtime !== false && $mtime < $cutoffTime) {
-                    if (unlink($file)) {
-                        $cleaned++;
-                    }
+                if ($mtime !== false && $mtime < $cutoffTime && unlink($file)) {
+                    $cleaned++;
                 }
             }
         } catch (\Throwable) {

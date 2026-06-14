@@ -17,7 +17,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 class UploadController extends BaseController
 {
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
         parent::__construct();
     }
@@ -85,7 +85,7 @@ class UploadController extends BaseController
         $tmpDir = dirname(__DIR__, 3) . '/storage/tmp';
         ImagesService::ensureDir($tmpDir);
         $clientName = $file->getClientFilename() ?: ('upload-' . time());
-        $tmpPath = $tmpDir . '/' . bin2hex(random_bytes(8)) . '-' . basename($clientName);
+        $tmpPath = $tmpDir . '/' . bin2hex(random_bytes(8)) . '-' . basename((string) $clientName);
         try {
             $file->moveTo($tmpPath);
         } catch (\Throwable $e) {
@@ -120,7 +120,7 @@ class UploadController extends BaseController
                 // Collect all categories from pivot table (multi-category support)
                 $pivotStmt = $this->db->pdo()->prepare('SELECT category_id FROM album_category WHERE album_id = ?');
                 $pivotStmt->execute([$albumId]);
-                $categoryIds = array_map('intval', $pivotStmt->fetchAll(\PDO::FETCH_COLUMN) ?: []);
+                $categoryIds = array_map(intval(...), $pivotStmt->fetchAll(\PDO::FETCH_COLUMN) ?: []);
                 if ($categoryIds === []) {
                     $fallbackStmt = $this->db->pdo()->prepare('SELECT category_id FROM albums WHERE id = ?');
                     $fallbackStmt->execute([$albumId]);

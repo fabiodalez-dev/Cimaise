@@ -11,18 +11,16 @@ use Slim\Views\Twig;
 
 class InstallerController
 {
-    private Installer $installer;
-    private Twig $view;
-    private string $rootPath;
+    private readonly Installer $installer;
+    private readonly string $rootPath;
     private string $basePath;
 
-    public function __construct(Twig $view)
+    public function __construct(private readonly Twig $view)
     {
         $this->rootPath = dirname(__DIR__, 2);
         $this->installer = new Installer($this->rootPath);
-        $this->view = $view;
         // Get base path for redirects
-        $this->basePath = dirname($_SERVER['SCRIPT_NAME']);
+        $this->basePath = dirname((string) $_SERVER['SCRIPT_NAME']);
         $this->basePath = $this->basePath === '/' ? '' : $this->basePath;
 
         // Remove /public from the path if present (since document root should be public/)
@@ -118,10 +116,9 @@ class InstallerController
             $testResult = $this->testDatabaseConnection($data);
             if ($testResult['success']) {
                 return $response->withHeader('Location', $this->basePath . '/install/admin')->withStatus(302);
-            } else {
-                $_SESSION['flash'][] = ['type' => 'danger', 'message' => $testResult['error']];
-                return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
             }
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => $testResult['error']];
+            return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
         } catch (\Throwable $e) {
             error_log('processDatabaseConfig: Database connection failed: ' . $e->getMessage());
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Database connection failed. Check your credentials and try again.'];
@@ -185,7 +182,7 @@ class InstallerController
 
         // Validate admin data
         $errors = $this->validateAdminData($data);
-        if (!empty($errors)) {
+        if ($errors !== []) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Please correct the errors below'];
             $_SESSION['install_admin_errors'] = $errors;
             $_SESSION['install_admin_data'] = $data;
@@ -430,7 +427,7 @@ class InstallerController
      */
     private function redactSensitiveData(array $data): array
     {
-        foreach ($data as $key => $value) {
+        foreach (array_keys($data) as $key) {
             if (is_string($key) && stripos($key, 'password') !== false) {
                 $data[$key] = '***REDACTED***';
             }
@@ -551,7 +548,7 @@ class InstallerController
                 if (!str_starts_with($dbPath, '/')) {
                     $dbPath = $this->rootPath . '/' . $dbPath;
                 }
-                $dir = dirname($dbPath);
+                $dir = dirname((string) $dbPath);
                 if (!is_dir($dir)) {
                     mkdir($dir, 0755, true);
                 }
@@ -607,7 +604,7 @@ class InstallerController
         // Validate name
         if (empty($data['admin_name'])) {
             $errors['admin_name'] = 'Name is required';
-        } elseif (strlen($data['admin_name']) < 2) {
+        } elseif (strlen((string) $data['admin_name']) < 2) {
             $errors['admin_name'] = 'Name must be at least 2 characters';
         }
 
@@ -621,7 +618,7 @@ class InstallerController
         // Validate password
         if (empty($data['admin_password'])) {
             $errors['admin_password'] = 'Password is required';
-        } elseif (strlen($data['admin_password']) < 8) {
+        } elseif (strlen((string) $data['admin_password']) < 8) {
             $errors['admin_password'] = 'Password must be at least 8 characters';
         } elseif ($data['admin_password'] !== ($data['admin_password_confirm'] ?? '')) {
             $errors['admin_password'] = 'Passwords do not match';

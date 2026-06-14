@@ -18,8 +18,8 @@ class LensfunUpdateCommand extends Command
     protected static $defaultName = 'lensfun:update';
     protected static $defaultDescription = 'Update Lensfun camera/lens database from GitHub';
 
-    private string $dataDir;
-    private string $cacheFile;
+    private readonly string $dataDir;
+    private readonly string $cacheFile;
 
     // List of XML files to download
     private const XML_FILES = [
@@ -60,11 +60,9 @@ class LensfunUpdateCommand extends Command
         $io->title('Lensfun Database Update');
 
         // Ensure directory exists
-        if (!is_dir($this->dataDir)) {
-            if (!@mkdir($this->dataDir, 0775, true)) {
-                $io->error("Failed to create directory: {$this->dataDir}");
-                return Command::FAILURE;
-            }
+        if (!is_dir($this->dataDir) && !@mkdir($this->dataDir, 0775, true)) {
+            $io->error("Failed to create directory: {$this->dataDir}");
+            return Command::FAILURE;
         }
 
         $io->section('Downloading XML files from GitHub...');
@@ -95,7 +93,7 @@ class LensfunUpdateCommand extends Command
         $progressBar->finish();
         $io->newLine(2);
 
-        if (!empty($failed)) {
+        if ($failed !== []) {
             $io->warning('Some files failed to download: ' . implode(', ', $failed));
         }
 

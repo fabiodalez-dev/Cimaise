@@ -15,14 +15,12 @@ use Icamys\SitemapGenerator\Config;
  */
 class SitemapService
 {
-    private Database $db;
-    private string $baseUrl;
-    private string $publicPath;
+    private readonly string $baseUrl;
+    private readonly string $publicPath;
     private ?SettingsService $settingsService = null;
 
-    public function __construct(Database $db, string $baseUrl, string $publicPath)
+    public function __construct(private readonly Database $db, string $baseUrl, string $publicPath)
     {
-        $this->db = $db;
         $this->baseUrl = rtrim($baseUrl, '/');
         $this->publicPath = rtrim($publicPath, '/');
     }
@@ -32,7 +30,7 @@ class SitemapService
      */
     private function getSettingsService(): SettingsService
     {
-        if ($this->settingsService === null) {
+        if (!$this->settingsService instanceof \App\Services\SettingsService) {
             $this->settingsService = new SettingsService($this->db);
         }
         return $this->settingsService;
@@ -67,19 +65,19 @@ class SitemapService
 
             // Add categories
             $stmt = $this->db->query('SELECT slug, updated_at FROM categories WHERE slug IS NOT NULL ORDER BY slug');
-            $categories = $stmt->fetchAll() ?: [];
+            $categories = $stmt->fetchAll();
 
             foreach ($categories as $category) {
-                $updatedAt = !empty($category['updated_at'])
-                    ? new \DateTime($category['updated_at'])
-                    : new \DateTime();
+                $updatedAt = empty($category['updated_at'])
+                    ? new \DateTime()
+                    : new \DateTime($category['updated_at']);
 
                 $sitemap->addURL('/category/' . $category['slug'], $updatedAt, 'weekly', 0.7);
             }
 
             // Add tags
             $stmt = $this->db->query('SELECT slug FROM tags WHERE slug IS NOT NULL ORDER BY slug');
-            $tags = $stmt->fetchAll() ?: [];
+            $tags = $stmt->fetchAll();
 
             foreach ($tags as $tag) {
                 $sitemap->addURL('/tag/' . $tag['slug'], new \DateTime(), 'weekly', 0.6);
@@ -95,12 +93,12 @@ class SitemapService
                   AND (password_hash IS NULL OR password_hash = "")
                 ORDER BY published_at DESC
             ');
-            $albums = $stmt->fetchAll() ?: [];
+            $albums = $stmt->fetchAll();
 
             foreach ($albums as $album) {
-                $updatedAt = !empty($album['updated_at'])
-                    ? new \DateTime($album['updated_at'])
-                    : (!empty($album['published_at']) ? new \DateTime($album['published_at']) : new \DateTime());
+                $updatedAt = empty($album['updated_at'])
+                    ? (!empty($album['published_at']) ? new \DateTime($album['published_at']) : new \DateTime())
+                    : (new \DateTime($album['updated_at']));
 
                 $sitemap->addURL('/album/' . $album['slug'], $updatedAt, 'monthly', 0.8);
             }
@@ -149,7 +147,7 @@ class SitemapService
               AND (a.password_hash IS NULL OR a.password_hash = "")
             ORDER BY a.published_at DESC
         ');
-        $albums = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+        $albums = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         if (empty($albums)) {
             return;
@@ -176,7 +174,7 @@ class SitemapService
             WHERE i.album_id IN ($placeholders)
             ORDER BY i.album_id, i.sort_order, i.id
         ", $albumIds);
-        $imagesRaw = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+        $imagesRaw = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         // Enrich images with metadata names
         ImagesService::enrichWithMetadata($this->db->pdo(), $imagesRaw, 'sitemap');
@@ -204,7 +202,7 @@ class SitemapService
 
         foreach ($albumsById as $albumId => $album) {
             $images = $imagesByAlbum[$albumId] ?? [];
-            if (empty($images)) {
+            if ($images === []) {
                 continue;
             }
 
@@ -212,7 +210,7 @@ class SitemapService
             $xml->writeElement('loc', $this->baseUrl . '/album/' . $album['slug']);
 
             if (!empty($album['updated_at'])) {
-                $xml->writeElement('lastmod', date('Y-m-d', strtotime($album['updated_at'])));
+                $xml->writeElement('lastmod', date('Y-m-d', strtotime((string) $album['updated_at'])));
             }
 
             // Add each image
@@ -264,7 +262,7 @@ class SitemapService
         if (!empty($image['variant_path'])) {
             // Use XL variant if available
             $path = $image['variant_path'];
-            if (!str_starts_with($path, '/')) {
+            if (!str_starts_with((string) $path, '/')) {
                 $path = '/' . $path;
             }
             return $this->baseUrl . $path;
@@ -278,10 +276,10 @@ class SitemapService
     private function getImageTitle(array $image, array $album): string
     {
         if (!empty($image['caption'])) {
-            return strip_tags($image['caption']);
+            return strip_tags((string) $image['caption']);
         }
         if (!empty($image['alt_text'])) {
-            return strip_tags($image['alt_text']);
+            return strip_tags((string) $image['alt_text']);
         }
         return $album['title'] ?? 'Photo';
     }
@@ -296,9 +294,9 @@ class SitemapService
 
         // Base description
         if (!empty($image['caption'])) {
-            $parts[] = strip_tags($image['caption']);
+            $parts[] = strip_tags((string) $image['caption']);
         } elseif (!empty($image['alt_text'])) {
-            $parts[] = strip_tags($image['alt_text']);
+            $parts[] = strip_tags((string) $image['alt_text']);
         }
 
         // Location
@@ -318,7 +316,7 @@ class SitemapService
             $parts[] = $film;
         }
 
-        if (empty($parts)) {
+        if ($parts === []) {
             $parts[] = $album['title'] ?? 'Photo';
         }
 
@@ -333,8 +331,8 @@ class SitemapService
         // Remove control characters except tab, newline, carriage return
         $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text);
         // Limit length for SEO (Google may truncate anyway)
-        if (mb_strlen($text) > 200) {
-            $text = mb_substr($text, 0, 197) . '...';
+        if (mb_strlen((string) $text) > 200) {
+            return mb_substr((string) $text, 0, 197) . '...';
         }
         return $text;
     }

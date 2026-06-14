@@ -13,7 +13,7 @@ use Slim\Views\Twig;
 
 class UpdateController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
     }
@@ -321,12 +321,11 @@ class UpdateController extends BaseController
                     'success' => true,
                     'message' => 'Maintenance mode disabled'
                 ]);
-            } else {
-                return $this->jsonResponse($response, [
-                    'success' => false,
-                    'error' => 'Cannot delete maintenance file'
-                ], 500);
             }
+            return $this->jsonResponse($response, [
+                'success' => false,
+                'error' => 'Cannot delete maintenance file'
+            ], 500);
         }
 
         return $this->jsonResponse($response, [

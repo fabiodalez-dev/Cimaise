@@ -12,7 +12,7 @@ use Slim\Views\Twig;
 
 class TemplatesController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
     }
@@ -132,11 +132,7 @@ class TemplatesController extends BaseController
             return $response->withHeader('Location', $this->redirect('/admin/templates/'.$id.'/edit'))->withStatus(302);
         }
 
-        if ($slug === '') {
-            $slug = \App\Support\Str::slug($name);
-        } else {
-            $slug = \App\Support\Str::slug($slug);
-        }
+        $slug = $slug === '' ? \App\Support\Str::slug($name) : \App\Support\Str::slug($slug);
 
         // Get current template slug to check for magazine-split
         $slugStmt = $this->db->pdo()->prepare('SELECT slug FROM templates WHERE id = :id');
@@ -351,7 +347,7 @@ class TemplatesController extends BaseController
             ]);
             $this->invalidateTemplateCaches($id);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.template_updated')];
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic')];
         }
         return $response->withHeader('Location', $this->redirect('/admin/templates'))->withStatus(302);
@@ -375,7 +371,7 @@ class TemplatesController extends BaseController
                     $cache->invalidateAlbum($slug);
                 }
             }
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // best-effort
         }
     }

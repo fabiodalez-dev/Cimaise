@@ -13,7 +13,7 @@ use Slim\Views\Twig;
 
 class LocationsController extends BaseController
 {
-    public function __construct(private LocationRepository $locations, private Twig $view)
+    public function __construct(private readonly LocationRepository $locations, private readonly Twig $view)
     {
         parent::__construct();
     }

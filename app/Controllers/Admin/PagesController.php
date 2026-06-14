@@ -19,7 +19,7 @@ use Slim\Views\Twig;
 
 class PagesController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
     }
@@ -253,7 +253,7 @@ class PagesController extends BaseController
         // Slug/permalink
         $rawSlug = strtolower(trim((string)($data['about_slug'] ?? 'about')));
         $cleanSlug = preg_replace('/[^a-z0-9\-]+/', '-', $rawSlug);
-        $cleanSlug = trim($cleanSlug, '-') ?: 'about';
+        $cleanSlug = trim((string) $cleanSlug, '-') ?: 'about';
         $svc->set('about.slug', $cleanSlug);
 
         // Footer text and contact email/subject
@@ -300,7 +300,9 @@ class PagesController extends BaseController
                     ImagesService::ensureDir($mediaDir);
                     $dest = $mediaDir . '/' . $hash . $ext;
                     // store original
-                    @move_uploaded_file($tmp, $dest) || @rename($tmp, $dest);
+                    if (!@move_uploaded_file($tmp, $dest)) {
+                        @rename($tmp, $dest);
+                    }
 
                     // Re-validate after move for additional security
                     if ($this->validateImageUpload($dest)) {
@@ -476,7 +478,7 @@ class PagesController extends BaseController
         // Slug/permalink
         $rawSlug = strtolower(trim((string)($data['license_slug'] ?? 'license')));
         $cleanSlug = preg_replace('/[^a-z0-9\-]+/', '-', $rawSlug);
-        $cleanSlug = trim($cleanSlug, '-') ?: 'license';
+        $cleanSlug = trim((string) $cleanSlug, '-') ?: 'license';
         $svc->set('license.slug', $cleanSlug);
 
         // Content (sanitize HTML to prevent XSS)
@@ -527,7 +529,7 @@ class PagesController extends BaseController
         // Slug/permalink
         $rawSlug = strtolower(trim((string)($data['privacy_slug'] ?? 'privacy-policy')));
         $cleanSlug = preg_replace('/[^a-z0-9\-]+/', '-', $rawSlug);
-        $cleanSlug = trim($cleanSlug, '-') ?: 'privacy-policy';
+        $cleanSlug = trim((string) $cleanSlug, '-') ?: 'privacy-policy';
         $svc->set('privacy.slug', $cleanSlug);
 
         // Content (sanitize HTML to prevent XSS)
@@ -578,7 +580,7 @@ class PagesController extends BaseController
         // Slug/permalink
         $rawSlug = strtolower(trim((string)($data['cookie_slug'] ?? 'cookie-policy')));
         $cleanSlug = preg_replace('/[^a-z0-9\-]+/', '-', $rawSlug);
-        $cleanSlug = trim($cleanSlug, '-') ?: 'cookie-policy';
+        $cleanSlug = trim((string) $cleanSlug, '-') ?: 'cookie-policy';
         $svc->set('cookie.slug', $cleanSlug);
 
         // Content (sanitize HTML to prevent XSS)
@@ -621,7 +623,7 @@ class PagesController extends BaseController
                 'animation_enabled' => (bool)($rawSettings['animation_enabled'] ?? true),
                 'animation_duration' => (float)($rawSettings['animation_duration'] ?? 0.6),
             ];
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return [
                 'enabled' => true,
                 'show_categories' => true,
@@ -706,10 +708,6 @@ class PagesController extends BaseController
 
         // Validate image dimensions (prevent processing of malicious files)
         [$width, $height] = $imageInfo;
-        if ($width <= 0 || $height <= 0 || $width > 5000 || $height > 5000) {
-            return false;
-        }
-
-        return true;
+        return !($width <= 0 || $height <= 0 || $width > 5000 || $height > 5000);
     }
 }

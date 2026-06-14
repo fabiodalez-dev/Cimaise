@@ -21,7 +21,7 @@ class MediaController extends BaseController
 {
     private const BLUR_CACHE_SECONDS = 86400; // 24 hours for blur variants
     private const PUBLIC_CACHE_SECONDS = 31536000; // 1 year for public images
-    private ProtectedMediaStorage $protectedStorage;
+    private readonly ProtectedMediaStorage $protectedStorage;
 
     /**
      * Extension -> MIME map for images already validated by a whitelist regex.
@@ -39,7 +39,7 @@ class MediaController extends BaseController
         'tiff' => 'image/tiff',
     ];
 
-    public function __construct(private Database $db, private UploadService $uploadService)
+    public function __construct(private readonly Database $db, private readonly UploadService $uploadService)
     {
         parent::__construct();
         $this->protectedStorage = new ProtectedMediaStorage($db);
@@ -196,7 +196,7 @@ class MediaController extends BaseController
         $row = $stmt->fetch();
 
         if ($row && !empty($row['path'])) {
-            $relativePath = ltrim($row['path'], '/');
+            $relativePath = ltrim((string) $row['path'], '/');
 
             // Security: no traversal
             if (str_contains($relativePath, '..') || str_contains($relativePath, '\\')) {
@@ -204,11 +204,7 @@ class MediaController extends BaseController
             }
 
             // Convert URL path to filesystem path
-            if (str_starts_with($relativePath, 'media/')) {
-                $filePath = "{$root}/public/{$relativePath}";
-            } else {
-                $filePath = "{$root}/{$relativePath}";
-            }
+            $filePath = str_starts_with($relativePath, 'media/') ? "{$root}/public/{$relativePath}" : "{$root}/{$relativePath}";
 
             $realPath = realpath($filePath);
             if ($realPath && is_file($realPath)) {
@@ -310,7 +306,7 @@ class MediaController extends BaseController
 
         // Stream the blur file
         $streamed = $this->streamFile($response, $blurPath, 'image/jpeg');
-        if ($streamed === null) {
+        if (!$streamed instanceof \Psr\Http\Message\ResponseInterface) {
             return null;
         }
 
@@ -335,7 +331,7 @@ class MediaController extends BaseController
 
         // Validate variant name (prevent path traversal)
         // Only allow actual generated variants: sm, md, lg, xl, xxl, preview, blur
-        if (!preg_match('/^(sm|md|lg|xl|xxl|preview|blur)$/', $variant)) {
+        if (!preg_match('/^(sm|md|lg|xl|xxl|preview|blur)$/', (string) $variant)) {
             return $response->withStatus(400);
         }
 
@@ -368,7 +364,7 @@ class MediaController extends BaseController
         if ($accessResult !== true) {
             // Try blur fallback for protected albums (password or NSFW)
             $blurResponse = $this->tryServeBlurFallback($request, $response, $imageId, $isPasswordProtected || $isNsfw, $variant);
-            if ($blurResponse !== null) {
+            if ($blurResponse instanceof \Psr\Http\Message\ResponseInterface) {
                 return $blurResponse;
             }
 
@@ -422,7 +418,7 @@ class MediaController extends BaseController
         // Build file path. Sharp variants for protected albums live outside
         // public/; blur variants remain public and are safe to expose.
         $root = dirname(__DIR__, 3);
-        $relativePath = ltrim($variantRow['path'], '/');
+        $relativePath = ltrim((string) $variantRow['path'], '/');
 
         // SECURITY: Ensure path doesn't contain traversal sequences
         if (str_contains($relativePath, '..') || str_contains($relativePath, '\\')) {
@@ -449,7 +445,7 @@ class MediaController extends BaseController
         if (!$realPath || !is_file($realPath)) {
             // Last resort: try blur fallback for NSFW albums
             $blurResponse = $this->tryServeBlurFallback($request, $response, $imageId, $isPasswordProtected || $isNsfw, $variant);
-            if ($blurResponse !== null) {
+            if ($blurResponse instanceof \Psr\Http\Message\ResponseInterface) {
                 return $blurResponse;
             }
             return $response->withStatus(404);
@@ -489,7 +485,7 @@ class MediaController extends BaseController
         }
 
         $streamed = $this->streamFile($response, $realPath, $detectedMime);
-        if ($streamed === null) {
+        if (!$streamed instanceof \Psr\Http\Message\ResponseInterface) {
             return $response->withStatus(500);
         }
 
@@ -595,7 +591,7 @@ class MediaController extends BaseController
         }
 
         $streamed = $this->streamFile($response, $realPath, $detectedMime);
-        if ($streamed === null) {
+        if (!$streamed instanceof \Psr\Http\Message\ResponseInterface) {
             return $response->withStatus(500);
         }
 
@@ -624,13 +620,13 @@ class MediaController extends BaseController
         }
 
         // SECURITY: Prevent path traversal
-        if (str_contains($path, '..') || str_contains($path, '\\') || str_starts_with($path, '/')) {
+        if (str_contains((string) $path, '..') || str_contains((string) $path, '\\') || str_starts_with((string) $path, '/')) {
             return $response->withStatus(403);
         }
 
         // Parse filename to extract image ID
         // Format: {imageId}_{variant}.{format} or {imageId}_blur.{format}
-        $filename = basename($path);
+        $filename = basename((string) $path);
         if (!preg_match('/^(\d+)_([a-z0-9_-]+)\.(jpg|webp|avif|png)$/i', $filename, $matches)) {
             // Any numeric-prefixed media filename could be an album variant
             // from an older/custom generator. Never let it fall through to
@@ -678,7 +674,7 @@ class MediaController extends BaseController
         if ($accessResult !== true) {
             // Try blur fallback for protected albums (password or NSFW)
             $blurResponse = $this->tryServeBlurFallback($request, $response, $imageId, $isPasswordProtected || $isNsfw, $variant);
-            if ($blurResponse !== null) {
+            if ($blurResponse instanceof \Psr\Http\Message\ResponseInterface) {
                 return $blurResponse;
             }
 
@@ -843,7 +839,7 @@ class MediaController extends BaseController
         }
 
         $streamed = $this->streamFile($response, $realPath, $detectedMime);
-        if ($streamed === null) {
+        if (!$streamed instanceof \Psr\Http\Message\ResponseInterface) {
             return $response->withStatus(500);
         }
 
@@ -909,7 +905,7 @@ class MediaController extends BaseController
         }
 
         $streamed = $this->streamFile($response, $realPath, $detectedMime);
-        if ($streamed === null) {
+        if (!$streamed instanceof \Psr\Http\Message\ResponseInterface) {
             return $response->withStatus(500);
         }
 

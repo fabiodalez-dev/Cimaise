@@ -15,9 +15,9 @@ use Slim\Views\Twig;
 
 class PluginsController extends BaseController
 {
-    private string $pluginsDir;
+    private readonly string $pluginsDir;
 
-    public function __construct(Database $db, private Twig $view)
+    public function __construct(Database $db, private readonly Twig $view)
     {
         parent::__construct();
         $this->pluginsDir = dirname(__DIR__, 3) . '/plugins';
@@ -185,7 +185,7 @@ class PluginsController extends BaseController
 
         // Check file type
         $filename = $file->getClientFilename();
-        if (!str_ends_with(strtolower($filename), '.zip')) {
+        if (!str_ends_with(strtolower((string) $filename), '.zip')) {
             $response->getBody()->write(json_encode(['success' => false, 'message' => trans('admin.flash.plugin_must_be_zip')]));
             return $response->withStatus(400);
         }
@@ -342,8 +342,8 @@ class PluginsController extends BaseController
         }
 
         // Create slug from name
-        $slug = preg_replace('/[^a-z0-9-]/', '-', strtolower($pluginData['name']));
-        $slug = preg_replace('/-+/', '-', trim($slug, '-'));
+        $slug = preg_replace('/[^a-z0-9-]/', '-', strtolower((string) $pluginData['name']));
+        $slug = preg_replace('/-+/', '-', trim((string) $slug, '-'));
 
         $targetDir = $this->pluginsDir . '/' . $slug;
 
@@ -369,7 +369,7 @@ class PluginsController extends BaseController
         // Cleanup temp
         $this->cleanupTemp($tempDir);
 
-        $successMessage = str_replace('{name}', htmlspecialchars($pluginData['name'], ENT_QUOTES, 'UTF-8'), trans('admin.flash.plugin_uploaded'));
+        $successMessage = str_replace('{name}', htmlspecialchars((string) $pluginData['name'], ENT_QUOTES, 'UTF-8'), trans('admin.flash.plugin_uploaded'));
         $response->getBody()->write(json_encode([
             'success' => true,
             'message' => $successMessage,
@@ -398,9 +398,7 @@ class PluginsController extends BaseController
                 return trim($contents);
             }
         }
-
-        $header = trim($request->getHeaderLine('X-Plugin-Signature'));
-        return $header;
+        return trim($request->getHeaderLine('X-Plugin-Signature'));
     }
 
     /**
@@ -605,7 +603,7 @@ class PluginsController extends BaseController
                 continue;
             }
 
-            $extension = strtolower(pathinfo($file->getFilename(), PATHINFO_EXTENSION));
+            $extension = strtolower(pathinfo((string) $file->getFilename(), PATHINFO_EXTENSION));
 
             // Check for suspicious/dangerous file extensions
             $dangerousExtensions = [
@@ -620,14 +618,14 @@ class PluginsController extends BaseController
 
             // Check for double extensions (e.g., file.php.jpg, file.php3.txt)
             $basename = $file->getFilename();
-            if (preg_match('/\.(php[3-8]?|phar|phtml)[^a-z]/i', $basename)) {
+            if (preg_match('/\.(php[3-8]?|phar|phtml)[^a-z]/i', (string) $basename)) {
                 $errors[] = "Double extension with PHP detected: {$basename}";
                 continue;
             }
 
             // Check for .htaccess and similar Apache config dotfiles
             $filename = $file->getFilename();
-            if (preg_match('/^\.ht/', $filename)) {
+            if (preg_match('/^\.ht/', (string) $filename)) {
                 $errors[] = "Apache config file detected: {$filename}";
                 continue;
             }
@@ -637,14 +635,14 @@ class PluginsController extends BaseController
                 'web.config', '.user.ini', 'php.ini', '.php.ini', '.env',
                 '.git', '.gitignore', '.svn', '.hg'
             ];
-            $lowercaseFilename = strtolower($filename);
+            $lowercaseFilename = strtolower((string) $filename);
             if (in_array($lowercaseFilename, $dangerousFilenames)) {
                 $errors[] = "Dangerous config/hidden file detected: {$filename}";
                 continue;
             }
 
             // Check for null byte injection attempts in filename
-            if (strpos($filename, "\0") !== false || strpos($filename, '%00') !== false) {
+            if (str_contains((string) $filename, "\0") || str_contains((string) $filename, '%00')) {
                 $errors[] = "Null byte injection attempt in filename: {$filename}";
                 continue;
             }
@@ -679,7 +677,7 @@ class PluginsController extends BaseController
         }
 
         return [
-            'valid' => empty($errors),
+            'valid' => $errors === [],
             'errors' => $errors,
             'warnings' => $warnings
         ];
@@ -721,21 +719,17 @@ class PluginsController extends BaseController
                         $inHeredoc = false;
                         continue;
                     }
-
                     // Skip content inside heredoc
                     if ($inHeredoc) {
                         continue;
                     }
-
                     // Skip comments and strings
                     if (in_array($token[0], $skipTokens)) {
                         continue;
                     }
                     $result .= $token[1];
-                } else {
-                    if (!$inHeredoc) {
-                        $result .= $token;
-                    }
+                } elseif (!$inHeredoc) {
+                    $result .= $token;
                 }
             }
 

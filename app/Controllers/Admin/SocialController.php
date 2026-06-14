@@ -14,7 +14,7 @@ use Slim\Views\Twig;
 
 class SocialController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
     }
@@ -105,7 +105,7 @@ class SocialController extends BaseController
             }
         } else {
             // Case 2: form fields social_<key>=on
-            foreach ($availableSocials as $social => $config) {
+            foreach (array_keys($availableSocials) as $social) {
                 if (isset($data['social_' . $social])) {
                     $enabledSocials[] = $social;
                 }
@@ -130,7 +130,7 @@ class SocialController extends BaseController
         }
 
         // If no order provided, use enabled socials in default order
-        if (empty($socialOrder)) {
+        if ($socialOrder === []) {
             $socialOrder = $enabledSocials;
         }
 

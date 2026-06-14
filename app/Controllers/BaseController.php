@@ -21,7 +21,7 @@ abstract class BaseController
 
     protected function getBasePath(): string
     {
-        $basePath = dirname($_SERVER['SCRIPT_NAME']);
+        $basePath = dirname((string) $_SERVER['SCRIPT_NAME']);
         $basePath = $basePath === '/' ? '' : $basePath;
 
         // Remove /public from the path if present (since document root should be public/)
@@ -504,11 +504,11 @@ abstract class BaseController
         if ($referer === '') {
             return $this->redirect($fallbackPath);
         }
-        $refererScheme = parse_url($referer, PHP_URL_SCHEME);
-        $refererHost = parse_url($referer, PHP_URL_HOST);
+        $refererScheme = parse_url((string) $referer, PHP_URL_SCHEME);
+        $refererHost = parse_url((string) $referer, PHP_URL_HOST);
         $serverHost = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
         // Strip port from server host for comparison
-        $serverHost = preg_replace('/:\d+$/', '', $serverHost);
+        $serverHost = preg_replace('/:\d+$/', '', (string) $serverHost);
         $schemeOk = is_string($refererScheme) && in_array(strtolower($refererScheme), ['http', 'https'], true);
         if ($schemeOk && is_string($refererHost) && $serverHost !== '' && strcasecmp($refererHost, $serverHost) === 0) {
             return $referer;
@@ -534,11 +534,9 @@ abstract class BaseController
      * Write a JSON response with proper error handling.
      * Returns the response with Content-Type header set.
      *
-     * @param \Psr\Http\Message\ResponseInterface $response
      * @param mixed $data Data to encode as JSON
      * @param int $status HTTP status code (default: 200)
      * @param int $flags JSON encoding flags (default: JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
-     * @return \Psr\Http\Message\ResponseInterface
      */
     protected function jsonResponse(
         \Psr\Http\Message\ResponseInterface $response,

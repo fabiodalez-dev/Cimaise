@@ -14,17 +14,17 @@ use Twig\TwigFunction;
 class PerformanceTwigExtension extends AbstractExtension
 {
     public function __construct(
-        private PerformanceService $performanceService
+        private readonly PerformanceService $performanceService
     ) {
     }
 
     public function getFunctions(): array
     {
         return [
-            new TwigFunction('resource_hints', [$this, 'getResourceHints']),
-            new TwigFunction('image_priority', [$this, 'getImagePriority']),
-            new TwigFunction('image_sizes', [$this, 'getImageSizes']),
-            new TwigFunction('script_loading', [$this, 'getScriptLoading']),
+            new TwigFunction('resource_hints', $this->getResourceHints(...)),
+            new TwigFunction('image_priority', $this->getImagePriority(...)),
+            new TwigFunction('image_sizes', $this->getImageSizes(...)),
+            new TwigFunction('script_loading', $this->getScriptLoading(...)),
         ];
     }
 

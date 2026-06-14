@@ -25,12 +25,10 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 class EarlyHintsMiddleware implements MiddlewareInterface
 {
-    private string $basePath;
     private static ?array $integrityCache = null;
 
-    public function __construct(string $basePath = '')
+    public function __construct(private readonly string $basePath = '')
     {
-        $this->basePath = $basePath;
     }
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface

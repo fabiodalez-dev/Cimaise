@@ -13,7 +13,7 @@ class VariantMaintenanceService
     private const LOCK_FILE = '/storage/tmp/variants_daily.lock';
     private const LAST_RUN_CACHE_FILE = '/storage/tmp/variants_daily_lastrun.txt';
 
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
     }
 
@@ -29,25 +29,21 @@ class VariantMaintenanceService
         if ($cachedLastRun !== false) {
             $cachedLastRun = trim($cachedLastRun);
         }
-        if ($cachedLastRun === $today) {
-            // Already ran today - only rerun if we detect missing variants
-            if (!$this->hasMissingVariants($settings)) {
-                return;
-            }
+        // Already ran today - only rerun if we detect missing variants
+        if ($cachedLastRun === $today && !$this->hasMissingVariants($settings)) {
+            return;
         }
 
         $settings->clearCache();
         $lastRun = (string)$settings->get(self::SETTINGS_KEY, '');
 
         // If already ran today (per database), just update file cache and return
-        if ($lastRun === $today) {
-            if (!$this->hasMissingVariants($settings)) {
-                $written = @file_put_contents($cacheFile, $today, LOCK_EX);
-                if ($written === false) {
-                    Logger::warning('Failed to write variant maintenance cache', ['cache_file' => $cacheFile], 'maintenance');
-                }
-                return;
+        if ($lastRun === $today && !$this->hasMissingVariants($settings)) {
+            $written = @file_put_contents($cacheFile, $today, LOCK_EX);
+            if ($written === false) {
+                Logger::warning('Failed to write variant maintenance cache', ['cache_file' => $cacheFile], 'maintenance');
             }
+            return;
         }
 
         $lockHandle = $this->acquireLock();
@@ -88,10 +84,8 @@ class VariantMaintenanceService
     {
         $cacheFile = dirname(__DIR__, 2) . self::LAST_RUN_CACHE_FILE;
         $cacheDir = dirname($cacheFile);
-        if (!is_dir($cacheDir)) {
-            if (!@mkdir($cacheDir, 0775, true) && !is_dir($cacheDir)) {
-                Logger::warning('Failed to create cache directory for variant maintenance', ['directory' => $cacheDir], 'maintenance');
-            }
+        if (!is_dir($cacheDir) && (!@mkdir($cacheDir, 0775, true) && !is_dir($cacheDir))) {
+            Logger::warning('Failed to create cache directory for variant maintenance', ['directory' => $cacheDir], 'maintenance');
         }
     }
 
@@ -99,11 +93,9 @@ class VariantMaintenanceService
     {
         $lockPath = dirname(__DIR__, 2) . self::LOCK_FILE;
         $lockDir = dirname($lockPath);
-        if (!is_dir($lockDir)) {
-            if (!@mkdir($lockDir, 0775, true) && !is_dir($lockDir)) {
-                Logger::warning('Failed to create lock directory for variant maintenance', ['directory' => $lockDir], 'maintenance');
-                return null;
-            }
+        if (!is_dir($lockDir) && (!@mkdir($lockDir, 0775, true) && !is_dir($lockDir))) {
+            Logger::warning('Failed to create lock directory for variant maintenance', ['directory' => $lockDir], 'maintenance');
+            return null;
         }
 
         $handle = @fopen($lockPath, 'c');

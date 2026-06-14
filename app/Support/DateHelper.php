@@ -55,7 +55,7 @@ class DateHelper
             $datetime = new \DateTime($date);
             $format = self::getPhpFormat($withTime);
             return $datetime->format($format);
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return $date; // Return original if parsing fails
         }
     }
@@ -101,7 +101,7 @@ class DateHelper
             // Fallback: let PHP parse it
             $datetime = new \DateTime($date);
             return $datetime->format('Y-m-d');
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return $date; // Return original if parsing fails
         }
     }

@@ -19,16 +19,16 @@ class DateTwigExtension extends AbstractExtension
     public function getFilters(): array
     {
         return [
-            new TwigFilter('date_format', [$this, 'formatDate']),
-            new TwigFilter('datetime_format', [$this, 'formatDateTime']),
-            new TwigFilter('replace_year', [$this, 'replaceYear']),
+            new TwigFilter('date_format', $this->formatDate(...)),
+            new TwigFilter('datetime_format', $this->formatDateTime(...)),
+            new TwigFilter('replace_year', $this->replaceYear(...)),
         ];
     }
 
     public function getFunctions(): array
     {
         return [
-            new TwigFunction('date_format_pattern', [$this, 'getPattern']),
+            new TwigFunction('date_format_pattern', $this->getPattern(...)),
         ];
     }
 

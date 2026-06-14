@@ -35,7 +35,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 #[AsCommand(name: 'images:generate-lqip')]
 class ImagesGenerateLQIPCommand extends Command
 {
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
         parent::__construct();
     }
@@ -72,7 +72,7 @@ class ImagesGenerateLQIPCommand extends Command
         // Get images to process
         $images = $this->getImagesToProcess($force, $albumId, $limit);
 
-        if (empty($images)) {
+        if ($images === []) {
             $output->writeln('<info>No images found to process.</info>');
             $output->writeln('');
             return Command::SUCCESS;

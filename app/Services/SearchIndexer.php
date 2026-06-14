@@ -36,7 +36,7 @@ final class SearchIndexer
     /** Whether SQLite has FTS5 compiled in. Null until first probe. */
     private static ?bool $ftsAvailable = null;
 
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
     }
 
@@ -61,11 +61,7 @@ final class SearchIndexer
         }
 
         try {
-            if ($this->db->isSqlite()) {
-                self::$ready = $this->ensureSqlite();
-            } else {
-                self::$ready = $this->ensureMysql();
-            }
+            self::$ready = $this->db->isSqlite() ? $this->ensureSqlite() : $this->ensureMysql();
         } catch (Throwable $e) {
             error_log('[SearchIndexer] ensureReady failed: ' . $e->getMessage());
             self::$ready = false;
@@ -130,7 +126,7 @@ final class SearchIndexer
             $probe = new PDO('sqlite::memory:');
             $probe->exec('CREATE VIRTUAL TABLE _fts_probe USING fts5(x)');
             self::$ftsAvailable = true;
-        } catch (Throwable $e) {
+        } catch (Throwable) {
             self::$ftsAvailable = false;
         }
         return self::$ftsAvailable;

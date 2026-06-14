@@ -24,11 +24,9 @@ class Updater
 
     /** Default GitHub repository slug (override with env UPDATER_REPO) */
     private const DEFAULT_REPO = 'fabiodalez-dev/cimaise';
-
-    private Database $db;
-    private string $rootPath;
-    private string $backupPath;
-    private string $tempPath;
+    private readonly string $rootPath;
+    private readonly string $backupPath;
+    private readonly string $tempPath;
 
     /** @var array<string> Files/directories to preserve during update */
     private array $preservePaths = [
@@ -71,9 +69,8 @@ class Updater
         'node_modules',
     ];
 
-    public function __construct(Database $db)
+    public function __construct(private readonly Database $db)
     {
-        $this->db = $db;
         $this->rootPath = dirname(__DIR__, 2);
         $this->backupPath = $this->rootPath . '/storage/backups';
         // Use storage/tmp instead of sys_get_temp_dir() for shared hosting compatibility
@@ -104,14 +101,12 @@ class Updater
         ]);
 
         // Ensure backup directory exists
-        if (!is_dir($this->backupPath)) {
-            if (!mkdir($this->backupPath, 0755, true) && !is_dir($this->backupPath)) {
-                $this->debugLog('ERROR', 'Cannot create backup directory', [
-                    'path' => $this->backupPath,
-                    'error' => error_get_last()
-                ]);
-                throw new \RuntimeException(sprintf('Cannot create backup directory: %s', $this->backupPath));
-            }
+        if (!is_dir($this->backupPath) && (!mkdir($this->backupPath, 0755, true) && !is_dir($this->backupPath))) {
+            $this->debugLog('ERROR', 'Cannot create backup directory', [
+                'path' => $this->backupPath,
+                'error' => error_get_last()
+            ]);
+            throw new \RuntimeException(sprintf('Cannot create backup directory: %s', $this->backupPath));
         }
     }
 
@@ -250,7 +245,10 @@ class Updater
         }
 
         foreach ($files as $file) {
-            if ($file === '.' || $file === '..') {
+            if ($file === '.') {
+                continue;
+            }
+            if ($file === '..') {
                 continue;
             }
             $path = $dir . DIRECTORY_SEPARATOR . $file;
@@ -327,7 +325,7 @@ class Updater
                 ];
             }
 
-            $latestVersion = ltrim($release['tag_name'], 'v');
+            $latestVersion = ltrim((string) $release['tag_name'], 'v');
             $updateAvailable = version_compare($latestVersion, $currentVersion, '>');
 
             // Surface whether the release carries the installable package asset:
@@ -356,7 +354,7 @@ class Updater
 
         } catch (Exception $e) {
             $this->debugLog('ERROR', 'Error checking updates', [
-                'exception' => get_class($e),
+                'exception' => $e::class,
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine()
@@ -401,7 +399,7 @@ class Updater
     {
         $repo = $this->envValue('UPDATER_REPO');
         if ($repo === '' || !preg_match('#^[\w.-]+/[\w.-]+$#', $repo)) {
-            $repo = self::DEFAULT_REPO;
+            return self::DEFAULT_REPO;
         }
         return $repo;
     }
@@ -915,10 +913,8 @@ class Updater
             ]);
 
             // Create temp directory
-            if (!is_dir($this->tempPath)) {
-                if (!mkdir($this->tempPath, 0755, true) && !is_dir($this->tempPath)) {
-                    throw new Exception('Cannot create temporary directory');
-                }
+            if (!is_dir($this->tempPath) && (!mkdir($this->tempPath, 0755, true) && !is_dir($this->tempPath))) {
+                throw new Exception('Cannot create temporary directory');
             }
 
             $zipPath = $this->tempPath . '/update.zip';
@@ -935,7 +931,7 @@ class Updater
             }
 
             $fileContent = $downloadResult['content'];
-            $fileSize = strlen($fileContent);
+            $fileSize = strlen((string) $fileContent);
             $this->debugLog('INFO', 'Download completed', [
                 'size_bytes' => $fileSize,
                 'size_mb' => round($fileSize / 1024 / 1024, 2),
@@ -976,7 +972,7 @@ class Updater
                 );
             }
 
-            $actualHash = hash('sha256', $fileContent);
+            $actualHash = hash('sha256', (string) $fileContent);
             if (!hash_equals($expectedHash, $actualHash)) {
                 $this->debugLog('ERROR', 'Update archive digest mismatch', [
                     'expected' => $expectedHash,
@@ -1087,7 +1083,7 @@ class Updater
                 }
             }
 
-            if (!empty($missingFiles)) {
+            if ($missingFiles !== []) {
                 $this->debugLog('ERROR', 'Incomplete package - missing required files', ['missing' => $missingFiles]);
                 throw new Exception('Invalid update package: missing ' . implode(', ', $missingFiles));
             }
@@ -1122,7 +1118,7 @@ class Updater
      */
     private function getReleaseByVersion(string $version): ?array
     {
-        $tag = strpos($version, 'v') === 0 ? $version : 'v' . $version;
+        $tag = str_starts_with($version, 'v') ? $version : 'v' . $version;
         $url = $this->apiBase() . "/repos/{$this->repoSlug()}/releases/tags/{$tag}";
 
         try {
@@ -1187,7 +1183,10 @@ class Updater
         }
 
         foreach ($release['assets'] ?? [] as $asset) {
-            if (!is_array($asset) || !isset($asset['name'], $asset['browser_download_url'])) {
+            if (!is_array($asset)) {
+                continue;
+            }
+            if (!isset($asset['name'], $asset['browser_download_url'])) {
                 continue;
             }
             if (preg_match('/cimaise.*\.zip$/i', (string)$asset['name'])) {
@@ -1210,10 +1209,12 @@ class Updater
         $sidecarName = $assetName . '.sha256';
 
         foreach ($release['assets'] ?? [] as $asset) {
-            if (!is_array($asset) || ($asset['name'] ?? '') !== $sidecarName) {
+            if (!is_array($asset)) {
                 continue;
             }
-
+            if (($asset['name'] ?? '') !== $sidecarName) {
+                continue;
+            }
             $url = $asset['browser_download_url'] ?? '';
             if ($url === '') {
                 return null;
@@ -1359,7 +1360,7 @@ class Updater
         $realBackupDir = realpath($this->backupPath);
 
         if ($realBackupPath === false || $realBackupDir === false ||
-            strpos($realBackupPath, $realBackupDir) !== 0) {
+            !str_starts_with($realBackupPath, $realBackupDir)) {
             return ['success' => false, 'error' => 'Invalid backup path'];
         }
 
@@ -1392,7 +1393,7 @@ class Updater
         $realBackupDir = realpath($this->backupPath);
 
         if ($realDbFile === false || $realBackupDir === false ||
-            strpos($realDbFile, $realBackupDir) !== 0) {
+            !str_starts_with($realDbFile, $realBackupDir)) {
             return ['success' => false, 'path' => null, 'filename' => null, 'error' => 'Invalid backup path'];
         }
 
@@ -1418,9 +1419,8 @@ class Updater
 
             if ($this->db->isSqlite()) {
                 return $this->backupSqliteDatabase($filepath);
-            } else {
-                return $this->backupMysqlDatabase($filepath);
             }
+            return $this->backupMysqlDatabase($filepath);
 
         } catch (Exception $e) {
             $this->debugLog('ERROR', 'Database backup error', ['error' => $e->getMessage()]);
@@ -1450,7 +1450,7 @@ class Updater
 
             foreach ($tables as $table) {
                 // Validate table name (alphanumeric and underscore only)
-                if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $table)) {
+                if (!preg_match('/^[a-zA-Z_]\w*$/', (string) $table)) {
                     $this->debugLog('WARNING', 'Skipping table with invalid name', ['table' => $table]);
                     continue;
                 }
@@ -1521,7 +1521,7 @@ class Updater
 
             foreach ($tables as $table) {
                 // Validate table name (alphanumeric and underscore only)
-                if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $table)) {
+                if (!preg_match('/^[a-zA-Z_]\w*$/', (string) $table)) {
                     $this->debugLog('WARNING', 'Skipping table with invalid name', ['table' => $table]);
                     continue;
                 }
@@ -1820,8 +1820,10 @@ class Updater
         foreach ($dirsToCheck as $dir) {
             $currentDir = $this->rootPath . '/' . $dir;
             $newDir = $newSourcePath . '/' . $dir;
-
-            if (!is_dir($currentDir) || !is_dir($newDir)) {
+            if (!is_dir($currentDir)) {
+                continue;
+            }
+            if (!is_dir($newDir)) {
                 continue;
             }
 
@@ -1845,7 +1847,7 @@ class Updater
             $fullRelativePath = $basePath . '/' . $relativePath;
 
             foreach ($this->preservePaths as $preservePath) {
-                if (strpos($fullRelativePath, $preservePath) === 0) {
+                if (str_starts_with($fullRelativePath, $preservePath)) {
                     continue 2;
                 }
             }
@@ -1886,34 +1888,30 @@ class Updater
 
             $realDest = realpath($dest);
             $parentTarget = realpath(dirname($targetPath));
-            if ($parentTarget !== false && $realDest !== false && strpos($parentTarget, $realDest) !== 0) {
+            if ($parentTarget !== false && $realDest !== false && !str_starts_with($parentTarget, $realDest)) {
                 throw new Exception(sprintf('Invalid path in package: %s', $relativePath));
             }
 
             foreach ($this->skipPaths as $skipPath) {
-                if (strpos($relativePath, $skipPath) === 0) {
+                if (str_starts_with($relativePath, $skipPath)) {
                     continue 2;
                 }
             }
 
             foreach ($this->preservePaths as $preservePath) {
-                if (strpos($relativePath, $preservePath) === 0 && file_exists($targetPath)) {
+                if (str_starts_with($relativePath, $preservePath) && file_exists($targetPath)) {
                     continue 2;
                 }
             }
 
             if ($item->isDir()) {
-                if (!is_dir($targetPath)) {
-                    if (!mkdir($targetPath, 0755, true) && !is_dir($targetPath)) {
-                        throw new Exception(sprintf('Cannot create directory: %s', $relativePath));
-                    }
+                if (!is_dir($targetPath) && (!mkdir($targetPath, 0755, true) && !is_dir($targetPath))) {
+                    throw new Exception(sprintf('Cannot create directory: %s', $relativePath));
                 }
             } else {
                 $parentDir = dirname($targetPath);
-                if (!is_dir($parentDir)) {
-                    if (!mkdir($parentDir, 0755, true) && !is_dir($parentDir)) {
-                        throw new Exception(sprintf('Cannot create directory: %s', dirname($relativePath)));
-                    }
+                if (!is_dir($parentDir) && (!mkdir($parentDir, 0755, true) && !is_dir($parentDir))) {
+                    throw new Exception(sprintf('Cannot create directory: %s', dirname($relativePath)));
                 }
                 // If target is an existing directory, remove it first (file replacing dir)
                 if (is_dir($targetPath)) {
@@ -1988,7 +1986,7 @@ class Updater
 
             $this->debugLog('DEBUG', 'Migration files found', [
                 'count' => count($files),
-                'files' => array_map('basename', $files)
+                'files' => array_map(basename(...), $files)
             ]);
 
             foreach ($files as $file) {
@@ -2134,7 +2132,7 @@ class Updater
         // which is rare in our migrations, out of scope — matches the prior
         // behavior this method replaces).
         $sqlLines = explode("\n", $sql);
-        $sqlLines = array_filter($sqlLines, fn ($line) => !preg_match('/^\s*--/', $line));
+        $sqlLines = array_filter($sqlLines, fn ($line) => !preg_match('/^\s*--/', (string) $line));
         $sql = implode("\n", $sqlLines);
 
         $statements = [];
@@ -2208,7 +2206,7 @@ class Updater
             $trimmed = trim($line);
 
             // Skip blank / comment-only lines while not mid-statement.
-            if ($buffer === '' && ($trimmed === '' || strpos($trimmed, '--') === 0)) {
+            if ($buffer === '' && ($trimmed === '' || str_starts_with($trimmed, '--'))) {
                 continue;
             }
 
@@ -2246,7 +2244,7 @@ class Updater
             // A statement terminates only at depth 0, when the line (minus any
             // trailing line comment) ends with the active delimiter.
             $codeTrimmed = rtrim(preg_replace('/--.*$/', '', $trimmed) ?? $trimmed);
-            if ($blockDepth === 0 && $codeTrimmed !== '' && substr($codeTrimmed, -strlen($delimiter)) === $delimiter) {
+            if ($blockDepth === 0 && $codeTrimmed !== '' && str_ends_with($codeTrimmed, $delimiter)) {
                 // Drop a trailing line comment from the buffer before slicing
                 // off the delimiter, so `END; -- note` flushes cleanly.
                 $stmt = rtrim(preg_replace('/--[^\n]*$/', '', rtrim($buffer)) ?? $buffer);
@@ -2277,11 +2275,10 @@ class Updater
             if ($this->db->isSqlite()) {
                 $result = $this->db->pdo()->query("SELECT name FROM sqlite_master WHERE type='table' AND name='migrations'");
                 return $result->fetch() !== false;
-            } else {
-                $result = $this->db->pdo()->query("SHOW TABLES LIKE 'migrations'");
-                return $result->rowCount() > 0;
             }
-        } catch (\PDOException $e) {
+            $result = $this->db->pdo()->query("SHOW TABLES LIKE 'migrations'");
+            return $result->rowCount() > 0;
+        } catch (\PDOException) {
             return false;
         }
     }
@@ -2449,7 +2446,7 @@ class Updater
             $stmt->execute([$limit]);
 
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             return [];
         }
     }
@@ -2715,7 +2712,7 @@ class Updater
         $releases = $this->getAllReleases(20);
 
         foreach ($releases as $release) {
-            $releaseVersion = ltrim($release['tag_name'], 'v');
+            $releaseVersion = ltrim((string) $release['tag_name'], 'v');
 
             if (version_compare($releaseVersion, $fromVersion, '>')) {
                 $changelog[] = [
@@ -3080,7 +3077,7 @@ class Updater
 
         $real = realpath($this->rootPath . '/' . $patch['file']);
         $root = realpath($this->rootPath);
-        if ($real === false || $root === false || strpos($real, $root . DIRECTORY_SEPARATOR) !== 0) {
+        if ($real === false || $root === false || !str_starts_with($real, $root . DIRECTORY_SEPARATOR)) {
             return ['success' => false, 'error' => 'Invalid file path'];
         }
 
@@ -3113,7 +3110,7 @@ class Updater
         $protected = ['.env', 'version.json', 'composer.json', 'public/index.php', 'database/database.sqlite'];
         $base = basename($relativePath);
         foreach ($protected as $p) {
-            if ($relativePath === $p || strpos($relativePath, $p . '/') === 0 || $base === basename($p)) {
+            if ($relativePath === $p || str_starts_with($relativePath, $p . '/') || $base === basename($p)) {
                 return ['success' => false, 'error' => 'Cannot delete protected file'];
             }
         }
@@ -3123,7 +3120,7 @@ class Updater
         if ($real === false) {
             return ['success' => true, 'error' => null]; // already gone
         }
-        if ($root === false || strpos($real, $root . DIRECTORY_SEPARATOR) !== 0) {
+        if ($root === false || !str_starts_with($real, $root . DIRECTORY_SEPARATOR)) {
             return ['success' => false, 'error' => 'Invalid file path'];
         }
         if (is_file($real) && $this->safeUnlink($real)) {

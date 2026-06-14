@@ -13,7 +13,7 @@ use Slim\Views\Twig;
 
 class CommandsController extends BaseController
 {
-    public function __construct(Database $db, private Twig $view)
+    public function __construct(Database $db, private readonly Twig $view)
     {
         parent::__construct();
         // $db kept on the signature for DI uniformity but currently unused.

@@ -8,7 +8,7 @@ use App\Support\Database;
 
 class TemplateService
 {
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
     }
 

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 // Track request start time for performance logging
-$_SERVER['REQUEST_TIME_FLOAT'] = $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true);
+$_SERVER['REQUEST_TIME_FLOAT'] ??= microtime(true);
 
 // ---------------------------------------------------------------------------
 // Update maintenance mode (storage/.maintenance written by App\Support\Updater
@@ -33,7 +33,7 @@ if (is_file($maintenanceFlagFile)) {
     }
 
     $maintenancePath = (string)(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/');
-    if (is_file($maintenanceFlagFile) && strpos($maintenancePath, '/admin/updates') === false) {
+    if (is_file($maintenanceFlagFile) && !str_contains($maintenancePath, '/admin/updates')) {
         http_response_code(503);
         header('Retry-After: 120');
         header('Content-Type: text/html; charset=utf-8');
@@ -75,16 +75,16 @@ use App\Support\Logger;
 
 // Check if installer is being accessed
 $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
-$isInstallerRoute = strpos($requestUri, '/install') !== false || strpos($requestUri, 'installer.php') !== false;
-$isAdminRoute = strpos($requestUri, '/admin') !== false;
-$isLoginRoute = strpos($requestUri, '/login') !== false;
+$isInstallerRoute = str_contains((string) $requestUri, '/install') || str_contains((string) $requestUri, 'installer.php');
+$isAdminRoute = str_contains((string) $requestUri, '/admin');
+$isLoginRoute = str_contains((string) $requestUri, '/login');
 
 // Media requests (/media/*) are hot-path image serving. They are gated below to
 // skip the session file lock (H2) and the DB-backed Twig global enrichment (H1)
 // while still going through Slim routing + MediaController access control.
 // Match on the path only (query string stripped) and never treat admin pages
 // (/admin/media/*) as media — those need the full session/CSRF behavior.
-$requestPathOnly = (string)(parse_url($requestUri, PHP_URL_PATH) ?: '/');
+$requestPathOnly = (string)(parse_url((string) $requestUri, PHP_URL_PATH) ?: '/');
 $isMediaRequest = !$isAdminRoute && (bool)preg_match('#(^|/)media/#', $requestPathOnly);
 
 // Check if already installed (for all routes except installer itself)
@@ -104,7 +104,7 @@ if (!$isInstallerRoute) {
         $envContent = @file_get_contents($envFile) ?: '';
         $env = [];
         foreach (explode("\n", $envContent) as $line) {
-            if (strpos($line, '=') !== false && strpos($line, '#') !== 0) {
+            if (str_contains($line, '=') && !str_starts_with($line, '#')) {
                 [$key, $value] = explode('=', $line, 2);
                 $env[trim($key)] = trim($value, " \t\n\r\0\x0B\"'");
             }
@@ -147,7 +147,7 @@ if (!$isInstallerRoute) {
                     @file_put_contents($installedMarker, date('Y-m-d H:i:s'), LOCK_EX);
                 }
             }
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             $installed = false;
         }
     }
@@ -156,13 +156,13 @@ if (!$isInstallerRoute) {
     if (!$installed) {
         // Avoid redirect loop - check if we're already on install page or accessing media/assets
         $uri = $_SERVER['REQUEST_URI'] ?? '';
-        $isInstallerPath = strpos($uri, '/install') !== false;
-        $isMediaPath = strpos($uri, '/media/') !== false;
-        $isAssetsPath = strpos($uri, '/assets/') !== false;
+        $isInstallerPath = str_contains((string) $uri, '/install');
+        $isMediaPath = str_contains((string) $uri, '/media/');
+        $isAssetsPath = str_contains((string) $uri, '/assets/');
 
         if (!$isInstallerPath && !$isMediaPath && !$isAssetsPath) {
             $scriptPath = $_SERVER['SCRIPT_NAME'] ?? '';
-            $scriptDir = dirname($scriptPath);
+            $scriptDir = dirname((string) $scriptPath);
             $basePath = $scriptDir === '/' ? '' : $scriptDir;
             http_response_code(302);
             header('Location: ' . $basePath . '/installer.php');
@@ -223,7 +223,7 @@ if ($isMediaRequest) {
 // Note: PHP built-in server sets SCRIPT_NAME to the requested URI when using a router,
 // so we need to detect this and use an empty base path instead
 $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-$scriptDir = dirname($scriptName);
+$scriptDir = dirname((string) $scriptName);
 $isBuiltInServer = php_sapi_name() === 'cli-server';
 $basePath = $isBuiltInServer ? '' : ($scriptDir === '/' ? '' : $scriptDir);
 // Remove /public from the base path if present (since document root should be public/)
@@ -378,7 +378,7 @@ if ($container['db'] !== null) {
     $GLOBALS['translationService'] = $translationService;
 
     // Add performance extension for optimization features
-    if ($settingsService === null) {
+    if (!$settingsService instanceof \App\Services\SettingsService) {
         $settingsService = new \App\Services\SettingsService($container['db']);
     }
     $performanceService = new \App\Services\PerformanceService($container['db'], $settingsService, $basePath);
@@ -439,7 +439,7 @@ if (!$isInstallerRoute && !$isMediaRequest && $container['db'] !== null) {
         // Initialize translation service with cached language settings
         $siteLanguage = $cachedGlobals['site_language'] ?? 'en';
         $adminLanguage = $cachedGlobals['admin_language'] ?? 'en';
-        if ($translationService !== null) {
+        if ($translationService instanceof \App\Services\TranslationService) {
             $translationService->setLanguage($siteLanguage);
             $translationService->setAdminLanguage($adminLanguage);
             if ($isAdminRoute) {
@@ -451,7 +451,7 @@ if (!$isInstallerRoute && !$isMediaRequest && $container['db'] !== null) {
         $twig->getEnvironment()->addGlobal('app_debug', filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN));
 
         // Translation maps for JS bundles (request-specific, not cached)
-        if ($translationService !== null) {
+        if ($translationService instanceof \App\Services\TranslationService) {
             if ($isAdminRoute) {
                 $twig->getEnvironment()->addGlobal('admin_translations', $translationService->all());
             } else {
@@ -498,7 +498,7 @@ if (!$isInstallerRoute && !$isMediaRequest && $container['db'] !== null) {
                 if (!isset($profile['network'], $profile['url'])) {
                     continue;
                 }
-                $url = trim($profile['url']);
+                $url = trim((string) $profile['url']);
                 if (!preg_match('#^https?://#i', $url)) {
                     continue;
                 }
@@ -600,10 +600,10 @@ $errorMiddleware = $app->addErrorMiddleware(filter_var($_ENV['APP_DEBUG'] ?? fal
 $errorMiddleware->setErrorHandler(HttpNotFoundException::class, function ($request, \Throwable $exception, bool $displayErrorDetails) use ($twig, $translationService) {
     $response = new \Slim\Psr7\Response(404);
     $path = $request->getUri()->getPath();
-    $isAdmin = str_contains($path, '/admin');
+    $isAdmin = str_contains((string) $path, '/admin');
 
     // Set translation scope
-    if ($translationService !== null) {
+    if ($translationService instanceof \App\Services\TranslationService) {
         $translationService->setScope($isAdmin ? 'admin' : 'frontend');
     }
 
@@ -631,7 +631,7 @@ $errorMiddleware->setErrorHandler(HttpMethodNotAllowedException::class, function
 
     // For AJAX requests, return JSON
     $isAjax = $request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest'
-           || str_contains($request->getHeaderLine('Accept'), 'application/json');
+           || str_contains((string) $request->getHeaderLine('Accept'), 'application/json');
 
     if ($isAjax) {
         $response->getBody()->write(json_encode([
@@ -644,9 +644,9 @@ $errorMiddleware->setErrorHandler(HttpMethodNotAllowedException::class, function
 
     // For regular requests, render error page
     $path = $request->getUri()->getPath();
-    $isAdmin = str_contains($path, '/admin');
+    $isAdmin = str_contains((string) $path, '/admin');
 
-    if ($translationService !== null) {
+    if ($translationService instanceof \App\Services\TranslationService) {
         $translationService->setScope($isAdmin ? 'admin' : 'frontend');
     }
 
@@ -658,10 +658,10 @@ $errorMiddleware->setErrorHandler(HttpMethodNotAllowedException::class, function
 $errorMiddleware->setDefaultErrorHandler(function ($request, \Throwable $exception, bool $displayErrorDetails, bool $logErrors, bool $logErrorDetails) use ($twig, $translationService) {
     $response = new \Slim\Psr7\Response(500);
     $path = $request->getUri()->getPath();
-    $isAdmin = str_contains($path, '/admin');
+    $isAdmin = str_contains((string) $path, '/admin');
 
     // Set translation scope
-    if ($translationService !== null) {
+    if ($translationService instanceof \App\Services\TranslationService) {
         $translationService->setScope($isAdmin ? 'admin' : 'frontend');
     }
 
@@ -679,7 +679,7 @@ $errorMiddleware->setDefaultErrorHandler(function ($request, \Throwable $excepti
 // their own fastcgi_finish_request() call still work (PHP no-ops the
 // second call).
 if (function_exists('fastcgi_finish_request')) {
-    register_shutdown_function('fastcgi_finish_request');
+    register_shutdown_function(fastcgi_finish_request(...));
 }
 
 // Register performance logging on shutdown

@@ -66,14 +66,12 @@ final class UpdaterPatchTest extends TestCase
     private function setProp(string $name, mixed $value): void
     {
         $p = new ReflectionProperty(Updater::class, $name);
-        $p->setAccessible(true);
         $p->setValue($this->updater, $value);
     }
 
     private function call(string $method, mixed ...$args): mixed
     {
         $m = new ReflectionMethod(Updater::class, $method);
-        $m->setAccessible(true);
         return $m->invoke($this->updater, ...$args);
     }
 
@@ -83,7 +81,10 @@ final class UpdaterPatchTest extends TestCase
             return;
         }
         foreach (scandir($dir) as $f) {
-            if ($f === '.' || $f === '..') {
+            if ($f === '.') {
+                continue;
+            }
+            if ($f === '..') {
                 continue;
             }
             $path = $dir . '/' . $f;
@@ -231,7 +232,6 @@ final class UpdaterPatchTest extends TestCase
     private function updaterDb(): PDO
     {
         $p = new ReflectionProperty(Updater::class, 'db');
-        $p->setAccessible(true);
         return $p->getValue($this->updater)->pdo();
     }
 }

@@ -17,7 +17,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(name: 'install', description: 'Install Cimaise application')]
 class InstallCommand extends Command
 {
-    private string $rootPath;
+    private readonly string $rootPath;
 
     public function __construct()
     {
@@ -60,7 +60,7 @@ class InstallCommand extends Command
         // Collect installation data
         $data = $this->collectInstallationData($input, $output, $io);
 
-        if (empty($data)) {
+        if ($data === []) {
             $io->error('Installation cancelled');
             return Command::FAILURE;
         }
@@ -103,11 +103,6 @@ class InstallCommand extends Command
     private function checkRequirements(): array
     {
         $errors = [];
-
-        // Check PHP version
-        if (version_compare(PHP_VERSION, '8.2.0', '<')) {
-            $errors[] = 'PHP 8.2 or higher is required. Current version: ' . PHP_VERSION;
-        }
 
         // Check required extensions
         $requiredExtensions = ['pdo', 'gd', 'mbstring', 'openssl'];

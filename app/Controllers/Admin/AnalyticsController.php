@@ -16,15 +16,13 @@ use PDO;
 class AnalyticsController extends BaseController
 {
     private const TOP_ALBUMS_LIMIT = 20;
-    private PDO $db;
-    private Twig $twig;
-    private AnalyticsService $analytics;
+    private readonly PDO $db;
+    private readonly AnalyticsService $analytics;
 
-    public function __construct(Database $database, Twig $twig)
+    public function __construct(Database $database, private readonly Twig $twig)
     {
         parent::__construct();
         $this->db = $database->pdo();
-        $this->twig = $twig;
         $this->analytics = new AnalyticsService($this->db);
     }
 
@@ -65,7 +63,7 @@ class AnalyticsController extends BaseController
         // Get and validate date range from query params
         try {
             [$startDate, $endDate] = $this->validateDateRange($request->getQueryParams());
-        } catch (\InvalidArgumentException $e) {
+        } catch (\InvalidArgumentException) {
             // Fallback to default range on invalid input
             $endDate = date('Y-m-d');
             $startDate = date('Y-m-d', strtotime('-30 days'));
@@ -119,7 +117,7 @@ class AnalyticsController extends BaseController
             $stmt = $this->db->prepare('SELECT setting_key, setting_value, description FROM analytics_settings ORDER BY setting_key');
             $stmt->execute();
             $settings = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Analytics tables don't exist - show message about running migration
             if (session_status() === PHP_SESSION_NONE) {
                 session_start();
@@ -429,7 +427,7 @@ class AnalyticsController extends BaseController
                 'top_pages_hour' => $topPagesHour,
                 'timestamp' => time()
             ];
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Analytics tables don't exist - return empty data
             $data = [
                 'current_activity' => [],
@@ -498,7 +496,7 @@ class AnalyticsController extends BaseController
                                 WHERE session_id = ?
                             ');
                             $stmt->execute([$data['time_on_page'], $data['session_id']]);
-                        } catch (\PDOException $e) {
+                        } catch (\PDOException) {
                             // Analytics tables don't exist - silently ignore
                             // This allows the application to continue functioning
                         }
@@ -550,7 +548,7 @@ class AnalyticsController extends BaseController
             ');
             $stmt->execute([$startDate, $endDate]);
             $albumsData = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Analytics tables don't exist - use empty array
             if (session_status() === PHP_SESSION_NONE) {
                 session_start();
@@ -634,7 +632,7 @@ class AnalyticsController extends BaseController
             ");
             $stmt->execute([$startDate, $endDate]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Analytics tables don't exist - return empty array
             return [];
         }
@@ -673,7 +671,7 @@ class AnalyticsController extends BaseController
                 $value = trim((string)$data[$field]);
                 // Basic XSS prevention: no HTML tags or JavaScript
                 $value = strip_tags($value);
-                if (strpos($value, 'javascript:') !== false || strpos($value, 'data:') !== false) {
+                if (str_contains($value, 'javascript:') || str_contains($value, 'data:')) {
                     $value = ''; // Remove dangerous protocols
                 }
                 // Trim to max length

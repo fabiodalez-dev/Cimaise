@@ -15,7 +15,7 @@ use Symfony\Component\Console\Question\Question;
 #[AsCommand(name: 'init')]
 class InitCommand extends Command
 {
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
         parent::__construct();
     }

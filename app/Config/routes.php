@@ -19,7 +19,7 @@ function isAppInstalled($db): bool
         $stmt = $db->query("SELECT COUNT(*) as count FROM users WHERE role = 'admin'");
         $result = $stmt->fetch();
         return $result && $result['count'] > 0;
-    } catch (\Throwable $e) {
+    } catch (\Throwable) {
         return false;
     }
 }
@@ -29,7 +29,7 @@ return function (App $app, array $container) {
     // Installer routes — redirect all /install/* to standalone installer.php
     if (!$container['db'] || !isAppInstalled($container['db'])) {
         $redirectToInstaller = function (Request $request, Response $response): Response {
-            $basePath = dirname($_SERVER['SCRIPT_NAME']);
+            $basePath = dirname((string) $_SERVER['SCRIPT_NAME']);
             $basePath = $basePath === '/' ? '' : $basePath;
             return $response->withHeader('Location', $basePath . '/installer.php')->withStatus(302);
         };
@@ -303,18 +303,14 @@ return function (App $app, array $container) {
     });
 
     // Syndication feeds (recent albums)
-    $app->get('/feed.xml', function (Request $request, Response $response) use ($container) {
-        return (new \App\Controllers\Frontend\FeedController($container['db']))->rss($request, $response);
-    });
-    $app->get('/feed/atom', function (Request $request, Response $response) use ($container) {
-        return (new \App\Controllers\Frontend\FeedController($container['db']))->atom($request, $response);
-    });
+    $app->get('/feed.xml', fn (Request $request, Response $response) => (new \App\Controllers\Frontend\FeedController($container['db']))->rss($request, $response));
+    $app->get('/feed/atom', fn (Request $request, Response $response) => (new \App\Controllers\Frontend\FeedController($container['db']))->atom($request, $response));
 
     // (public API routes are defined near the bottom of this file)
 
     // Admin redirects
     $app->get('/login', function (Request $request, Response $response) {
-        $basePath = dirname($_SERVER['SCRIPT_NAME']);
+        $basePath = dirname((string) $_SERVER['SCRIPT_NAME']);
         $basePath = $basePath === '/' ? '' : $basePath;
 
         // Remove /public from the path if present (since document root should be public/)
@@ -326,7 +322,7 @@ return function (App $app, array $container) {
     });
 
     $app->get('/admin-login', function (Request $request, Response $response) {
-        $basePath = dirname($_SERVER['SCRIPT_NAME']);
+        $basePath = dirname((string) $_SERVER['SCRIPT_NAME']);
         $basePath = $basePath === '/' ? '' : $basePath;
 
         // Remove /public from the path if present (since document root should be public/)
@@ -1540,39 +1536,17 @@ return function (App $app, array $container) {
         $resp->getBody()->write('Service Unavailable');
         return $resp;
     };
-    $app->get('/admin/collections', function (Request $request, Response $response) use ($container) {
-        return (new \App\Controllers\Admin\CollectionsController($container['db'], Twig::fromRequest($request)))->index($request, $response);
-    })->add($collAuth());
-    $app->get('/admin/collections/create', function (Request $request, Response $response) use ($container) {
-        return (new \App\Controllers\Admin\CollectionsController($container['db'], Twig::fromRequest($request)))->create($request, $response);
-    })->add($collAuth());
-    $app->post('/admin/collections', function (Request $request, Response $response) use ($container) {
-        return (new \App\Controllers\Admin\CollectionsController($container['db'], Twig::fromRequest($request)))->store($request, $response);
-    })->add($collAuth());
-    $app->get('/admin/collections/{id}/edit', function (Request $request, Response $response, array $args) use ($container) {
-        return (new \App\Controllers\Admin\CollectionsController($container['db'], Twig::fromRequest($request)))->edit($request, $response, $args);
-    })->add($collAuth());
-    $app->post('/admin/collections/{id}', function (Request $request, Response $response, array $args) use ($container) {
-        return (new \App\Controllers\Admin\CollectionsController($container['db'], Twig::fromRequest($request)))->update($request, $response, $args);
-    })->add($collAuth());
-    $app->post('/admin/collections/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
-        return (new \App\Controllers\Admin\CollectionsController($container['db'], Twig::fromRequest($request)))->delete($request, $response, $args);
-    })->add($collAuth());
-    $app->get('/admin/collections/{id}/picker', function (Request $request, Response $response, array $args) use ($container) {
-        return (new \App\Controllers\Admin\CollectionsController($container['db'], Twig::fromRequest($request)))->pickerImages($request, $response, $args);
-    })->add($collAuth());
-    $app->post('/admin/collections/{id}/images/attach', function (Request $request, Response $response, array $args) use ($container) {
-        return (new \App\Controllers\Admin\CollectionsController($container['db'], Twig::fromRequest($request)))->attach($request, $response, $args);
-    })->add($collAuth());
-    $app->post('/admin/collections/{id}/images/detach', function (Request $request, Response $response, array $args) use ($container) {
-        return (new \App\Controllers\Admin\CollectionsController($container['db'], Twig::fromRequest($request)))->detach($request, $response, $args);
-    })->add($collAuth());
-    $app->post('/admin/collections/{id}/images/reorder', function (Request $request, Response $response, array $args) use ($container) {
-        return (new \App\Controllers\Admin\CollectionsController($container['db'], Twig::fromRequest($request)))->reorder($request, $response, $args);
-    })->add($collAuth());
-    $app->post('/admin/collections/{id}/cover', function (Request $request, Response $response, array $args) use ($container) {
-        return (new \App\Controllers\Admin\CollectionsController($container['db'], Twig::fromRequest($request)))->setCover($request, $response, $args);
-    })->add($collAuth());
+    $app->get('/admin/collections', fn (Request $request, Response $response) => (new \App\Controllers\Admin\CollectionsController($container['db'], Twig::fromRequest($request)))->index($request, $response))->add($collAuth());
+    $app->get('/admin/collections/create', fn (Request $request, Response $response) => (new \App\Controllers\Admin\CollectionsController($container['db'], Twig::fromRequest($request)))->create($request, $response))->add($collAuth());
+    $app->post('/admin/collections', fn (Request $request, Response $response) => (new \App\Controllers\Admin\CollectionsController($container['db'], Twig::fromRequest($request)))->store($request, $response))->add($collAuth());
+    $app->get('/admin/collections/{id}/edit', fn (Request $request, Response $response, array $args) => (new \App\Controllers\Admin\CollectionsController($container['db'], Twig::fromRequest($request)))->edit($request, $response, $args))->add($collAuth());
+    $app->post('/admin/collections/{id}', fn (Request $request, Response $response, array $args) => (new \App\Controllers\Admin\CollectionsController($container['db'], Twig::fromRequest($request)))->update($request, $response, $args))->add($collAuth());
+    $app->post('/admin/collections/{id}/delete', fn (Request $request, Response $response, array $args) => (new \App\Controllers\Admin\CollectionsController($container['db'], Twig::fromRequest($request)))->delete($request, $response, $args))->add($collAuth());
+    $app->get('/admin/collections/{id}/picker', fn (Request $request, Response $response, array $args) => (new \App\Controllers\Admin\CollectionsController($container['db'], Twig::fromRequest($request)))->pickerImages($request, $response, $args))->add($collAuth());
+    $app->post('/admin/collections/{id}/images/attach', fn (Request $request, Response $response, array $args) => (new \App\Controllers\Admin\CollectionsController($container['db'], Twig::fromRequest($request)))->attach($request, $response, $args))->add($collAuth());
+    $app->post('/admin/collections/{id}/images/detach', fn (Request $request, Response $response, array $args) => (new \App\Controllers\Admin\CollectionsController($container['db'], Twig::fromRequest($request)))->detach($request, $response, $args))->add($collAuth());
+    $app->post('/admin/collections/{id}/images/reorder', fn (Request $request, Response $response, array $args) => (new \App\Controllers\Admin\CollectionsController($container['db'], Twig::fromRequest($request)))->reorder($request, $response, $args))->add($collAuth());
+    $app->post('/admin/collections/{id}/cover', fn (Request $request, Response $response, array $args) => (new \App\Controllers\Admin\CollectionsController($container['db'], Twig::fromRequest($request)))->setCover($request, $response, $args))->add($collAuth());
 
     // Cameras CRUD
     $app->get('/admin/cameras', function (Request $request, Response $response) use ($container) {
@@ -2244,9 +2218,7 @@ return function (App $app, array $container) {
     })->add(new \App\Middlewares\FileBasedRateLimitMiddleware(dirname(__DIR__, 2) . '/storage/tmp', 60, 60, 'analytics'));
 
     // Lightweight health check to verify routing in subdirectories
-    $app->get('/api/analytics/ping', function (Request $request, Response $response) {
-        return $response->withStatus(204);
-    });
+    $app->get('/api/analytics/ping', fn (Request $request, Response $response) => $response->withStatus(204));
 
     // Frontend API (public)
     $app->get('/api/albums', function (Request $request, Response $response) use ($container) {

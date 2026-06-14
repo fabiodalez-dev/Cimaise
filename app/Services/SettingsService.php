@@ -25,7 +25,7 @@ class SettingsService
     /** @var array|null In-memory cache for current request */
     private static ?array $cache = null;
 
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
     }
 
@@ -50,9 +50,7 @@ class SettingsService
         // Try APCu/file cache first (cross-request)
         self::$cache = QueryCache::getInstance()->remember(
             self::CACHE_KEY,
-            function () {
-                return $this->loadFromDatabase();
-            },
+            fn () => $this->loadFromDatabase(),
             self::CACHE_TTL
         );
     }

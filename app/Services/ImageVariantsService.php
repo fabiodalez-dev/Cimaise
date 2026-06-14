@@ -28,7 +28,7 @@ class ImageVariantsService
      */
     public static function eagerLoadVariants(PDO $pdo, array $imageIds): array
     {
-        if (empty($imageIds)) {
+        if ($imageIds === []) {
             return [];
         }
 
@@ -74,7 +74,7 @@ class ImageVariantsService
      */
     public static function getBestGridVariant(array $variants): ?array
     {
-        if (empty($variants)) {
+        if ($variants === []) {
             return null;
         }
 
@@ -84,7 +84,7 @@ class ImageVariantsService
 
         foreach ($variants as $variant) {
             // Skip storage paths
-            if (str_starts_with($variant['path'], '/storage/')) {
+            if (str_starts_with((string) $variant['path'], '/storage/')) {
                 continue;
             }
 
@@ -116,7 +116,7 @@ class ImageVariantsService
      */
     public static function getBestLightboxVariant(array $variants): ?array
     {
-        if (empty($variants)) {
+        if ($variants === []) {
             return null;
         }
 
@@ -126,7 +126,7 @@ class ImageVariantsService
 
         foreach ($variants as $variant) {
             // Skip storage paths
-            if (str_starts_with($variant['path'], '/storage/')) {
+            if (str_starts_with((string) $variant['path'], '/storage/')) {
                 continue;
             }
 
@@ -172,7 +172,7 @@ class ImageVariantsService
 
         foreach ($variants as $variant) {
             // Skip storage paths
-            if (str_starts_with($variant['path'], '/storage/')) {
+            if (str_starts_with((string) $variant['path'], '/storage/')) {
                 continue;
             }
 
@@ -198,7 +198,7 @@ class ImageVariantsService
      */
     public static function eagerLoadEquipment(PDO $pdo, array $albumIds): array
     {
-        if (empty($albumIds)) {
+        if ($albumIds === []) {
             return [];
         }
 
@@ -286,7 +286,7 @@ class ImageVariantsService
             foreach ($allEquipment as $item) {
                 $albumId = (int)$item['album_id'];
                 $type = $item['type'];
-                $name = trim($item['name']);
+                $name = trim((string) $item['name']);
 
                 $key = match($type) {
                     'camera' => 'cameras',
@@ -318,7 +318,7 @@ class ImageVariantsService
      */
     public static function eagerLoadTags(PDO $pdo, array $albumIds): array
     {
-        if (empty($albumIds)) {
+        if ($albumIds === []) {
             return [];
         }
 

@@ -78,7 +78,7 @@ class HomeImageService
     {
         foreach ($images as &$image) {
             if (!empty($image['category_slugs'])) {
-                $slugs = array_unique(explode(',', $image['category_slugs']));
+                $slugs = array_unique(explode(',', (string) $image['category_slugs']));
                 sort($slugs);
                 $image['category_slugs'] = implode(',', $slugs);
             }
@@ -86,7 +86,7 @@ class HomeImageService
         return $images;
     }
 
-    public function __construct(private Database $db)
+    public function __construct(private readonly Database $db)
     {
     }
 
@@ -197,7 +197,7 @@ class HomeImageService
                 }
             }
 
-            if (!empty($remainingPool)) {
+            if ($remainingPool !== []) {
                 shuffle($remainingPool);
                 $additionalImages = array_slice($remainingPool, 0, $need);
                 foreach ($additionalImages as $img) {
@@ -337,7 +337,10 @@ class HomeImageService
             $pickCount = -1;
             foreach ($buckets as $aid => $items) {
                 $n = count($items);
-                if ($n === 0 || $aid === $lastAlbum) {
+                if ($n === 0) {
+                    continue;
+                }
+                if ($aid === $lastAlbum) {
                     continue;
                 }
                 if ($n > $pickCount) {
@@ -385,8 +388,8 @@ class HomeImageService
 
         // Build exclude clause
         $excludeClause = '';
-        $excludeIds = array_filter(array_map('intval', $excludeImageIds), fn ($id) => $id > 0);
-        if (!empty($excludeIds)) {
+        $excludeIds = array_filter(array_map(intval(...), $excludeImageIds), fn ($id) => $id > 0);
+        if ($excludeIds !== []) {
             $placeholders = implode(',', array_fill(0, count($excludeIds), '?'));
             $excludeClause = " AND i.id NOT IN ({$placeholders})";
         }
@@ -499,8 +502,8 @@ class HomeImageService
         $stmt->execute();
         $allImages = $this->normalizeCategorySlugs($stmt->fetchAll(\PDO::FETCH_ASSOC));
 
-        $excludeImageSet = array_flip(array_map('intval', $excludeImageIds));
-        $excludeAlbumSet = array_flip(array_map('intval', $excludeAlbumIds));
+        $excludeImageSet = array_flip(array_map(intval(...), $excludeImageIds));
+        $excludeAlbumSet = array_flip(array_map(intval(...), $excludeAlbumIds));
 
         // Separate images into two pools:
         // 1. Images from NEW albums (priority)
@@ -548,7 +551,7 @@ class HomeImageService
             $selectedImages[] = $albumImages[$randomIndex];
             $newAlbumIds[] = $albumId;
             unset($albumImages[$randomIndex]);
-            if (!empty($albumImages)) {
+            if ($albumImages !== []) {
                 $remainingNewImages = array_merge($remainingNewImages, array_values($albumImages));
             }
         }
@@ -557,7 +560,7 @@ class HomeImageService
         $currentCount = count($selectedImages);
         $fillPool = array_merge($remainingNewImages, $fillerImages);
         $usedFromFillPool = 0;
-        if ($currentCount < $limit && !empty($fillPool)) {
+        if ($currentCount < $limit && $fillPool !== []) {
             $need = $limit - $currentCount;
             shuffle($fillPool);
             $additionalImages = array_slice($fillPool, 0, $need);

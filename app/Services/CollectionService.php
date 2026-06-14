@@ -13,7 +13,7 @@ use PDO;
  * not password-protected and not NSFW. Centralising the rule here keeps the
  * controller thin and makes the (security-relevant) filter unit-testable.
  */
-final class CollectionService
+final readonly class CollectionService
 {
     /** Album visibility predicate, reused by every public query. */
     public const ALBUM_VISIBLE = "a.is_published = 1 AND (a.password_hash IS NULL OR a.password_hash = '') AND a.is_nsfw = 0";

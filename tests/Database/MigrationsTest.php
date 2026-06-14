@@ -31,9 +31,9 @@ final class MigrationsTest extends TestCase
     private function applyMigrationFile(PDO $db, string $file): int
     {
         $sql = (string) file_get_contents($file);
-        $lines = array_filter(explode("\n", $sql), static fn ($l) => !preg_match('/^\s*--/', $l));
+        $lines = array_filter(explode("\n", $sql), static fn ($l) => !preg_match('/^\s*--/', (string) $l));
         $sql = implode("\n", $lines);
-        $statements = array_filter(array_map('trim', explode(';', $sql)), static fn ($s) => $s !== '');
+        $statements = array_filter(array_map(trim(...), explode(';', $sql)), static fn ($s) => $s !== '');
         foreach ($statements as $s) {
             $db->exec($s);
         }

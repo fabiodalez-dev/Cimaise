@@ -17,8 +17,8 @@ class CacheMiddleware implements MiddlewareInterface
     private ?PageCacheService $pageCacheService = null;
 
     public function __construct(
-        private SettingsService $settings,
-        private ?Database $database = null
+        private readonly SettingsService $settings,
+        private readonly ?Database $database = null
     ) {
         $this->pageCacheService = new PageCacheService($this->settings, $this->database);
     }
@@ -32,7 +32,7 @@ class CacheMiddleware implements MiddlewareInterface
         // Boundary check ensures basePath matches a full segment
         // (e.g. /foo must not match /foobar).
         $path = $request->getUri()->getPath();
-        $basePath = rtrim($this->settings->get('site.base_path', ''), '/');
+        $basePath = rtrim((string) $this->settings->get('site.base_path', ''), '/');
         if ($basePath !== '' && str_starts_with($path, $basePath) && (strlen($path) === strlen($basePath) || $path[strlen($basePath)] === '/')) {
             $path = substr($path, strlen($basePath)) ?: '/';
         }
@@ -55,13 +55,12 @@ class CacheMiddleware implements MiddlewareInterface
                     // Build a 304 from scratch — no handler invocation, no Twig render.
                     $emptyBody = new \Slim\Psr7\Stream(fopen('php://temp', 'r+'));
                     $maxAge = $this->settings->get('performance.html_cache_max_age', 3600);
-                    $notModified = (new \Slim\Psr7\Response())
+                    return (new \Slim\Psr7\Response())
                         ->withStatus(304)
                         ->withBody($emptyBody)
                         ->withHeader('ETag', $earlyEtag)
                         ->withHeader('Cache-Control', "public, max-age={$maxAge}, must-revalidate, stale-while-revalidate=60")
                         ->withHeader('Vary', 'Accept-Encoding');
-                    return $notModified;
                 }
             }
         }
@@ -316,7 +315,7 @@ class CacheMiddleware implements MiddlewareInterface
         // Path is already normalized (basePath stripped) by process()
 
         // Get configurable galleries slug (default: /galleries)
-        $galleriesPath = '/' . trim($this->settings->get('galleries.slug', 'galleries'), '/');
+        $galleriesPath = '/' . trim((string) $this->settings->get('galleries.slug', 'galleries'), '/');
 
         $cacheType = null;
         if ($path === '/' || $path === '') {
@@ -370,13 +369,15 @@ class CacheMiddleware implements MiddlewareInterface
         $normalizedEtag = $this->normalizeEtag($etag);
 
         // Parse If-None-Match header (can contain comma-separated values)
-        $candidates = array_map('trim', explode(',', $ifNoneMatch));
+        $candidates = array_map(trim(...), explode(',', $ifNoneMatch));
 
         foreach ($candidates as $candidate) {
-            if ($candidate === '' || $candidate === '*') {
+            if ($candidate === '') {
                 continue;
             }
-
+            if ($candidate === '*') {
+                continue;
+            }
             // Normalize candidate ETag
             $normalizedCandidate = $this->normalizeEtag($candidate);
 
@@ -420,8 +421,8 @@ class CacheMiddleware implements MiddlewareInterface
     private function addVaryHeader(Response $response, string $newVary): Response
     {
         $existing = $response->getHeaderLine('Vary');
-        $existingValues = array_filter(array_map('trim', explode(',', $existing)));
-        $newValues = array_filter(array_map('trim', explode(',', $newVary)));
+        $existingValues = array_filter(array_map(trim(...), explode(',', $existing)));
+        $newValues = array_filter(array_map(trim(...), explode(',', $newVary)));
         $merged = array_unique(array_merge($existingValues, $newValues), SORT_STRING);
         return $response->withHeader('Vary', implode(', ', $merged));
     }
@@ -436,14 +437,7 @@ class CacheMiddleware implements MiddlewareInterface
             '/fonts/typography.css',
             '/site.webmanifest',
         ];
-
-        foreach ($dynamicRoutes as $route) {
-            if ($path === $route) {
-                return true;
-            }
-        }
-
-        return false;
+        return in_array($path, $dynamicRoutes, true);
     }
 
     private function addDynamicAssetCache(Response $response): Response

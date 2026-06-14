@@ -10,7 +10,7 @@ namespace App\Services;
  */
 class FaviconService
 {
-    private string $publicPath;
+    private readonly string $publicPath;
 
     public function __construct(string $publicPath)
     {
@@ -38,7 +38,7 @@ class FaviconService
         $mimeType = $imageInfo['mime'];
         $sourceImage = $this->createImageResource($sourceImagePath, $mimeType);
 
-        if ($sourceImage === null) {
+        if (!$sourceImage instanceof \GdImage) {
             return ['success' => false, 'error' => 'Unsupported image format. Please use PNG, JPEG, or WebP'];
         }
 
@@ -120,12 +120,10 @@ class FaviconService
                 } else {
                     $errors[] = "Failed to save {$filename}";
                 }
+            } elseif (imagepng($resized, $destPath, 9)) {
+                $generated[] = $filename;
             } else {
-                if (imagepng($resized, $destPath, 9)) {
-                    $generated[] = $filename;
-                } else {
-                    $errors[] = "Failed to save {$filename}";
-                }
+                $errors[] = "Failed to save {$filename}";
             }
 
             imagedestroy($resized);

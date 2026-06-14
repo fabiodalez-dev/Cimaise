@@ -20,16 +20,16 @@ class HooksTwigExtension extends AbstractExtension
     {
         return [
             // Action hooks - execute callbacks, return nothing
-            new TwigFunction('do_action', [$this, 'doAction'], ['is_safe' => ['html']]),
+            new TwigFunction('do_action', $this->doAction(...), ['is_safe' => ['html']]),
 
             // Filter hooks - pass value through callbacks, return modified value
-            new TwigFunction('apply_filter', [$this, 'applyFilter'], ['is_safe' => ['html']]),
+            new TwigFunction('apply_filter', $this->applyFilter(...), ['is_safe' => ['html']]),
 
             // Check if hook has callbacks
-            new TwigFunction('has_hook', [$this, 'hasHook']),
+            new TwigFunction('has_hook', $this->hasHook(...)),
 
             // Shorthand for common hook patterns
-            new TwigFunction('hook', [$this, 'renderHook'], ['is_safe' => ['html']]),
+            new TwigFunction('hook', $this->renderHook(...), ['is_safe' => ['html']]),
         ];
     }
 

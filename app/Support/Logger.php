@@ -17,11 +17,11 @@ class Logger
     public const CRITICAL = 500;
 
     private static ?self $instance = null;
-    private bool $enabled;
-    private int $minLevel;
+    private readonly bool $enabled;
+    private readonly int $minLevel;
     private string $channel;
     private string $logPath;
-    private int $maxFiles;
+    private readonly int $maxFiles;
     private ?Database $db = null;
 
     private static array $levelNames = [
@@ -61,7 +61,7 @@ class Logger
 
     public static function getInstance(): self
     {
-        if (self::$instance === null) {
+        if (!self::$instance instanceof \App\Support\Logger) {
             self::$instance = new self();
         }
         return self::$instance;
@@ -126,7 +126,7 @@ class Logger
 
         $levelName = self::$levelNames[$level] ?? 'UNKNOWN';
         $timestamp = date('Y-m-d H:i:s');
-        $contextJson = !empty($context) ? ' | ' . json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : '';
+        $contextJson = $context === [] ? '' : ' | ' . json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
         $formattedMessage = "[{$timestamp}] [{$levelName}] [{$category}] {$message}{$contextJson}";
 
@@ -163,7 +163,7 @@ class Logger
      */
     private function writeToDatabase(int $level, string $levelName, string $category, string $message, array $context, string $timestamp): void
     {
-        if ($this->db === null) {
+        if (!$this->db instanceof \App\Support\Database) {
             return;
         }
 
@@ -178,7 +178,7 @@ class Logger
                 ':context' => json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                 ':created_at' => $timestamp,
             ]);
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // Fallback to file if database fails
             $this->channel = 'file';
             $this->writeToFile("[{$timestamp}] [{$levelName}] [{$category}] {$message} | " . json_encode($context));

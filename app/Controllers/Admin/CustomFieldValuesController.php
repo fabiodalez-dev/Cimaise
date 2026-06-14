@@ -13,9 +13,9 @@ use Slim\Views\Twig;
 
 class CustomFieldValuesController extends BaseController
 {
-    private CustomFieldService $customFieldService;
+    private readonly CustomFieldService $customFieldService;
 
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();
         $this->customFieldService = new CustomFieldService($this->db->pdo());
