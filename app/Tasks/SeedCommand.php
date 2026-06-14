@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Tasks;
@@ -26,7 +27,7 @@ class SeedCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $only = $input->getArgument('only');
-        
+
         // Choose seeds directory based on actual database driver
         $isSqlite = false;
         try {
@@ -37,7 +38,7 @@ class SeedCommand extends Command
         }
         $connection = $isSqlite ? 'sqlite' : 'mysql';
         $seedsPath = $this->seedsDir . ($isSqlite ? '/sqlite' : '');
-        
+
         if (!is_dir($seedsPath)) {
             $output->writeln('<comment>No seeds directory found: ' . $seedsPath . '</comment>');
             return Command::SUCCESS;
@@ -46,15 +47,15 @@ class SeedCommand extends Command
         $files = glob(rtrim($seedsPath, '/'). '/*.sql') ?: [];
         sort($files, SORT_NATURAL);
         if ($only) {
-            $files = array_filter($files, fn($f) => basename($f) === $only);
+            $files = array_filter($files, fn ($f) => basename($f) === $only);
         }
         if (!$files) {
             $output->writeln('<comment>No seed files to run.</comment>');
             return Command::SUCCESS;
         }
-        
+
         $output->writeln('<info>Using ' . $connection . ' seeds from: ' . $seedsPath . '</info>');
-        
+
         foreach ($files as $file) {
             $output->writeln('Seeding: ' . basename($file));
             try {

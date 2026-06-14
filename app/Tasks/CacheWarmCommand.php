@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Tasks;
@@ -11,7 +12,6 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Helper\ProgressBar;
 
 /**
  * CLI command for pre-generating page caches.
@@ -41,7 +41,8 @@ class CacheWarmCommand extends Command
              ->addOption('galleries', null, InputOption::VALUE_NONE, 'Only warm galleries page cache')
              ->addOption('albums', null, InputOption::VALUE_NONE, 'Only warm album caches')
              ->addOption('quiet-mode', null, InputOption::VALUE_NONE, 'Suppress all output (for cron)')
-             ->setHelp(<<<'HELP'
+             ->setHelp(
+                 <<<'HELP'
 The <info>cache:warm</info> command pre-generates JSON caches for all public pages:
 
   <info>php bin/console cache:warm</info>
@@ -65,7 +66,7 @@ Run after publishing new albums or changing settings:
 
   <info>php bin/console cache:warm --clear</info>
 HELP
-);
+             );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int

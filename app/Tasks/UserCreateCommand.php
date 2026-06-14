@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Tasks;
@@ -9,7 +10,6 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Question\Question;
 
 #[AsCommand(name: 'user:create', description: 'Create an admin user and print the password')]
 class UserCreateCommand extends Command
@@ -36,7 +36,7 @@ class UserCreateCommand extends Command
 
         $pdo = $this->db->pdo();
         $exists = $pdo->prepare('SELECT id FROM users WHERE email=:e LIMIT 1');
-        $exists->execute([':e'=>$email]);
+        $exists->execute([':e' => $email]);
         $row = $exists->fetch();
         $hash = password_hash($password, PASSWORD_ARGON2ID);
         if ($row) {
@@ -46,7 +46,7 @@ class UserCreateCommand extends Command
                 return Command::SUCCESS;
             }
             $upd = $pdo->prepare('UPDATE users SET password_hash=:h WHERE id=:id');
-            $upd->execute([':h'=>$hash, ':id'=>(int)$row['id']]);
+            $upd->execute([':h' => $hash, ':id' => (int)$row['id']]);
             $output->writeln('<info>Password updated for:</info> ' . $email);
             $output->writeln('<comment>New Password:</comment> ' . $password);
             return Command::SUCCESS;

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services;
@@ -39,12 +40,24 @@ class ImagesService
             $locationIds = [];
 
             foreach ($imagesRows as $ir) {
-                if (!empty($ir['camera_id'])) $cameraIds[$ir['camera_id']] = true;
-                if (!empty($ir['lens_id'])) $lensIds[$ir['lens_id']] = true;
-                if (!empty($ir['developer_id'])) $developerIds[$ir['developer_id']] = true;
-                if (!empty($ir['lab_id'])) $labIds[$ir['lab_id']] = true;
-                if (!empty($ir['film_id'])) $filmIds[$ir['film_id']] = true;
-                if (!empty($ir['location_id'])) $locationIds[$ir['location_id']] = true;
+                if (!empty($ir['camera_id'])) {
+                    $cameraIds[$ir['camera_id']] = true;
+                }
+                if (!empty($ir['lens_id'])) {
+                    $lensIds[$ir['lens_id']] = true;
+                }
+                if (!empty($ir['developer_id'])) {
+                    $developerIds[$ir['developer_id']] = true;
+                }
+                if (!empty($ir['lab_id'])) {
+                    $labIds[$ir['lab_id']] = true;
+                }
+                if (!empty($ir['film_id'])) {
+                    $filmIds[$ir['film_id']] = true;
+                }
+                if (!empty($ir['location_id'])) {
+                    $locationIds[$ir['location_id']] = true;
+                }
             }
 
             // Batch fetch cameras
@@ -109,8 +122,12 @@ class ImagesService
                     $iso = isset($row['iso']) && $row['iso'] !== '' ? (string)(int)$row['iso'] : '';
                     $fmt = (string)($row['format'] ?? '');
                     $parts = [];
-                    if ($iso !== '') { $parts[] = $iso; }
-                    if ($fmt !== '') { $parts[] = $fmt; }
+                    if ($iso !== '') {
+                        $parts[] = $iso;
+                    }
+                    if ($fmt !== '') {
+                        $parts[] = $fmt;
+                    }
                     $suffix = count($parts) ? (' (' . implode(' - ', $parts) . ')') : '';
                     $films[$row['id']] = [
                         'film_name' => $filmName,
@@ -169,18 +186,24 @@ class ImagesService
             return null;
         }
         $info = @getimagesize($srcPath);
-        if (!$info) return null;
+        if (!$info) {
+            return null;
+        }
         [$w, $h] = $info;
         $ratio = $h > 0 ? $w / $h : 1;
         $newW = $targetWidth;
         $newH = (int)round($targetWidth / $ratio);
         $src = null;
         switch ($info['mime']) {
-            case 'image/jpeg': $src = @imagecreatefromjpeg($srcPath); break;
-            case 'image/png': $src = @imagecreatefrompng($srcPath); break;
+            case 'image/jpeg': $src = @imagecreatefromjpeg($srcPath);
+                break;
+            case 'image/png': $src = @imagecreatefrompng($srcPath);
+                break;
             default: return null;
         }
-        if (!$src) return null;
+        if (!$src) {
+            return null;
+        }
         $dst = imagecreatetruecolor($newW, $newH);
         imagecopyresampled($dst, $src, 0, 0, 0, 0, $newW, $newH, $w, $h);
         self::ensureDir(dirname($destPath));
@@ -190,4 +213,3 @@ class ImagesService
         return $destPath;
     }
 }
-

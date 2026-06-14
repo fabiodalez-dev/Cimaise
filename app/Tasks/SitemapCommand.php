@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Tasks;
@@ -39,13 +40,13 @@ class SitemapCommand extends Command
         $baseUrl = rtrim($baseUrl, '/');
 
         $publicDir = dirname(__DIR__, 2) . '/public';
-        
+
         $output->writeln('Building sitemap...');
-        
+
         try {
             $this->generateSitemap($baseUrl, $publicDir);
             $this->generateRobotsTxt($baseUrl, $publicDir);
-            
+
             $output->writeln('<info>✓ Sitemap generated successfully</info>');
             return Command::SUCCESS;
         } catch (\Throwable $e) {
@@ -58,7 +59,7 @@ class SitemapCommand extends Command
     {
         $pdo = $this->db->pdo();
         $urls = [];
-        
+
         // Homepage
         $urls[] = [
             'loc' => $baseUrl,
@@ -66,7 +67,7 @@ class SitemapCommand extends Command
             'changefreq' => 'daily',
             'priority' => '1.0'
         ];
-        
+
         // Categories
         $stmt = $pdo->prepare('
             SELECT c.*, MAX(a.updated_at) as last_updated
@@ -77,7 +78,7 @@ class SitemapCommand extends Command
         ');
         $stmt->execute();
         $categories = $stmt->fetchAll();
-        
+
         foreach ($categories as $category) {
             $urls[] = [
                 'loc' => $baseUrl . '/category/' . $category['slug'],
@@ -86,7 +87,7 @@ class SitemapCommand extends Command
                 'priority' => '0.8'
             ];
         }
-        
+
         // Tags
         $stmt = $pdo->prepare('
             SELECT t.*, MAX(a.updated_at) as last_updated
@@ -98,7 +99,7 @@ class SitemapCommand extends Command
         ');
         $stmt->execute();
         $tags = $stmt->fetchAll();
-        
+
         foreach ($tags as $tag) {
             $urls[] = [
                 'loc' => $baseUrl . '/tag/' . $tag['slug'],
@@ -107,7 +108,7 @@ class SitemapCommand extends Command
                 'priority' => '0.6'
             ];
         }
-        
+
         // Albums
         // Exclude password-protected and NSFW albums: their slugs are access-controlled
         // and must not be advertised to search engines / visitors via the sitemap.
@@ -121,7 +122,7 @@ class SitemapCommand extends Command
         ');
         $stmt->execute();
         $albums = $stmt->fetchAll();
-        
+
         foreach ($albums as $album) {
             $lastmod = $album['updated_at'] ?: $album['published_at'];
             $urls[] = [
@@ -131,16 +132,16 @@ class SitemapCommand extends Command
                 'priority' => '0.9'
             ];
         }
-        
+
         // Generate XML
         $xml = $this->generateSitemapXml($urls);
-        
+
         // Write to file
         $sitemapPath = $publicDir . '/sitemap.xml';
         if (file_put_contents($sitemapPath, $xml) === false) {
             throw new \RuntimeException('Failed to write sitemap.xml');
         }
-        
+
         // Generate sitemap index if needed (for future use with multiple sitemaps)
         $indexXml = $this->generateSitemapIndex($baseUrl);
         $indexPath = $publicDir . '/sitemap_index.xml';
@@ -151,7 +152,7 @@ class SitemapCommand extends Command
     {
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
         $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
-        
+
         foreach ($urls as $url) {
             $xml .= '  <url>' . "\n";
             $xml .= '    <loc>' . htmlspecialchars($url['loc']) . '</loc>' . "\n";
@@ -160,7 +161,7 @@ class SitemapCommand extends Command
             $xml .= '    <priority>' . $url['priority'] . '</priority>' . "\n";
             $xml .= '  </url>' . "\n";
         }
-        
+
         $xml .= '</urlset>' . "\n";
         return $xml;
     }
@@ -187,7 +188,7 @@ class SitemapCommand extends Command
         $robots .= "# Sitemaps\n";
         $robots .= "Sitemap: {$baseUrl}/sitemap.xml\n";
         $robots .= "Sitemap: {$baseUrl}/sitemap_index.xml\n";
-        
+
         $robotsPath = $publicDir . '/robots.txt';
         if (file_put_contents($robotsPath, $robots) === false) {
             throw new \RuntimeException('Failed to write robots.txt');

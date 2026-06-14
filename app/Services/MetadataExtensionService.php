@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services;
@@ -142,10 +143,14 @@ class MetadataExtensionService
      */
     public function enrichEntities(string $entityType, array $entities): array
     {
-        if (empty($entities)) return $entities;
+        if (empty($entities)) {
+            return $entities;
+        }
 
         $ids = array_column($entities, 'id');
-        if (empty($ids)) return $entities;
+        if (empty($ids)) {
+            return $entities;
+        }
 
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
 
@@ -168,7 +173,9 @@ class MetadataExtensionService
         }
 
         foreach ($entities as &$entity) {
-            if (!isset($entity['id'])) continue;
+            if (!isset($entity['id'])) {
+                continue;
+            }
 
             $entity['extensions'] = $extensionsMap[$entity['id']] ?? [];
             $entity = Hooks::applyFilter("metadata_{$entityType}_enriched", $entity);

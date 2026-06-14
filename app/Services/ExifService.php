@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services;
@@ -22,7 +23,9 @@ class ExifService
     /** @var array Warnings from the last EXIF write operation */
     private array $lastWriteWarnings = [];
 
-    public function __construct(private Database $db) {}
+    public function __construct(private Database $db)
+    {
+    }
 
     /**
      * Extract EXIF metadata from an image file.
@@ -346,13 +349,19 @@ class ExifService
      */
     private function cleanString($value): ?string
     {
-        if ($value === null) return null;
+        if ($value === null) {
+            return null;
+        }
 
         if (is_array($value)) {
             $parts = [];
             foreach ($value as $item) {
-                if ($item === null || $item === '') continue;
-                if (is_array($item)) continue;
+                if ($item === null || $item === '') {
+                    continue;
+                }
+                if (is_array($item)) {
+                    continue;
+                }
                 $parts[] = (string)$item;
             }
             $value = implode(' ', $parts);
@@ -390,40 +399,50 @@ class ExifService
 
     private function extractGPS(array $gps): ?array
     {
-        if (empty($gps['GPSLatitude']) || empty($gps['GPSLongitude'])) return null;
-        
+        if (empty($gps['GPSLatitude']) || empty($gps['GPSLongitude'])) {
+            return null;
+        }
+
         $lat = $this->convertDMSToDD($gps['GPSLatitude'], $gps['GPSLatitudeRef'] ?? 'N');
         $lng = $this->convertDMSToDD($gps['GPSLongitude'], $gps['GPSLongitudeRef'] ?? 'E');
-        
+
         return $lat && $lng ? ['lat' => $lat, 'lng' => $lng] : null;
     }
 
     private function convertDMSToDD(array $dms, string $ref): ?float
     {
-        if (count($dms) < 3) return null;
+        if (count($dms) < 3) {
+            return null;
+        }
 
         // Any unparseable component must abort, not coerce null->0 (which would store a
         // bogus but valid-looking 0,0 coordinate in the Gulf of Guinea).
         $deg = $this->rationalToFloat($dms[0]);
         $min = $this->rationalToFloat($dms[1]);
         $sec = $this->rationalToFloat($dms[2]);
-        if ($deg === null || $min === null || $sec === null) return null;
+        if ($deg === null || $min === null || $sec === null) {
+            return null;
+        }
 
         $dd = $deg + ($min / 60) + ($sec / 3600);
 
-        if (in_array($ref, ['S', 'W'])) $dd *= -1;
+        if (in_array($ref, ['S', 'W'])) {
+            $dd *= -1;
+        }
 
         return $dd;
     }
 
     public function normalizeOrientation(string $imagePath, int $orientation): bool
     {
-        if ($orientation <= 1) return true;
-        
+        if ($orientation <= 1) {
+            return true;
+        }
+
         if (!extension_loaded('gd') && !extension_loaded('imagick')) {
             return false;
         }
-        
+
         try {
             // Imagick is opt-out via CIMAISE_DISABLE_IMAGICK=1 (see UploadService).
             // GD is the safer fallback when ImageMagick segfaults under the
@@ -448,7 +467,7 @@ class ExifService
         // decoding here (this method also runs pre-variant-generation on upload).
         \App\Services\UploadService::applyImagickLimits();
         $imagick = new \Imagick($path);
-        
+
         switch ($orientation) {
             case 2: // flip horizontal
                 $imagick->flopImage();
@@ -474,7 +493,7 @@ class ExifService
                 $imagick->rotateImage('transparent', -90);
                 break;
         }
-        
+
         $imagick->setImageOrientation(\Imagick::ORIENTATION_TOPLEFT);
         return $imagick->writeImage($path);
     }
@@ -482,16 +501,20 @@ class ExifService
     private function normalizeWithGD(string $path, int $orientation): bool
     {
         $info = getimagesize($path);
-        if (!$info) return false;
-        
+        if (!$info) {
+            return false;
+        }
+
         $image = match ($info['mime']) {
             'image/jpeg' => imagecreatefromjpeg($path),
             'image/png' => imagecreatefrompng($path),
             default => null
         };
-        
-        if (!$image) return false;
-        
+
+        if (!$image) {
+            return false;
+        }
+
         $rotated = match ($orientation) {
             2 => imageflip($image, IMG_FLIP_HORIZONTAL) ? $image : null,
             3 => imagerotate($image, 180, 0),
@@ -504,20 +527,22 @@ class ExifService
             8 => imagerotate($image, 90, 0),
             default => $image
         };
-        
+
         if (!$rotated) {
             imagedestroy($image);
             return false;
         }
-        
+
         $success = match ($info['mime']) {
             'image/jpeg' => imagejpeg($rotated, $path, 92),
             'image/png' => imagepng($rotated, $path, 6),
             default => false
         };
-        
+
         imagedestroy($rotated);
-        if ($rotated !== $image) imagedestroy($image);
+        if ($rotated !== $image) {
+            imagedestroy($image);
+        }
 
         return $success;
     }
@@ -544,20 +569,20 @@ class ExifService
     {
         $pdo = $this->db->pdo();
         $mapped = ['camera_id' => null, 'lens_id' => null];
-        
+
         // Camera mapping with fuzzy matching
         $make = $meta['Make'] ?? null;
         $model = $meta['Model'] ?? null;
         if ($make && $model) {
             $mapped['camera_id'] = $this->findOrCreateCamera($pdo, $make, $model);
         }
-        
+
         // Lens mapping
         $lens = $meta['LensModel'] ?? null;
         if ($lens) {
             $mapped['lens_id'] = $this->findOrCreateLens($pdo, $lens);
         }
-        
+
         return $mapped;
     }
 
@@ -565,20 +590,24 @@ class ExifService
     {
         $cleanMake = $this->normalizeBrand($make);
         $cleanModel = $this->normalizeModel($model);
-        
+
         // Exact match first
         $stmt = $pdo->prepare('SELECT id FROM cameras WHERE make = :make AND model = :model LIMIT 1');
         $stmt->execute([':make' => $cleanMake, ':model' => $cleanModel]);
         $id = $stmt->fetchColumn();
-        if ($id) return (int)$id;
-        
+        if ($id) {
+            return (int)$id;
+        }
+
         // Fuzzy match on model (same make) - use LIKE for SQLite compatibility
         $stmt = $pdo->prepare('SELECT id FROM cameras WHERE make = :make AND LOWER(model) LIKE LOWER(:model) ESCAPE \'\\\' LIMIT 1');
         $escapedModel = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $cleanModel);
         $stmt->execute([':make' => $cleanMake, ':model' => '%' . $escapedModel . '%']);
         $id = $stmt->fetchColumn();
-        if ($id) return (int)$id;
-        
+        if ($id) {
+            return (int)$id;
+        }
+
         // Create new camera
         try {
             $stmt = $pdo->prepare('INSERT INTO cameras (make, model) VALUES (:make, :model)');
@@ -592,16 +621,20 @@ class ExifService
     private function findOrCreateLens(\PDO $pdo, string $lensModel): ?int
     {
         $parts = $this->parseLensModel($lensModel);
-        if (!$parts) return null;
-        
+        if (!$parts) {
+            return null;
+        }
+
         ['brand' => $brand, 'model' => $model] = $parts;
-        
+
         // Exact match
         $stmt = $pdo->prepare('SELECT id FROM lenses WHERE brand = :brand AND model = :model LIMIT 1');
         $stmt->execute([':brand' => $brand, ':model' => $model]);
         $id = $stmt->fetchColumn();
-        if ($id) return (int)$id;
-        
+        if ($id) {
+            return (int)$id;
+        }
+
         // Create new lens
         try {
             $stmt = $pdo->prepare('INSERT INTO lenses (brand, model) VALUES (:brand, :model)');
@@ -615,7 +648,7 @@ class ExifService
     private function normalizeBrand(string $brand): string
     {
         $normalized = ucwords(strtolower(trim($brand)));
-        
+
         // Common brand normalizations
         $brandMap = [
             'Nikon Corporation' => 'Nikon',
@@ -625,7 +658,7 @@ class ExifService
             'Olympus Corporation' => 'Olympus',
             'Panasonic Corporation' => 'Panasonic',
         ];
-        
+
         return $brandMap[$normalized] ?? $normalized;
     }
 
@@ -637,14 +670,16 @@ class ExifService
     private function parseLensModel(string $lensModel): ?array
     {
         $clean = trim($lensModel);
-        if (!$clean) return null;
-        
+        if (!$clean) {
+            return null;
+        }
+
         // Try to extract brand from common patterns
         $patterns = [
             '/^(Canon|Nikon|Sony|Sigma|Tamron|Tokina|Zeiss|Leica|Fuji|Olympus)\s+(.+)$/i',
             '/^(\w+)\s+(.+)$/i' // Fallback: first word as brand
         ];
-        
+
         foreach ($patterns as $pattern) {
             if (preg_match($pattern, $clean, $matches)) {
                 return [
@@ -653,7 +688,7 @@ class ExifService
                 ];
             }
         }
-        
+
         // If no brand detected, use full string as model with "Unknown" brand
         return [
             'brand' => 'Unknown',
@@ -663,7 +698,9 @@ class ExifService
 
     public function formatShutterSpeed(?string $exposureTime): ?string
     {
-        if (!$exposureTime) return null;
+        if (!$exposureTime) {
+            return null;
+        }
 
         // Already formatted (e.g., "1/100" or "1/100s" with small denominator)
         if (preg_match('/^1\/\d{1,4}s?$/', $exposureTime) || preg_match('/^\d+s$/', $exposureTime)) {
@@ -695,8 +732,12 @@ class ExifService
      */
     public function formatExposureBias(?float $bias): ?string
     {
-        if ($bias === null) return null;
-        if ($bias == 0) return '±0 EV';
+        if ($bias === null) {
+            return null;
+        }
+        if ($bias == 0) {
+            return '±0 EV';
+        }
         $sign = $bias > 0 ? '+' : '';
         return $sign . number_format($bias, 1) . ' EV';
     }
@@ -706,7 +747,9 @@ class ExifService
      */
     private function getMeteringModeName(?int $mode): ?string
     {
-        if ($mode === null) return null;
+        if ($mode === null) {
+            return null;
+        }
         return match ($mode) {
             0 => 'Unknown',
             1 => 'Average',
@@ -725,7 +768,9 @@ class ExifService
      */
     private function getExposureProgramName(?int $program): ?string
     {
-        if ($program === null) return null;
+        if ($program === null) {
+            return null;
+        }
         return match ($program) {
             0 => 'Unknown',
             1 => 'Manual',
@@ -745,7 +790,9 @@ class ExifService
      */
     private function getExposureModeName(?int $mode): ?string
     {
-        if ($mode === null) return null;
+        if ($mode === null) {
+            return null;
+        }
         return match ($mode) {
             0 => 'Auto',
             1 => 'Manual',
@@ -759,7 +806,9 @@ class ExifService
      */
     private function getSceneCaptureTypeName(?int $type): ?string
     {
-        if ($type === null) return null;
+        if ($type === null) {
+            return null;
+        }
         return match ($type) {
             0 => 'Standard',
             1 => 'Landscape',
@@ -774,7 +823,9 @@ class ExifService
      */
     private function getLightSourceName(?int $source): ?string
     {
-        if ($source === null) return null;
+        if ($source === null) {
+            return null;
+        }
         return match ($source) {
             0 => 'Unknown',
             1 => 'Daylight',
@@ -1071,32 +1122,52 @@ class ExifService
     {
         // Camera Make
         if (isset($data['exif_make'])) {
-            $this->trySetEntry($ifd0, PelTag::MAKE,
-                new PelEntryAscii(PelTag::MAKE, (string)$data['exif_make']), 'Make');
+            $this->trySetEntry(
+                $ifd0,
+                PelTag::MAKE,
+                new PelEntryAscii(PelTag::MAKE, (string)$data['exif_make']),
+                'Make'
+            );
         }
 
         // Camera Model
         if (isset($data['exif_model'])) {
-            $this->trySetEntry($ifd0, PelTag::MODEL,
-                new PelEntryAscii(PelTag::MODEL, (string)$data['exif_model']), 'Model');
+            $this->trySetEntry(
+                $ifd0,
+                PelTag::MODEL,
+                new PelEntryAscii(PelTag::MODEL, (string)$data['exif_model']),
+                'Model'
+            );
         }
 
         // Software
         if (isset($data['software'])) {
-            $this->trySetEntry($ifd0, PelTag::SOFTWARE,
-                new PelEntryAscii(PelTag::SOFTWARE, (string)$data['software']), 'Software');
+            $this->trySetEntry(
+                $ifd0,
+                PelTag::SOFTWARE,
+                new PelEntryAscii(PelTag::SOFTWARE, (string)$data['software']),
+                'Software'
+            );
         }
 
         // Artist
         if (isset($data['artist'])) {
-            $this->trySetEntry($ifd0, PelTag::ARTIST,
-                new PelEntryAscii(PelTag::ARTIST, (string)$data['artist']), 'Artist');
+            $this->trySetEntry(
+                $ifd0,
+                PelTag::ARTIST,
+                new PelEntryAscii(PelTag::ARTIST, (string)$data['artist']),
+                'Artist'
+            );
         }
 
         // Copyright (uses special PelEntryCopyright class)
         if (isset($data['copyright'])) {
-            $this->trySetEntry($ifd0, PelTag::COPYRIGHT,
-                new PelEntryCopyright((string)$data['copyright']), 'Copyright');
+            $this->trySetEntry(
+                $ifd0,
+                PelTag::COPYRIGHT,
+                new PelEntryCopyright((string)$data['copyright']),
+                'Copyright'
+            );
         }
     }
 
@@ -1107,96 +1178,156 @@ class ExifService
     {
         // Lens Model (tag 0xA434) - use trySetEntry as PEL may not support this tag
         if (isset($data['exif_lens_model'])) {
-            $this->trySetEntry($exifIfd, 0xA434,
-                new PelEntryAscii(0xA434, (string)$data['exif_lens_model']), 'LensModel');
+            $this->trySetEntry(
+                $exifIfd,
+                0xA434,
+                new PelEntryAscii(0xA434, (string)$data['exif_lens_model']),
+                'LensModel'
+            );
         }
 
         // Focal Length (rational)
         if (isset($data['focal_length'])) {
             $fl = (float)$data['focal_length'];
             // Store as rational: focal_length * 10 / 10 for one decimal precision
-            $this->trySetEntry($exifIfd, PelTag::FOCAL_LENGTH,
-                new PelEntryRational(PelTag::FOCAL_LENGTH, [(int)($fl * 10), 10]), 'FocalLength');
+            $this->trySetEntry(
+                $exifIfd,
+                PelTag::FOCAL_LENGTH,
+                new PelEntryRational(PelTag::FOCAL_LENGTH, [(int)($fl * 10), 10]),
+                'FocalLength'
+            );
         }
 
         // Exposure Bias (signed rational)
         if (isset($data['exposure_bias'])) {
             $bias = (float)$data['exposure_bias'];
             // Store as signed rational with precision of 0.1 EV
-            $this->trySetEntry($exifIfd, PelTag::EXPOSURE_BIAS_VALUE,
-                new PelEntrySRational(PelTag::EXPOSURE_BIAS_VALUE, [(int)($bias * 10), 10]), 'ExposureBias');
+            $this->trySetEntry(
+                $exifIfd,
+                PelTag::EXPOSURE_BIAS_VALUE,
+                new PelEntrySRational(PelTag::EXPOSURE_BIAS_VALUE, [(int)($bias * 10), 10]),
+                'ExposureBias'
+            );
         }
 
         // Flash (short)
         if (isset($data['flash'])) {
-            $this->trySetEntry($exifIfd, PelTag::FLASH,
-                new PelEntryShort(PelTag::FLASH, (int)$data['flash']), 'Flash');
+            $this->trySetEntry(
+                $exifIfd,
+                PelTag::FLASH,
+                new PelEntryShort(PelTag::FLASH, (int)$data['flash']),
+                'Flash'
+            );
         }
 
         // White Balance (short)
         if (isset($data['white_balance'])) {
-            $this->trySetEntry($exifIfd, PelTag::WHITE_BALANCE,
-                new PelEntryShort(PelTag::WHITE_BALANCE, (int)$data['white_balance']), 'WhiteBalance');
+            $this->trySetEntry(
+                $exifIfd,
+                PelTag::WHITE_BALANCE,
+                new PelEntryShort(PelTag::WHITE_BALANCE, (int)$data['white_balance']),
+                'WhiteBalance'
+            );
         }
 
         // Exposure Program (short)
         if (isset($data['exposure_program'])) {
-            $this->trySetEntry($exifIfd, PelTag::EXPOSURE_PROGRAM,
-                new PelEntryShort(PelTag::EXPOSURE_PROGRAM, (int)$data['exposure_program']), 'ExposureProgram');
+            $this->trySetEntry(
+                $exifIfd,
+                PelTag::EXPOSURE_PROGRAM,
+                new PelEntryShort(PelTag::EXPOSURE_PROGRAM, (int)$data['exposure_program']),
+                'ExposureProgram'
+            );
         }
 
         // Metering Mode (short)
         if (isset($data['metering_mode'])) {
-            $this->trySetEntry($exifIfd, PelTag::METERING_MODE,
-                new PelEntryShort(PelTag::METERING_MODE, (int)$data['metering_mode']), 'MeteringMode');
+            $this->trySetEntry(
+                $exifIfd,
+                PelTag::METERING_MODE,
+                new PelEntryShort(PelTag::METERING_MODE, (int)$data['metering_mode']),
+                'MeteringMode'
+            );
         }
 
         // Exposure Mode (short)
         if (isset($data['exposure_mode'])) {
-            $this->trySetEntry($exifIfd, PelTag::EXPOSURE_MODE,
-                new PelEntryShort(PelTag::EXPOSURE_MODE, (int)$data['exposure_mode']), 'ExposureMode');
+            $this->trySetEntry(
+                $exifIfd,
+                PelTag::EXPOSURE_MODE,
+                new PelEntryShort(PelTag::EXPOSURE_MODE, (int)$data['exposure_mode']),
+                'ExposureMode'
+            );
         }
 
         // Color Space (short) - use trySetEntry as we use raw hex tag
         if (isset($data['color_space'])) {
-            $this->trySetEntry($exifIfd, PelTag::COLOR_SPACE,
-                new PelEntryShort(PelTag::COLOR_SPACE, (int)$data['color_space']), 'ColorSpace');
+            $this->trySetEntry(
+                $exifIfd,
+                PelTag::COLOR_SPACE,
+                new PelEntryShort(PelTag::COLOR_SPACE, (int)$data['color_space']),
+                'ColorSpace'
+            );
         }
 
         // Contrast (short)
         if (isset($data['contrast'])) {
-            $this->trySetEntry($exifIfd, PelTag::CONTRAST,
-                new PelEntryShort(PelTag::CONTRAST, (int)$data['contrast']), 'Contrast');
+            $this->trySetEntry(
+                $exifIfd,
+                PelTag::CONTRAST,
+                new PelEntryShort(PelTag::CONTRAST, (int)$data['contrast']),
+                'Contrast'
+            );
         }
 
         // Saturation (short)
         if (isset($data['saturation'])) {
-            $this->trySetEntry($exifIfd, PelTag::SATURATION,
-                new PelEntryShort(PelTag::SATURATION, (int)$data['saturation']), 'Saturation');
+            $this->trySetEntry(
+                $exifIfd,
+                PelTag::SATURATION,
+                new PelEntryShort(PelTag::SATURATION, (int)$data['saturation']),
+                'Saturation'
+            );
         }
 
         // Sharpness (short)
         if (isset($data['sharpness'])) {
-            $this->trySetEntry($exifIfd, PelTag::SHARPNESS,
-                new PelEntryShort(PelTag::SHARPNESS, (int)$data['sharpness']), 'Sharpness');
+            $this->trySetEntry(
+                $exifIfd,
+                PelTag::SHARPNESS,
+                new PelEntryShort(PelTag::SHARPNESS, (int)$data['sharpness']),
+                'Sharpness'
+            );
         }
 
         // Scene Capture Type (short)
         if (isset($data['scene_capture_type'])) {
-            $this->trySetEntry($exifIfd, PelTag::SCENE_CAPTURE_TYPE,
-                new PelEntryShort(PelTag::SCENE_CAPTURE_TYPE, (int)$data['scene_capture_type']), 'SceneCaptureType');
+            $this->trySetEntry(
+                $exifIfd,
+                PelTag::SCENE_CAPTURE_TYPE,
+                new PelEntryShort(PelTag::SCENE_CAPTURE_TYPE, (int)$data['scene_capture_type']),
+                'SceneCaptureType'
+            );
         }
 
         // Light Source (short)
         if (isset($data['light_source'])) {
-            $this->trySetEntry($exifIfd, PelTag::LIGHT_SOURCE,
-                new PelEntryShort(PelTag::LIGHT_SOURCE, (int)$data['light_source']), 'LightSource');
+            $this->trySetEntry(
+                $exifIfd,
+                PelTag::LIGHT_SOURCE,
+                new PelEntryShort(PelTag::LIGHT_SOURCE, (int)$data['light_source']),
+                'LightSource'
+            );
         }
 
         // DateTimeOriginal (ASCII string in EXIF format)
         if (isset($data['date_original'])) {
-            $this->trySetEntry($exifIfd, PelTag::DATE_TIME_ORIGINAL,
-                new PelEntryAscii(PelTag::DATE_TIME_ORIGINAL, (string)$data['date_original']), 'DateTimeOriginal');
+            $this->trySetEntry(
+                $exifIfd,
+                PelTag::DATE_TIME_ORIGINAL,
+                new PelEntryAscii(PelTag::DATE_TIME_ORIGINAL, (string)$data['date_original']),
+                'DateTimeOriginal'
+            );
         }
     }
 
@@ -1213,32 +1344,54 @@ class ExifService
         }
 
         // GPS Version ID (required)
-        $this->trySetEntry($gpsIfd, PelTag::GPS_VERSION_ID,
-            new PelEntryByte(PelTag::GPS_VERSION_ID, 2, 3, 0, 0), 'GPSVersionID');
+        $this->trySetEntry(
+            $gpsIfd,
+            PelTag::GPS_VERSION_ID,
+            new PelEntryByte(PelTag::GPS_VERSION_ID, 2, 3, 0, 0),
+            'GPSVersionID'
+        );
 
         // Latitude
         $latRef = $lat >= 0 ? 'N' : 'S';
         $latDms = $this->convertDdToDms(abs($lat));
-        $this->trySetEntry($gpsIfd, PelTag::GPS_LATITUDE_REF,
-            new PelEntryAscii(PelTag::GPS_LATITUDE_REF, $latRef), 'GPSLatitudeRef');
-        $this->trySetEntry($gpsIfd, PelTag::GPS_LATITUDE,
-            new PelEntryRational(PelTag::GPS_LATITUDE,
+        $this->trySetEntry(
+            $gpsIfd,
+            PelTag::GPS_LATITUDE_REF,
+            new PelEntryAscii(PelTag::GPS_LATITUDE_REF, $latRef),
+            'GPSLatitudeRef'
+        );
+        $this->trySetEntry(
+            $gpsIfd,
+            PelTag::GPS_LATITUDE,
+            new PelEntryRational(
+                PelTag::GPS_LATITUDE,
                 [$latDms['degrees'], 1],
                 [$latDms['minutes'], 1],
                 [(int)($latDms['seconds'] * 10000), 10000]
-            ), 'GPSLatitude');
+            ),
+            'GPSLatitude'
+        );
 
         // Longitude
         $lngRef = $lng >= 0 ? 'E' : 'W';
         $lngDms = $this->convertDdToDms(abs($lng));
-        $this->trySetEntry($gpsIfd, PelTag::GPS_LONGITUDE_REF,
-            new PelEntryAscii(PelTag::GPS_LONGITUDE_REF, $lngRef), 'GPSLongitudeRef');
-        $this->trySetEntry($gpsIfd, PelTag::GPS_LONGITUDE,
-            new PelEntryRational(PelTag::GPS_LONGITUDE,
+        $this->trySetEntry(
+            $gpsIfd,
+            PelTag::GPS_LONGITUDE_REF,
+            new PelEntryAscii(PelTag::GPS_LONGITUDE_REF, $lngRef),
+            'GPSLongitudeRef'
+        );
+        $this->trySetEntry(
+            $gpsIfd,
+            PelTag::GPS_LONGITUDE,
+            new PelEntryRational(
+                PelTag::GPS_LONGITUDE,
                 [$lngDms['degrees'], 1],
                 [$lngDms['minutes'], 1],
                 [(int)($lngDms['seconds'] * 10000), 10000]
-            ), 'GPSLongitude');
+            ),
+            'GPSLongitude'
+        );
     }
 
     /**

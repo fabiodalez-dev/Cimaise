@@ -1,10 +1,10 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Extensions;
 
 use App\Support\Hooks;
-use App\Support\PluginManager;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 

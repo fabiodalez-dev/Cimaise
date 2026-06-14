@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Application Updater
  *
@@ -851,13 +852,13 @@ class Updater
         if (!$this->prereleaseChannelEnabled()) {
             $releases = array_values(array_filter(
                 $releases,
-                fn($r) => is_array($r) && empty($r['prerelease'])
+                fn ($r) => is_array($r) && empty($r['prerelease'])
             ));
         }
 
         $this->debugLog('INFO', 'Releases fetched', [
             'count' => count($releases),
-            'versions' => array_map(fn($r) => $r['tag_name'] ?? 'unknown', $releases)
+            'versions' => array_map(fn ($r) => $r['tag_name'] ?? 'unknown', $releases)
         ]);
 
         return $releases;
@@ -883,7 +884,7 @@ class Updater
             $this->debugLog('INFO', 'Release found', [
                 'tag' => $release['tag_name'],
                 'name' => $release['name'] ?? 'N/A',
-                'assets' => array_map(fn($a) => $a['name'], $release['assets'] ?? [])
+                'assets' => array_map(fn ($a) => $a['name'], $release['assets'] ?? [])
             ]);
 
             // The packaged asset (cimaise-vX.Y.Z.zip, built and verified by the
@@ -896,7 +897,7 @@ class Updater
             if ($packageAsset === null) {
                 $this->debugLog('ERROR', 'Release has no installable package asset', [
                     'release' => $release['tag_name'],
-                    'assets' => array_map(fn($a) => $a['name'], $release['assets'] ?? [])
+                    'assets' => array_map(fn ($a) => $a['name'], $release['assets'] ?? [])
                 ]);
                 throw new \RuntimeException(sprintf(
                     'Release %s has no installable package asset (cimaise-*.zip) — the release workflow may have failed. Update aborted.',
@@ -1333,7 +1334,7 @@ class Updater
             ];
         }
 
-        usort($backups, fn($a, $b) => $b['created_at'] - $a['created_at']);
+        usort($backups, fn ($a, $b) => $b['created_at'] - $a['created_at']);
 
         return $backups;
     }
@@ -1466,7 +1467,9 @@ class Updater
                 foreach ($rows as $row) {
                     $columns = array_keys($row);
                     $values = array_map(function ($val) use ($pdo) {
-                        if ($val === null) return 'NULL';
+                        if ($val === null) {
+                            return 'NULL';
+                        }
                         return $pdo->quote((string)$val);
                     }, array_values($row));
 
@@ -1532,7 +1535,9 @@ class Updater
                 $stmt = $pdo->query("SELECT * FROM `{$table}`");
                 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                     $values = array_map(function ($val) use ($pdo) {
-                        if ($val === null) return 'NULL';
+                        if ($val === null) {
+                            return 'NULL';
+                        }
                         return $pdo->quote((string)$val);
                     }, $row);
 
@@ -2129,7 +2134,7 @@ class Updater
         // which is rare in our migrations, out of scope — matches the prior
         // behavior this method replaces).
         $sqlLines = explode("\n", $sql);
-        $sqlLines = array_filter($sqlLines, fn($line) => !preg_match('/^\s*--/', $line));
+        $sqlLines = array_filter($sqlLines, fn ($line) => !preg_match('/^\s*--/', $line));
         $sql = implode("\n", $sqlLines);
 
         $statements = [];
@@ -2607,7 +2612,9 @@ class Updater
             'current' => $phpVersion,
             'met' => $phpMet
         ];
-        if (!$phpMet) $allMet = false;
+        if (!$phpMet) {
+            $allMet = false;
+        }
 
         $zipMet = class_exists('ZipArchive');
         $requirements[] = [
@@ -2616,22 +2623,30 @@ class Updater
             'current' => $zipMet ? 'Installed' : 'Not installed',
             'met' => $zipMet
         ];
-        if (!$zipMet) $allMet = false;
+        if (!$zipMet) {
+            $allMet = false;
+        }
 
         // Check download capability (cURL preferred, allow_url_fopen as fallback)
         $curlAvailable = extension_loaded('curl');
         $urlFopenEnabled = (bool)ini_get('allow_url_fopen');
         $downloadMet = $curlAvailable || $urlFopenEnabled;
         $downloadStatus = [];
-        if ($curlAvailable) $downloadStatus[] = 'cURL';
-        if ($urlFopenEnabled) $downloadStatus[] = 'allow_url_fopen';
+        if ($curlAvailable) {
+            $downloadStatus[] = 'cURL';
+        }
+        if ($urlFopenEnabled) {
+            $downloadStatus[] = 'allow_url_fopen';
+        }
         $requirements[] = [
             'name' => 'Download capability',
             'required' => 'cURL or allow_url_fopen',
             'current' => $downloadMet ? implode(' + ', $downloadStatus) : 'Not available',
             'met' => $downloadMet
         ];
-        if (!$downloadMet) $allMet = false;
+        if (!$downloadMet) {
+            $allMet = false;
+        }
 
         $writablePaths = [
             $this->rootPath,
@@ -2648,7 +2663,9 @@ class Updater
                 'current' => $writable ? 'Writable' : 'Not writable',
                 'met' => $writable
             ];
-            if (!$writable) $allMet = false;
+            if (!$writable) {
+                $allMet = false;
+            }
         }
 
         $freeSpace = disk_free_space($this->rootPath);
@@ -2663,7 +2680,9 @@ class Updater
             'current' => $freeSpace > 0 ? $this->formatBytes($freeSpace) : 'Not available',
             'met' => $spaceMet
         ];
-        if (!$spaceMet) $allMet = false;
+        if (!$spaceMet) {
+            $allMet = false;
+        }
 
         return [
             'met' => $allMet,

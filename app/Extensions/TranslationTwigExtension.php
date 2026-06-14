@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Extensions;
@@ -9,7 +10,9 @@ use Twig\TwigFunction;
 
 class TranslationTwigExtension extends AbstractExtension
 {
-    public function __construct(private TranslationService $translationService) {}
+    public function __construct(private TranslationService $translationService)
+    {
+    }
 
     public function getFunctions(): array
     {

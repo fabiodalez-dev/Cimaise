@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services;
@@ -19,12 +20,19 @@ class AnalyticsService
     public function __construct(PDO $db)
     {
         $this->db = $db;
-        try { $this->driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME) ?: 'mysql'; } catch (\Throwable) { $this->driver = 'mysql'; }
+        try {
+            $this->driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME) ?: 'mysql';
+        } catch (\Throwable) {
+            $this->driver = 'mysql';
+        }
         $this->loadSettings();
         $this->initGeoReader();
     }
 
-    private function isSqlite(): bool { return $this->driver === 'sqlite'; }
+    private function isSqlite(): bool
+    {
+        return $this->driver === 'sqlite';
+    }
     private function nowMinusHoursExpr(int $hours): string
     {
         return $this->isSqlite()
@@ -61,18 +69,22 @@ class AnalyticsService
     private function loadSettings(): void
     {
         $this->settings = [];
-        
+
         try {
             $stmt = $this->db->prepare('SELECT setting_key, setting_value FROM analytics_settings');
             $stmt->execute();
-            
+
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $value = $row['setting_value'];
                 // Convert string booleans to actual booleans
-                if ($value === 'true') $value = true;
-                elseif ($value === 'false') $value = false;
-                elseif (is_numeric($value)) $value = (int)$value;
-                
+                if ($value === 'true') {
+                    $value = true;
+                } elseif ($value === 'false') {
+                    $value = false;
+                } elseif (is_numeric($value)) {
+                    $value = (int)$value;
+                }
+
                 $this->settings[$row['setting_key']] = $value;
             }
         } catch (\PDOException $e) {
@@ -357,7 +369,7 @@ class AnalyticsService
             'bot', 'crawler', 'spider', 'scraper', 'curl', 'wget', 'python',
             'googlebot', 'bingbot', 'facebookexternalhit', 'twitterbot'
         ];
-        
+
         foreach ($botPatterns as $pattern) {
             if (stripos($userAgent, $pattern) !== false) {
                 $parsed['is_bot'] = true;
@@ -431,12 +443,12 @@ class AnalyticsService
     public function getOrCreateSession(array $data): string
     {
         $sessionId = $data['session_id'] ?? $this->generateSessionId();
-        
+
         try {
             // Check if session exists
             $stmt = $this->db->prepare('SELECT session_id FROM analytics_sessions WHERE session_id = ?');
             $stmt->execute([$sessionId]);
-            
+
             if ($stmt->fetch()) {
                 // Update last activity
                 $updateStmt = $this->db->prepare('
@@ -452,11 +464,11 @@ class AnalyticsService
             $ip = $data['ip'] ?? $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
             $userAgent = $data['user_agent'] ?? $_SERVER['HTTP_USER_AGENT'] ?? '';
             $referrer = $data['referrer'] ?? $_SERVER['HTTP_REFERER'] ?? '';
-            
+
             $ipHash = $this->hashIp($ip);
             $userAgentData = $this->parseUserAgent($userAgent);
             $geoData = $this->getGeoData($ip);
-            
+
             // Skip bots if bot detection is enabled
             if ($this->getSetting('bot_detection_enabled', true) && $userAgentData['is_bot']) {
                 return $sessionId; // Return but don't store
@@ -471,7 +483,7 @@ class AnalyticsService
                     referrer_domain, referrer_url, landing_page, is_bot
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ');
-            
+
             $stmt->execute([
                 $sessionId, $ipHash, $userAgent, $userAgentData['browser'],
                 $userAgentData['browser_version'], $userAgentData['platform'],
@@ -511,18 +523,20 @@ class AnalyticsService
      */
     public function trackPageView(array $data): void
     {
-        if (!$this->isEnabled()) return;
+        if (!$this->isEnabled()) {
+            return;
+        }
 
         try {
             $sessionId = $this->getOrCreateSession($data);
-            
+
             $stmt = $this->db->prepare('
                 INSERT INTO analytics_pageviews (
                     session_id, page_url, page_title, page_type, album_id, 
                     category_id, tag_id, viewport_width, viewport_height
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ');
-            
+
             $stmt->execute([
                 $sessionId,
                 $data['page_url'] ?? '',
@@ -548,7 +562,9 @@ class AnalyticsService
      */
     public function trackEvent(array $data): void
     {
-        if (!$this->isEnabled()) return;
+        if (!$this->isEnabled()) {
+            return;
+        }
 
         try {
             $stmt = $this->db->prepare('
@@ -557,7 +573,7 @@ class AnalyticsService
                     event_label, event_value, page_url, album_id, image_id
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ');
-            
+
             $stmt->execute([
                 $data['session_id'] ?? '',
                 $data['event_type'] ?? 'custom',
@@ -799,7 +815,7 @@ class AnalyticsService
             return $csv;
         }
     }
-    
+
     /**
      * Export data as array for JSON
      */

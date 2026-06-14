@@ -1,9 +1,8 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Support;
-
-use App\Support\Database;
 
 /**
  * Plugin Manager - Sistema di gestione plugin e hooks per Cimaise
@@ -156,7 +155,7 @@ class PluginManager
         ];
 
         // Ordina per priorità
-        usort($this->hooks[$hookName], fn($a, $b) => $a['priority'] <=> $b['priority']);
+        usort($this->hooks[$hookName], fn ($a, $b) => $a['priority'] <=> $b['priority']);
     }
 
     /**

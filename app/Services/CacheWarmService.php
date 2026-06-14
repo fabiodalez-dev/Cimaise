@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services;
@@ -698,7 +699,7 @@ class CacheWarmService
         if (!empty($album['cover']) && !empty($album['cover']['variants']) && is_array($album['cover']['variants'])) {
             $blurVariants = array_values(array_filter(
                 $album['cover']['variants'],
-                fn($variant) => isset($variant['variant']) && $variant['variant'] === 'blur'
+                fn ($variant) => isset($variant['variant']) && $variant['variant'] === 'blur'
             ));
 
             if ($blurVariants !== []) {
@@ -1015,7 +1016,9 @@ class CacheWarmService
             }
 
             $format = strtolower($var['format'] ?? 'jpg');
-            if ($format === 'jpeg') $format = 'jpg';
+            if ($format === 'jpeg') {
+                $format = 'jpg';
+            }
 
             if (!isset($sources[$format])) {
                 $sources[$format] = [];

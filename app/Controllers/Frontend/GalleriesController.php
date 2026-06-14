@@ -1,7 +1,9 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Frontend;
+
 use App\Controllers\BaseController;
 use App\Support\Database;
 use App\Support\Logger;
@@ -186,7 +188,7 @@ class GalleriesController extends BaseController
 
         // Sanitize album data - remove sensitive fields
         // SECURITY: For NSFW albums without consent, expose only blur_path (no real previews)
-        $safeAlbums = array_map(function($album) use ($isAdmin, $nsfwConsent) {
+        $safeAlbums = array_map(function ($album) use ($isAdmin, $nsfwConsent) {
             $isNsfw = (bool)($album['is_nsfw'] ?? false);
             $canShowNsfw = $isAdmin || $nsfwConsent;
 
@@ -229,7 +231,7 @@ class GalleriesController extends BaseController
                 'is_locked' => $album['is_locked'] ?? false,
                 'is_nsfw' => $isNsfw,
                 'cover_image' => $coverImage,
-                'tags' => array_map(function($tag) {
+                'tags' => array_map(function ($tag) {
                     return ['id' => $tag['id'], 'name' => $tag['name'], 'slug' => $tag['slug']];
                 }, $album['tags'] ?? []),
             ];
@@ -249,12 +251,12 @@ class GalleriesController extends BaseController
     private function getFilterSettings(): array
     {
         $pdo = $this->db->pdo();
-        
+
         // Get filter settings from database
         $stmt = $pdo->prepare('SELECT setting_key, setting_value FROM filter_settings ORDER BY sort_order ASC');
         $stmt->execute();
         $settings = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
-        
+
         // Default settings if not found
         $defaults = [
             'enabled' => true,
@@ -274,14 +276,14 @@ class GalleriesController extends BaseController
             'animation_enabled' => true,
             'animation_duration' => '0.6'
         ];
-        
+
         return array_merge($defaults, $settings);
     }
 
     private function getPageTexts(): array
     {
         $svc = new SettingsService($this->db);
-        
+
         return [
             'title' => (string)($svc->get('galleries.title', 'All Galleries') ?? 'All Galleries'),
             'subtitle' => (string)($svc->get('galleries.subtitle', 'Explore our complete collection of photography galleries') ?? 'Explore our complete collection of photography galleries'),
@@ -319,60 +321,60 @@ class GalleriesController extends BaseController
             }
             return [];
         };
-        
+
         // Category filter
         if (!empty($params['category']) && $settings['show_categories']) {
             $filters['category'] = $normalizeList($params['category']);
         }
-        
+
         // Tag filter
         if (!empty($params['tags']) && $settings['show_tags']) {
             $filters['tags'] = $normalizeList($params['tags']);
         }
-        
+
         // Camera filter
         if (!empty($params['cameras']) && $settings['show_cameras']) {
             $filters['cameras'] = $normalizeList($params['cameras']);
         }
-        
+
         // Lens filter
         if (!empty($params['lenses']) && $settings['show_lenses']) {
             $filters['lenses'] = $normalizeList($params['lenses']);
         }
-        
+
         // Film filter
         if (!empty($params['films']) && $settings['show_films']) {
             $filters['films'] = $normalizeList($params['films']);
         }
-        
+
         // Developer filter
         if (!empty($params['developers']) && $settings['show_developers']) {
             $filters['developers'] = $normalizeList($params['developers']);
         }
-        
+
         // Lab filter
         if (!empty($params['labs']) && $settings['show_labs']) {
             $filters['labs'] = $normalizeList($params['labs']);
         }
-        
+
         // Location filter
         if (!empty($params['locations']) && $settings['show_locations']) {
             $filters['locations'] = $normalizeList($params['locations']);
         }
-        
+
         // Year filter
         if (!empty($params['year']) && $settings['show_year']) {
             $filters['year'] = (int)$params['year'];
         }
-        
+
         // Search filter
         if (!empty($params['search'])) {
             $filters['search'] = trim($params['search']);
         }
-        
+
         // Sort filter
         $filters['sort'] = $params['sort'] ?? 'published_desc';
-        
+
         return $filters;
     }
 
@@ -492,7 +494,7 @@ class GalleriesController extends BaseController
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $albums = $stmt->fetchAll();
-        
+
         $isAdmin ??= $this->isAdmin();
         $nsfwConsent ??= $this->hasNsfwConsent();
 
@@ -544,7 +546,7 @@ class GalleriesController extends BaseController
         }
 
         $pdo = $this->db->pdo();
-        
+
         // Get categories
         $stmt = $pdo->prepare('
             SELECT c.*, COUNT(DISTINCT ac.album_id) as albums_count
@@ -557,7 +559,7 @@ class GalleriesController extends BaseController
         ');
         $stmt->execute();
         $categories = $stmt->fetchAll();
-        
+
         // Get tags
         $stmt = $pdo->prepare('
             SELECT t.*, COUNT(DISTINCT at.album_id) as albums_count
@@ -570,7 +572,7 @@ class GalleriesController extends BaseController
         ');
         $stmt->execute();
         $tags = $stmt->fetchAll();
-        
+
         // Get cameras
         $stmt = $pdo->prepare('
             SELECT cam.*, COUNT(DISTINCT ac.album_id) as albums_count
@@ -583,7 +585,7 @@ class GalleriesController extends BaseController
         ');
         $stmt->execute();
         $cameras = $stmt->fetchAll();
-        
+
         // Get lenses
         $stmt = $pdo->prepare('
             SELECT l.*, COUNT(DISTINCT al.album_id) as albums_count
@@ -596,7 +598,7 @@ class GalleriesController extends BaseController
         ');
         $stmt->execute();
         $lenses = $stmt->fetchAll();
-        
+
         // Get films
         $stmt = $pdo->prepare('
             SELECT f.*, COUNT(DISTINCT af.album_id) as albums_count
@@ -609,7 +611,7 @@ class GalleriesController extends BaseController
         ');
         $stmt->execute();
         $films = $stmt->fetchAll();
-        
+
         // Get developers
         $stmt = $pdo->prepare('
             SELECT d.*, COUNT(DISTINCT ad.album_id) as albums_count
@@ -622,7 +624,7 @@ class GalleriesController extends BaseController
         ');
         $stmt->execute();
         $developers = $stmt->fetchAll();
-        
+
         // Get labs
         $stmt = $pdo->prepare('
             SELECT lab.*, COUNT(DISTINCT al.album_id) as albums_count
@@ -635,7 +637,7 @@ class GalleriesController extends BaseController
         ');
         $stmt->execute();
         $labs = $stmt->fetchAll();
-        
+
         // Get locations
         $stmt = $pdo->prepare('
             SELECT loc.*, COUNT(DISTINCT al.album_id) as albums_count
@@ -648,7 +650,7 @@ class GalleriesController extends BaseController
         ');
         $stmt->execute();
         $locations = $stmt->fetchAll();
-        
+
         // Get years (use database-specific year extraction)
         $yearExpr = $this->db->yearExpression('shoot_date');
         $yearSql = "SELECT DISTINCT {$yearExpr} as year, COUNT(*) as albums_count
@@ -659,7 +661,7 @@ class GalleriesController extends BaseController
         $stmt = $pdo->prepare($yearSql);
         $stmt->execute();
         $years = $stmt->fetchAll();
-        
+
         $result = [
             'categories' => $categories,
             'tags' => $tags,
@@ -722,7 +724,7 @@ class GalleriesController extends BaseController
         unset($album);
 
         // 2. Fallback covers (first image per album) for those still missing one
-        $needsFallback = array_keys(array_filter($albumsById, fn($a) => empty($a['cover_image'])));
+        $needsFallback = array_keys(array_filter($albumsById, fn ($a) => empty($a['cover_image'])));
         $fallbackByAlbum = $enrich->loadFallbackCoverImages($needsFallback);
         foreach ($fallbackByAlbum as $albumId => $img) {
             if (isset($albumsById[$albumId]) && empty($albumsById[$albumId]['cover_image'])) {

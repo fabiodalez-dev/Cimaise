@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Frontend;
@@ -755,8 +756,7 @@ class MediaController extends BaseController
         string $format,
         string $relativePath,
         bool $protected
-    ): void
-    {
+    ): void {
         if (!\in_array($variant, self::ON_DEMAND_VARIANTS, true)) {
             return; // blur / unknown handled elsewhere
         }

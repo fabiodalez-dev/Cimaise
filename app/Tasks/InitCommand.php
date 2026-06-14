@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Tasks;
@@ -10,7 +11,6 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
-use Symfony\Component\Console\Question\ConfirmationQuestion;
 
 #[AsCommand(name: 'init')]
 class InitCommand extends Command
@@ -34,10 +34,10 @@ class InitCommand extends Command
         $output->writeln('');
         $output->writeln('🚀 <info>Initializing Cimaise...</info>');
         $output->writeln('');
-        
+
         /** @var \Symfony\Component\Console\Helper\QuestionHelper $helper */
         $helper = $this->getHelper('question');
-        
+
         // Step 1: Test database connection
         $output->writeln('1️⃣  Testing database connection...');
         try {
@@ -48,7 +48,7 @@ class InitCommand extends Command
             $output->writeln('   Please check your .env configuration');
             return Command::FAILURE;
         }
-        
+
         // Step 2: Seed data (optional)
         if (!$input->getOption('skip-seed')) {
             $output->writeln('');
@@ -60,11 +60,11 @@ class InitCommand extends Command
                 $output->writeln('   ✅ Demo data seeded');
             }
         }
-        
+
         // Step 3: Create admin user
         $output->writeln('');
         $output->writeln('3️⃣  Creating admin user...');
-        
+
         $adminEmail = $input->getOption('admin-email');
         if (!$adminEmail) {
             $question = new Question('   Admin email address: ');
@@ -76,25 +76,25 @@ class InitCommand extends Command
             });
             $adminEmail = $helper->ask($input, $output, $question);
         }
-        
+
         $adminPassword = $input->getOption('admin-password');
         if (!$adminPassword) {
             $question = new Question('   Admin password (leave empty for auto-generated): ');
             $question->setHidden(true);
             $adminPassword = $helper->ask($input, $output, $question);
         }
-        
+
         $result = $this->createAdmin($adminEmail, $adminPassword, $output);
         if ($result !== 0) {
             $output->writeln('   ❌ <error>Failed to create admin user</error>');
             return Command::FAILURE;
         }
-        
+
         // Step 4: Create directories
         $output->writeln('');
         $output->writeln('4️⃣  Creating storage directories...');
         $this->createDirectories($output);
-        
+
         // Step 5: Generate sitemap
         $output->writeln('');
         $output->writeln('5️⃣  Generating sitemap...');
@@ -128,58 +128,58 @@ class InitCommand extends Command
         $output->writeln('');
         $output->writeln('📚 Check <info>PREVIEW_GUIDE.md</info> for detailed instructions');
         $output->writeln('');
-        
+
         return Command::SUCCESS;
     }
-    
+
     private function runCommand(string $command, OutputInterface $output): int
     {
         $consolePath = dirname(__DIR__, 2) . '/bin/console';
         $cmd = "php $consolePath $command";
-        
+
         exec($cmd, $cmdOutput, $exitCode);
-        
+
         foreach ($cmdOutput as $line) {
             $output->writeln('   ' . $line);
         }
-        
+
         return $exitCode;
     }
-    
+
     private function createAdmin(string $email, ?string $password, OutputInterface $output): int
     {
         $consolePath = dirname(__DIR__, 2) . '/bin/console';
-        
+
         if ($password) {
             // user:create takes the password as a positional argument, not a --password option.
             $cmd = "php $consolePath user:create " . escapeshellarg($email) . " " . escapeshellarg($password);
         } else {
             $cmd = "php $consolePath user:create " . escapeshellarg($email);
         }
-        
+
         exec($cmd, $cmdOutput, $exitCode);
-        
+
         foreach ($cmdOutput as $line) {
             $output->writeln('   ' . $line);
         }
-        
+
         return $exitCode;
     }
-    
+
     private function runSitemapCommand(string $baseUrl, OutputInterface $output): int
     {
         $consolePath = dirname(__DIR__, 2) . '/bin/console';
         $cmd = "php $consolePath sitemap:build --base-url=" . escapeshellarg($baseUrl);
-        
+
         exec($cmd, $cmdOutput, $exitCode);
-        
+
         foreach ($cmdOutput as $line) {
             $output->writeln('   ' . $line);
         }
-        
+
         return $exitCode;
     }
-    
+
     private function createDirectories(OutputInterface $output): void
     {
         $directories = [
@@ -188,7 +188,7 @@ class InitCommand extends Command
             dirname(__DIR__, 2) . '/storage/tmp',
             dirname(__DIR__, 2) . '/public/media'
         ];
-        
+
         foreach ($directories as $dir) {
             if (!is_dir($dir)) {
                 if (mkdir($dir, 0755, true)) {

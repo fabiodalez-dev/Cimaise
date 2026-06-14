@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers;
@@ -14,7 +15,7 @@ class InstallerController
     private Twig $view;
     private string $rootPath;
     private string $basePath;
-    
+
     public function __construct(Twig $view)
     {
         $this->rootPath = dirname(__DIR__, 2);
@@ -39,7 +40,7 @@ class InstallerController
             $_SESSION['csrf'] = bin2hex(random_bytes(32));
         }
     }
-    
+
     /**
      * Show installer welcome page
      */
@@ -50,17 +51,17 @@ class InstallerController
             // Redirect to admin login
             return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         }
-        
+
         // Verify requirements
         $requirements = $this->checkRequirements();
-        
+
         return $this->view->render($response, 'installer/index.twig', [
             'base_path' => $this->basePath,
             'requirements' => $requirements,
             'allGood' => empty($requirements['errors'])
         ]);
     }
-    
+
     /**
      * Show database configuration form
      */
@@ -70,12 +71,12 @@ class InstallerController
         if ($this->installer->isInstalled()) {
             return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         }
-        
+
         $requirements = $this->checkRequirements();
         if (!empty($requirements['errors'])) {
             return $response->withHeader('Location', $this->basePath . '/install')->withStatus(302);
         }
-        
+
         return $this->view->render($response, 'installer/database.twig', [
             'base_path' => $this->basePath,
             'db_connection' => 'sqlite',
@@ -89,7 +90,7 @@ class InstallerController
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
-    
+
     /**
      * Process database configuration
      */
@@ -99,19 +100,19 @@ class InstallerController
         if ($this->installer->isInstalled()) {
             return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         }
-        
+
         $data = (array)$request->getParsedBody();
-        
+
         // Verify CSRF token
         $csrf = (string)($data['csrf'] ?? '');
         if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token. Please try again.'];
             return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
         }
-        
+
         // Store database config in session for later use
         $_SESSION['install_db_config'] = $data;
-        
+
         // Test database connection
         try {
             $testResult = $this->testDatabaseConnection($data);
@@ -127,7 +128,7 @@ class InstallerController
             return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
         }
     }
-    
+
     /**
      * Show admin user configuration form
      */
@@ -137,7 +138,7 @@ class InstallerController
         if ($this->installer->isInstalled()) {
             return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         }
-        
+
         // Check if we have database config
         if (!isset($_SESSION['install_db_config'])) {
             return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
@@ -157,7 +158,7 @@ class InstallerController
             'install_admin_data' => $data
         ]);
     }
-    
+
     /**
      * Process admin user configuration
      */
@@ -167,21 +168,21 @@ class InstallerController
         if ($this->installer->isInstalled()) {
             return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         }
-        
+
         // Check if we have database config
         if (!isset($_SESSION['install_db_config'])) {
             return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
         }
-        
+
         $data = (array)$request->getParsedBody();
-        
+
         // Verify CSRF token
         $csrf = (string)($data['csrf'] ?? '');
         if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token. Please try again.'];
             return $response->withHeader('Location', $this->basePath . '/install/admin')->withStatus(302);
         }
-        
+
         // Validate admin data
         $errors = $this->validateAdminData($data);
         if (!empty($errors)) {
@@ -190,14 +191,14 @@ class InstallerController
             $_SESSION['install_admin_data'] = $data;
             return $response->withHeader('Location', $this->basePath . '/install/admin')->withStatus(302);
         }
-        
+
         // Store admin config in session
         $_SESSION['install_admin_config'] = $data;
-        
+
         // Proceed to settings step to collect site data before install
         return $response->withHeader('Location', $this->basePath . '/install/settings')->withStatus(302);
     }
-    
+
     /**
      * Show application settings form
      */
@@ -207,12 +208,12 @@ class InstallerController
         if ($this->installer->isInstalled()) {
             return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         }
-        
+
         // Check if we have database and admin config
         if (!isset($_SESSION['install_db_config']) || !isset($_SESSION['install_admin_config'])) {
             return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
         }
-        
+
         return $this->view->render($response, 'installer/settings.twig', [
             'base_path' => $this->basePath,
             'site_title' => 'Cimaise',
@@ -227,7 +228,7 @@ class InstallerController
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
-    
+
     /**
      * Process application settings
      */
@@ -326,7 +327,7 @@ class InstallerController
 
         return $response->withHeader('Location', $this->basePath . '/install/confirm')->withStatus(302);
     }
-    
+
     /**
      * Show installation confirmation
      */
@@ -336,14 +337,14 @@ class InstallerController
         if ($this->installer->isInstalled()) {
             return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         }
-        
+
         // Check if we have all config
-        if (!isset($_SESSION['install_db_config']) || 
-            !isset($_SESSION['install_admin_config']) || 
+        if (!isset($_SESSION['install_db_config']) ||
+            !isset($_SESSION['install_admin_config']) ||
             !isset($_SESSION['install_settings_config'])) {
             return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
         }
-        
+
         return $this->view->render($response, 'installer/confirm.twig', [
             'base_path' => $this->basePath,
             'db_config' => $_SESSION['install_db_config'],
@@ -352,31 +353,31 @@ class InstallerController
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
-    
+
     /**
      * Run the installation
      */
     public function runInstall(Request $request, Response $response): Response
     {
         error_log('runInstall: Starting installation process');
-        
+
         // Check if already installed
         if ($this->installer->isInstalled()) {
             error_log('runInstall: Already installed, redirecting to /admin/login');
             return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         }
-        
+
         // Check if we have all config
-        if (!isset($_SESSION['install_db_config']) || 
-            !isset($_SESSION['install_admin_config']) || 
+        if (!isset($_SESSION['install_db_config']) ||
+            !isset($_SESSION['install_admin_config']) ||
             !isset($_SESSION['install_settings_config'])) {
             error_log('runInstall: Missing configuration data, redirecting to /install/database');
             return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
         }
-        
+
         $data = (array)$request->getParsedBody();
         error_log('runInstall: Received data: ' . print_r($this->redactSensitiveData($data), true));
-        
+
         // Verify CSRF token
         $csrf = (string)($data['csrf'] ?? '');
         if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
@@ -384,7 +385,7 @@ class InstallerController
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token. Please try again.'];
             return $response->withHeader('Location', $this->basePath . '/install/confirm')->withStatus(302);
         }
-        
+
         try {
             // Combine all configuration data
             $installData = array_merge(
@@ -392,25 +393,25 @@ class InstallerController
                 $_SESSION['install_admin_config'],
                 $_SESSION['install_settings_config']
             );
-            
+
             error_log('runInstall: Starting installation process with data: ' . print_r($this->redactSensitiveData($installData), true));
-            
+
             // Run installation
             $result = $this->installer->install($installData);
             error_log('runInstall: Installation result: ' . ($result ? 'true' : 'false'));
-            
+
             // Clear installation session data
             unset($_SESSION['install_db_config']);
             unset($_SESSION['install_admin_config']);
             unset($_SESSION['install_settings_config']);
             unset($_SESSION['install_admin_errors']);
             unset($_SESSION['install_admin_data']);
-            
+
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Installation completed successfully!'];
-            
+
             // Force session write to ensure flash message is saved
             session_write_close();
-            
+
             error_log('runInstall: Redirecting to /admin/login');
             return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         } catch (\Throwable $e) {
@@ -452,7 +453,7 @@ class InstallerController
             'warnings' => $warnings
         ];
     }
-    
+
     /**
      * AJAX endpoint to test MySQL connection and detect charset/collation
      */
@@ -483,12 +484,14 @@ class InstallerController
 
         try {
             // Connect without specifying database first to test credentials
-            $dsn = sprintf('mysql:host=%s;port=%d',
+            $dsn = sprintf(
+                'mysql:host=%s;port=%d',
                 $data['db_host'] ?? '127.0.0.1',
                 (int)($data['db_port'] ?? 3306)
             );
 
-            $pdo = new \PDO($dsn,
+            $pdo = new \PDO(
+                $dsn,
                 $data['db_username'] ?? 'root',
                 $data['db_password'] ?? '',
                 [
@@ -541,7 +544,7 @@ class InstallerController
     {
         try {
             $connection = $data['db_connection'] ?? 'sqlite';
-            
+
             if ($connection === 'sqlite') {
                 $dbPath = $data['sqlite_path'] ?? 'database/database.sqlite';
                 // Normalize relative paths against root directory (match Installer::setupDatabase behavior)
@@ -552,7 +555,7 @@ class InstallerController
                 if (!is_dir($dir)) {
                     mkdir($dir, 0755, true);
                 }
-                
+
                 // Test SQLite connection
                 $pdo = new \PDO('sqlite:' . $dbPath);
                 $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
@@ -564,14 +567,16 @@ class InstallerController
                 $pdo->query('SELECT sqlite_version()')->fetch();
             } else {
                 // Test MySQL connection
-                $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s', 
+                $dsn = sprintf(
+                    'mysql:host=%s;port=%d;dbname=%s;charset=%s',
                     $data['db_host'] ?? '127.0.0.1',
                     (int)($data['db_port'] ?? 3306),
                     $data['db_database'] ?? 'cimaise',
                     $data['db_charset'] ?? 'utf8mb4'
                 );
-                
-                $pdo = new \PDO($dsn, 
+
+                $pdo = new \PDO(
+                    $dsn,
                     $data['db_username'] ?? 'root',
                     $data['db_password'] ?? '',
                     [
@@ -580,39 +585,39 @@ class InstallerController
                         \PDO::ATTR_EMULATE_PREPARES => false,
                     ]
                 );
-                
+
                 // Test simple query
                 $pdo->query('SELECT VERSION()')->fetch();
             }
-            
+
             return ['success' => true];
         } catch (\Throwable $e) {
             error_log('testDatabaseConnection: Database connection failed: ' . $e->getMessage());
             return ['success' => false, 'error' => 'Database connection failed. Check your credentials and try again.'];
         }
     }
-    
+
     /**
      * Validate admin user data
      */
     private function validateAdminData(array $data): array
     {
         $errors = [];
-        
+
         // Validate name
         if (empty($data['admin_name'])) {
             $errors['admin_name'] = 'Name is required';
         } elseif (strlen($data['admin_name']) < 2) {
             $errors['admin_name'] = 'Name must be at least 2 characters';
         }
-        
+
         // Validate email
         if (empty($data['admin_email'])) {
             $errors['admin_email'] = 'Email is required';
         } elseif (!filter_var($data['admin_email'], FILTER_VALIDATE_EMAIL)) {
             $errors['admin_email'] = 'Invalid email format';
         }
-        
+
         // Validate password
         if (empty($data['admin_password'])) {
             $errors['admin_password'] = 'Password is required';
@@ -621,7 +626,7 @@ class InstallerController
         } elseif ($data['admin_password'] !== ($data['admin_password_confirm'] ?? '')) {
             $errors['admin_password'] = 'Passwords do not match';
         }
-        
+
         return $errors;
     }
 }

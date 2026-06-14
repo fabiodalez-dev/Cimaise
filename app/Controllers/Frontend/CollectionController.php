@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Frontend;
@@ -7,7 +8,6 @@ use App\Controllers\BaseController;
 use App\Services\CollectionService;
 use App\Services\ImageVariantsService;
 use App\Support\Database;
-use PDO;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -110,7 +110,7 @@ final class CollectionController extends BaseController
      */
     private function pickVariant(array $variants, array $preferredSizes): ?array
     {
-        $jpg = array_values(array_filter($variants, static fn($v) => ($v['format'] ?? '') === 'jpg'));
+        $jpg = array_values(array_filter($variants, static fn ($v) => ($v['format'] ?? '') === 'jpg'));
         foreach ($preferredSizes as $size) {
             foreach ($jpg as $v) {
                 if (($v['variant'] ?? '') === $size) {

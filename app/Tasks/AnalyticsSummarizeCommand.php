@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Tasks;
@@ -50,26 +51,26 @@ class AnalyticsSummarizeCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        
+
         try {
             $pdo = $this->db->pdo();
             $analytics = new AnalyticsService($pdo);
-            
+
             // Check if analytics is enabled
             if (!$analytics->isEnabled()) {
                 $io->warning('Analytics is currently disabled. No summaries to generate.');
                 return Command::SUCCESS;
             }
-            
+
             $specificDate = $input->getOption('date');
             $days = (int)$input->getOption('days');
             $force = $input->getOption('force');
-            
+
             $io->title('Analytics Daily Summary Generation');
-            
+
             // Determine dates to process
             $datesToProcess = [];
-            
+
             if ($specificDate) {
                 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $specificDate)) {
                     $io->error('Invalid date format. Use YYYY-MM-DD.');
@@ -82,12 +83,12 @@ class AnalyticsSummarizeCommand extends Command
                     $datesToProcess[] = date('Y-m-d', strtotime("-{$i} days"));
                 }
             }
-            
+
             $io->text("Processing " . count($datesToProcess) . " date(s)...");
-            
+
             $generated = 0;
             $skipped = 0;
-            
+
             foreach ($datesToProcess as $date) {
                 // Check if summary already exists
                 if (!$force && $this->summaryExists($pdo, $date)) {
@@ -95,29 +96,29 @@ class AnalyticsSummarizeCommand extends Command
                     $skipped++;
                     continue;
                 }
-                
+
                 $io->text("Generating summary for {$date}...");
                 $this->generateDailySummary($pdo, $date);
                 $generated++;
             }
-            
+
             $io->success("Summary generation completed! Generated: {$generated}, Skipped: {$skipped}");
-            
+
             return Command::SUCCESS;
-            
+
         } catch (\Exception $e) {
             $io->error('Summary generation failed: ' . $e->getMessage());
             return Command::FAILURE;
         }
     }
-    
+
     private function summaryExists(\PDO $pdo, string $date): bool
     {
         $stmt = $pdo->prepare('SELECT COUNT(*) FROM analytics_daily_summary WHERE date = ?');
         $stmt->execute([$date]);
         return (int)$stmt->fetchColumn() > 0;
     }
-    
+
     private function generateDailySummary(\PDO $pdo, string $date): void
     {
         // Get basic stats for the date
@@ -135,7 +136,7 @@ class AnalyticsSummarizeCommand extends Command
         ');
         $stmt->execute([$date]);
         $stats = $stmt->fetch(\PDO::FETCH_ASSOC);
-        
+
         // Calculate bounce rate (sessions with only 1 page view)
         $stmt = $pdo->prepare('
             SELECT COUNT(*) as bounce_sessions
@@ -145,7 +146,7 @@ class AnalyticsSummarizeCommand extends Command
         $stmt->execute([$date]);
         $bounceCount = (int)$stmt->fetchColumn();
         $bounceRate = (int)$stats['unique_visitors'] > 0 ? ($bounceCount / (int)$stats['unique_visitors']) * 100 : 0;
-        
+
         // Get top pages
         $stmt = $pdo->prepare('
             SELECT p.page_url, p.page_title, COUNT(*) as views
@@ -158,7 +159,7 @@ class AnalyticsSummarizeCommand extends Command
         ');
         $stmt->execute([$date]);
         $topPages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        
+
         // Get top countries
         $stmt = $pdo->prepare('
             SELECT country_code, COUNT(*) as sessions
@@ -170,7 +171,7 @@ class AnalyticsSummarizeCommand extends Command
         ');
         $stmt->execute([$date]);
         $topCountries = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        
+
         // Get top browsers
         $stmt = $pdo->prepare('
             SELECT browser, COUNT(*) as sessions
@@ -182,7 +183,7 @@ class AnalyticsSummarizeCommand extends Command
         ');
         $stmt->execute([$date]);
         $topBrowsers = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        
+
         // Get top albums
         $stmt = $pdo->prepare('
             SELECT p.album_id, a.title, COUNT(*) as views
@@ -196,7 +197,7 @@ class AnalyticsSummarizeCommand extends Command
         ');
         $stmt->execute([$date]);
         $topAlbums = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        
+
         // Insert or update summary (MySQL compatible)
         $replaceKw = $this->db->replaceKeyword();
         $stmt = $pdo->prepare("
@@ -205,7 +206,7 @@ class AnalyticsSummarizeCommand extends Command
                 avg_session_duration, top_pages, top_countries, top_browsers, top_albums
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
-        
+
         $stmt->execute([
             $date,
             $stats['total_sessions'] ?: 0,

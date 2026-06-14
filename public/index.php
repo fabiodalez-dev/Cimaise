@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 // Track request start time for performance logging
@@ -65,7 +66,6 @@ use App\Middlewares\CsrfMiddleware;
 use App\Middlewares\EarlyHintsMiddleware;
 use App\Middlewares\FlashMiddleware;
 use App\Middlewares\SecurityHeadersMiddleware;
-use Slim\Middleware\ErrorMiddleware;
 use Slim\Exception\HttpNotFoundException;
 use Slim\Exception\HttpMethodNotAllowedException;
 use App\Support\Hooks;
@@ -495,11 +495,17 @@ if (!$isInstallerRoute && !$isMediaRequest && $container['db'] !== null) {
                 'website' => ['name' => 'Website', 'icon' => 'fas fa-globe'],
             ];
             foreach ($socialProfiles as $profile) {
-                if (!isset($profile['network'], $profile['url'])) continue;
+                if (!isset($profile['network'], $profile['url'])) {
+                    continue;
+                }
                 $url = trim($profile['url']);
-                if (!preg_match('#^https?://#i', $url)) continue;
+                if (!preg_match('#^https?://#i', $url)) {
+                    continue;
+                }
                 $network = $profile['network'];
-                if (!isset($profileNetworks[$network])) continue;
+                if (!isset($profileNetworks[$network])) {
+                    continue;
+                }
                 $safeProfiles[] = [
                     'network' => $network,
                     'url' => htmlspecialchars($url, ENT_QUOTES, 'UTF-8'),

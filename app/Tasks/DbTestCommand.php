@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Tasks;
@@ -20,7 +21,7 @@ class DbTestCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $info = $this->db->testConnection();
-        
+
         if ($info['driver'] === 'sqlite') {
             $size = isset($info['file_size']) ? round((float)$info['file_size'] / 1024, 2) . 'KB' : '0KB';
             $output->writeln(sprintf(
@@ -40,8 +41,7 @@ class DbTestCommand extends Command
                 $info['database']
             ));
         }
-        
+
         return Command::SUCCESS;
     }
 }
-

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Middlewares;
@@ -28,8 +29,8 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
     private string $keyPrefix;
 
     public function __construct(
-        string $storageDir, 
-        int $maxAttempts = 5, 
+        string $storageDir,
+        int $maxAttempts = 5,
         int $windowSec = 600,
         string $keyPrefix = 'rate_limit'
     ) {
@@ -37,7 +38,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         $this->maxAttempts = $maxAttempts;
         $this->windowSec = $windowSec;
         $this->keyPrefix = $keyPrefix;
-        
+
         // Ensure storage directory exists
         if (!is_dir($this->storageDir)) {
             @mkdir($this->storageDir, 0750, true);
@@ -54,14 +55,14 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         $ip = $this->getClientIp($request);
         $path = $request->getUri()->getPath();
         $method = $request->getMethod();
-        
+
         // Create unique key for this IP + endpoint
         $key = $this->keyPrefix . '_' . hash('sha256', $ip . ':' . $path . ':' . $method);
         $filePath = $this->storageDir . '/' . $key . '.json';
-        
+
         $now = time();
         $attempts = $this->loadAttempts($filePath, $now);
-        
+
         // Check if rate limit exceeded
         if (count($attempts) >= $this->maxAttempts) {
             return $this->createRateLimitResponse();
@@ -69,7 +70,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
 
         // Process the request
         $response = $handler->handle($request);
-        
+
         // First clear on success, then record failures
         if ($this->isSuccessfulAttempt($request, $response)) {
             $this->clearAttempts($filePath);
@@ -92,7 +93,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         $trustedProxies = getenv('TRUSTED_PROXIES') ?: '';
         if ($trustedProxies !== '' && $remoteAddr !== 'unknown') {
             $trustedList = array_map('trim', explode(',', $trustedProxies));
-            $trustedList = array_filter($trustedList, fn($ip) => $ip === '*' || filter_var($ip, FILTER_VALIDATE_IP) !== false);
+            $trustedList = array_filter($trustedList, fn ($ip) => $ip === '*' || filter_var($ip, FILTER_VALIDATE_IP) !== false);
 
             $isWildcard = in_array('*', $trustedList, true);
             $allowWildcard = getenv('APP_ENV') === 'development';
@@ -143,8 +144,8 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
 
             // Filter out expired attempts (outside window)
             $validAttempts = array_filter(
-                $data['attempts'], 
-                fn($timestamp) => ($currentTime - $timestamp) < $this->windowSec
+                $data['attempts'],
+                fn ($timestamp) => ($currentTime - $timestamp) < $this->windowSec
             );
 
             return array_values($validAttempts);
@@ -161,7 +162,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
                 'attempts' => $attempts,
                 'last_updated' => time()
             ];
-            
+
             file_put_contents($filePath, json_encode($data, JSON_PRETTY_PRINT), LOCK_EX);
         } catch (\Throwable) {
             // Fail silently if we can't write (don't break the application)
@@ -218,16 +219,16 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
     private function createRateLimitResponse(): Response
     {
         $response = new \Slim\Psr7\Response(429);
-        
+
         $retryAfter = $this->windowSec;
         $errorMessage = json_encode([
             'error' => 'Too many attempts',
             'message' => "Rate limit exceeded. Try again in {$retryAfter} seconds.",
             'retry_after' => $retryAfter
         ]);
-        
+
         $response->getBody()->write($errorMessage);
-        
+
         return $response
             ->withHeader('Content-Type', 'application/json')
             ->withHeader('Retry-After', (string)$retryAfter);
@@ -240,13 +241,13 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
     {
         $cleaned = 0;
         $cutoffTime = time() - ($this->windowSec * 2); // Clean files older than 2x window
-        
+
         try {
             $files = glob($this->storageDir . '/' . $this->keyPrefix . '_*.json');
             if ($files === false) {
                 return 0;
             }
-            
+
             foreach ($files as $file) {
                 $mtime = filemtime($file);
                 if ($mtime !== false && $mtime < $cutoffTime) {
@@ -258,7 +259,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         } catch (\Throwable) {
             // Ignore cleanup errors
         }
-        
+
         return $cleaned;
     }
 }

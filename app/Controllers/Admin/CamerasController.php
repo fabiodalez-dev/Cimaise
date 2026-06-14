@@ -1,7 +1,9 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
+
 use App\Controllers\BaseController;
 use App\Support\Database;
 use App\Support\Hooks;
@@ -45,12 +47,16 @@ class CamerasController extends BaseController
     public function index(Request $request, Response $response): Response
     {
         $page = max(1, (int)($request->getQueryParams()['page'] ?? 1));
-        $per = 10; $off = ($page-1)*$per; $pdo = $this->db->pdo();
+        $per = 10;
+        $off = ($page - 1) * $per;
+        $pdo = $this->db->pdo();
         $total = (int)$pdo->query('SELECT COUNT(*) FROM cameras')->fetchColumn();
         $stmt = $pdo->prepare('SELECT id, make, model, type FROM cameras ORDER BY make, model LIMIT :l OFFSET :o');
-        $stmt->bindValue(':l', $per, \PDO::PARAM_INT); $stmt->bindValue(':o', $off, \PDO::PARAM_INT); $stmt->execute();
+        $stmt->bindValue(':l', $per, \PDO::PARAM_INT);
+        $stmt->bindValue(':o', $off, \PDO::PARAM_INT);
+        $stmt->execute();
         return $this->view->render($response, 'admin/cameras/index.twig', [
-            'items' => $stmt->fetchAll(), 'page'=>$page, 'pages'=>(int)ceil(max(0,$total)/$per),
+            'items' => $stmt->fetchAll(), 'page' => $page, 'pages' => (int)ceil(max(0, $total) / $per),
             'camera_types' => self::CAMERA_TYPES
         ]);
     }
@@ -84,7 +90,7 @@ class CamerasController extends BaseController
 
         try {
             $pdo = $this->db->pdo();
-            $pdo->prepare('INSERT INTO cameras(make, model, type) VALUES(:a,:b,:c)')->execute([':a'=>$make, ':b'=>$model, ':c'=>$type]);
+            $pdo->prepare('INSERT INTO cameras(make, model, type) VALUES(:a,:b,:c)')->execute([':a' => $make, ':b' => $model, ':c' => $type]);
             $id = (int)$pdo->lastInsertId();
             Hooks::doAction('metadata_camera_created', $id, ['make' => $make, 'model' => $model, 'type' => $type]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.camera_created')];
@@ -134,7 +140,7 @@ class CamerasController extends BaseController
         }
 
         try {
-            $this->db->pdo()->prepare('UPDATE cameras SET make=:a, model=:b, type=:c WHERE id=:id')->execute([':a'=>$make, ':b'=>$model, ':c'=>$type, ':id'=>$id]);
+            $this->db->pdo()->prepare('UPDATE cameras SET make=:a, model=:b, type=:c WHERE id=:id')->execute([':a' => $make, ':b' => $model, ':c' => $type, ':id' => $id]);
             Hooks::doAction('metadata_camera_updated', $id, ['make' => $make, 'model' => $model, 'type' => $type]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.camera_updated')];
         } catch (\Throwable $e) {

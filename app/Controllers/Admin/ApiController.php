@@ -1,7 +1,9 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
+
 use App\Controllers\BaseController;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -26,7 +28,7 @@ class ApiController extends BaseController
         }
         $rows = $stmt->fetchAll();
         $response->getBody()->write(json_encode($rows));
-        return $response->withHeader('Content-Type','application/json');
+        return $response->withHeader('Content-Type', 'application/json');
     }
 
     public function category(Request $request, Response $response, array $args): Response
@@ -39,11 +41,15 @@ class ApiController extends BaseController
             // Fallback if parent_id does not exist
             $stmt = $pdo->prepare('SELECT id, name, slug, sort_order, image_path FROM categories WHERE id = :id');
         }
-        $stmt->execute([':id'=>$id]);
+        $stmt->execute([':id' => $id]);
         $row = $stmt->fetch() ?: null;
-        if ($row && !array_key_exists('parent_id', $row)) { $row['parent_id'] = 0; }
-        if (!$row) return $response->withStatus(404);
+        if ($row && !array_key_exists('parent_id', $row)) {
+            $row['parent_id'] = 0;
+        }
+        if (!$row) {
+            return $response->withStatus(404);
+        }
         $response->getBody()->write(json_encode($row));
-        return $response->withHeader('Content-Type','application/json');
+        return $response->withHeader('Content-Type', 'application/json');
     }
 }

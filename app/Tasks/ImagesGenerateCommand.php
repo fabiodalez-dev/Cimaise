@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Tasks;
@@ -66,10 +67,12 @@ class ImagesGenerateCommand extends Command
 
         $output->writeln('<info>Image Variant Generation Starting...</info>');
         $output->writeln(sprintf('Formats: %s', implode(', ', array_keys(array_filter($formats)))));
-        $output->writeln(sprintf('Breakpoints: %s', implode(', ', array_map(fn($k, $v) => "{$k}:{$v}px", array_keys($breakpoints), $breakpoints))));
+        $output->writeln(sprintf('Breakpoints: %s', implode(', ', array_map(fn ($k, $v) => "{$k}:{$v}px", array_keys($breakpoints), $breakpoints))));
 
         $q = 'SELECT id, original_path FROM images';
-        if ($limit > 0) { $q .= ' LIMIT ' . (int)$limit; }
+        if ($limit > 0) {
+            $q .= ' LIMIT ' . (int)$limit;
+        }
         $images = $pdo->query($q)->fetchAll();
         if (!$images) {
             $output->writeln('<comment>No images found.</comment>');
@@ -127,11 +130,13 @@ class ImagesGenerateCommand extends Command
                 $key = (string)$row['variant'] . '|' . (string)$row['format'];
                 $existingVariants[$key] = (string)($row['path'] ?? '');
             }
-            
+
             $variantsGenerated = 0;
             foreach ($breakpoints as $variant => $width) {
                 foreach (['avif','webp','jpg'] as $fmt) {
-                    if (empty($formats[$fmt])) continue;
+                    if (empty($formats[$fmt])) {
+                        continue;
+                    }
                     $destRelUrl = "/media/{$imageId}_{$variant}.{$fmt}";
                     $dest = dirname(__DIR__, 2) . '/public/media/' . "{$imageId}_{$variant}.{$fmt}";
                     $key = (string)$variant . '|' . (string)$fmt;
@@ -148,7 +153,7 @@ class ImagesGenerateCommand extends Command
                     if ($existsOnDisk && !$existsInDb) {
                         @unlink($dest);
                     }
-                    
+
                     $ok = false;
                     if ($fmt === 'jpg') {
                         $ok = $this->resizeWithImagickOrGd($src, $dest, (int)$width, 'jpeg', (int)$quality['jpg']);
@@ -161,7 +166,7 @@ class ImagesGenerateCommand extends Command
                     } elseif ($fmt === 'avif') {
                         $ok = $imagickOk && $this->resizeWithImagick($src, $dest, (int)$width, 'avif', (int)$quality['avif']);
                     }
-                    
+
                     if ($ok) {
                         $size = (int)filesize($dest);
                         [$w, $h] = getimagesize($dest) ?: [(int)$width, 0];
@@ -179,7 +184,7 @@ class ImagesGenerateCommand extends Command
                     }
                 }
             }
-            
+
             if ($variantsGenerated > 0) {
                 $output->writeln("Generated {$variantsGenerated} variants for image #{$imageId}");
             }
@@ -217,15 +222,17 @@ class ImagesGenerateCommand extends Command
         if (class_exists(Imagick::class) && !$this->imagickDisabled()) {
             return $this->resizeWithImagick($src, $dest, $targetW, $format, $quality);
         }
-        
+
         // GD fallback for JPEG only
         $info = @getimagesize($src);
-        if (!$info) return false;
+        if (!$info) {
+            return false;
+        }
         [$w, $h] = $info;
         $ratio = $h > 0 ? $w / $h : 1;
-        $newW = $targetW; 
+        $newW = $targetW;
         $newH = (int)round($targetW / $ratio);
-        
+
         $srcImg = match ($info['mime']) {
             'image/jpeg' => @imagecreatefromjpeg($src),
             'image/png' => @imagecreatefrompng($src),
@@ -233,11 +240,13 @@ class ImagesGenerateCommand extends Command
             'image/webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($src) : null,
             default => null,
         };
-        
-        if (!$srcImg) return false;
-        
+
+        if (!$srcImg) {
+            return false;
+        }
+
         $dst = imagecreatetruecolor($newW, $newH);
-        
+
         // Preserve transparency for PNG/GIF
         if ($info['mime'] === 'image/png' || $info['mime'] === 'image/gif') {
             imagealphablending($dst, false);
@@ -245,12 +254,12 @@ class ImagesGenerateCommand extends Command
             $transparent = imagecolorallocatealpha($dst, 0, 0, 0, 127);
             imagefill($dst, 0, 0, $transparent);
         }
-        
+
         imagecopyresampled($dst, $srcImg, 0, 0, 0, 0, $newW, $newH, $w, $h);
         @mkdir(dirname($dest), 0775, true);
-        
+
         $ok = imagejpeg($dst, $dest, $quality);
-        
+
         imagedestroy($srcImg);
         imagedestroy($dst);
         return (bool)$ok;
@@ -261,14 +270,16 @@ class ImagesGenerateCommand extends Command
         if (!function_exists('imagewebp')) {
             return false;
         }
-        
+
         $info = @getimagesize($src);
-        if (!$info) return false;
+        if (!$info) {
+            return false;
+        }
         [$w, $h] = $info;
         $ratio = $h > 0 ? $w / $h : 1;
         $newW = $targetW;
         $newH = (int)round($targetW / $ratio);
-        
+
         $srcImg = match ($info['mime']) {
             'image/jpeg' => @imagecreatefromjpeg($src),
             'image/png' => @imagecreatefrompng($src),
@@ -276,22 +287,24 @@ class ImagesGenerateCommand extends Command
             'image/webp' => @imagecreatefromwebp($src),
             default => null,
         };
-        
-        if (!$srcImg) return false;
-        
+
+        if (!$srcImg) {
+            return false;
+        }
+
         $dst = imagecreatetruecolor($newW, $newH);
-        
+
         // Preserve transparency
         imagealphablending($dst, false);
         imagesavealpha($dst, true);
         $transparent = imagecolorallocatealpha($dst, 0, 0, 0, 127);
         imagefill($dst, 0, 0, $transparent);
-        
+
         imagecopyresampled($dst, $srcImg, 0, 0, 0, 0, $newW, $newH, $w, $h);
         @mkdir(dirname($dest), 0775, true);
-        
+
         $ok = imagewebp($dst, $dest, $quality);
-        
+
         imagedestroy($srcImg);
         imagedestroy($dst);
         return (bool)$ok;

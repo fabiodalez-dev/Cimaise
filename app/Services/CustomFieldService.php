@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services;
@@ -305,7 +306,9 @@ class CustomFieldService
         $stmt->execute([$imageId]);
         $albumId = $stmt->fetchColumn();
 
-        if (!$albumId) return;
+        if (!$albumId) {
+            return;
+        }
 
         // For each value, add to album if doesn't exist
         $checkStmt = $this->db->prepare('
@@ -347,7 +350,9 @@ class CustomFieldService
         ');
 
         foreach ($values as $value) {
-            if ($value === '' || $value === null) continue;
+            if ($value === '' || $value === null) {
+                continue;
+            }
 
             if (is_numeric($value)) {
                 $stmt->execute([$albumId, $fieldTypeId, (int)$value, null]);
@@ -643,7 +648,9 @@ class CustomFieldService
      */
     public function enrichImagesWithCustomFields(array $images, int $albumId): array
     {
-        if (empty($images)) return $images;
+        if (empty($images)) {
+            return $images;
+        }
 
         $imageIds = array_column($images, 'id');
         $placeholders = implode(',', array_fill(0, count($imageIds), '?'));

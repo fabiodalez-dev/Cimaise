@@ -1,7 +1,9 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
+
 use App\Controllers\BaseController;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -35,12 +37,12 @@ class FilterSettingsController extends BaseController
     public function index(Request $request, Response $response): Response
     {
         $pdo = $this->db->pdo();
-        
+
         // Get current filter settings
         $stmt = $pdo->prepare('SELECT setting_key, setting_value FROM filter_settings ORDER BY sort_order ASC');
         $stmt->execute();
         $rawSettings = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
-        
+
         // Organize settings by category
         $settings = [
             'general' => [
@@ -66,10 +68,10 @@ class FilterSettingsController extends BaseController
                 'grid_gap' => $rawSettings['grid_gap'] ?? 'normal'
             ]
         ];
-        
+
         // Get filter statistics
         $stats = $this->getFilterStatistics();
-        
+
         return $this->view->render($response, 'admin/filter_settings/index.twig', [
             'settings' => $settings,
             'stats' => $stats,
@@ -91,7 +93,7 @@ class FilterSettingsController extends BaseController
 
         try {
             $pdo->beginTransaction();
-            
+
             // Update each setting
             $settingsToUpdate = [
                 'enabled' => $data['enabled'] ?? '0',
@@ -111,18 +113,18 @@ class FilterSettingsController extends BaseController
                 'grid_columns_mobile' => $data['grid_columns_mobile'] ?? '1',
                 'grid_gap' => $data['grid_gap'] ?? 'normal'
             ];
-            
+
             $replaceKw = $this->db->replaceKeyword();
             $nowExpr = $this->db->nowExpression();
             $stmt = $pdo->prepare("
                 {$replaceKw} INTO filter_settings (setting_key, setting_value, updated_at)
                 VALUES (?, ?, {$nowExpr})
             ");
-            
+
             foreach ($settingsToUpdate as $key => $value) {
                 $stmt->execute([$key, $value]);
             }
-            
+
             $pdo->commit();
             $this->invalidateGalleryCaches();
 
@@ -138,7 +140,7 @@ class FilterSettingsController extends BaseController
                 'message' => 'Failed to update filter settings: ' . $e->getMessage()
             ];
         }
-        
+
         return $response->withHeader('Location', $this->redirect('/admin/filter-settings'))->withStatus(302);
     }
 
@@ -146,11 +148,11 @@ class FilterSettingsController extends BaseController
     {
         // Return current filter settings as JSON for preview
         $pdo = $this->db->pdo();
-        
+
         $stmt = $pdo->prepare('SELECT setting_key, setting_value FROM filter_settings ORDER BY sort_order ASC');
         $stmt->execute();
         $settings = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
-        
+
         // Convert string values to appropriate types
         $processedSettings = [];
         foreach ($settings as $key => $value) {
@@ -164,12 +166,12 @@ class FilterSettingsController extends BaseController
                 $processedSettings[$key] = $value;
             }
         }
-        
+
         $response->getBody()->write(json_encode([
             'success' => true,
             'settings' => $processedSettings
         ]));
-        
+
         return $response->withHeader('Content-Type', 'application/json');
     }
 
@@ -242,11 +244,11 @@ class FilterSettingsController extends BaseController
     private function getFilterStatistics(): array
     {
         $pdo = $this->db->pdo();
-        
+
         try {
             // Get counts for each filter type
             $stats = [];
-            
+
             // Categories
             $stmt = $pdo->prepare('
                 SELECT COUNT(DISTINCT c.id) as count
@@ -257,7 +259,7 @@ class FilterSettingsController extends BaseController
             ');
             $stmt->execute();
             $stats['categories'] = $stmt->fetchColumn();
-            
+
             // Tags
             $stmt = $pdo->prepare('
                 SELECT COUNT(DISTINCT t.id) as count
@@ -268,7 +270,7 @@ class FilterSettingsController extends BaseController
             ');
             $stmt->execute();
             $stats['tags'] = $stmt->fetchColumn();
-            
+
             // Cameras
             $stmt = $pdo->prepare('
                 SELECT COUNT(DISTINCT cam.id) as count
@@ -279,7 +281,7 @@ class FilterSettingsController extends BaseController
             ');
             $stmt->execute();
             $stats['cameras'] = $stmt->fetchColumn();
-            
+
             // Lenses
             $stmt = $pdo->prepare('
                 SELECT COUNT(DISTINCT l.id) as count
@@ -290,7 +292,7 @@ class FilterSettingsController extends BaseController
             ');
             $stmt->execute();
             $stats['lenses'] = $stmt->fetchColumn();
-            
+
             // Films
             $stmt = $pdo->prepare('
                 SELECT COUNT(DISTINCT f.id) as count
@@ -301,7 +303,7 @@ class FilterSettingsController extends BaseController
             ');
             $stmt->execute();
             $stats['films'] = $stmt->fetchColumn();
-            
+
             // Locations
             $stmt = $pdo->prepare('
                 SELECT COUNT(DISTINCT loc.id) as count
@@ -312,14 +314,14 @@ class FilterSettingsController extends BaseController
             ');
             $stmt->execute();
             $stats['locations'] = $stmt->fetchColumn();
-            
+
             // Total published albums
             $stmt = $pdo->prepare('SELECT COUNT(*) FROM albums WHERE is_published = 1');
             $stmt->execute();
             $stats['total_albums'] = $stmt->fetchColumn();
-            
+
             return $stats;
-            
+
         } catch (\Exception $e) {
             return [
                 'categories' => 0,

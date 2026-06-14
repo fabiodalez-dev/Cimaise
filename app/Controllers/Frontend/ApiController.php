@@ -1,7 +1,9 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Frontend;
+
 use App\Controllers\BaseController;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -31,7 +33,10 @@ class ApiController extends BaseController
         $wheres = ['a.is_published = 1'];
         $params = [];
         $joins = ['JOIN categories c ON c.id = a.category_id'];
-        if ($category) { $wheres[] = 'c.slug = :category'; $params[':category'] = $category; }
+        if ($category) {
+            $wheres[] = 'c.slug = :category';
+            $params[':category'] = $category;
+        }
         if ($tag) {
             $joins[] = 'JOIN album_tag at ON at.album_id = a.id';
             $joins[] = 'JOIN tags t ON t.id = at.tag_id';
@@ -61,7 +66,9 @@ class ApiController extends BaseController
                 ORDER BY ' . $orderBy . '
                 LIMIT :limit OFFSET :offset';
         $stmt = $pdo->prepare($sql);
-        foreach ($params as $k => $v) { $stmt->bindValue($k, $v); }
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
         $stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
         $stmt->execute();
@@ -146,8 +153,14 @@ class ApiController extends BaseController
 
         $wheres = ['i.album_id = :album_id'];
         $params = [':album_id' => $albumId];
-        if ($process) { $wheres[] = 'i.process = :process'; $params[':process'] = $process; }
-        if ($camera) { $wheres[] = 'i.custom_camera = :camera'; $params[':camera'] = $camera; }
+        if ($process) {
+            $wheres[] = 'i.process = :process';
+            $params[':process'] = $process;
+        }
+        if ($camera) {
+            $wheres[] = 'i.custom_camera = :camera';
+            $params[':camera'] = $camera;
+        }
 
         $sqlCount = 'SELECT COUNT(*) FROM images i WHERE ' . implode(' AND ', $wheres);
         $stmt = $pdo->prepare($sqlCount);
@@ -156,7 +169,9 @@ class ApiController extends BaseController
 
         $sql = 'SELECT i.* FROM images i WHERE ' . implode(' AND ', $wheres) . ' ORDER BY i.sort_order ASC, i.id ASC LIMIT :limit OFFSET :offset';
         $stmt = $pdo->prepare($sql);
-        foreach ($params as $k => $v) { $stmt->bindValue($k, $v); }
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
         $stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
         $stmt->execute();
@@ -250,8 +265,12 @@ class ApiController extends BaseController
         if (!empty($image['iso'])) {
             $display['iso'] = 'ISO ' . (int)$image['iso'];
         }
-        if (!empty($image['custom_film'])) { $display['film'] = $image['custom_film']; }
-        if (!empty($image['process'])) { $display['process'] = ucfirst((string)$image['process']); }
+        if (!empty($image['custom_film'])) {
+            $display['film'] = $image['custom_film'];
+        }
+        if (!empty($image['process'])) {
+            $display['process'] = ucfirst((string)$image['process']);
+        }
         return $display;
     }
 

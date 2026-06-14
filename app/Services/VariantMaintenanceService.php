@@ -1,12 +1,11 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services;
 
 use App\Support\Database;
 use App\Support\Logger;
-use App\Services\SettingsService;
-use App\Services\UploadService;
 
 class VariantMaintenanceService
 {

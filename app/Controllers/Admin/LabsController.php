@@ -1,7 +1,9 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
+
 use App\Controllers\BaseController;
 use App\Support\Database;
 use App\Support\Hooks;
@@ -19,18 +21,20 @@ class LabsController extends BaseController
     public function index(Request $request, Response $response): Response
     {
         $page = max(1, (int)($request->getQueryParams()['page'] ?? 1));
-        $per = 10; $off = ($page-1)*$per; $pdo = $this->db->pdo();
+        $per = 10;
+        $off = ($page - 1) * $per;
+        $pdo = $this->db->pdo();
         $total = (int)$pdo->query('SELECT COUNT(*) FROM labs')->fetchColumn();
         $st = $pdo->prepare('SELECT id, name, city, country FROM labs ORDER BY name LIMIT :l OFFSET :o');
         $st->bindValue(':l', $per, \PDO::PARAM_INT);
         $st->bindValue(':o', $off, \PDO::PARAM_INT);
         $st->execute();
-        return $this->view->render($response, 'admin/labs/index.twig', ['items'=>$st->fetchAll(), 'page'=>$page, 'pages'=>(int)ceil(max(0,$total)/$per)]);
+        return $this->view->render($response, 'admin/labs/index.twig', ['items' => $st->fetchAll(), 'page' => $page, 'pages' => (int)ceil(max(0, $total) / $per)]);
     }
 
     public function create(Request $r, Response $res): Response
     {
-        return $this->view->render($res, 'admin/labs/create.twig', ['csrf'=>$_SESSION['csrf']??'']);
+        return $this->view->render($res, 'admin/labs/create.twig', ['csrf' => $_SESSION['csrf'] ?? '']);
     }
 
     public function store(Request $r, Response $res): Response
