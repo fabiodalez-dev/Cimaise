@@ -103,7 +103,6 @@ database/cimaise.sqlite
 
 # Local documentation files (not tracked)
 AGENTS.md
-CHANGELOG.md
 PERFORMANCE.md
 docs/template-switcher.md
 
