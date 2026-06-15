@@ -81,8 +81,13 @@ test.describe('CodeRabbit + adamsreview fix verification', () => {
             path.resolve(process.cwd(), 'app/Middlewares/CacheMiddleware.php'),
             'utf-8',
         );
-        // isSessionDependent must check the global NSFW consent flag
-        const m = src.match(/isSessionDependent[^}]+?return[\s\S]+?;\s*}/);
+        // isSessionDependent must check the global NSFW consent flag.
+        // Anchor on the METHOD DEFINITION (not the first textual occurrence,
+        // which is a call site inside process()): capture from
+        // `function isSessionDependent` up to the next method or the class end.
+        const m = src.match(
+            /function\s+isSessionDependent\b[\s\S]+?(?=\n\s*(?:private|public|protected)\s+function|\n\s*\}\s*$)/,
+        );
         expect(m).not.toBeNull();
         if (m) {
             expect(m[0]).toContain('nsfw_confirmed_global');
