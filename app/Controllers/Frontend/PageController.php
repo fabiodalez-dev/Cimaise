@@ -426,30 +426,27 @@ class PageController extends BaseController
         // Enrich with cover images and tags + apply access filters
         $albums = $this->filterAlbumsByAccess($albums, $isAdmin, $nsfwConsent);
 
-        // Home album list (the snap slides + the album carousel on classic /
-        // parallax). Rules for non-admins:
-        //   - Password-protected albums are NEVER previewed on the home, in any
-        //     template — not even a blurred placeholder.
-        //   - NSFW albums (without password): in the album carousel a blurred
-        //     preview behind the NSFW gate is acceptable (the established gallery
-        //     UX), so they stay; but the full-screen snap showcase must hide them
-        //     until consent (no blurred slide).
-        // (NSFW-with-password is removed by the password rule first.) The
-        // image-grid templates use `all_images`, already filtered at the SQL
-        // level by HomeImageService — this only covers the album-card data path.
+        // The home is a curated showcase, not a discovery listing: it shows only
+        // "real" covers — never blurred placeholders. So for non-admins the home
+        // album list (snap slides + the classic/parallax carousel) drops:
+        //   - every password-protected album (no preview, ever), and
+        //   - every NSFW album unless global consent has been given.
+        // (NSFW-with-password is removed by the password rule first; with consent
+        // NSFW albums reappear with their real covers.) The album/category
+        // listing pages keep the lock + blur affordance — that's the right UX for
+        // unlock/consent discovery. The image-grid home templates use
+        // `all_images`, already filtered identically at the SQL level by
+        // HomeImageService; this covers the album-card data path.
         if (!$isAdmin) {
-            // Password rule — applies to every home template.
-            $albums = array_values(array_filter(
-                $albums,
-                static fn (array $a): bool => empty($a['is_password_protected'])
-            ));
-            // Snap-only NSFW gate (no blurred slide without consent).
-            if ($homeTemplate === 'snap' && !$nsfwConsent) {
-                $albums = array_values(array_filter(
-                    $albums,
-                    static fn (array $a): bool => empty($a['is_nsfw'])
-                ));
-            }
+            $albums = array_values(array_filter($albums, static function (array $a) use ($nsfwConsent): bool {
+                if (!empty($a['is_password_protected'])) {
+                    return false;
+                }
+                if (!empty($a['is_nsfw']) && !$nsfwConsent) {
+                    return false;
+                }
+                return true;
+            }));
         }
 
         // Calculate pagination info
