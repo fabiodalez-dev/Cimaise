@@ -179,7 +179,12 @@
 
   {# Veli migliorati per fade effect - positioning più preciso #}
   <div class="pointer-events-none absolute inset-x-0 -top-1 h-40 z-20 masonry-veil-top"></div>
-  <div class="pointer-events-none absolute z-20 masonry-veil-bottom" style="left:-4px; right:-4px; bottom:-4px; height:80px;"></div>
+  {# bottom:-8 (non -4): le colonne desktop hanno un tilt 3D (rotateX dell'effetto
+     perspective) che porta il loro bounding-box ~5px sotto la gallery; con -4 il
+     velo finiva ~1px SOPRA la fine delle foto lasciando una sottile striscia non
+     sfumata. -8/height:84 mantiene fisso il bordo superiore del gradiente e copre
+     il fondo inclinato. Sotto la gallery non c'è contenuto, l'overhang è invisibile. #}
+  <div class="pointer-events-none absolute z-20 masonry-veil-bottom" style="left:-4px; right:-4px; bottom:-8px; height:84px;"></div>
 </div>
 
 <style nonce="{{ csp_nonce() }}">
