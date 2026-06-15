@@ -498,6 +498,12 @@ class UploadService
         if (!is_array($formats) || !$formats) {
             $formats = $defaults['image.formats'];
         }
+        // jpg is the mandatory baseline. A legacy/corrupt record can be a NON-empty
+        // array with every value false ({avif:false,webp:false,jpg:false}) — that
+        // passes the guard above yet silently disables ALL variant generation.
+        if (!array_filter($formats)) {
+            $formats['jpg'] = true;
+        }
         $quality = $settings->get('image.quality', $defaults['image.quality']);
         if (!is_array($quality) || !$quality) {
             $quality = $defaults['image.quality'];

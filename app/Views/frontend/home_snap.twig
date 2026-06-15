@@ -338,7 +338,9 @@ footer {
    ============================================ */
 @media (max-width: 480px) {
   .snap-mobile-info {
-    padding: 1.5rem 1.2rem;
+    /* keep the bottom safe-area inset so the album text isn't hidden under the
+       home indicator / notch on small devices (don't drop it at this breakpoint) */
+    padding: 1.5rem 1.2rem max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem));
   }
 
   .snap-mobile-info h2 {
@@ -807,6 +809,9 @@ html.dark .snap-indicator:hover {
         currentIndex = 0;
         indicators.forEach(function(ind, i) {
           ind.classList.toggle('active', i === 0);
+          // keep the a11y state in sync with the visual reset
+          if (i === 0) { ind.setAttribute('aria-current', 'true'); }
+          else { ind.removeAttribute('aria-current'); }
         });
       }
 

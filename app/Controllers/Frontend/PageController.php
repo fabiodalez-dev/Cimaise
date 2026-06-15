@@ -2111,7 +2111,9 @@ class PageController extends BaseController
             'category' => $category,
             'albums' => $albums,
             'categories' => $categories,
-            'parent_categories' => $this->getNavigationService()->getParentCategoriesForNavigation(),
+            // Match the $categories list above: admins / consented users get the
+            // NSFW-inclusive hierarchy, anonymous visitors the filtered one.
+            'parent_categories' => $this->getNavigationService()->getParentCategoriesForNavigation($includeNsfw),
             'page_title' => $seo['page_title'],
             'meta_description' => $seo['meta_description'],
             'meta_image' => $seo['meta_image'],

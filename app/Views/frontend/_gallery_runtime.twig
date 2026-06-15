@@ -510,6 +510,13 @@ function initMagazineAutoscroll() {
         // Senza ri-applicazione, gli stili inline restano quelli del load iniziale:
         // variante sbagliata + foto vuote (data-src della nuova variante mai risolti).
         var applyVariant = function() {
+            // Re-query each call: the template switcher replaces #images-gallery's
+            // innerHTML in place, but the resize listener (bound once, guarded by
+            // _magazineResizeBound) keeps this same closure. Without re-querying it
+            // would style the OLD, now-detached wrap nodes after a template switch.
+            mob = container.querySelector('.m-mobile-wrap');
+            tablet = container.querySelector('.m-tablet-wrap');
+            desk = container.querySelector('.m-desktop-wrap');
             var m = window.matchMedia('(max-width: 767px)').matches;
             var t = window.matchMedia('(min-width: 768px) and (max-width: 1199px)').matches;
             if (mob) mob.style.display = m ? 'block' : 'none';
