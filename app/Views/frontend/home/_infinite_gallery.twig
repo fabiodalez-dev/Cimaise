@@ -25,6 +25,15 @@
       <img src="{{ img_src starts with('/') ? (base_path ~ img_src) : img_src }}"
            alt="{{ image.alt|default(image.album_title)|e }}"
            width="{{ image.width|default(1600) }}" height="{{ image.height|default(1067) }}"
+           {# Only the lead images of the VISIBLE variant are eager-preloaded.
+              The grid renders both a mobile and a desktop variant (one is
+              display:none per breakpoint); previously BOTH eager-loaded their
+              first 6, so the hidden variant's copies were force-fetched too
+              (display:none doesn't stop an eager fetch) — 24 high-priority
+              requests in parallel saturated bandwidth and the visible photos
+              arrived late, all at once. Now eager is set only on the desktop
+              variant's first images (see call sites); the hidden mobile variant
+              is fully lazy. #}
            {% if eager %}loading="eager" fetchpriority="high"{% else %}loading="lazy"{% endif %}
            decoding="async" class="w-full h-full object-cover block">
     </picture>
@@ -60,7 +69,11 @@
     <div class="home-mobile-wrap">
       <div class="home-mobile">
         {% for image in all_images %}
-          <div class="home-cell">{{ H.home_item(image, base_path, site_title, loop.index0 < 6) }}</div>
+          {# Mobile variant: never eager — it is display:none on the desktop
+             breakpoint, so eager-loading it just wastes bandwidth there. When
+             this variant IS visible (mobile), its in-viewport images still load
+             promptly via native lazy. #}
+          <div class="home-cell">{{ H.home_item(image, base_path, site_title, false) }}</div>
         {% endfor %}
       </div>
     </div>
@@ -77,7 +90,7 @@
           <div class="home-track-h">
             {% for r in 1..repeat_times %}
               {% for image in row %}
-                <div class="home-cell-h">{{ H.home_item(image, base_path, site_title, loop.parent.loop.index0 == 0 and loop.index0 < 6) }}</div>
+                <div class="home-cell-h">{{ H.home_item(image, base_path, site_title, loop.parent.loop.index0 == 0 and loop.index0 < 2) }}</div>
               {% endfor %}
             {% endfor %}
           </div>
@@ -96,7 +109,7 @@
           <div class="home-track">
             {% for r in 1..repeat_times %}
               {% for image in col %}
-                <div class="home-cell">{{ H.home_item(image, base_path, site_title, loop.parent.loop.index0 == 0 and loop.index0 < 6) }}</div>
+                <div class="home-cell">{{ H.home_item(image, base_path, site_title, loop.parent.loop.index0 == 0 and loop.index0 < 2) }}</div>
               {% endfor %}
             {% endfor %}
           </div>
