@@ -594,7 +594,14 @@ document.addEventListener('DOMContentLoaded', function() {
         closeSearchPanel();
         menu.classList.remove('hidden');
         requestAnimationFrame(() => {
-          menu.style.maxHeight = menu.scrollHeight + 'px';
+          // #mobile-menu lives INSIDE #main-header here, so header.offsetHeight is
+          // circular (it already includes the expanding menu → cap collapsed to ~23px,
+          // a thin sliver needing extra taps). Anchor the cap to the menu's OWN top
+          // edge: the space from there to the viewport bottom. Never use scrollHeight
+          // (stale in this first rAF). max-height only caps — shorter content sizes to
+          // itself, taller scrolls (#mobile-menu is overflow-y-auto).
+          const top = menu.getBoundingClientRect().top;
+          menu.style.maxHeight = Math.max(0, window.innerHeight - top) + 'px';
           menu.style.opacity = '1';
         });
       } else {

@@ -7,7 +7,7 @@
  * - HTML: Network First (fresh content, fallback to cache if offline)
  */
 
-const CACHE_VERSION = 'cimaise-v3';
+const CACHE_VERSION = 'cimaise-v4';
 const CACHE_STATIC = `${CACHE_VERSION}-static`;
 const CACHE_IMAGES = `${CACHE_VERSION}-images`;
 const CACHE_PAGES = `${CACHE_VERSION}-pages`;

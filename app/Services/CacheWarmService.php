@@ -182,21 +182,25 @@ class CacheWarmService
         // Pagination parameters
         $perPage = (int) $this->settings->get('pagination.limit', 12);
 
-        // Get total count of published albums.
-        // NOTE: must mirror PageController::home() — ALL published albums are counted
-        // and listed (NSFW shown blurred, password-protected shown locked), they are
-        // NOT excluded. Excluding them here produced a different albums list and a
-        // different data_hash than a request-built cache entry.
-        $countStmt = $pdo->prepare('SELECT COUNT(*) FROM albums a WHERE a.is_published = 1');
+        // The 'home' cache is only ever served to anonymous visitors
+        // (PageController::home() caches only when !admin && !consent). Scope the
+        // album list to that anonymous view IN SQL — exactly like
+        // PageController::home() does for an anonymous user — so password-protected
+        // albums are never previewed and NSFW albums are excluded (no consent in
+        // the warm path). Filtering in SQL (not post-fetch) keeps the LIMIT page
+        // full of eligible albums, stops the count leaking hidden albums, and
+        // preserves data_hash parity with a request-built cache entry.
+        $accessSql = " AND (a.password_hash IS NULL OR a.password_hash = '') AND a.is_nsfw = 0";
+
+        $countStmt = $pdo->prepare('SELECT COUNT(*) FROM albums a WHERE a.is_published = 1' . $accessSql);
         $countStmt->execute();
         $totalAlbums = (int) $countStmt->fetchColumn();
 
-        // Get latest published albums (same query as PageController::home())
         $stmt = $pdo->prepare('
             SELECT a.*, c.name as category_name, c.slug as category_slug
             FROM albums a
             JOIN categories c ON c.id = a.category_id
-            WHERE a.is_published = 1
+            WHERE a.is_published = 1' . $accessSql . '
             ORDER BY a.published_at DESC
             LIMIT :limit
         ');
@@ -204,8 +208,8 @@ class CacheWarmService
         $stmt->execute();
         $albums = $stmt->fetchAll();
 
-        // Enrich + apply public-visitor access shaping, mirroring
-        // PageController::filterAlbumsByAccess() for an anonymous user
+        // Enrich + flag for rendering (mirrors PageController::filterAlbumsByAccess
+        // for an anonymous user).
         $albums = $this->enrichAlbumsForPublicHome($albums);
 
         // Calculate pagination

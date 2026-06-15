@@ -421,17 +421,10 @@ if (templateSlug === 'grid-ampia') {
 function initMagazineAutoscroll() {
     try {
         var container = document.getElementById('images-gallery') || document;
-        var isMobile = window.matchMedia('(max-width: 767px)').matches;
-        var isTablet = window.matchMedia('(min-width: 768px) and (max-width: 1199px)').matches;
-        var isDesktop = window.matchMedia('(min-width: 1200px)').matches;
 
         var mob = container.querySelector('.m-mobile-wrap');
         var tablet = container.querySelector('.m-tablet-wrap');
         var desk = container.querySelector('.m-desktop-wrap');
-
-        if (mob) mob.style.display = isMobile ? 'block' : 'none';
-        if (tablet) tablet.style.display = isTablet ? 'flex' : 'none';
-        if (desk) desk.style.display = isDesktop ? 'flex' : 'none';
 
         var ensureTrackFill = function(track, colHeight) {
             if (!track || !colHeight) return;
@@ -473,38 +466,60 @@ function initMagazineAutoscroll() {
             });
         };
 
-        var activeWrap = isMobile ? mob : (isTablet ? tablet : desk);
-        if (activeWrap) {
-            activeWrap.querySelectorAll('source[data-srcset]').forEach(function(source) {
+        // Carica le immagini di un wrap (idempotente, copre anche i cloni del marquee)
+        var loadWrapImages = function(wrap) {
+            if (!wrap || wrap._magImagesLoaded) return;
+            wrap._magImagesLoaded = true;
+            wrap.querySelectorAll('source[data-srcset]').forEach(function(source) {
                 source.setAttribute('srcset', source.getAttribute('data-srcset'));
                 source.removeAttribute('data-srcset');
             });
-            activeWrap.querySelectorAll('img[data-src]').forEach(function(img) {
+            wrap.querySelectorAll('img[data-src]').forEach(function(img) {
                 img.setAttribute('src', img.getAttribute('data-src'));
                 img.removeAttribute('data-src');
             });
-        }
+        };
 
-        container.querySelectorAll('.m-col').forEach(function(col) {
-            var track = col.querySelector('.m-track'); if (!track) return;
-            ensureTrackFill(track, col.clientHeight || window.innerHeight);
-            forceEager(track);
-            track.style.animation = 'none';
-            track.offsetHeight;
-            var dir = (col.getAttribute('data-direction') || 'down').toLowerCase();
-            var dur = (getComputedStyle(col).getPropertyValue('--m-duration') || '60s').trim() || '60s';
-            var anim = (dir === 'up' ? 'mScrollUp' : 'mScrollDown') + ' ' + dur + ' linear infinite';
-            track.style.transform = dir === 'up' ? 'translateY(-50%)' : 'translateY(0)';
-            track.style.animation = anim;
-            track.style.animationPlayState = '';
-        });
+        // Riempie + anima SOLO le colonne della variante visibile (ensureTrackFill
+        // salta i wrap display:none via offsetParent). Da richiamare dopo ogni cambio
+        // di variante, così la variante appena mostrata viene inizializzata.
+        var setupTracks = function() {
+            container.querySelectorAll('.m-col').forEach(function(col) {
+                var track = col.querySelector('.m-track'); if (!track) return;
+                ensureTrackFill(track, col.clientHeight || window.innerHeight);
+                forceEager(track);
+                track.style.animation = 'none';
+                track.offsetHeight;
+                var dir = (col.getAttribute('data-direction') || 'down').toLowerCase();
+                var dur = (getComputedStyle(col).getPropertyValue('--m-duration') || '60s').trim() || '60s';
+                var anim = (dir === 'up' ? 'mScrollUp' : 'mScrollDown') + ' ' + dur + ' linear infinite';
+                track.style.transform = dir === 'up' ? 'translateY(-50%)' : 'translateY(0)';
+                track.style.animation = anim;
+                track.style.animationPlayState = '';
+            });
+            var mobileTrack = container.querySelector('.m-mobile-track');
+            if (mobileTrack) {
+                var mobWrap = mobileTrack.closest('.m-mobile') || mobileTrack.parentElement;
+                ensureTrackFill(mobileTrack, (mobWrap && mobWrap.clientHeight) || window.innerHeight);
+                forceEager(mobileTrack);
+            }
+        };
 
-        var mobileTrack = container.querySelector('.m-mobile-track');
-        if (mobileTrack) {
-            var mobWrap = mobileTrack.closest('.m-mobile') || mobileTrack.parentElement;
-            ensureTrackFill(mobileTrack, (mobWrap && mobWrap.clientHeight) || window.innerHeight);
-            forceEager(mobileTrack);
-        }
+        // Applica la variante in base al breakpoint, ne carica le immagini e ne
+        // inizializza le tracce. Idempotente → sicura da richiamare su resize.
+        // Senza ri-applicazione, gli stili inline restano quelli del load iniziale:
+        // variante sbagliata + foto vuote (data-src della nuova variante mai risolti).
+        var applyVariant = function() {
+            var m = window.matchMedia('(max-width: 767px)').matches;
+            var t = window.matchMedia('(min-width: 768px) and (max-width: 1199px)').matches;
+            if (mob) mob.style.display = m ? 'block' : 'none';
+            if (tablet) tablet.style.display = t ? 'flex' : 'none';
+            if (desk) desk.style.display = (!m && !t) ? 'flex' : 'none';
+            loadWrapImages(m ? mob : (t ? tablet : desk));
+            setupTracks();
+        };
+        applyVariant();
+
         var rerun = function() {
             container.querySelectorAll('.m-col').forEach(function(col) {
                 var track = col.querySelector('.m-track'); if (!track) return;
@@ -611,6 +626,18 @@ function initMagazineAutoscroll() {
                 window.removeEventListener('blur', onWindowBlur);
                 document.removeEventListener('visibilitychange', onVisibility);
             };
+        }
+
+        // Ri-applica la variante quando la finestra cambia larghezza: senza questo,
+        // restringendo/allargando si vede la variante del load iniziale (foto che
+        // spariscono o restano vuote). Debounced per evitare thrash sul resize.
+        if (!container._magazineResizeBound) {
+            container._magazineResizeBound = true;
+            var magResizeTimer;
+            window.addEventListener('resize', function() {
+                clearTimeout(magResizeTimer);
+                magResizeTimer = setTimeout(applyVariant, 150);
+            });
         }
     } catch(e) {
         console.error('initMagazineAutoscroll error:', e);

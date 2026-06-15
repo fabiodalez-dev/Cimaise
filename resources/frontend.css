@@ -256,6 +256,14 @@ html.dark #template-switcher .tpl-switch.bg-black {
     cursor: pointer !important;
 }
 
+/* Keep the "X di Y" counter on a single line. On narrow (mobile) screens the
+   top bar gets crowded by the zoom/fullscreen/share/close buttons and the
+   counter text would otherwise wrap to a second line. */
+.pswp__counter {
+    white-space: nowrap;
+    flex: 0 0 auto;
+}
+
 /* Migliorate PhotoSwipe caption con responsive design */
 .pswp__custom-caption {
     position: absolute;

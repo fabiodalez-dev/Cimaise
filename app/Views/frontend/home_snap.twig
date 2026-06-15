@@ -14,6 +14,7 @@
 html.snap-active, html.snap-active body {
   overflow: hidden;
   height: 100%;
+  overscroll-behavior: none;
 }
 
 /* Hide footer immediately - full-screen layout doesn't need footer */
@@ -208,15 +209,26 @@ footer {
     display: none;
   }
 
-  /* Show mobile layout */
+  /* Show mobile layout. Each slide is the FULL viewport (100vh) and sits at
+     top:0 — the photo fills the whole screen and its top is simply tucked
+     behind the (sticky) header, instead of reserving a header-height strip
+     that never matched the real header and pushed the album text around. The
+     bottom title/description stays clear of the gesture. z-index keeps the
+     photos under the header so the nav stays tappable. */
   .snap-mobile-container {
     display: block;
     position: fixed;
-    top: var(--header-height-mobile, 60px);
+    top: 0;
     left: 0;
     width: 100%;
-    height: calc(100vh - var(--header-height-mobile, 60px));
+    height: 100vh;
+    height: 100dvh; /* dynamic viewport: excludes the mobile browser toolbar so
+                       the bottom album text is never hidden behind it */
+    z-index: 1;
     overflow: hidden;
+    /* The JS owns vertical gestures (drag + snap); stop the browser from
+       scrolling/overscrolling underneath so slides can't be left half-way. */
+    touch-action: none;
   }
 
   .snap-mobile-track {
@@ -225,9 +237,16 @@ footer {
     transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
+  /* While the finger is down we drive the transform directly — kill the
+     CSS transition so the track follows the drag 1:1. */
+  .snap-mobile-track.is-dragging {
+    transition: none;
+  }
+
   .snap-mobile-slide {
     width: 100%;
-    height: calc(100vh - var(--header-height-mobile, 60px));
+    height: 100vh;
+    height: 100dvh;
     flex-shrink: 0;
     position: relative;
     display: block;
@@ -257,7 +276,9 @@ footer {
     bottom: 0;
     left: 0;
     right: 0;
-    padding: 2rem 1.5rem;
+    /* Extra bottom room + safe-area so the title/description never sit under
+       the home indicator or get clipped at the viewport edge. */
+    padding: 2rem 1.5rem max(2rem, calc(env(safe-area-inset-bottom) + 1.5rem));
     color: white;
     z-index: 10;
   }
@@ -290,14 +311,15 @@ footer {
     letter-spacing: 0.1em;
   }
 
-  /* Mobile indicators */
+  /* Mobile indicators: thin vertical strip on the right, vertically centred —
+     keeps them off the bottom title/description gradient. */
   .snap-indicators {
-    right: 1rem;
-    top: auto;
-    bottom: 2rem;
-    transform: none;
-    flex-direction: row;
-    gap: 0.6rem;
+    right: 0.6rem;
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
+    flex-direction: column;
+    gap: 0.5rem;
   }
 
   .snap-indicator {
@@ -374,6 +396,14 @@ html.dark .snap-indicator.active {
 html.dark .snap-indicator:hover {
   background: #737373;
 }
+
+/* Respect reduced-motion: cut the 0.8s slide so snapping is an instant change
+   instead of a long animated transform. */
+@media (prefers-reduced-motion: reduce) {
+  .snap-left-track,
+  .snap-right-track,
+  .snap-mobile-track { transition: none !important; }
+}
 </style>
 {% endblock %}
 
@@ -429,7 +459,10 @@ html.dark .snap-indicator:hover {
         {# Reverse order for opposite scroll direction #}
         {% for album in albums|reverse %}
         <a href="{{ base_path }}/album/{{ album.slug|e('html_attr') }}" class="snap-cover">
-          {# NSFW albums use blur cover until user accepts gate (admins always see clear) #}
+          {# Defensive blur fallback. PageController::home() already drops NSFW
+             albums from the snap list unless consent is given (or admin), so in
+             practice should_blur is false here; kept as defense-in-depth in case
+             an NSFW album ever reaches this template. #}
           {% set should_blur = album.is_nsfw and not nsfw_consent|default(false) and not is_admin|default(false) %}
           {% set coverRaw = '' %}
           {% if should_blur and album.cover_image and album.cover_image.blur_path %}
@@ -567,16 +600,24 @@ html.dark .snap-indicator:hover {
   // Add class to html for overflow control
   document.documentElement.classList.add('snap-active');
 
-  // Calculate heights based on header
+  // Snap unit height. Mobile slides are full-viewport (the photo tucks behind
+  // the header), so the unit is the full innerHeight; desktop reserves the
+  // 80px header strip.
   function getHeights() {
-    const headerHeight = isMobile ? 60 : 80;
-    return window.innerHeight - headerHeight;
+    if (isMobile) {
+      // Use the container's real rendered height (resolves 100dvh) so the snap
+      // step exactly matches the visible slide height.
+      const mc = document.querySelector('.snap-mobile-container');
+      return (mc && mc.clientHeight) ? mc.clientHeight : window.innerHeight;
+    }
+    return window.innerHeight - 80;
   }
 
   // Create indicators
   for (let i = 0; i < albumCount; i++) {
     const dot = document.createElement('button');
     dot.className = 'snap-indicator' + (i === 0 ? ' active' : '');
+    if (i === 0) dot.setAttribute('aria-current', 'true');
     dot.setAttribute('aria-label', 'Go to album ' + (i + 1));
     dot.addEventListener('click', () => goToAlbum(i));
     indicatorsContainer.appendChild(dot);
@@ -589,7 +630,9 @@ html.dark .snap-indicator:hover {
     if (index < 0 || index >= albumCount) return;
 
     indicators[currentIndex].classList.remove('active');
+    indicators[currentIndex].removeAttribute('aria-current');
     indicators[index].classList.add('active');
+    indicators[index].setAttribute('aria-current', 'true');
 
     currentIndex = index;
     const vh = getHeights();
@@ -685,25 +728,63 @@ html.dark .snap-indicator:hover {
     }
   });
 
-  // Touch swipe
-  let touchStartY = 0;
+  // Touch: drag-to-follow + snap-to-nearest (mobile). The track follows the
+  // finger 1:1 and always snaps to a whole slide on release, so a photo can
+  // never be left half-scrolled. Scoped to the mobile container; desktop keeps
+  // wheel/keyboard navigation.
+  const mobileContainer = document.querySelector('.snap-mobile-container');
+  let dragStartY = 0, dragDelta = 0, dragging = false, dragBase = 0, dragMoved = false;
 
-  window.addEventListener('touchstart', function(e) {
-    touchStartY = e.changedTouches[0].screenY;
-  }, { passive: true });
+  function mobileBaseTranslate() { return -currentIndex * getHeights(); }
 
-  window.addEventListener('touchend', function(e) {
-    const touchEndY = e.changedTouches[0].screenY;
-    const diff = touchStartY - touchEndY;
+  if (mobileContainer) {
+    mobileContainer.addEventListener('touchstart', function(e) {
+      if (!isMobile) return;
+      dragging = true; dragMoved = false;
+      dragStartY = e.touches[0].clientY;
+      dragDelta = 0;
+      dragBase = mobileBaseTranslate();
+      mobileTrack.classList.add('is-dragging');
+    }, { passive: true });
 
-    if (Math.abs(diff) > 50) {
-      if (diff > 0) {
-        nextAlbum();
+    mobileContainer.addEventListener('touchmove', function(e) {
+      if (!isMobile || !dragging) return;
+      dragDelta = e.touches[0].clientY - dragStartY;
+      if (Math.abs(dragDelta) > 6) dragMoved = true;
+      const vh = getHeights();
+      let t = dragBase + dragDelta;
+      // Rubber-band resistance past the first / last slide.
+      const min = -(albumCount - 1) * vh, max = 0;
+      if (t > max) t = max + (t - max) * 0.3;
+      if (t < min) t = min + (t - min) * 0.3;
+      mobileTrack.style.transform = 'translateY(' + t + 'px)';
+      e.preventDefault();
+    }, { passive: false });
+
+    function endDrag() {
+      if (!isMobile || !dragging) return;
+      dragging = false;
+      mobileTrack.classList.remove('is-dragging'); // restore the CSS snap transition
+      const vh = getHeights();
+      const threshold = vh * 0.15;
+      if (dragDelta <= -threshold && currentIndex < albumCount - 1) {
+        goToAlbum(currentIndex + 1);
+      } else if (dragDelta >= threshold && currentIndex > 0) {
+        goToAlbum(currentIndex - 1);
       } else {
-        prevAlbum();
+        // Not far enough (or at an edge) — snap back to the current slide.
+        mobileTrack.style.transform = 'translateY(' + mobileBaseTranslate() + 'px)';
       }
     }
-  }, { passive: true });
+    mobileContainer.addEventListener('touchend', endDrag, { passive: true });
+    mobileContainer.addEventListener('touchcancel', endDrag, { passive: true });
+
+    // A drag ends in a synthetic click on the slide <a>; swallow it so a swipe
+    // doesn't also open the album. A genuine tap (no movement) still navigates.
+    mobileContainer.addEventListener('click', function(e) {
+      if (dragMoved) { e.preventDefault(); e.stopPropagation(); dragMoved = false; }
+    }, true);
+  }
 
   // Initialize positions
   function initPositions() {

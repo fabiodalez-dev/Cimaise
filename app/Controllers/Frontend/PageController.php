@@ -405,25 +405,43 @@ class PageController extends BaseController
         // Pagination parameters (from settings)
         $perPage = (int) $svc->get('pagination.limit', 12);
 
-        // Get total count of published albums
-        $countStmt = $pdo->prepare('SELECT COUNT(*) FROM albums a WHERE a.is_published = 1');
+        // Home access scoping (mirrors HomeImageService). The home is a curated
+        // showcase, not a discovery listing: for non-admins password-protected
+        // albums are NEVER previewed (no blurred placeholder), and NSFW albums
+        // appear only once global consent is given. Doing this in SQL (not a
+        // post-fetch array_filter) means the LIMIT returns a full page of
+        // *eligible* albums — no under-fill when the most recent albums happen to
+        // be protected — and the count never leaks the number of hidden albums.
+        // Admins see everything; the album/category listing pages keep the
+        // lock + blur affordance (the right unlock/consent discovery UX there).
+        $includeNsfw = $isAdmin || $nsfwConsent;
+        $accessSql = '';
+        if (!$isAdmin) {
+            $accessSql .= " AND (a.password_hash IS NULL OR a.password_hash = '')";
+            if (!$includeNsfw) {
+                $accessSql .= ' AND a.is_nsfw = 0';
+            }
+        }
+
+        // Total count of eligible published albums.
+        $countStmt = $pdo->prepare('SELECT COUNT(*) FROM albums a WHERE a.is_published = 1' . $accessSql);
         $countStmt->execute();
         $totalAlbums = (int) $countStmt->fetchColumn();
 
-        // Get latest published albums
+        // Latest eligible published albums.
         $stmt = $pdo->prepare('
             SELECT a.*, c.name as category_name, c.slug as category_slug
-            FROM albums a 
-            JOIN categories c ON c.id = a.category_id 
-            WHERE a.is_published = 1 
-            ORDER BY a.published_at DESC 
+            FROM albums a
+            JOIN categories c ON c.id = a.category_id
+            WHERE a.is_published = 1' . $accessSql . '
+            ORDER BY a.published_at DESC
             LIMIT :limit
         ');
         $stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
         $stmt->execute();
         $albums = $stmt->fetchAll();
 
-        // Enrich with cover images and tags + apply access filters
+        // Enrich with cover images and tags + flag locked/NSFW for rendering.
         $albums = $this->filterAlbumsByAccess($albums, $isAdmin, $nsfwConsent);
 
         // Calculate pagination info
@@ -2070,10 +2088,22 @@ class PageController extends BaseController
 
         $albums = $this->filterAlbumsByAccess($albums, $isAdmin, $nsfwConsent);
 
-        // Get all categories for navigation
-        $stmt = $pdo->prepare('SELECT * FROM categories ORDER BY COALESCE(parent_id, 0) ASC, sort_order ASC, name ASC');
-        $stmt->execute();
-        $categories = $stmt->fetchAll();
+        // "Other categories" list: only categories that actually have albums
+        // (mirror the home page's albums_count > 0 filter) so empty/placeholder
+        // categories don't show up. Count NSFW albums only for admins or viewers
+        // with global NSFW consent.
+        $includeNsfw = $isAdmin || $nsfwConsent;
+        $categories = [];
+        foreach ($this->getNavigationService()->getParentCategoriesForNavigation($includeNsfw) as $parent) {
+            if (($parent['albums_count'] ?? 0) > 0) {
+                $categories[] = $parent;
+            }
+            foreach (($parent['children'] ?? []) as $child) {
+                if (($child['albums_count'] ?? 0) > 0) {
+                    $categories[] = $child;
+                }
+            }
+        }
 
         $seo = $this->buildSeo($request, (string) $category['name'], 'Photography albums in category: ' . $category['name']);
 

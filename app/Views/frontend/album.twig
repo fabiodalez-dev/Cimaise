@@ -1394,29 +1394,38 @@ if (templateSlug === 'grid-ampia') {
 function initMagazineAutoscroll() {
     try {
         var container = document.getElementById('images-gallery') || document;
-        var isMobile = window.matchMedia('(max-width: 767px)').matches;
-        var isTablet = window.matchMedia('(min-width: 768px) and (max-width: 1199px)').matches;
-        var isDesktop = window.matchMedia('(min-width: 1200px)').matches;
 
         var mob = container.querySelector('.m-mobile-wrap');
         var tablet = container.querySelector('.m-tablet-wrap');
         var desk = container.querySelector('.m-desktop-wrap');
 
-        if (mob) mob.style.display = isMobile ? 'block' : 'none';
-        if (tablet) tablet.style.display = isTablet ? 'flex' : 'none';
-        if (desk) desk.style.display = isDesktop ? 'flex' : 'none';
-
-        var activeWrap = isMobile ? mob : (isTablet ? tablet : desk);
-        if (activeWrap) {
-            activeWrap.querySelectorAll('source[data-srcset]').forEach(function(source) {
+        // Carica le immagini di un wrap (idempotente, copre anche i cloni del marquee)
+        var loadWrapImages = function(wrap) {
+            if (!wrap || wrap._magImagesLoaded) return;
+            wrap._magImagesLoaded = true;
+            wrap.querySelectorAll('source[data-srcset]').forEach(function(source) {
                 source.setAttribute('srcset', source.getAttribute('data-srcset'));
                 source.removeAttribute('data-srcset');
             });
-            activeWrap.querySelectorAll('img[data-src]').forEach(function(img) {
+            wrap.querySelectorAll('img[data-src]').forEach(function(img) {
                 img.setAttribute('src', img.getAttribute('data-src'));
                 img.removeAttribute('data-src');
             });
-        }
+        };
+
+        // Applica la variante in base al breakpoint e ne carica le immagini.
+        // Da richiamare anche su resize: gli stili inline battono le regole CSS base,
+        // quindi senza ri-applicazione la variante resta quella del load iniziale
+        // (foto che spariscono / restano vuote restringendo la finestra).
+        var applyVariant = function() {
+            var m = window.matchMedia('(max-width: 767px)').matches;
+            var t = window.matchMedia('(min-width: 768px) and (max-width: 1199px)').matches;
+            if (mob) mob.style.display = m ? 'block' : 'none';
+            if (tablet) tablet.style.display = t ? 'flex' : 'none';
+            if (desk) desk.style.display = (!m && !t) ? 'flex' : 'none';
+            loadWrapImages(m ? mob : (t ? tablet : desk));
+        };
+        applyVariant();
 
         var trackOriginals = new WeakMap();
         var ensureTrackFill = function(track, colHeight) {
@@ -1574,6 +1583,18 @@ function initMagazineAutoscroll() {
                 window.removeEventListener('blur', onWindowBlur);
                 document.removeEventListener('visibilitychange', onVisibility);
             };
+        }
+
+        // Ri-applica la variante quando la finestra cambia larghezza: senza questo,
+        // restringendo/allargando si vede la variante del load iniziale (foto che
+        // spariscono o restano vuote). Debounced per evitare thrash sul resize.
+        if (!container._magazineResizeBound) {
+            container._magazineResizeBound = true;
+            var magResizeTimer;
+            window.addEventListener('resize', function() {
+                clearTimeout(magResizeTimer);
+                magResizeTimer = setTimeout(applyVariant, 150);
+            });
         }
     } catch(e) {
         console.error('initMagazineAutoscroll error:', e);
