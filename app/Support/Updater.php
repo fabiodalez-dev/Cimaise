@@ -1611,6 +1611,14 @@ class Updater
             $this->debugLog('INFO', 'Copying update files');
             $this->copyDirectory($sourcePath, $this->rootPath);
 
+            // Merge new default translation keys into the preserved translation
+            // files. storage/translations is in $preservePaths (so admin edits
+            // survive updates), but that also meant keys ADDED in newer versions
+            // never reached existing installs — leaving raw "admin.x.y" labels in
+            // the UI. Merge adds only the missing keys; existing values win.
+            $this->debugLog('INFO', 'Merging new translation keys');
+            $this->mergeTranslations($sourcePath);
+
             // Clean up orphan files
             $this->debugLog('INFO', 'Cleaning orphan files');
             $this->cleanupOrphanFiles($sourcePath);
@@ -1673,6 +1681,98 @@ class Updater
                 'error' => $e->getMessage()
             ];
         }
+    }
+
+    /**
+     * Merge new default translation keys from the update package into the
+     * install's preserved translation files.
+     *
+     * storage/translations/*.json is preserved across updates so admin edits
+     * (made via the "Texts" UI) survive. The side effect was that keys ADDED in
+     * newer releases never reached existing installs, surfacing raw dotted keys
+     * (e.g. "admin.dashboard.quick_actions") in the UI. This merges only the
+     * keys MISSING from the install; existing values are always kept (never
+     * clobbering an edit). Files the install lacks were already created verbatim
+     * by copyDirectory(), so they need no merge.
+     *
+     * Structure: { "_meta": {...}, "<group>": { "<dotted.key>": "value", ... } }
+     */
+    private function mergeTranslations(string $sourcePath): void
+    {
+        $srcDir = $sourcePath . '/storage/translations';
+        $dstDir = $this->rootPath . '/storage/translations';
+        if (!is_dir($srcDir) || !is_dir($dstDir)) {
+            return;
+        }
+
+        $packageFiles = glob($srcDir . '/*.json');
+        if (!is_array($packageFiles)) {
+            return;
+        }
+
+        foreach ($packageFiles as $srcFile) {
+            $dstFile = $dstDir . '/' . basename($srcFile);
+            // Missing locally → copyDirectory() already wrote the package copy.
+            if (!is_file($dstFile)) {
+                continue;
+            }
+
+            $pkg = json_decode((string) @file_get_contents($srcFile), true);
+            $cur = json_decode((string) @file_get_contents($dstFile), true);
+            if (!is_array($pkg) || !is_array($cur)) {
+                continue;
+            }
+
+            [$merged, $added] = self::mergeTranslationData($pkg, $cur);
+
+            if ($added > 0) {
+                $json = json_encode(
+                    $merged,
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                );
+                if ($json !== false) {
+                    @file_put_contents($dstFile, $json);
+                    $this->debugLog('INFO', 'Merged new translation keys', [
+                        'file' => basename($dstFile),
+                        'added' => $added,
+                    ]);
+                }
+            }
+        }
+    }
+
+    /**
+     * Pure merge of a package translation payload into the current one.
+     *
+     * Adds keys present in $package but missing from $current; never overwrites
+     * an existing value (admin edits win). The "_meta" block and any non-array
+     * group are left as-is from $current.
+     *
+     * @param array<string,mixed> $package
+     * @param array<string,mixed> $current
+     * @return array{0: array<string,mixed>, 1: int} [merged, addedCount]
+     */
+    public static function mergeTranslationData(array $package, array $current): array
+    {
+        $added = 0;
+        foreach ($package as $group => $entries) {
+            if ($group === '_meta' || !is_array($entries)) {
+                continue;
+            }
+            if (!isset($current[$group]) || !is_array($current[$group])) {
+                $current[$group] = $entries;
+                $added += count($entries);
+                continue;
+            }
+            foreach ($entries as $key => $val) {
+                if (!array_key_exists($key, $current[$group])) {
+                    $current[$group][$key] = $val;
+                    $added++;
+                }
+            }
+        }
+
+        return [$current, $added];
     }
 
     /**
