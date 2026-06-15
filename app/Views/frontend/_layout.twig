@@ -222,6 +222,13 @@
         [data-theme-icon="dark"] { display: inline-block !important; }
         html.dark [data-theme-icon="dark"] { display: none !important; }
         html.dark [data-theme-icon="light"] { display: inline-block !important; }
+
+        /* Mobile menu scroll lock: while the menu is open, freeze the page
+           behind it so only the menu scrolls (and stop scroll-chaining from
+           the menu to the body when it reaches its end). */
+        html.mobile-menu-open,
+        html.mobile-menu-open body { overflow: hidden; }
+        #mobile-menu { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
     </style>
 
     {% if page_custom_css is defined and page_custom_css %}
@@ -670,6 +677,7 @@
                             mobileSearchToggle.setAttribute('aria-expanded', 'false');
                         }
                         menu.classList.remove('hidden');
+                        document.documentElement.classList.add('mobile-menu-open');
                         requestAnimationFrame(() => {
                             menu.style.maxHeight = menu.scrollHeight + 'px';
                             menu.style.opacity = '1';
@@ -677,7 +685,19 @@
                     } else {
                         menu.style.maxHeight = '0px';
                         menu.style.opacity = '0';
+                        document.documentElement.classList.remove('mobile-menu-open');
                         setTimeout(() => menu.classList.add('hidden'), 300);
+                    }
+                });
+                // Safety: if the viewport grows to the lg breakpoint (the menu
+                // is lg:hidden) while it's open, release the scroll lock so the
+                // desktop page isn't left frozen.
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth >= 1024 && document.documentElement.classList.contains('mobile-menu-open')) {
+                        document.documentElement.classList.remove('mobile-menu-open');
+                        menu.style.maxHeight = '0px';
+                        menu.style.opacity = '0';
+                        menu.classList.add('hidden');
                     }
                 });
             }
