@@ -222,6 +222,8 @@ footer {
     left: 0;
     width: 100%;
     height: 100vh;
+    height: 100dvh; /* dynamic viewport: excludes the mobile browser toolbar so
+                       the bottom album text is never hidden behind it */
     z-index: 1;
     overflow: hidden;
     /* The JS owns vertical gestures (drag + snap); stop the browser from
@@ -244,6 +246,7 @@ footer {
   .snap-mobile-slide {
     width: 100%;
     height: 100vh;
+    height: 100dvh;
     flex-shrink: 0;
     position: relative;
     display: block;
@@ -273,7 +276,9 @@ footer {
     bottom: 0;
     left: 0;
     right: 0;
-    padding: 2rem 1.5rem;
+    /* Extra bottom room + safe-area so the title/description never sit under
+       the home indicator or get clipped at the viewport edge. */
+    padding: 2rem 1.5rem max(2rem, calc(env(safe-area-inset-bottom) + 1.5rem));
     color: white;
     z-index: 10;
   }
@@ -588,7 +593,13 @@ html.dark .snap-indicator:hover {
   // the header), so the unit is the full innerHeight; desktop reserves the
   // 80px header strip.
   function getHeights() {
-    return isMobile ? window.innerHeight : (window.innerHeight - 80);
+    if (isMobile) {
+      // Use the container's real rendered height (resolves 100dvh) so the snap
+      // step exactly matches the visible slide height.
+      const mc = document.querySelector('.snap-mobile-container');
+      return (mc && mc.clientHeight) ? mc.clientHeight : window.innerHeight;
+    }
+    return window.innerHeight - 80;
   }
 
   // Create indicators
