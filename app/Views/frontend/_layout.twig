@@ -679,7 +679,13 @@
                         menu.classList.remove('hidden');
                         document.documentElement.classList.add('mobile-menu-open');
                         requestAnimationFrame(() => {
-                            menu.style.maxHeight = menu.scrollHeight + 'px';
+                            // Cap the open height to the viewport (below the ~80px
+                            // header) so the menu scrolls INTERNALLY when its content
+                            // is taller than the screen. Without the cap, maxHeight =
+                            // full scrollHeight and — now that the body is scroll-locked
+                            // — the part below the fold becomes unreachable.
+                            const cap = Math.max(0, window.innerHeight - 80);
+                            menu.style.maxHeight = Math.min(menu.scrollHeight, cap) + 'px';
                             menu.style.opacity = '1';
                         });
                     } else {
