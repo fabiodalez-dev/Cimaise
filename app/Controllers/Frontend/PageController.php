@@ -426,6 +426,23 @@ class PageController extends BaseController
         // Enrich with cover images and tags + apply access filters
         $albums = $this->filterAlbumsByAccess($albums, $isAdmin, $nsfwConsent);
 
+        // The "snap" home is a full-screen one-album-per-slide showcase: unlike
+        // the grid templates (which intentionally show locked albums behind a
+        // lock icon), it must NEVER expose password-protected albums, and must
+        // only show NSFW albums once global consent has been given (admins
+        // bypass). Filter server-side so protected covers never reach the client.
+        if ($homeTemplate === 'snap' && !$isAdmin) {
+            $albums = array_values(array_filter($albums, static function (array $a) use ($nsfwConsent): bool {
+                if (!empty($a['is_password_protected'])) {
+                    return false;
+                }
+                if (!empty($a['is_nsfw']) && !$nsfwConsent) {
+                    return false;
+                }
+                return true;
+            }));
+        }
+
         // Calculate pagination info
         $hasMore = $totalAlbums > $perPage;
 

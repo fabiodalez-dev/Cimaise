@@ -209,14 +209,20 @@ footer {
     display: none;
   }
 
-  /* Show mobile layout */
+  /* Show mobile layout. Each slide is the FULL viewport (100vh) and sits at
+     top:0 — the photo fills the whole screen and its top is simply tucked
+     behind the (sticky) header, instead of reserving a header-height strip
+     that never matched the real header and pushed the album text around. The
+     bottom title/description stays clear of the gesture. z-index keeps the
+     photos under the header so the nav stays tappable. */
   .snap-mobile-container {
     display: block;
     position: fixed;
-    top: var(--header-height-mobile, 60px);
+    top: 0;
     left: 0;
     width: 100%;
-    height: calc(100vh - var(--header-height-mobile, 60px));
+    height: 100vh;
+    z-index: 1;
     overflow: hidden;
     /* The JS owns vertical gestures (drag + snap); stop the browser from
        scrolling/overscrolling underneath so slides can't be left half-way. */
@@ -237,7 +243,7 @@ footer {
 
   .snap-mobile-slide {
     width: 100%;
-    height: calc(100vh - var(--header-height-mobile, 60px));
+    height: 100vh;
     flex-shrink: 0;
     position: relative;
     display: block;
@@ -578,10 +584,11 @@ html.dark .snap-indicator:hover {
   // Add class to html for overflow control
   document.documentElement.classList.add('snap-active');
 
-  // Calculate heights based on header
+  // Snap unit height. Mobile slides are full-viewport (the photo tucks behind
+  // the header), so the unit is the full innerHeight; desktop reserves the
+  // 80px header strip.
   function getHeights() {
-    const headerHeight = isMobile ? 60 : 80;
-    return window.innerHeight - headerHeight;
+    return isMobile ? window.innerHeight : (window.innerHeight - 80);
   }
 
   // Create indicators
