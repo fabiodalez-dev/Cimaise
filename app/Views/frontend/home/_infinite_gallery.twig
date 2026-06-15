@@ -25,15 +25,10 @@
       <img src="{{ img_src starts with('/') ? (base_path ~ img_src) : img_src }}"
            alt="{{ image.alt|default(image.album_title)|e }}"
            width="{{ image.width|default(1600) }}" height="{{ image.height|default(1067) }}"
-           {# Only the lead images of the VISIBLE variant are eager-preloaded.
-              The grid renders both a mobile and a desktop variant (one is
-              display:none per breakpoint); previously BOTH eager-loaded their
-              first 6, so the hidden variant's copies were force-fetched too
-              (display:none doesn't stop an eager fetch) — 24 high-priority
-              requests in parallel saturated bandwidth and the visible photos
-              arrived late, all at once. Now eager is set only on the desktop
-              variant's first images (see call sites); the hidden mobile variant
-              is fully lazy. #}
+           {# Only the lead images are eager-preloaded: the mobile list's first 2
+              and the desktop seed's first 2 (see call sites). The rest of the
+              desktop marquee is built lazily by home.js, so there is no longer a
+              fully-duplicated hidden variant eager-fetching in parallel. #}
            {% if eager %}loading="eager" fetchpriority="high"{% else %}loading="lazy"{% endif %}
            decoding="async" class="w-full h-full object-cover block">
     </picture>
@@ -78,6 +73,14 @@
       </div>
     </div>
 
+    {# Desktop marquee: the tracks are populated by home.js from the JSON
+       payload (#home-gallery-data) on the >=768px breakpoint. Only column/row 1
+       carries a small server-rendered SEED so a desktop visitor gets an LCP
+       candidate straight from the HTML; on mobile this whole variant is
+       display:none, so the seed (a few cells) is all the hidden DOM weight —
+       down from ~120 fully-rendered cells before. JS builds the full repeating
+       loop (even number of copies, required for the -50% seamless scroll). #}
+    {% set seed_count = 3 %}
     {% if scroll_direction == 'horizontal' %}
     {# Horizontal layout: 3 rows - all scroll right to prevent white space on load #}
     <div class="home-desktop-wrap home-desktop-horizontal gap-6 h-full">
@@ -85,14 +88,13 @@
       {% for row in rows %}
         {% set idx = loop.index0 %}
         {% set dur = idx == 0 ? '560s' : (idx == 1 ? '640s' : '720s') %}
-        {% set dir = 'right' %}
-        <div class="home-row" data-direction="{{ dir }}" style="--home-duration: {{ dur }}; --home-delay: 0s;" data-row-index="{{ idx }}">
+        <div class="home-row" data-direction="right" style="--home-duration: {{ dur }}; --home-delay: 0s;" data-row-index="{{ idx }}">
           <div class="home-track-h">
-            {% for r in 1..repeat_times %}
-              {% for image in row %}
-                <div class="home-cell-h">{{ H.home_item(image, base_path, site_title, loop.parent.loop.index0 == 0 and loop.index0 < 2) }}</div>
+            {% if idx == 0 %}
+              {% for image in row|slice(0, seed_count) %}
+                <div class="home-cell-h" data-seed="1">{{ H.home_item(image, base_path, site_title, loop.index0 < 2) }}</div>
               {% endfor %}
-            {% endfor %}
+            {% endif %}
           </div>
         </div>
       {% endfor %}
@@ -104,20 +106,37 @@
       {% for col in cols %}
         {% set idx = loop.index0 %}
         {% set dur = idx == 0 ? '600s' : (idx == 1 ? '780s' : '960s') %}
-        {% set dir = 'down' %}
-        <div class="home-col" data-direction="{{ dir }}" style="--home-duration: {{ dur }}; --home-delay: 0s;" data-col-index="{{ idx }}">
+        <div class="home-col" data-direction="down" style="--home-duration: {{ dur }}; --home-delay: 0s;" data-col-index="{{ idx }}">
           <div class="home-track">
-            {% for r in 1..repeat_times %}
-              {% for image in col %}
-                <div class="home-cell">{{ H.home_item(image, base_path, site_title, loop.parent.loop.index0 == 0 and loop.index0 < 2) }}</div>
+            {% if idx == 0 %}
+              {% for image in col|slice(0, seed_count) %}
+                <div class="home-cell" data-seed="1">{{ H.home_item(image, base_path, site_title, loop.index0 < 2) }}</div>
               {% endfor %}
-            {% endfor %}
+            {% endif %}
           </div>
         </div>
       {% endfor %}
     </div>
     {% endif %}
   </div>
+
+  {# Image data for the JS marquee builder. type="application/json" is inert
+     (not executed) so it needs no CSP nonce; home.js reads it via textContent.
+     This replaces ~120 server-rendered <img> cells with one compact array. #}
+  <script type="application/json" id="home-gallery-data">{{ {
+    images: all_images,
+    o2: o2,
+    o3: o3,
+    repeat: repeat_times,
+    seed: seed_count,
+    isHorizontal: (scroll_direction == 'horizontal'),
+  }|json_encode|raw }}</script>
+
+  {# No-JS fallback: without JS the desktop tracks would stay nearly empty, so
+     show the (fully server-rendered) mobile list on desktop too. #}
+  <noscript>
+    <style>@media (min-width:768px){.home-mobile-wrap{display:block !important}.home-desktop-wrap{display:none !important}}</style>
+  </noscript>
   {# Progressive loading config for JavaScript #}
   {% if has_more_images|default(false) %}
   <script nonce="{{ csp_nonce() }}">
