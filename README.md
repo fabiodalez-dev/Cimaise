@@ -16,40 +16,50 @@
 
 ### Home Page Templates
 
-Choose from 7 distinct homepage layouts. The Classic template supports both horizontal and vertical scroll directions.
+12 distinct homepage layouts — switch any time from the admin (or live-preview with `?template=`):
 
 <table>
 <tr>
-<td width="33%"><img src="screenshot/home classic horizontal.jpg" alt="Classic Horizontal"><br><strong>Classic (Horizontal)</strong></td>
-<td width="33%"><img src="screenshot/home classic vertical.jpg" alt="Classic Vertical"><br><strong>Classic (Vertical)</strong></td>
-<td width="33%"><img src="screenshot/modern home.jpg" alt="Modern"><br><strong>Modern</strong></td>
+<td width="33%"><img src="screenshot/home-classic.jpg" alt="Classic"><br><strong>Classic</strong></td>
+<td width="33%"><img src="screenshot/home-modern.jpg" alt="Modern"><br><strong>Modern</strong></td>
+<td width="33%"><img src="screenshot/home-parallax.jpg" alt="Parallax"><br><strong>Parallax</strong></td>
 </tr>
 <tr>
-<td width="33%"><img src="screenshot/Parallax Home.jpg" alt="Parallax"><br><strong>Parallax</strong></td>
-<td width="33%"><img src="screenshot/home gallery wall.jpg" alt="Gallery Wall"><br><strong>Gallery Wall</strong></td>
-<td width="33%"><img src="screenshot/home pure masonry.jpg" alt="Masonry Wall"><br><strong>Masonry Wall</strong></td>
+<td width="33%"><img src="screenshot/home-masonry.jpg" alt="Masonry"><br><strong>Masonry</strong></td>
+<td width="33%"><img src="screenshot/home-gallery.jpg" alt="Gallery Wall"><br><strong>Gallery Wall</strong></td>
+<td width="33%"><img src="screenshot/home-snap.jpg" alt="Snap Albums"><br><strong>Snap Albums</strong></td>
 </tr>
 <tr>
-<td width="33%"><img src="screenshot/home snap album.jpg" alt="Snap Albums"><br><strong>Snap Albums</strong></td>
-<td width="33%"></td>
-<td width="33%"></td>
+<td width="33%"><img src="screenshot/home-editorial.jpg" alt="Editorial"><br><strong>Editorial</strong></td>
+<td width="33%"><img src="screenshot/home-justified.jpg" alt="Justified"><br><strong>Justified</strong></td>
+<td width="33%"><img src="screenshot/home-slideshow.jpg" alt="Slideshow"><br><strong>Slideshow</strong></td>
+</tr>
+<tr>
+<td width="33%"><img src="screenshot/home-split.jpg" alt="Split"><br><strong>Split</strong></td>
+<td width="33%"><img src="screenshot/home-bento.jpg" alt="Bento"><br><strong>Bento</strong></td>
+<td width="33%"><img src="screenshot/home-filmstrip.jpg" alt="Filmstrip"><br><strong>Filmstrip</strong></td>
 </tr>
 </table>
 
 ### Gallery Templates
 
-6 ways to present your albums:
+7 ways to present an album — each switchable per-album:
 
 <table>
 <tr>
-<td width="33%"><img src="screenshot/template 1.jpg" alt="Classic Grid"><br><strong>Classic Grid</strong></td>
-<td width="33%"><img src="screenshot/template 2.jpg" alt="Masonry"><br><strong>Masonry</strong></td>
-<td width="33%"><img src="screenshot/template 3.jpg" alt="Masonry Full"><br><strong>Masonry Full</strong></td>
+<td width="33%"><img src="screenshot/gallery-1-grid-classica.jpg" alt="Classic Grid"><br><strong>Classic Grid</strong></td>
+<td width="33%"><img src="screenshot/gallery-2-masonry-portfolio.jpg" alt="Masonry Portfolio"><br><strong>Masonry Portfolio</strong></td>
+<td width="33%"><img src="screenshot/gallery-3-magazine-split.jpg" alt="Magazine Split"><br><strong>Magazine Split</strong></td>
 </tr>
 <tr>
-<td width="33%"><img src="screenshot/template 4.jpg" alt="Magazine"><br><strong>Magazine</strong></td>
-<td width="33%"><img src="screenshot/template 5.jpg" alt="Dense Grid"><br><strong>Dense Grid</strong></td>
-<td width="33%"><img src="screenshot/Template 6.jpg" alt="Large Grid"><br><strong>Large Grid</strong></td>
+<td width="33%"><img src="screenshot/gallery-4-masonry-full.jpg" alt="Masonry Full"><br><strong>Masonry Full</strong></td>
+<td width="33%"><img src="screenshot/gallery-5-grid-compatta.jpg" alt="Compact Grid"><br><strong>Compact Grid</strong></td>
+<td width="33%"><img src="screenshot/gallery-6-grid-ampia.jpg" alt="Wide Grid"><br><strong>Wide Grid</strong></td>
+</tr>
+<tr>
+<td width="33%"><img src="screenshot/gallery-7-gallery-wall-scroll.jpg" alt="Gallery Wall Scroll"><br><strong>Gallery Wall Scroll</strong></td>
+<td width="33%"></td>
+<td width="33%"></td>
 </tr>
 </table>
 
