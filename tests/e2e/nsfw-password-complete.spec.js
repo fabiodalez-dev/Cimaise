@@ -186,14 +186,17 @@ test.describe.serial('NSFW & Password — complete verification', () => {
   // HOME PAGE — CLASSIC TEMPLATE
   // ═══════════════════════════════════════════════════════════════════
 
-  test('Home classic: anonymous sees blur/overlay correctly', async () => {
+  test('Home classic: anonymous sees only the regular album (protected filtered out)', async () => {
+    // The home now shows ONLY real covers — protected albums are excluded at SQL
+    // level, never previewed blurred (product decision: blur/lock belong on album
+    // & category pages, not the home flow).
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const pg = await ctx.newPage();
     await pg.goto(`${BASE}/?template=classic`);
     await pg.waitForTimeout(2000);
     await pg.screenshot({ path: `${SCREENSHOTS}/10-home-classic-anon.png`, fullPage: true });
 
-    // Regular album — visible, clear, no blur, no overlay, no lock
+    // Regular album — visible, clear, no blur, no overlay, no lock.
     const regCard = pg.locator(`article.album-card[data-album-id="${regularId}"]`).first();
     await expect(regCard).toBeVisible({ timeout: 5000 });
     expect(await regCard.getAttribute('data-nsfw')).toBeNull();
@@ -202,36 +205,21 @@ test.describe.serial('NSFW & Password — complete verification', () => {
     expect(await regCard.locator('.fa-lock').count()).toBe(0);
     console.log('Home classic anon: Regular = clear, no blur, no lock');
 
-    // NSFW album — visible, blurred cover, overlay 18+, no lock
-    const nsfwCard = pg.locator(`article.album-card[data-album-id="${nsfwId}"]`).first();
-    await expect(nsfwCard).toBeVisible({ timeout: 5000 });
-    expect(await nsfwCard.getAttribute('data-nsfw')).toBe('1');
-    expect(await nsfwCard.locator('img.nsfw-blur').count()).toBeGreaterThan(0);
-    expect(await nsfwCard.locator('.nsfw-overlay').count()).toBeGreaterThan(0);
-    console.log('Home classic anon: NSFW = blurred + overlay');
-
-    // Password album — visible, blurred (locked), lock icon, no NSFW overlay
-    const pwdCard = pg.locator(`article.album-card[data-album-id="${pwdId}"]`).first();
-    await expect(pwdCard).toBeVisible({ timeout: 5000 });
-    expect(await pwdCard.getAttribute('data-nsfw')).toBeNull();
-    expect(await pwdCard.locator('img.nsfw-blur').count()).toBeGreaterThan(0);
-    expect(await pwdCard.locator('.fa-lock').count()).toBeGreaterThan(0);
-    expect(await pwdCard.locator('.nsfw-overlay').count()).toBe(0);
-    console.log('Home classic anon: Password = blurred + lock, no NSFW overlay');
-
-    // Password+NSFW album — visible, blurred, NSFW overlay + lock icon
-    const pnCard = pg.locator(`article.album-card[data-album-id="${pwdNsfwId}"]`).first();
-    await expect(pnCard).toBeVisible({ timeout: 5000 });
-    expect(await pnCard.getAttribute('data-nsfw')).toBe('1');
-    expect(await pnCard.locator('img.nsfw-blur').count()).toBeGreaterThan(0);
-    expect(await pnCard.locator('.nsfw-overlay').count()).toBeGreaterThan(0);
-    expect(await pnCard.locator('.fa-lock').count()).toBeGreaterThan(0);
-    console.log('Home classic anon: Pwd+NSFW = blurred + overlay + lock');
+    // NSFW (no consent), password and password+NSFW albums must be ABSENT from
+    // the home for an anonymous visitor — no blurred placeholders at all.
+    expect(await pg.locator(`article.album-card[data-album-id="${nsfwId}"]`).count()).toBe(0);
+    expect(await pg.locator(`article.album-card[data-album-id="${pwdId}"]`).count()).toBe(0);
+    expect(await pg.locator(`article.album-card[data-album-id="${pwdNsfwId}"]`).count()).toBe(0);
+    console.log('Home classic anon: NSFW/Password/Pwd+NSFW correctly absent (no blurred previews)');
 
     await ctx.close();
   });
 
   test('Home classic: admin sees all clear, no blur', async () => {
+    // The classic home renders album CARDS (hero + grid). Admin sees every album
+    // card — including protected ones — rendered clear (no blur/overlay). The
+    // anonymous SQL-level exclusion applies to the public home flow, not the
+    // admin's full album listing.
     await admin.goto(`${BASE}/?template=classic`);
     await admin.waitForTimeout(1500);
     await admin.screenshot({ path: `${SCREENSHOTS}/11-home-classic-admin.png`, fullPage: true });

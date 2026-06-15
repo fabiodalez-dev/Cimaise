@@ -511,12 +511,6 @@ parameters:
 			path: app/Controllers/Admin/TypographyController.php
 
 		-
-			message: '#^Method App\\Controllers\\Admin\\UploadController\:\:uploadToAlbum\(\) has parameter \$args with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Controllers/Admin/UploadController.php
-
-		-
 			message: '#^Method App\\Controllers\\Admin\\UsersController\:\:delete\(\) has parameter \$args with no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
@@ -599,12 +593,6 @@ parameters:
 			identifier: missingType.iterableValue
 			count: 1
 			path: app/Controllers/Frontend/ApiController.php
-
-		-
-			message: '#^Method App\\Controllers\\Frontend\\DownloadController\:\:downloadImage\(\) has parameter \$args with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Controllers/Frontend/DownloadController.php
 
 		-
 			message: '#^Method App\\Controllers\\Frontend\\GalleriesController\:\:buildFilters\(\) has parameter \$params with no value type specified in iterable type array\.$#'
@@ -1141,6 +1129,78 @@ parameters:
 			path: app/Repositories/LocationRepository.php
 
 		-
+			message: '#^Method App\\Services\\AlbumEnrichmentService\:\:loadFallbackCoverImages\(\) has parameter \$albumIds with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AlbumEnrichmentService.php
+
+		-
+			message: '#^Method App\\Services\\AlbumEnrichmentService\:\:loadFallbackCoverImages\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AlbumEnrichmentService.php
+
+		-
+			message: '#^Method App\\Services\\AlbumEnrichmentService\:\:loadImageCounts\(\) has parameter \$albumIds with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AlbumEnrichmentService.php
+
+		-
+			message: '#^Method App\\Services\\AlbumEnrichmentService\:\:loadImageCounts\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AlbumEnrichmentService.php
+
+		-
+			message: '#^Method App\\Services\\AlbumEnrichmentService\:\:loadListingCoverImages\(\) has parameter \$imageIds with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AlbumEnrichmentService.php
+
+		-
+			message: '#^Method App\\Services\\AlbumEnrichmentService\:\:loadListingCoverImages\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AlbumEnrichmentService.php
+
+		-
+			message: '#^Method App\\Services\\AlbumEnrichmentService\:\:loadLocations\(\) has parameter \$albumIds with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AlbumEnrichmentService.php
+
+		-
+			message: '#^Method App\\Services\\AlbumEnrichmentService\:\:loadLocations\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AlbumEnrichmentService.php
+
+		-
+			message: '#^Method App\\Services\\AlbumEnrichmentService\:\:loadPageCoverImagesWithVariants\(\) has parameter \$imageIds with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AlbumEnrichmentService.php
+
+		-
+			message: '#^Method App\\Services\\AlbumEnrichmentService\:\:loadPageCoverImagesWithVariants\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 2
+			path: app/Services/AlbumEnrichmentService.php
+
+		-
+			message: '#^Method App\\Services\\AlbumEnrichmentService\:\:loadTags\(\) has parameter \$albumIds with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AlbumEnrichmentService.php
+
+		-
+			message: '#^Method App\\Services\\AlbumEnrichmentService\:\:loadTags\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/AlbumEnrichmentService.php
+
+		-
 			message: '#^Method App\\Services\\AnalyticsService\:\:dateRangeBounds\(\) return type has no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
@@ -1451,12 +1511,6 @@ parameters:
 			identifier: missingType.iterableValue
 			count: 1
 			path: app/Services/CustomFieldService.php
-
-		-
-			message: '#^Method App\\Services\\ExifService\:\:cleanString\(\) has parameter \$value with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: app/Services/ExifService.php
 
 		-
 			message: '#^Method App\\Services\\ExifService\:\:convertDMSToDD\(\) has parameter \$dms with no value type specified in iterable type array\.$#'

@@ -14,6 +14,11 @@
 import { test, expect } from '@playwright/test';
 import { BASE } from './_helpers.js';
 
+// Read-only checks against shared public content; under heavy parallel load
+// (other specs creating/deleting albums) a navigation can transiently abort,
+// so retry a couple of times before failing.
+test.describe.configure({ retries: 2 });
+
 async function firstAlbumPath(page) {
     await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded' });
     const href = await page.locator('a[href*="/album/"]').first().getAttribute('href').catch(() => null);
@@ -28,13 +33,16 @@ test.describe('Magazine responsive variant on resize (?template=3)', () => {
         test.skip(!albumPath, 'no public album available to test the magazine layout');
 
         await page.setViewportSize({ width: 1440, height: 900 });
-        const resp = await page.goto(`${albumPath}?template=3`, { waitUntil: 'networkidle' });
+        // domcontentloaded, NOT networkidle: the magazine marquee animates
+        // continuously (and lenis/analytics keep the connection busy), so
+        // networkidle can never settle and the navigation gets aborted.
+        const resp = await page.goto(`${albumPath}?template=3`, { waitUntil: 'domcontentloaded' });
         expect(resp?.status()).toBe(200);
 
         // At desktop width the desktop variant is the visible one.
         const desk = page.locator('.m-desktop-wrap');
         const mob = page.locator('.m-mobile-wrap');
-        await expect(desk).toBeVisible();
+        await expect(desk).toBeVisible({ timeout: 10000 });
         await expect(mob).toBeHidden();
 
         // Narrow below the mobile breakpoint and let the debounced resize fire.

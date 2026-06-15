@@ -1095,6 +1095,15 @@ html.dark .header-search-submit:hover {
 .social-btn.threads:hover { color: #000; }
 .social-btn.bluesky:hover { color: #1083fe; }
 
+/* Dark mode: the base color is #000, so the icons AND the share button's
+   "Condividi" label (the <span> inherits the button color) stayed black on a
+   dark background. Override to a light tone; fix the two brand hovers that
+   target #000 so they don't vanish in dark either. */
+html.dark .social-btn { color: #d4d4d4; }
+html.dark .social-btn:hover { color: #fff; }
+html.dark .social-btn.x:hover,
+html.dark .social-btn.threads:hover { color: #fff; }
+
 /* Rich text content styles (prose alternative) */
 .prose, .rich-text-content {
     line-height: 1.75;
