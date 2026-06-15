@@ -664,7 +664,12 @@
             const headerSearchToggle = document.getElementById('header-search-toggle');
             const mobileSearchToggle = document.getElementById('mobile-search-toggle');
             if (menuToggle && menu) {
+                // Pending close-animation timeout; cleared on every toggle so a
+                // rapid re-open can't let a stale timer re-hide the open menu
+                // (which also left the scroll-lock class inconsistent).
+                let closeMenuTimer = null;
                 menuToggle.addEventListener('click', function() {
+                    if (closeMenuTimer) { clearTimeout(closeMenuTimer); closeMenuTimer = null; }
                     const isOpening = menu.classList.contains('hidden');
                     if (isOpening) {
                         if (headerSearchPanel) {
@@ -679,12 +684,16 @@
                         menu.classList.remove('hidden');
                         document.documentElement.classList.add('mobile-menu-open');
                         requestAnimationFrame(() => {
-                            // Cap the open height to the viewport (below the ~80px
-                            // header) so the menu scrolls INTERNALLY when its content
-                            // is taller than the screen. Without the cap, maxHeight =
-                            // full scrollHeight and — now that the body is scroll-locked
-                            // — the part below the fold becomes unreachable.
-                            const cap = Math.max(0, window.innerHeight - 80);
+                            // Cap the open height to the viewport below the real
+                            // header so the menu scrolls INTERNALLY when its content
+                            // is taller than the screen. Measure the header live
+                            // (offsetHeight) instead of hardcoding 80px — it's 81px
+                            // here and varies with an admin bar. Without the cap,
+                            // maxHeight = full scrollHeight and — now that the body
+                            // is scroll-locked — the part below the fold is unreachable.
+                            const headerEl = document.getElementById('main-header');
+                            const headerH = headerEl ? headerEl.offsetHeight : 80;
+                            const cap = Math.max(0, window.innerHeight - headerH);
                             menu.style.maxHeight = Math.min(menu.scrollHeight, cap) + 'px';
                             menu.style.opacity = '1';
                         });
@@ -692,7 +701,10 @@
                         menu.style.maxHeight = '0px';
                         menu.style.opacity = '0';
                         document.documentElement.classList.remove('mobile-menu-open');
-                        setTimeout(() => menu.classList.add('hidden'), 300);
+                        closeMenuTimer = setTimeout(() => {
+                            menu.classList.add('hidden');
+                            closeMenuTimer = null;
+                        }, 300);
                     }
                 });
                 // Safety: if the viewport grows to the lg breakpoint (the menu
