@@ -98,6 +98,29 @@
   opacity: 1;
 }
 
+/* Loading skeleton for desktop marquee tracks that are not yet built by JS.
+   Until home.js sets [data-marquee-built], columns 2 & 3 (and the unseeded
+   part of column 1) are empty; show a subtle shimmer so the gap reads as
+   "loading" rather than blank. Removed once the JS fills the cells. */
+.home-desktop-wrap:not([data-marquee-built]) .home-track,
+.home-desktop-wrap:not([data-marquee-built]) .home-track-h {
+  min-height: 60vh;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 0.75rem;
+}
+.home-desktop-wrap:not([data-marquee-built]) .home-track-h { min-height: 0; min-width: 60%; }
+
+/* Accessibility: respect users who opted out of motion. Stop the marquee
+   scroll animations and any loading shimmer; a static placeholder is fine. */
+@media (prefers-reduced-motion: reduce) {
+  .home-track,
+  .home-track-h { animation: none !important; }
+  .home-desktop-wrap:not([data-marquee-built]) .home-track,
+  .home-desktop-wrap:not([data-marquee-built]) .home-track-h { animation: none !important; }
+}
+
 /* Albums Horizontal Infinite Carousel */
 .albums-carousel-container { margin: 0 -2rem; padding: 0 2rem 1rem 2rem; display: flex; align-items: stretch; }
 .albums-carousel-track { display: flex; will-change: transform; transition: transform 0.1s ease-out; align-items: stretch; gap: 16px; }

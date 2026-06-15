@@ -170,7 +170,17 @@ import { getBasePath, normalizeBasePath } from './utils/base-path.js'
       for (let c = 0; c < copies; c++) {
         const start = (c === 0 && hasSeed) ? seed : 0;
         for (let i = start; i < colImages.length; i++) {
-          frag.appendChild(createHomeItem(colImages[i], basePath, isHorizontal));
+          const cell = createHomeItem(colImages[i], basePath, isHorizontal);
+          // Keep only the first copy navigable; hide duplicate links from
+          // keyboard/AT so each album link appears exactly once in the a11y tree.
+          if (c > 0) {
+            const cellLink = cell.querySelector('a');
+            if (cellLink) {
+              cellLink.setAttribute('aria-hidden', 'true');
+              cellLink.setAttribute('tabindex', '-1');
+            }
+          }
+          frag.appendChild(cell);
         }
       }
       track.appendChild(frag);
@@ -179,6 +189,9 @@ import { getBasePath, normalizeBasePath } from './utils/base-path.js'
     if (observer) {
       gallery.querySelectorAll(`${trackSelector} img`).forEach(img => observer.observe(img));
     }
+    // Mark the desktop wrap as built so the loading skeleton/shimmer on the
+    // not-yet-filled tracks (columns 2 & 3) is removed now that cells exist.
+    gallery.querySelector('.home-desktop-wrap')?.setAttribute('data-marquee-built', '1');
     gallery.dataset.marqueeBuilt = '1';
   }
 

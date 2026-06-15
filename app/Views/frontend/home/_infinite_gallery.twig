@@ -83,7 +83,7 @@
     {% set seed_count = 3 %}
     {% if scroll_direction == 'horizontal' %}
     {# Horizontal layout: 3 rows - all scroll right to prevent white space on load #}
-    <div class="home-desktop-wrap home-desktop-horizontal gap-6 h-full">
+    <div class="home-desktop-wrap home-desktop-horizontal gap-6 h-full" role="region" aria-label="Galleria foto">
       {% set rows = [col1, col2, col3] %}
       {% for row in rows %}
         {% set idx = loop.index0 %}
@@ -101,7 +101,7 @@
     </div>
     {% else %}
     {# Vertical layout: 3 columns - all scroll down to prevent white space on load #}
-    <div class="home-desktop-wrap home-desktop-vertical gap-6 perspective h-full">
+    <div class="home-desktop-wrap home-desktop-vertical gap-6 perspective h-full" role="region" aria-label="Galleria foto">
       {% set cols = [col1, col2, col3] %}
       {% for col in cols %}
         {% set idx = loop.index0 %}
@@ -124,7 +124,16 @@
      (not executed) so it needs no CSP nonce; home.js reads it via textContent.
      This replaces ~120 server-rendered <img> cells with one compact array. #}
   <script type="application/json" id="home-gallery-data">{{ {
-    images: all_images,
+    images: all_images|map(i => {
+      id: i.id,
+      album_slug: i.album_slug,
+      album_title: i.album_title,
+      alt: i.alt|default(i.alt_text)|default(''),
+      width: i.width,
+      height: i.height,
+      fallback_src: i.fallback_src|default(i.url)|default(''),
+      sources: i.sources|default({})
+    }),
     o2: o2,
     o3: o3,
     repeat: repeat_times,
