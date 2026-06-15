@@ -182,11 +182,7 @@ class CacheWarmService
         // Pagination parameters
         $perPage = (int) $this->settings->get('pagination.limit', 12);
 
-        // Get total count of published albums.
-        // NOTE: must mirror PageController::home() — ALL published albums are counted
-        // and listed (NSFW shown blurred, password-protected shown locked), they are
-        // NOT excluded. Excluding them here produced a different albums list and a
-        // different data_hash than a request-built cache entry.
+        // Get total count of published albums (mirrors PageController::home()).
         $countStmt = $pdo->prepare('SELECT COUNT(*) FROM albums a WHERE a.is_published = 1');
         $countStmt->execute();
         $totalAlbums = (int) $countStmt->fetchColumn();
@@ -205,8 +201,25 @@ class CacheWarmService
         $albums = $stmt->fetchAll();
 
         // Enrich + apply public-visitor access shaping, mirroring
-        // PageController::filterAlbumsByAccess() for an anonymous user
+        // PageController::filterAlbumsByAccess() for an anonymous user.
         $albums = $this->enrichAlbumsForPublicHome($albums);
+
+        // The 'home' cache is only ever served to anonymous visitors
+        // (PageController::home() caches only when !admin && !consent), and the
+        // home is a curated showcase: drop password-protected albums entirely
+        // and — since this warm path has no NSFW consent — every NSFW album too.
+        // This MUST mirror PageController::home()'s post-enrich filter, otherwise
+        // a warm/regenerated cache entry would leak protected covers to anonymous
+        // visitors and produce a different data_hash than a request-built entry.
+        $albums = array_values(array_filter($albums, static function (array $a): bool {
+            if (!empty($a['is_password_protected'])) {
+                return false;
+            }
+            if (!empty($a['is_nsfw'])) {
+                return false;
+            }
+            return true;
+        }));
 
         // Calculate pagination
         $hasMore = $totalAlbums > $perPage;
