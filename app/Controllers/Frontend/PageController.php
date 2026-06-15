@@ -2070,10 +2070,22 @@ class PageController extends BaseController
 
         $albums = $this->filterAlbumsByAccess($albums, $isAdmin, $nsfwConsent);
 
-        // Get all categories for navigation
-        $stmt = $pdo->prepare('SELECT * FROM categories ORDER BY COALESCE(parent_id, 0) ASC, sort_order ASC, name ASC');
-        $stmt->execute();
-        $categories = $stmt->fetchAll();
+        // "Other categories" list: only categories that actually have albums
+        // (mirror the home page's albums_count > 0 filter) so empty/placeholder
+        // categories don't show up. Count NSFW albums only for admins or viewers
+        // with global NSFW consent.
+        $includeNsfw = $isAdmin || $nsfwConsent;
+        $categories = [];
+        foreach ($this->getNavigationService()->getParentCategoriesForNavigation($includeNsfw) as $parent) {
+            if (($parent['albums_count'] ?? 0) > 0) {
+                $categories[] = $parent;
+            }
+            foreach (($parent['children'] ?? []) as $child) {
+                if (($child['albums_count'] ?? 0) > 0) {
+                    $categories[] = $child;
+                }
+            }
+        }
 
         $seo = $this->buildSeo($request, (string) $category['name'], 'Photography albums in category: ' . $category['name']);
 
