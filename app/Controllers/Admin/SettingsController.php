@@ -82,6 +82,14 @@ class SettingsController extends BaseController
             'webp' => isset($data['fmt_webp']),
             'jpg'  => isset($data['fmt_jpg']),
         ];
+        // Invariant: never persist an all-disabled set. With every format off,
+        // generateVariantsForImage() skips all encodes and NO variant can ever be
+        // produced, so every missing variant (sm/md/lg/xl/xxl) 404s site-wide.
+        // jpg is the universal <img> fallback, so it is the format forced back on.
+        // Toggling jpg off while avif/webp stay enabled remains allowed.
+        if (!$formats['avif'] && !$formats['webp'] && !$formats['jpg']) {
+            $formats['jpg'] = true;
+        }
         $quality = [
             'avif' => max(1, min(100, (int)($data['q_avif'] ?? 50))),
             'webp' => max(1, min(100, (int)($data['q_webp'] ?? 75))),

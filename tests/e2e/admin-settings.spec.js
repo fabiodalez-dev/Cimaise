@@ -48,9 +48,10 @@ const SETTINGS = [
   { field: 'pagination_limit', type: 'number', a: '7', b: '11' },
 
   // --- Image formats (checkbox) ---
-  { field: 'fmt_avif', type: 'checkbox' },
-  { field: 'fmt_webp', type: 'checkbox' },
-  { field: 'fmt_jpg', type: 'checkbox' },
+  // NOT in the generic per-field loop: the three formats are coupled by an
+  // invariant (never all-off — see the dedicated 'SET-image-formats' test).
+  // The generic loop toggles each field to false independently, which would
+  // cumulatively reach the all-off state the controller forbids.
   // --- Image quality (number, clamped 1..100) ---
   { field: 'q_avif', type: 'number', a: '42', b: '58' },
   { field: 'q_webp', type: 'number', a: '66', b: '78' },
@@ -247,6 +248,39 @@ test.describe.serial('Admin settings — every setting persists + functions', ()
       if (s.effect) await s.effect(page, valB);
     });
   }
+
+  // Image formats are coupled by an invariant the controller enforces: avif/webp/
+  // jpg toggle freely EXCEPT they can never all be off at once — that disables
+  // variant generation site-wide, so the controller forces jpg back on. Tested as
+  // a group (the generic per-field loop can't express a cross-field invariant).
+  test('SET-image-formats: toggle freely, but never all-off (jpg forced on)', async () => {
+    const setAll = async (avif, webp, jpg) => {
+      await gotoSettings(page);
+      await setField(page, 'fmt_avif', 'checkbox', avif);
+      await setField(page, 'fmt_webp', 'checkbox', webp);
+      await setField(page, 'fmt_jpg', 'checkbox', jpg);
+      await saveAndReload(page);
+    };
+
+    // All on → all persist on.
+    await setAll(true, true, true);
+    expect(await readField(page, 'fmt_avif', 'checkbox')).toBe(true);
+    expect(await readField(page, 'fmt_webp', 'checkbox')).toBe(true);
+    expect(await readField(page, 'fmt_jpg', 'checkbox')).toBe(true);
+
+    // jpg off while avif/webp stay on → jpg persists OFF (free toggle, not last).
+    await setAll(true, true, false);
+    expect(await readField(page, 'fmt_jpg', 'checkbox')).toBe(false);
+
+    // All off → invariant: jpg is forced back on.
+    await setAll(false, false, false);
+    expect(await readField(page, 'fmt_avif', 'checkbox')).toBe(false);
+    expect(await readField(page, 'fmt_webp', 'checkbox')).toBe(false);
+    expect(await readField(page, 'fmt_jpg', 'checkbox')).toBe(true);
+
+    // Restore a sane default so the dev site keeps all formats enabled.
+    await setAll(true, true, true);
+  });
 
   // Breakpoints round-trip as an ascending group (controller rejects non-ascending).
   test('SET-breakpoints: ascending group persists (A)', async () => {
