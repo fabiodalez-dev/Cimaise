@@ -193,7 +193,18 @@ import { getBasePath, normalizeBasePath } from './utils/base-path.js'
    * @param {() => void} build - idempotent; safe to call more than once
    */
   function scheduleDesktopBuild(mql, build) {
-    if (mql.matches) build();
+    // Already on desktop at load: the server-rendered seed already covers the
+    // LCP, so defer the (heavier) full marquee fill to idle time for a smoother
+    // first paint instead of competing with it on the main thread.
+    if (mql.matches) {
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => build(), { timeout: 1500 });
+      } else {
+        setTimeout(build, 200);
+      }
+    }
+    // A later mobile->desktop crossing (resize/rotate) builds promptly — the
+    // user is now looking at the desktop layout, so don't wait for idle.
     const onChange = (e) => { if (e.matches) build(); };
     if (typeof mql.addEventListener === 'function') {
       mql.addEventListener('change', onChange);
