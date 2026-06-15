@@ -69,11 +69,11 @@
     <div class="home-mobile-wrap">
       <div class="home-mobile">
         {% for image in all_images %}
-          {# Mobile variant: never eager — it is display:none on the desktop
-             breakpoint, so eager-loading it just wastes bandwidth there. When
-             this variant IS visible (mobile), its in-viewport images still load
-             promptly via native lazy. #}
-          <div class="home-cell">{{ H.home_item(image, base_path, site_title, false) }}</div>
+          {# Mobile variant: eager only the first 2 (the mobile above-the-fold
+             lead) so the mobile LCP is preloaded; the rest lazy. On desktop this
+             variant is display:none, so only these 2 are wasted there (down from
+             the previous 6). #}
+          <div class="home-cell">{{ H.home_item(image, base_path, site_title, loop.index0 < 2) }}</div>
         {% endfor %}
       </div>
     </div>
