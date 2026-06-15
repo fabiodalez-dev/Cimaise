@@ -397,7 +397,7 @@
                     </div>
 
                     <!-- Mobile Menu Button - Aligned with Logo -->
-                    <button id="mobile-menu-toggle" class="lg:hidden flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200">
+                    <button id="mobile-menu-toggle" aria-controls="mobile-menu" aria-expanded="false" class="lg:hidden flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200">
                         <svg class="w-5 h-5 transition-transform duration-200" id="mobile-menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path class="hamburger-line" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                             <path class="close-line hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -682,6 +682,7 @@
                             mobileSearchToggle.setAttribute('aria-expanded', 'false');
                         }
                         menu.classList.remove('hidden');
+                        menuToggle.setAttribute('aria-expanded', 'true');
                         document.documentElement.classList.add('mobile-menu-open');
                         requestAnimationFrame(() => {
                             // Cap the open height to the viewport below the real
@@ -700,6 +701,7 @@
                     } else {
                         menu.style.maxHeight = '0px';
                         menu.style.opacity = '0';
+                        menuToggle.setAttribute('aria-expanded', 'false');
                         document.documentElement.classList.remove('mobile-menu-open');
                         closeMenuTimer = setTimeout(() => {
                             menu.classList.add('hidden');
@@ -712,9 +714,11 @@
                 // desktop page isn't left frozen.
                 window.addEventListener('resize', function() {
                     if (window.innerWidth >= 1024 && document.documentElement.classList.contains('mobile-menu-open')) {
+                        if (closeMenuTimer) { clearTimeout(closeMenuTimer); closeMenuTimer = null; }
                         document.documentElement.classList.remove('mobile-menu-open');
                         menu.style.maxHeight = '0px';
                         menu.style.opacity = '0';
+                        menuToggle.setAttribute('aria-expanded', 'false');
                         menu.classList.add('hidden');
                     }
                 });

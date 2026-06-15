@@ -405,49 +405,44 @@ class PageController extends BaseController
         // Pagination parameters (from settings)
         $perPage = (int) $svc->get('pagination.limit', 12);
 
-        // Get total count of published albums
-        $countStmt = $pdo->prepare('SELECT COUNT(*) FROM albums a WHERE a.is_published = 1');
+        // Home access scoping (mirrors HomeImageService). The home is a curated
+        // showcase, not a discovery listing: for non-admins password-protected
+        // albums are NEVER previewed (no blurred placeholder), and NSFW albums
+        // appear only once global consent is given. Doing this in SQL (not a
+        // post-fetch array_filter) means the LIMIT returns a full page of
+        // *eligible* albums — no under-fill when the most recent albums happen to
+        // be protected — and the count never leaks the number of hidden albums.
+        // Admins see everything; the album/category listing pages keep the
+        // lock + blur affordance (the right unlock/consent discovery UX there).
+        $includeNsfw = $isAdmin || $nsfwConsent;
+        $accessSql = '';
+        if (!$isAdmin) {
+            $accessSql .= " AND (a.password_hash IS NULL OR a.password_hash = '')";
+            if (!$includeNsfw) {
+                $accessSql .= ' AND a.is_nsfw = 0';
+            }
+        }
+
+        // Total count of eligible published albums.
+        $countStmt = $pdo->prepare('SELECT COUNT(*) FROM albums a WHERE a.is_published = 1' . $accessSql);
         $countStmt->execute();
         $totalAlbums = (int) $countStmt->fetchColumn();
 
-        // Get latest published albums
+        // Latest eligible published albums.
         $stmt = $pdo->prepare('
             SELECT a.*, c.name as category_name, c.slug as category_slug
-            FROM albums a 
-            JOIN categories c ON c.id = a.category_id 
-            WHERE a.is_published = 1 
-            ORDER BY a.published_at DESC 
+            FROM albums a
+            JOIN categories c ON c.id = a.category_id
+            WHERE a.is_published = 1' . $accessSql . '
+            ORDER BY a.published_at DESC
             LIMIT :limit
         ');
         $stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
         $stmt->execute();
         $albums = $stmt->fetchAll();
 
-        // Enrich with cover images and tags + apply access filters
+        // Enrich with cover images and tags + flag locked/NSFW for rendering.
         $albums = $this->filterAlbumsByAccess($albums, $isAdmin, $nsfwConsent);
-
-        // The home is a curated showcase, not a discovery listing: it shows only
-        // "real" covers — never blurred placeholders. So for non-admins the home
-        // album list (snap slides + the classic/parallax carousel) drops:
-        //   - every password-protected album (no preview, ever), and
-        //   - every NSFW album unless global consent has been given.
-        // (NSFW-with-password is removed by the password rule first; with consent
-        // NSFW albums reappear with their real covers.) The album/category
-        // listing pages keep the lock + blur affordance — that's the right UX for
-        // unlock/consent discovery. The image-grid home templates use
-        // `all_images`, already filtered identically at the SQL level by
-        // HomeImageService; this covers the album-card data path.
-        if (!$isAdmin) {
-            $albums = array_values(array_filter($albums, static function (array $a) use ($nsfwConsent): bool {
-                if (!empty($a['is_password_protected'])) {
-                    return false;
-                }
-                if (!empty($a['is_nsfw']) && !$nsfwConsent) {
-                    return false;
-                }
-                return true;
-            }));
-        }
 
         // Calculate pagination info
         $hasMore = $totalAlbums > $perPage;

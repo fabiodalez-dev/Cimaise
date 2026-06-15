@@ -396,6 +396,14 @@ html.dark .snap-indicator.active {
 html.dark .snap-indicator:hover {
   background: #737373;
 }
+
+/* Respect reduced-motion: cut the 0.8s slide so snapping is an instant change
+   instead of a long animated transform. */
+@media (prefers-reduced-motion: reduce) {
+  .snap-left-track,
+  .snap-right-track,
+  .snap-mobile-track { transition: none !important; }
+}
 </style>
 {% endblock %}
 
@@ -451,7 +459,10 @@ html.dark .snap-indicator:hover {
         {# Reverse order for opposite scroll direction #}
         {% for album in albums|reverse %}
         <a href="{{ base_path }}/album/{{ album.slug|e('html_attr') }}" class="snap-cover">
-          {# NSFW albums use blur cover until user accepts gate (admins always see clear) #}
+          {# Defensive blur fallback. PageController::home() already drops NSFW
+             albums from the snap list unless consent is given (or admin), so in
+             practice should_blur is false here; kept as defense-in-depth in case
+             an NSFW album ever reaches this template. #}
           {% set should_blur = album.is_nsfw and not nsfw_consent|default(false) and not is_admin|default(false) %}
           {% set coverRaw = '' %}
           {% if should_blur and album.cover_image and album.cover_image.blur_path %}
@@ -606,6 +617,7 @@ html.dark .snap-indicator:hover {
   for (let i = 0; i < albumCount; i++) {
     const dot = document.createElement('button');
     dot.className = 'snap-indicator' + (i === 0 ? ' active' : '');
+    if (i === 0) dot.setAttribute('aria-current', 'true');
     dot.setAttribute('aria-label', 'Go to album ' + (i + 1));
     dot.addEventListener('click', () => goToAlbum(i));
     indicatorsContainer.appendChild(dot);
@@ -618,7 +630,9 @@ html.dark .snap-indicator:hover {
     if (index < 0 || index >= albumCount) return;
 
     indicators[currentIndex].classList.remove('active');
+    indicators[currentIndex].removeAttribute('aria-current');
     indicators[index].classList.add('active');
+    indicators[index].setAttribute('aria-current', 'true');
 
     currentIndex = index;
     const vh = getHeights();

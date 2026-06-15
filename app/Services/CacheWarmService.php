@@ -182,17 +182,25 @@ class CacheWarmService
         // Pagination parameters
         $perPage = (int) $this->settings->get('pagination.limit', 12);
 
-        // Get total count of published albums (mirrors PageController::home()).
-        $countStmt = $pdo->prepare('SELECT COUNT(*) FROM albums a WHERE a.is_published = 1');
+        // The 'home' cache is only ever served to anonymous visitors
+        // (PageController::home() caches only when !admin && !consent). Scope the
+        // album list to that anonymous view IN SQL — exactly like
+        // PageController::home() does for an anonymous user — so password-protected
+        // albums are never previewed and NSFW albums are excluded (no consent in
+        // the warm path). Filtering in SQL (not post-fetch) keeps the LIMIT page
+        // full of eligible albums, stops the count leaking hidden albums, and
+        // preserves data_hash parity with a request-built cache entry.
+        $accessSql = " AND (a.password_hash IS NULL OR a.password_hash = '') AND a.is_nsfw = 0";
+
+        $countStmt = $pdo->prepare('SELECT COUNT(*) FROM albums a WHERE a.is_published = 1' . $accessSql);
         $countStmt->execute();
         $totalAlbums = (int) $countStmt->fetchColumn();
 
-        // Get latest published albums (same query as PageController::home())
         $stmt = $pdo->prepare('
             SELECT a.*, c.name as category_name, c.slug as category_slug
             FROM albums a
             JOIN categories c ON c.id = a.category_id
-            WHERE a.is_published = 1
+            WHERE a.is_published = 1' . $accessSql . '
             ORDER BY a.published_at DESC
             LIMIT :limit
         ');
@@ -200,26 +208,9 @@ class CacheWarmService
         $stmt->execute();
         $albums = $stmt->fetchAll();
 
-        // Enrich + apply public-visitor access shaping, mirroring
-        // PageController::filterAlbumsByAccess() for an anonymous user.
+        // Enrich + flag for rendering (mirrors PageController::filterAlbumsByAccess
+        // for an anonymous user).
         $albums = $this->enrichAlbumsForPublicHome($albums);
-
-        // The 'home' cache is only ever served to anonymous visitors
-        // (PageController::home() caches only when !admin && !consent), and the
-        // home is a curated showcase: drop password-protected albums entirely
-        // and — since this warm path has no NSFW consent — every NSFW album too.
-        // This MUST mirror PageController::home()'s post-enrich filter, otherwise
-        // a warm/regenerated cache entry would leak protected covers to anonymous
-        // visitors and produce a different data_hash than a request-built entry.
-        $albums = array_values(array_filter($albums, static function (array $a): bool {
-            if (!empty($a['is_password_protected'])) {
-                return false;
-            }
-            if (!empty($a['is_nsfw'])) {
-                return false;
-            }
-            return true;
-        }));
 
         // Calculate pagination
         $hasMore = $totalAlbums > $perPage;
