@@ -14,6 +14,7 @@
 html.snap-active, html.snap-active body {
   overflow: hidden;
   height: 100%;
+  overscroll-behavior: none;
 }
 
 /* Hide footer immediately - full-screen layout doesn't need footer */
@@ -217,12 +218,21 @@ footer {
     width: 100%;
     height: calc(100vh - var(--header-height-mobile, 60px));
     overflow: hidden;
+    /* The JS owns vertical gestures (drag + snap); stop the browser from
+       scrolling/overscrolling underneath so slides can't be left half-way. */
+    touch-action: none;
   }
 
   .snap-mobile-track {
     display: flex;
     flex-direction: column;
     transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* While the finger is down we drive the transform directly — kill the
+     CSS transition so the track follows the drag 1:1. */
+  .snap-mobile-track.is-dragging {
+    transition: none;
   }
 
   .snap-mobile-slide {
@@ -290,14 +300,15 @@ footer {
     letter-spacing: 0.1em;
   }
 
-  /* Mobile indicators */
+  /* Mobile indicators: thin vertical strip on the right, vertically centred —
+     keeps them off the bottom title/description gradient. */
   .snap-indicators {
-    right: 1rem;
-    top: auto;
-    bottom: 2rem;
-    transform: none;
-    flex-direction: row;
-    gap: 0.6rem;
+    right: 0.6rem;
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
+    flex-direction: column;
+    gap: 0.5rem;
   }
 
   .snap-indicator {
@@ -685,25 +696,63 @@ html.dark .snap-indicator:hover {
     }
   });
 
-  // Touch swipe
-  let touchStartY = 0;
+  // Touch: drag-to-follow + snap-to-nearest (mobile). The track follows the
+  // finger 1:1 and always snaps to a whole slide on release, so a photo can
+  // never be left half-scrolled. Scoped to the mobile container; desktop keeps
+  // wheel/keyboard navigation.
+  const mobileContainer = document.querySelector('.snap-mobile-container');
+  let dragStartY = 0, dragDelta = 0, dragging = false, dragBase = 0, dragMoved = false;
 
-  window.addEventListener('touchstart', function(e) {
-    touchStartY = e.changedTouches[0].screenY;
-  }, { passive: true });
+  function mobileBaseTranslate() { return -currentIndex * getHeights(); }
 
-  window.addEventListener('touchend', function(e) {
-    const touchEndY = e.changedTouches[0].screenY;
-    const diff = touchStartY - touchEndY;
+  if (mobileContainer) {
+    mobileContainer.addEventListener('touchstart', function(e) {
+      if (!isMobile) return;
+      dragging = true; dragMoved = false;
+      dragStartY = e.touches[0].clientY;
+      dragDelta = 0;
+      dragBase = mobileBaseTranslate();
+      mobileTrack.classList.add('is-dragging');
+    }, { passive: true });
 
-    if (Math.abs(diff) > 50) {
-      if (diff > 0) {
-        nextAlbum();
+    mobileContainer.addEventListener('touchmove', function(e) {
+      if (!isMobile || !dragging) return;
+      dragDelta = e.touches[0].clientY - dragStartY;
+      if (Math.abs(dragDelta) > 6) dragMoved = true;
+      const vh = getHeights();
+      let t = dragBase + dragDelta;
+      // Rubber-band resistance past the first / last slide.
+      const min = -(albumCount - 1) * vh, max = 0;
+      if (t > max) t = max + (t - max) * 0.3;
+      if (t < min) t = min + (t - min) * 0.3;
+      mobileTrack.style.transform = 'translateY(' + t + 'px)';
+      e.preventDefault();
+    }, { passive: false });
+
+    function endDrag() {
+      if (!isMobile || !dragging) return;
+      dragging = false;
+      mobileTrack.classList.remove('is-dragging'); // restore the CSS snap transition
+      const vh = getHeights();
+      const threshold = vh * 0.15;
+      if (dragDelta <= -threshold && currentIndex < albumCount - 1) {
+        goToAlbum(currentIndex + 1);
+      } else if (dragDelta >= threshold && currentIndex > 0) {
+        goToAlbum(currentIndex - 1);
       } else {
-        prevAlbum();
+        // Not far enough (or at an edge) — snap back to the current slide.
+        mobileTrack.style.transform = 'translateY(' + mobileBaseTranslate() + 'px)';
       }
     }
-  }, { passive: true });
+    mobileContainer.addEventListener('touchend', endDrag, { passive: true });
+    mobileContainer.addEventListener('touchcancel', endDrag, { passive: true });
+
+    // A drag ends in a synthetic click on the slide <a>; swallow it so a swipe
+    // doesn't also open the album. A genuine tap (no movement) still navigates.
+    mobileContainer.addEventListener('click', function(e) {
+      if (dragMoved) { e.preventDefault(); e.stopPropagation(); dragMoved = false; }
+    }, true);
+  }
 
   // Initialize positions
   function initPositions() {
