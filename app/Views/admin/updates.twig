@@ -51,7 +51,7 @@
             </div>
           {% else %}
           <div class="bg-accent-50 border-l-4 border-accent-500 p-4 mb-4">
-            <div class="flex items-start justify-between">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div class="flex items-start">
                 <i class="fas fa-arrow-circle-up text-accent-500 mr-3 mt-1"></i>
                 <div>
@@ -66,7 +66,7 @@
                   {% endif %}
                 </div>
               </div>
-              <button type="button" id="update-btn" class="btn-primary" data-action="start-update" data-version="{{ updateInfo.latest|e('html_attr') }}">
+              <button type="button" id="update-btn" class="btn-primary w-full sm:w-auto inline-flex items-center justify-center whitespace-nowrap shrink-0" data-action="start-update" data-version="{{ updateInfo.latest|e('html_attr') }}">
                 <i class="fas fa-download mr-2"></i>
                 {{ trans('admin.updates.update_now') }}
               </button>
@@ -385,28 +385,30 @@
   </div>
 
   <!-- Sticky Footer with Action Buttons -->
-  <div class="fixed bottom-0 left-0 lg:left-64 right-0 bg-white border-t border-gray-200 px-6 py-4 admin-sticky-actions">
-    <div class="flex items-center justify-end gap-3">
-      <button type="button" class="btn-secondary" data-action="check-updates">
+  <div class="fixed bottom-0 left-0 lg:left-64 right-0 bg-white border-t border-gray-200 px-4 sm:px-6 py-3 sm:py-4 admin-sticky-actions">
+    {# Buttons wrap (flex-wrap) instead of overflowing/clipping off-screen on
+       mobile; each stays whole (whitespace-nowrap) and is right-aligned. #}
+    <div class="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+      <button type="button" class="btn-secondary inline-flex items-center justify-center text-sm sm:text-base whitespace-nowrap" data-action="check-updates">
         <i class="fas fa-sync-alt mr-2" id="footer-check-icon"></i>
         {{ trans('admin.updates.check_updates') }}
       </button>
-      <button type="button" class="btn-secondary" data-action="create-backup">
+      <button type="button" class="btn-secondary inline-flex items-center justify-center text-sm sm:text-base whitespace-nowrap" data-action="create-backup">
         <i class="fas fa-database mr-2" id="footer-backup-icon"></i>
         {{ trans('admin.updates.create_backup') }}
       </button>
       {% if updateInfo.available and not updateInfo.package_asset %}
-      <button type="button" class="btn-primary opacity-50 cursor-not-allowed" disabled title="{{ trans('admin.updates.release_without_package', {}, 'Release without installable package')|e('html_attr') }}">
+      <button type="button" class="btn-primary inline-flex items-center justify-center text-sm sm:text-base whitespace-nowrap opacity-50 cursor-not-allowed" disabled title="{{ trans('admin.updates.release_without_package', {}, 'Release without installable package')|e('html_attr') }}">
         <i class="fas fa-exclamation-triangle mr-2"></i>
         {{ trans('admin.updates.release_without_package', {}, 'Release without installable package') }}
       </button>
       {% elseif updateInfo.available %}
-      <button type="button" class="btn-primary" data-action="start-update" data-version="{{ updateInfo.latest|e('html_attr') }}">
+      <button type="button" class="btn-primary inline-flex items-center justify-center text-sm sm:text-base whitespace-nowrap" data-action="start-update" data-version="{{ updateInfo.latest|e('html_attr') }}">
         <i class="fas fa-download mr-2"></i>
         {{ trans('admin.updates.update_now') }}
       </button>
       {% else %}
-      <button type="button" class="btn-primary opacity-50 cursor-not-allowed" disabled>
+      <button type="button" class="btn-primary inline-flex items-center justify-center text-sm sm:text-base whitespace-nowrap opacity-50 cursor-not-allowed" disabled>
         <i class="fas fa-check mr-2"></i>
         {{ trans('admin.updates.up_to_date') }}
       </button>
