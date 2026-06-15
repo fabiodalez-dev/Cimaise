@@ -435,6 +435,14 @@ function initMagazineAutoscroll() {
 
         var ensureTrackFill = function(track, colHeight) {
             if (!track || !colHeight) return;
+            // Only fill the VISIBLE responsive variant. offsetParent is null when
+            // the track (or an ancestor wrap) is display:none — the case for the
+            // two hidden variants (mobile/tablet/desktop, only one shown at a
+            // time). Without this guard the call-sites' `|| window.innerHeight`
+            // fallback makes the hidden tracks clone cells to fill a phantom
+            // viewport-tall height, exploding a 10-image album to thousands of
+            // DOM nodes (3 variants instead of 1).
+            if (track.offsetParent === null) return;
             // Originals MUST live on the track element, not in a per-call WeakMap:
             // a re-init (resize, template switch) would otherwise treat the clones
             // as originals and re-clone them — exponential duplication.
