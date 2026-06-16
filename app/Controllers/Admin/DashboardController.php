@@ -172,8 +172,12 @@ class DashboardController extends BaseController
                      LIMIT 1
                  )
                  ORDER BY touched_at DESC, a.id DESC
-                 LIMIT ' . (int) $limit
+                 LIMIT ?'
             );
+            // Bind LIMIT as an explicit integer placeholder. With
+            // ATTR_EMULATE_PREPARES=false a string bind would send LIMIT '6' and
+            // fail on MySQL, so PARAM_INT keeps it portable (SQLite + MySQL).
+            $stmt->bindValue(1, $limit, PDO::PARAM_INT);
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (\Throwable) {
