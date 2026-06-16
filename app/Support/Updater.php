@@ -1634,6 +1634,13 @@ class Updater
                 throw new Exception($migrationResult['error']);
             }
 
+            // Clear compiled/render caches so the new templates and content are
+            // served immediately. Without this the install keeps serving the
+            // STALE compiled Twig templates (inline <style>/markup changes) and
+            // cached pages until they expire.
+            $this->debugLog('INFO', 'Clearing render caches');
+            $this->clearRenderCaches();
+
             // Fix file permissions
             $this->debugLog('INFO', 'Fixing file permissions');
             $this->fixPermissions();
@@ -1773,6 +1780,40 @@ class Updater
         }
 
         return [$current, $added];
+    }
+
+    /**
+     * Clear compiled-template and page caches after an update so the freshly
+     * copied templates/content are served immediately (not the stale compiled
+     * Twig from before the update). Best-effort: failures are logged, never fatal.
+     */
+    private function clearRenderCaches(): void
+    {
+        $dirs = [
+            $this->rootPath . '/storage/cache/twig',
+            $this->rootPath . '/storage/cache/pages',
+            $this->rootPath . '/storage/tmp/query_cache',
+        ];
+        foreach ($dirs as $dir) {
+            try {
+                // No-ops when $dir is absent; recursive + confined to storage/.
+                $this->deleteDirectory($dir);
+            } catch (\Throwable $e) {
+                $this->debugLog('WARNING', 'Cache clear failed', [
+                    'dir' => $dir,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+            // Recreate the cache dir so the app can write to it (no-op if present).
+            @mkdir($dir, 0775, true);
+        }
+
+        // DB-backed page cache (table absent on older installs — ignore failures).
+        try {
+            $this->db->pdo()->exec('DELETE FROM page_cache');
+        } catch (\Throwable $e) {
+            // no page_cache table / DB unavailable — nothing to clear
+        }
     }
 
     /**

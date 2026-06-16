@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The release workflow extracts the `## [VERSION]` section below into the GitHub
 release notes, so keep one section per released tag.
 
+## [1.4.6] - 2026-06-16
+### Fixed
+- Updater: clear the compiled Twig template cache, the file page cache and the DB
+  `page_cache` after installing an update. Previously an update that changed
+  templates (inline styles/markup) kept serving the stale compiled templates
+  until the caches expired or were cleared by hand.
+
 ## [1.4.5] - 2026-06-16
 ### Fixed
 - Home templates no longer scroll horizontally on mobile. The LQIP placeholders
@@ -75,6 +82,7 @@ release notes, so keep one section per released tag.
   (encrypted at rest), DELIMITER/BEGIN-END-aware migration SQL splitter, and a
   dual-DB migration smoke test.
 
+[1.4.6]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.6
 [1.4.5]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.5
 [1.4.4]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.4
 [1.4.3]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.3
