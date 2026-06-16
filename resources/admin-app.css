@@ -12,6 +12,79 @@
  */
 @config "../tailwind.admin.config.js";
 
+/* ───────────────────────────────────────────────────────────────────────
+ * Admin palette — "Mindful Moments" (forest green + sage + amber on cream).
+ * Admin-only: this file loads AFTER app.css, so these override the shared
+ * :root tokens for the backend only. The public frontend keeps its magenta.
+ * ─────────────────────────────────────────────────────────────────────── */
+:root {
+  --color-bg-primary: #f4efe8;
+  --color-bg-secondary: #ffffff;
+  --color-bg-tertiary: #ece5db;
+  --color-bg-primary-rgb: 244 239 232;
+  --color-bg-secondary-rgb: 255 255 255;
+  --color-bg-tertiary-rgb: 236 229 219;
+  --color-text-primary: #1c322d;
+  --color-text-secondary: #5d6f69;
+  --color-text-tertiary: #7c8a85;
+  --color-text-on-light: #1c322d;
+  --color-border: #e4ded5;
+  --color-border-secondary: #efeae2;
+  --color-icon: #1c322d;
+  --color-icon-secondary: #5d6f69;
+  --color-shadow: rgba(28, 50, 45, 0.08);
+  --color-shadow-hover: rgba(28, 50, 45, 0.16);
+  --color-accent: #1c322d;
+  --color-accent-hover: #16271f;
+  --color-accent-contrast: #f8f3ee;
+  --color-accent-soft: #e7eee9;
+  --color-accent-soft-border: #a2c2b3;
+  --color-focus-ring: rgba(28, 50, 45, 0.32);
+  --color-sage: #a2c2b3;
+  --color-amber: #ebb552;
+  --color-cream: #f8f3ee;
+  --color-blush: #f1cdbe;
+}
+html.dark {
+  --color-bg-primary: #0f140f;
+  --color-bg-secondary: #161c16;
+  --color-bg-tertiary: #1e261d;
+  --color-bg-primary-rgb: 15 20 15;
+  --color-bg-secondary-rgb: 22 28 22;
+  --color-bg-tertiary-rgb: 30 38 29;
+  --color-text-primary: #f1f3ef;
+  --color-text-secondary: #c4cdc4;
+  --color-text-tertiary: #9aa79f;
+  --color-text-on-light: #1c322d;
+  --color-border: #2b332a;
+  --color-border-secondary: #222a21;
+  --color-icon: #f1f3ef;
+  --color-icon-secondary: #c4cdc4;
+  --color-shadow: rgba(0, 0, 0, 0.45);
+  --color-shadow-hover: rgba(0, 0, 0, 0.6);
+  --color-accent: #a2c2b3;
+  --color-accent-hover: #b6d0c4;
+  --color-accent-contrast: #14241d;
+  --color-accent-soft: #1f2a24;
+  --color-accent-soft-border: #3a4a42;
+  --color-focus-ring: rgba(162, 194, 179, 0.42);
+}
+
+/* TomSelect ships a stock blue (#a6ccf7) active-option highlight and a blue
+   focus border — remap both to sage/green. (!important: the static
+   /assets/admin.css that carries TomSelect loads after this file.) */
+.ts-dropdown .active,
+.ts-dropdown .option.active,
+.ts-dropdown [aria-selected="true"] {
+  background-color: #c3d6cc !important;
+  color: #1c322d !important;
+}
+.ts-wrapper.focus .ts-control,
+.ts-control.focus {
+  border-color: #1c322d !important;
+  box-shadow: 0 0 0 1px #1c322d !important;
+}
+
 @tailwind components;
 @tailwind utilities;
 

@@ -27,8 +27,8 @@
 
     .login-stage {
       position: relative;
-      background: #101013; /* near-black, warm-tinted: the darkroom */
-      color: #f5f4f2;
+      background: #1c322d; /* forest green — brand stage */
+      color: #f8f3ee;
       display: flex; flex-direction: column; justify-content: space-between;
       padding: 2rem 2.25rem;
       overflow: hidden;
@@ -43,8 +43,8 @@
       pointer-events: none;
     }
     .login-wordmark {
-      font-family: var(--font-headings, Georgia, serif);
-      font-weight: 400;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 500;
       font-size: clamp(2.4rem, 5vw, 4.25rem);
       line-height: 1.05;
       letter-spacing: -0.015em;
@@ -77,6 +77,26 @@
       .login-stage::after { inset: 10px; }
       .login-wordmark { font-size: clamp(1.9rem, 8vw, 2.6rem); }
       .login-stage-bottom { display: none; }
+    }
+
+    /* Chrome/Safari paint autofilled fields with a blue/lavender background.
+       Force the field surface back to white (cream text) so it matches. */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus {
+      -webkit-text-fill-color: #1c322d;
+      -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+      box-shadow: 0 0 0 1000px #ffffff inset;
+      caret-color: #1c322d;
+      transition: background-color 9999s ease-in-out 0s;
+    }
+    html.dark input:-webkit-autofill,
+    html.dark input:-webkit-autofill:hover,
+    html.dark input:-webkit-autofill:focus {
+      -webkit-text-fill-color: #f1f3ef;
+      -webkit-box-shadow: 0 0 0 1000px #161c16 inset;
+      box-shadow: 0 0 0 1000px #161c16 inset;
+      caret-color: #f1f3ef;
     }
   </style>
 </head>

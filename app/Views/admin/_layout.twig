@@ -107,6 +107,27 @@
     html.dark .sidebar-link i { background-color: #2a2f37; color: #c2c7d0; }
     html.dark .nav-sub { color: #9aa1ad; }
     html.dark .sidebar-link.active i { background-color: #171a1f; }
+
+    /* ── Editorial dark-green sidebar (#sidebar IDs win in light + dark) ── */
+    #sidebar { background-color: #1c322d; border-color: #16271f; }
+    #sidebar .text-gray-400 { color: rgba(248, 243, 238, 0.42); }
+    #sidebar #sidebar-close { color: rgba(248, 243, 238, 0.6); }
+    #sidebar #sidebar-close:hover { color: #f8f3ee; background-color: rgba(248, 243, 238, 0.08); }
+    #sidebar .sidebar-link { background-color: transparent; color: rgba(248, 243, 238, 0.74); }
+    #sidebar .sidebar-link:hover { background-color: rgba(248, 243, 238, 0.06); color: #f8f3ee; }
+    #sidebar .sidebar-link i { background-color: rgba(248, 243, 238, 0.08); color: rgba(248, 243, 238, 0.7); }
+    #sidebar .sidebar-link:hover i { color: #f8f3ee; }
+    #sidebar .sidebar-link.active { background-color: rgba(162, 194, 179, 0.18); color: #ffffff; }
+    #sidebar .sidebar-link.active i { background-color: #a2c2b3; color: #1c322d; }
+    #sidebar .nav-sub { color: rgba(248, 243, 238, 0.5); }
+    #sidebar .sidebar-link.active .nav-sub { color: rgba(255, 255, 255, 0.82); }
+
+    /* Editorial page titles — Playfair on the main heading of each page. */
+    #page-content h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
     .btn-primary {
       background-color: var(--color-accent);
       color: var(--color-accent-contrast);
@@ -135,9 +156,9 @@
     }
     .btn-outline-danger {
       background-color: transparent;
-      color: #dc2626;
+      color: #b4452f;
       padding: 8px 24px;
-      border: 1px solid #dc2626;
+      border: 1px solid #b4452f;
       border-radius: 6px;
       text-decoration: none;
       display: inline-flex;
@@ -145,7 +166,7 @@
       transition: background-color 0.15s ease, color 0.15s ease;
     }
     .btn-outline-danger:hover {
-      background-color: #dc2626;
+      background-color: #b4452f;
       color: white;
     }
     .btn-outline-danger:disabled { 
@@ -349,7 +370,7 @@
             <img src="{{ base_path ~ site_logo }}" alt="{{ site_title|default('Cimaise')|e }}" class="h-7 w-auto mr-3">
           {% else %}
             <i class="fas fa-camera text-2xl text-black mr-3"></i>
-            <h1 class="text-xl font-semibold text-black">{{ site_title|default('Cimaise') }}</h1>
+            <h1 class="font-serif text-2xl font-medium text-black tracking-tight">{{ site_title|default('Cimaise') }}</h1>
           {% endif %}
           <span class="ml-3 hidden lg:inline self-center text-[11px] leading-none text-gray-400 font-normal border border-gray-200 rounded px-1.5 py-0.5" title="{{ trans('admin.version_label', {}, 'Application version') }}">v{{ app_version|default('1.0.0') }}</span>
         </div>
