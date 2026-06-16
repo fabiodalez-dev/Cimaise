@@ -806,11 +806,31 @@
     window.showToast = function(msg, type){
       const box = document.getElementById('toast');
       const inner = document.getElementById('toast-inner');
+      if (!box || !inner) return;
       inner.textContent = msg;
-      inner.className = 'px-4 py-3 rounded shadow text-sm ' + (type==='error' ? 'bg-red-600 text-white' : 'bg-black text-white');
+      const tone = type === 'error'
+        ? 'text-white'
+        : (type === 'success' ? 'text-white' : 'text-white');
+      inner.className = 'px-4 py-3 rounded-lg shadow-lg text-sm font-medium ' + tone;
+      inner.style.backgroundColor = type === 'error' ? '#b4452f' : (type === 'success' ? '#1c322d' : '#1c322d');
       box.classList.remove('hidden');
-      setTimeout(()=>{ box.classList.add('hidden'); }, 2000);
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(()=>{ box.classList.add('hidden'); }, type === 'error' ? 4000 : 2600);
     }
+
+    // Success toast after a redirect carrying ?saved=1 (reliable feedback that
+    // does not depend on the server flash banner).
+    document.addEventListener('DOMContentLoaded', function(){
+      try {
+        const p = new URLSearchParams(location.search);
+        if (p.get('saved') === '1') {
+          window.showToast({{ trans('admin.flash.settings_saved', {}, 'Salvato')|json_encode|raw }}, 'success');
+          p.delete('saved');
+          const qs = p.toString();
+          history.replaceState(null, '', location.pathname + (qs ? '?' + qs : ''));
+        }
+      } catch (e) { /* no-op */ }
+    });
 
     // Profile / Password Modal Functions
     function openProfileModal() {
