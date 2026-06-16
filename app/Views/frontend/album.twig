@@ -1417,23 +1417,21 @@ function initMagazineAutoscroll() {
         // Da richiamare anche su resize: gli stili inline battono le regole CSS base,
         // quindi senza ri-applicazione la variante resta quella del load iniziale
         // (foto che spariscono / restano vuote restringendo la finestra).
-        var applyVariant = function() {
-            var m = window.matchMedia('(max-width: 767px)').matches;
-            var t = window.matchMedia('(min-width: 768px) and (max-width: 1199px)').matches;
-            if (mob) mob.style.display = m ? 'block' : 'none';
-            if (tablet) tablet.style.display = t ? 'flex' : 'none';
-            if (desk) desk.style.display = (!m && !t) ? 'flex' : 'none';
-            loadWrapImages(m ? mob : (t ? tablet : desk));
-        };
-        applyVariant();
-
-        var trackOriginals = new WeakMap();
         var ensureTrackFill = function(track, colHeight) {
             if (!track || !colHeight) return;
-            var originals = trackOriginals.get(track);
+            // Only fill the VISIBLE variant: offsetParent is null when the track
+            // (or an ancestor wrap) is display:none — the two hidden responsive
+            // variants. Without this the hidden tracks also clone cells to fill a
+            // phantom viewport-tall height, tripling the DOM (3 variants instead
+            // of 1) on large albums.
+            if (track.offsetParent === null) return;
+            // Originals live ON the track element (not a per-init WeakMap) so a
+            // rerun/re-init treats the real originals — never the clones — as the
+            // source, preventing exponential duplication.
+            var originals = track._mTrackOriginals;
             if (!originals) {
                 originals = Array.from(track.children);
-                trackOriginals.set(track, originals);
+                track._mTrackOriginals = originals;
             }
             if (!originals.length) return;
             var minHeight = colHeight * 2;
@@ -1457,25 +1455,42 @@ function initMagazineAutoscroll() {
             });
         };
 
-        container.querySelectorAll('.m-col').forEach(function(col) {
-            var track = col.querySelector('.m-track'); if (!track) return;
-            ensureTrackFill(track, col.clientHeight || window.innerHeight);
-            forceEager(track);
-            track.style.animation = 'none';
-            track.offsetHeight;
-            var dir = (col.getAttribute('data-direction') || 'down').toLowerCase();
-            var dur = (getComputedStyle(col).getPropertyValue('--m-duration') || '60s').trim() || '60s';
-            var anim = (dir === 'up' ? 'mScrollUp' : 'mScrollDown') + ' ' + dur + ' linear infinite';
-            track.style.animation = anim;
-            track.style.animationPlayState = '';
-        });
+        // Fill + animate ONLY the currently-visible variant's tracks. ensureTrackFill
+        // skips the hidden variants (offsetParent guard), so this must run after the
+        // variant is shown — including after a resize switches variant.
+        var setupTracks = function() {
+            container.querySelectorAll('.m-col').forEach(function(col) {
+                var track = col.querySelector('.m-track'); if (!track) return;
+                ensureTrackFill(track, col.clientHeight || window.innerHeight);
+                forceEager(track);
+                track.style.animation = 'none';
+                track.offsetHeight;
+                var dir = (col.getAttribute('data-direction') || 'down').toLowerCase();
+                var dur = (getComputedStyle(col).getPropertyValue('--m-duration') || '60s').trim() || '60s';
+                var anim = (dir === 'up' ? 'mScrollUp' : 'mScrollDown') + ' ' + dur + ' linear infinite';
+                track.style.animation = anim;
+                track.style.animationPlayState = '';
+            });
+            var mobileTrack = container.querySelector('.m-mobile-track');
+            if (mobileTrack) {
+                var mobWrap = mobileTrack.closest('.m-mobile') || mobileTrack.parentElement;
+                ensureTrackFill(mobileTrack, (mobWrap && mobWrap.clientHeight) || window.innerHeight);
+                forceEager(mobileTrack);
+            }
+        };
 
-        var mobileTrack = container.querySelector('.m-mobile-track');
-        if (mobileTrack) {
-            var mobWrap = mobileTrack.closest('.m-mobile') || mobileTrack.parentElement;
-            ensureTrackFill(mobileTrack, (mobWrap && mobWrap.clientHeight) || window.innerHeight);
-            forceEager(mobileTrack);
-        }
+        var applyVariant = function() {
+            var m = window.matchMedia('(max-width: 767px)').matches;
+            var t = window.matchMedia('(min-width: 768px) and (max-width: 1199px)').matches;
+            if (mob) mob.style.display = m ? 'block' : 'none';
+            if (tablet) tablet.style.display = t ? 'flex' : 'none';
+            if (desk) desk.style.display = (!m && !t) ? 'flex' : 'none';
+            loadWrapImages(m ? mob : (t ? tablet : desk));
+            // Fill the now-visible variant's tracks (init AND after a resize switch,
+            // since hidden variants were skipped by the offsetParent guard).
+            setupTracks();
+        };
+        applyVariant();
 
         var rerun = function() {
             container.querySelectorAll('.m-col').forEach(function(col) {

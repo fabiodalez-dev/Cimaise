@@ -486,8 +486,19 @@ html.dark .pswp__custom-caption {
     .pswp__custom-caption {
         max-width: 98vw;
         bottom: 36px;
-        padding: 8px 12px;
+        padding: 10px 14px;
         font-size: 13px;
+        /* Solid background so the description/equipment text never overlaps the
+           photo on mobile (the default transparent bg made it unreadable). */
+        background: #ffffff;
+        color: #171717;
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
+    }
+    /* Dark mode: keep a solid (dark) card so the light text stays readable. */
+    html.dark .pswp__custom-caption {
+        background: #171717;
+        color: #fafafa;
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.6);
     }
 }
 
