@@ -30,6 +30,12 @@
   margin-bottom: {{ home_settings.masonry_gap_v|default(10) }}px;
   display: block;
   width: 100%;
+  /* Clip the LQIP placeholder's transform: scale(1.1) (used to hide its blurred
+     edges) to the column width — without this the scaled image overflows the
+     viewport and the page scrolls horizontally on mobile. Also keeps the image
+     border-radius honoured. */
+  overflow: hidden;
+  border-radius: 4px;
   /* Force hardware acceleration to prevent rendering glitches */
   transform: translateZ(0);
 }

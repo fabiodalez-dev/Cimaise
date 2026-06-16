@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The release workflow extracts the `## [VERSION]` section below into the GitHub
 release notes, so keep one section per released tag.
 
+## [1.4.5] - 2026-06-16
+### Fixed
+- Home templates no longer scroll horizontally on mobile. The LQIP placeholders
+  use `transform: scale(1.1)` (to hide their blurred edges); while still blurred
+  the scaled box overflowed its column and, where the wrapper didn't clip,
+  pushed the whole page sideways. The masonry items now clip the overflow
+  (`overflow: hidden`, which also honours the image border-radius), and a global
+  `body { overflow-x: clip }` guard in `app.css` (loaded by every frontend
+  layout, including the no-`<main>` modern layout) prevents any accidental
+  horizontal page scroll without breaking the sticky header or smooth scroll.
+
 ## [1.4.4] - 2026-06-15
 ### Fixed
 - Magazine layout: `applyVariant()` re-queries the wrap nodes on every call so the
@@ -64,6 +75,7 @@ release notes, so keep one section per released tag.
   (encrypted at rest), DELIMITER/BEGIN-END-aware migration SQL splitter, and a
   dual-DB migration smoke test.
 
+[1.4.5]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.5
 [1.4.4]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.4
 [1.4.3]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.3
 [1.4.2]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.2

@@ -4,6 +4,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Never allow horizontal page scroll on the frontend. Several home templates
+   (masonry, modern, parallax, gallery) render LQIP placeholders with
+   `transform: scale(1.1)` to hide their blurred edges; while still blurred the
+   scaled box transiently overflows its column and, where the wrapper doesn't
+   clip, scrolls the whole page sideways on mobile. app.css is loaded by every
+   frontend layout (standard + modern), so the guard belongs here. `overflow-x:
+   clip` (NOT hidden) does not create a scroll container — the sticky header and
+   lenis smooth-scroll keep working. */
+body {
+  overflow-x: clip;
+}
+
 /* Custom CSS for Cimaise */
 @layer base {
   /* Color variables for light/dark mode */
