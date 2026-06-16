@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Services\AnalyticsService;
 use App\Support\Database;
 use PDO;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -29,7 +30,81 @@ class DashboardController extends BaseController
             'userName' => $_SESSION['admin_name'] ?? '',
             'stats' => $this->gatherStats(),
             'recentAlbums' => $this->recentAlbums(),
+            'analytics' => $this->analytics(),
         ]);
+    }
+
+    /**
+     * Analytics snapshot for the dashboard. Returns null when analytics is
+     * disabled or has no data, so the template can hide the block entirely.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function analytics(): ?array
+    {
+        try {
+            $svc = new AnalyticsService($this->db->pdo());
+            if (!$svc->isEnabled()) {
+                return null;
+            }
+            $stats = $svc->getDashboardStats();
+
+            // 7-day trend computed from the raw tables (the pre-aggregated
+            // daily summary is only populated by the analytics:summarize cron,
+            // so it can't be relied on here). getChartsData() is cross-DB safe.
+            $today = date('Y-m-d');
+            $start = date('Y-m-d', strtotime('-6 days'));
+            $charts = $svc->getChartsData($start, $today);
+
+            $pvByDate = [];
+            foreach (($charts['pageviews'] ?? []) as $r) {
+                $pvByDate[(string) $r['date']] = (int) $r['pageviews'];
+            }
+            $sessByDate = [];
+            foreach (($charts['sessions'] ?? []) as $r) {
+                $sessByDate[(string) $r['date']] = (int) $r['sessions'];
+            }
+
+            $series = [];
+            for ($i = 6; $i >= 0; $i--) {
+                $d = date('Y-m-d', strtotime("-{$i} days"));
+                $series[] = [
+                    'date' => $d,
+                    'pv' => $pvByDate[$d] ?? 0,
+                    'sessions' => $sessByDate[$d] ?? 0,
+                ];
+            }
+            $pv7 = array_sum(array_column($series, 'pv'));
+            $sess7 = array_sum(array_column($series, 'sessions'));
+            $maxPv = max(array_column($series, 'pv'));
+
+            // Top pages over the same 7-day window.
+            $topPages = [];
+            try {
+                $stmt = $this->db->pdo()->prepare(
+                    'SELECT page_url, page_title, COUNT(*) AS views
+                     FROM analytics_pageviews
+                     WHERE viewed_at >= ? AND viewed_at < ?
+                     GROUP BY page_url, page_title
+                     ORDER BY views DESC LIMIT 5'
+                );
+                $stmt->execute([$start . ' 00:00:00', date('Y-m-d 00:00:00', strtotime('+1 day'))]);
+                $topPages = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            } catch (\Throwable) {
+                $topPages = [];
+            }
+
+            return [
+                'realtime' => $stats['realtime'] ?? ['active_sessions' => 0, 'pageviews_24h' => 0],
+                'top_pages' => $topPages,
+                'series' => $series,
+                'pv7' => $pv7,
+                'sess7' => $sess7,
+                'max_pv' => max(1, $maxPv),
+            ];
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**

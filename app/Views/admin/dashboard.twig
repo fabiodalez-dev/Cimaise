@@ -9,6 +9,54 @@
     <a href="{{ base_path }}/admin/albums/create" class="btn-primary"><i class="fas fa-plus mr-2"></i>{{ trans('admin.dashboard.new_album') }}</a>
   </div>
 
+  {# Analytics snapshot (hidden when analytics is disabled / has no data) #}
+  {% if analytics %}
+  <div class="card mb-6" style="padding:0">
+    <div class="flex items-center justify-between px-5 py-4" style="border-bottom:1px solid var(--color-border)">
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500">Analytics</h2>
+      <a href="{{ base_path }}/admin/analytics" class="text-sm font-medium" style="color:var(--color-accent)">Apri analytics →</a>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3">
+      <div class="px-5 py-5 grid grid-cols-2 gap-y-4 gap-x-3">
+        <div><p class="text-xs uppercase tracking-wider text-gray-500">Pageview 24h</p><p class="font-serif text-2xl text-gray-900 mt-1 leading-none">{{ analytics.realtime.pageviews_24h|default(0) }}</p></div>
+        <div><p class="text-xs uppercase tracking-wider text-gray-500">Sessioni attive</p><p class="font-serif text-2xl text-gray-900 mt-1 leading-none">{{ analytics.realtime.active_sessions|default(0) }}</p></div>
+        <div><p class="text-xs uppercase tracking-wider text-gray-500">Pageview 7gg</p><p class="font-serif text-2xl text-gray-900 mt-1 leading-none">{{ analytics.pv7 }}</p></div>
+        <div><p class="text-xs uppercase tracking-wider text-gray-500">Sessioni 7gg</p><p class="font-serif text-2xl text-gray-900 mt-1 leading-none">{{ analytics.sess7 }}</p></div>
+      </div>
+      <div class="px-5 py-5 lg:col-span-2" style="border-top:1px solid var(--color-border)">
+        <p class="text-xs uppercase tracking-wider text-gray-500 mb-3">Pageview · ultimi 7 giorni</p>
+        {% if analytics.series %}
+        <div class="flex items-end gap-2">
+          {% for d in analytics.series %}
+          <div class="flex-1 flex flex-col items-center">
+            <div class="w-full flex items-end justify-center" style="height:84px">
+              <div title="{{ d.date }}: {{ d.pv }} pageview · {{ d.sessions }} sessioni" style="width:100%; min-height:2px; height:{{ (d.pv / analytics.max_pv * 100)|round }}%; background:var(--color-accent); border-radius:6px 6px 0 0"></div>
+            </div>
+            <span class="text-gray-400 mt-1" style="font-size:10px">{{ d.date|date('d/m') }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-500">Nessun dato giornaliero ancora aggregato (gira <code>analytics:summarize</code>).</p>
+        {% endif %}
+      </div>
+    </div>
+    {% if analytics.top_pages %}
+    <div class="px-5 py-4" style="border-top:1px solid var(--color-border)">
+      <p class="text-xs uppercase tracking-wider text-gray-500 mb-3">Pagine più viste (ultimi 7 giorni)</p>
+      <div class="space-y-2">
+        {% for p in analytics.top_pages %}
+        <div class="flex items-center justify-between text-sm gap-4">
+          <span class="truncate text-gray-700">{{ p.page_title|default(p.page_url)|default('—') }}</span>
+          <span class="font-medium text-gray-900 flex-none">{{ p.views }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
   {# KPI stat blocks — real counts from the database #}
   <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
     <a href="{{ base_path }}/admin/albums" class="card p-5 hover:bg-gray-50 transition">
