@@ -24,6 +24,15 @@ class Updater
 
     /** Default GitHub repository slug (override with env UPDATER_REPO) */
     private const DEFAULT_REPO = 'fabiodalez-dev/cimaise';
+
+    /**
+     * Exception code marking a *transient* GitHub failure (5xx / 429 / connection
+     * drop) that survived the in-request retries. Callers that would otherwise
+     * flatten an exception to a null/"not found" result (e.g. getReleaseByVersion)
+     * inspect this code to re-throw instead, so a momentary GitHub outage is never
+     * reported to the user as a missing release.
+     */
+    private const ERR_GITHUB_UNAVAILABLE = 503;
     private readonly string $rootPath;
     private readonly string $backupPath;
     private readonly string $tempPath;
@@ -575,37 +584,105 @@ class Updater
     }
 
     /**
+     * Whether a GitHub GET should be retried: a dropped connection, any 5xx
+     * (GitHub's "Unicorn!" 502/503/504), or a 429 soft-throttle. These are all
+     * momentary and idempotent-safe to retry. A 4xx (404 missing release,
+     * 401/403 auth — already handled in httpGet) is NOT transient and must not
+     * be retried. Pure/static so it can be unit-tested without any HTTP.
+     */
+    public static function isTransientGitHubFailure(int $status, bool $connectionFailed): bool
+    {
+        return $connectionFailed
+            || ($status >= 500 && $status <= 599)
+            || $status === 429;
+    }
+
+    /**
      * Make HTTP request to GitHub API with detailed logging
      */
     private function makeGitHubRequest(string $url): ?array
     {
-        $this->debugLog('DEBUG', 'Preparing HTTP request', [
-            'url' => $url,
-            'method' => 'GET'
-        ]);
+        // GitHub occasionally returns a transient 5xx (the "Unicorn!" 502/503/504
+        // page) or 429 under soft-throttle, and the connection itself can fail on
+        // a flaky network. None of these mean the release is missing — they are
+        // momentary. Retry the GET (idempotent) a few times with a short backoff
+        // so a brief GitHub hiccup doesn't surface as a hard "update check failed"
+        // (or, worse, a misleading "Version not found" downstream).
+        $maxAttempts = 3;
+        $attempt = 0;
+        $response = false;
+        $statusCode = 0;
 
-        // SECURITY: no insecure TLS fallback (see httpGet). A failed certificate
-        // check must fail the request — silently disabling verification would
-        // let a MITM serve attacker-controlled data.
-        $result = $this->httpGet($url);
-        $response = $result['body'];
-        $statusCode = $result['status'];
+        do {
+            $attempt++;
 
-        $this->debugLog('DEBUG', 'HTTP response received', [
-            'response_length' => $response !== false ? strlen($response) : 0,
-            'status_code' => $statusCode
-        ]);
+            $this->debugLog('DEBUG', 'Preparing HTTP request', [
+                'url' => $url,
+                'method' => 'GET',
+                'attempt' => $attempt,
+                'max_attempts' => $maxAttempts,
+            ]);
+
+            // SECURITY: no insecure TLS fallback (see httpGet). A failed certificate
+            // check must fail the request — silently disabling verification would
+            // let a MITM serve attacker-controlled data.
+            $result = $this->httpGet($url);
+            $response = $result['body'];
+            $statusCode = $result['status'];
+
+            $this->debugLog('DEBUG', 'HTTP response received', [
+                'response_length' => $response !== false ? strlen($response) : 0,
+                'status_code' => $statusCode,
+                'attempt' => $attempt,
+            ]);
+
+            $isTransient = self::isTransientGitHubFailure($statusCode, $response === false);
+
+            if ($isTransient && $attempt < $maxAttempts) {
+                $this->debugLog('WARNING', 'Transient GitHub error, retrying after backoff', [
+                    'url' => $url,
+                    'status_code' => $statusCode,
+                    'connection_failed' => ($response === false),
+                    'attempt' => $attempt,
+                    'next_attempt_in_seconds' => $attempt,
+                ]);
+                sleep($attempt); // linear backoff: 1s, then 2s
+                continue;
+            }
+
+            break;
+        } while (true);
 
         if ($response === false) {
             $error = error_get_last();
             $this->debugLog('ERROR', 'HTTP request failed', [
                 'url' => $url,
-                'error' => $error
+                'error' => $error,
+                'attempts' => $attempt,
             ]);
 
             $this->diagnoseConnectionProblem($url);
 
-            throw new Exception('Cannot connect to GitHub: ' . ($error['message'] ?? 'Unknown error'));
+            throw new Exception(
+                'Cannot connect to GitHub: ' . ($error['message'] ?? 'Unknown error'),
+                self::ERR_GITHUB_UNAVAILABLE
+            );
+        }
+
+        if ($statusCode >= 500 && $statusCode <= 599) {
+            $this->debugLog('ERROR', 'GitHub API still unavailable after retries', [
+                'status_code' => $statusCode,
+                'attempts' => $attempt,
+                'response' => $response,
+            ]);
+
+            // A transient GitHub-side failure — do NOT phrase it as a missing
+            // release. Tell the user it is GitHub being momentarily unavailable
+            // and that retrying shortly will likely succeed.
+            throw new Exception(
+                "GitHub is temporarily unavailable (HTTP {$statusCode}). Please try again in a few minutes.",
+                self::ERR_GITHUB_UNAVAILABLE
+            );
         }
 
         if ($statusCode >= 400) {
@@ -1126,8 +1203,19 @@ class Updater
         } catch (Exception $e) {
             $this->debugLog('ERROR', 'Error fetching release by version', [
                 'version' => $version,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'code' => $e->getCode(),
             ]);
+
+            // A transient GitHub outage (5xx/429/connection drop) must NOT be
+            // collapsed into null here — that would surface downstream as the
+            // misleading "Version not found". Re-throw so the caller reports the
+            // real cause ("GitHub temporarily unavailable, retry shortly").
+            // A genuine 404 (tag really absent) still falls through to null.
+            if ($e->getCode() === self::ERR_GITHUB_UNAVAILABLE) {
+                throw $e;
+            }
+
             return null;
         }
     }

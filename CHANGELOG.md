@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The release workflow extracts the `## [VERSION]` section below into the GitHub
 release notes, so keep one section per released tag.
 
+## [1.4.9] - 2026-06-16
+### Fixed
+- Updater: a transient GitHub-side failure no longer breaks the update check or
+  surfaces as a misleading "Version not found". GitHub GET requests now retry on
+  5xx (the "Unicorn!" 502/503/504 page), 429 soft-throttle, and dropped
+  connections (up to 3 attempts with a short linear backoff), and when GitHub is
+  still unavailable after the retries the error message says so explicitly
+  ("GitHub is temporarily unavailable (HTTP 5xx). Please try again in a few
+  minutes.") instead of being collapsed into "Version not found" downstream.
+
 ## [1.4.8] - 2026-06-16
 ### Fixed
 - Lightbox caption: on mobile the description/equipment area now has a solid
@@ -106,6 +116,7 @@ release notes, so keep one section per released tag.
   (encrypted at rest), DELIMITER/BEGIN-END-aware migration SQL splitter, and a
   dual-DB migration smoke test.
 
+[1.4.9]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.9
 [1.4.8]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.8
 [1.4.7]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.7
 [1.4.6]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.6
