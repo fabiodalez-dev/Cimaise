@@ -66,6 +66,21 @@ module.exports = {
           50: '#fbeae6', 100: '#f6d2c8', 200: '#eaa996', 300: '#dd7d63', 400: '#c75940',
           500: '#b4452f', 600: '#9c3826', 700: '#7e2c1e', 800: '#65241a', 900: '#4f1d15',
         },
+        // Success / positive states → sage family (on-palette, distinct from the
+        // dark forest accent), instead of the jarring stock bright green.
+        green: {
+          50: '#eef3f0', 100: '#dde9e3', 200: '#c3d6cc', 300: '#a2c2b3', 400: '#84ab98',
+          500: '#6b9080', 600: '#557667', 700: '#445f53', 800: '#33473e', 900: '#26352f',
+        },
+        emerald: {
+          50: '#eef3f0', 100: '#dde9e3', 200: '#c3d6cc', 300: '#a2c2b3', 400: '#84ab98',
+          500: '#6b9080', 600: '#557667', 700: '#445f53', 800: '#33473e', 900: '#26352f',
+        },
+        // Warnings → the system amber (no stock yellow).
+        yellow: {
+          50: '#fdf6e8', 100: '#f9e9c4', 200: '#f2d18a', 300: '#ecbe5f', 400: '#ebb552',
+          500: '#d99a2f', 600: '#b97f1c', 700: '#8a5e0d', 800: '#6b4a0a', 900: '#4f3607',
+        },
       },
     },
   },

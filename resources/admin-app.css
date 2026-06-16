@@ -85,6 +85,14 @@ html.dark {
   box-shadow: 0 0 0 1px #1c322d !important;
 }
 
+/* @tailwindcss/forms colours checked checkboxes/radios with its stock blue.
+   Tie them to the accent so no stray blue control survives, even when a
+   checkbox carries no explicit text-accent utility. */
+[type='checkbox'],
+[type='radio'] {
+  color: var(--color-accent);
+}
+
 @tailwind components;
 @tailwind utilities;
 
