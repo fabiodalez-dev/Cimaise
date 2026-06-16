@@ -81,11 +81,15 @@ class DashboardController extends BaseController
             // Top pages over the same 7-day window.
             $topPages = [];
             try {
+                // Group by page_url alone (one row per URL even if its title
+                // changed) and pick a representative title with MAX(). MAX()
+                // also keeps page_title an aggregate, so this stays portable
+                // under MySQL's ONLY_FULL_GROUP_BY.
                 $stmt = $this->db->pdo()->prepare(
-                    'SELECT page_url, page_title, COUNT(*) AS views
+                    'SELECT page_url, MAX(page_title) AS page_title, COUNT(*) AS views
                      FROM analytics_pageviews
                      WHERE viewed_at >= ? AND viewed_at < ?
-                     GROUP BY page_url, page_title
+                     GROUP BY page_url
                      ORDER BY views DESC LIMIT 5'
                 );
                 $stmt->execute([$start . ' 00:00:00', date('Y-m-d 00:00:00', strtotime('+1 day'))]);
