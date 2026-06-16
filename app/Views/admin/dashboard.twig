@@ -150,7 +150,19 @@
     })();
   </script>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  <style nonce="{{ csp_nonce() }}">
+    .dash-launcher a { transition: background-color .15s ease, border-color .15s ease; }
+    .dash-launcher a i {
+      width: 44px; height: 44px; border-radius: 12px; flex: none;
+      display: inline-flex; align-items: center; justify-content: center; font-size: 18px;
+      background: var(--color-accent-soft); color: var(--color-accent);
+      transition: background-color .15s ease, color .15s ease;
+    }
+    .dash-launcher a:hover { border-color: var(--color-accent-soft-border); }
+    .dash-launcher a:hover i { background: var(--color-accent); color: var(--color-accent-contrast); }
+  </style>
+  <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Gestione</h2>
+  <div class="dash-launcher grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
     <a class="card p-6 hover:bg-gray-50 transition" href="{{ base_path }}/admin/albums">
       <div class="flex items-center justify-between">
         <div>
