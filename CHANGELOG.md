@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The release workflow extracts the `## [VERSION]` section below into the GitHub
 release notes, so keep one section per released tag.
 
+## [1.4.11] - 2026-06-16
+### Fixed
+- Lightbox caption was hidden behind the photo at full screen / when zoomed, and
+  appeared a beat late when opening. Root cause: PhotoSwipe core styles the
+  caption element (it carries `pswp__hide-on-close`) with
+  `.pswp .pswp__hide-on-close { z-index: 10 }` (specificity 0,2,0), which sat
+  below our zoomed-image `z-index: 30` and beat our single-class caption rule.
+  The caption is now pinned above the image with `z-index: 35 !important`,
+  removed from the zoom "demote" list (so it stays visible while zoomed/zooming,
+  including through the open animation), rendered earlier (PhotoSwipe
+  `firstUpdate`), and its fade removed (`transition: none`) so the solid bar
+  snaps in instead of appearing late. Service worker cache bumped to v5.
+
 ## [1.4.10] - 2026-06-16
 ### Fixed
 - Lightbox caption (mobile): the 1.4.8 "solid background" never actually applied
@@ -126,6 +139,7 @@ release notes, so keep one section per released tag.
   (encrypted at rest), DELIMITER/BEGIN-END-aware migration SQL splitter, and a
   dual-DB migration smoke test.
 
+[1.4.11]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.11
 [1.4.10]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.10
 [1.4.9]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.9
 [1.4.8]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.8

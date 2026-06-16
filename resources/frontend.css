@@ -282,11 +282,23 @@ html.dark #template-switcher .tpl-switch.bg-black {
     text-align: center;
     font-size: 14px;
     line-height: 1.5;
-    z-index: 28;
+    /* Above the zoomed image (raised to z-index:30 below) so the caption is
+       NEVER hidden behind the photo — neither at full screen/zoom nor during the
+       opening animation (PhotoSwipe keeps .pswp--zooming on through the open).
+       !important is REQUIRED: PhotoSwipe core sets `.pswp .pswp__hide-on-close
+       { z-index: 10 }` (specificity 0,2,0) on this element, which beats our
+       single-class rule; only !important wins over it without a specificity war.
+       Stays under the toolbar buttons (z-index:40). */
+    z-index: 35 !important;
     background: transparent;
     padding: 0 8px;
     border-radius: 0;
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    /* No opacity fade: a large solid bar fading in reads as "appearing late".
+       The fade is PhotoSwipe's own (.pswp__hide-on-close gets a 333ms
+       opacity transition in the core CSS, which loads after this file and wins
+       on equal specificity) — so !important is required to actually kill it.
+       The caption snaps in the instant it is rendered. */
+    transition: none !important;
     /* Hidden by default, shown via toggle button or when content exists */
     opacity: 0;
     pointer-events: none;
@@ -538,12 +550,13 @@ html.dark .pswp__custom-caption {
     z-index: 30;
 }
 
-.pswp--zoomed-in .pswp__custom-caption,
+/* When zoomed, the image is raised above the bottom UI clutter (counter,
+   bullets, …). The custom-caption is deliberately NOT in this list: it must
+   stay above the photo so the description/equipment is never hidden. */
 .pswp--zoomed-in .pswp__counter,
 .pswp--zoomed-in .pswp__bullets-indicator,
 .pswp--zoomed-in .pswp__meta-panel,
 .pswp--zoomed-in .pswp__zoom-indicator-br,
-.pswp--zooming .pswp__custom-caption,
 .pswp--zooming .pswp__counter,
 .pswp--zooming .pswp__bullets-indicator,
 .pswp--zooming .pswp__meta-panel,

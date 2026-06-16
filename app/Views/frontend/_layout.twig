@@ -2224,6 +2224,13 @@
                                     }
                                   }
                                 };
+                                // Render as early as possible so the caption is
+                                // already present when the photo finishes opening
+                                // (firstUpdate fires before the open animation;
+                                // currSlide.data/dataset is available by then). The
+                                // other two events keep it correct on navigation and
+                                // as a fallback if firstUpdate was too early.
+                                lb.pswp.on('firstUpdate', renderCaption);
                                 lb.pswp.on('change', renderCaption);
                                 lb.pswp.on('openingAnimationEnd', renderCaption);
                             }
@@ -2652,7 +2659,16 @@
           .pswp__bullet { width:8px; height:8px; border-radius:50%; background:#C0C0C0; }
           .pswp__bullet--active { background:#000; }
           html.dark .pswp__bullet--active { background:#fff; }
-          .pswp__custom-caption { z-index: 28; }
+          /* Must stay ABOVE the zoomed image (z-index:30) so the caption is
+             never hidden behind the photo at full screen / during the open
+             animation. This injected <style> is the effective rule (appended to
+             <head> after the linked CSS), so the value lives here too. */
+          /* !important: beats PhotoSwipe core .pswp .pswp__hide-on-close
+             (z-index:10, specificity 0,2,0) so the caption stays above the
+             zoomed image (z-index:30) and is never hidden behind the photo.
+             NOTE: no backticks in this comment — this whole block is a JS
+             template literal, backticks would terminate it. */
+          .pswp__custom-caption { z-index: 35 !important; }
           .pswp__custom-caption .cc-title { font-weight:600; margin-bottom:6px; }
           .pswp__custom-caption .cc-line { display:inline-flex; flex-wrap:wrap; gap:8px; justify-content:center; }
           .pswp__custom-caption .cc-item { display:inline-flex; gap:6px; align-items:center; color:inherit; }
