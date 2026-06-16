@@ -154,20 +154,24 @@
     .btn-secondary:hover {
       background-color: var(--color-border);
     }
+    /* Restrained destructive button: a normal (neutral) button with a quiet
+       terracotta label — NOT a red box. It only fills with terracotta on hover
+       so destructive actions are recognisable without flooding the UI with red. */
     .btn-outline-danger {
       background-color: transparent;
       color: #b4452f;
       padding: 8px 24px;
-      border: 1px solid #b4452f;
+      border: 1px solid var(--color-border);
       border-radius: 6px;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
-      transition: background-color 0.15s ease, color 0.15s ease;
+      transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
     }
     .btn-outline-danger:hover {
       background-color: #b4452f;
-      color: white;
+      color: #fff;
+      border-color: #b4452f;
     }
     .btn-outline-danger:disabled { 
       opacity: 0.5; 
