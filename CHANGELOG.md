@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The release workflow extracts the `## [VERSION]` section below into the GitHub
 release notes, so keep one section per released tag.
 
+## [1.4.7] - 2026-06-16
+### Fixed
+- Magazine album layout (`?template=3`): smoother scroll and no more "the
+  preloader adjusts and shifts the text" jump while loading.
+  - Reserved the template-switcher row height (`#template-switcher` min-height)
+    so it no longer grows when FontAwesome loads async and pushes the gallery
+    (and everything below) down — the visible layout jump on load. CLS on the
+    page dropped from ~0.38 to ~0.01.
+  - Flattened the magazine's `perspective`/`rotateX` (it was visually
+    imperceptible but forced the whole animated image subtree into a costly 3D
+    compositing context that repainted every frame) and added `contain` to the
+    columns, so the marquee scroll is noticeably smoother.
+
 ## [1.4.6] - 2026-06-16
 ### Fixed
 - Updater: clear the compiled Twig template cache, the file page cache and the DB
@@ -82,6 +95,7 @@ release notes, so keep one section per released tag.
   (encrypted at rest), DELIMITER/BEGIN-END-aware migration SQL splitter, and a
   dual-DB migration smoke test.
 
+[1.4.7]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.7
 [1.4.6]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.6
 [1.4.5]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.5
 [1.4.4]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.4

@@ -224,9 +224,11 @@
   .m-desktop-wrap { display: flex !important; }
 }
 
-/* Perspective effects */
-.perspective { transform: perspective(1200px) rotateX(0.8deg); }
-.perspective-tablet { transform: perspective(1000px) rotateX(0.6deg); }
+/* Perspective effects — flattened: the 0.8°/0.6° rotateX was visually
+   imperceptible but forced the whole animated subtree (many large images) into a
+   costly 3D compositing context, repainted every marquee frame → jank/scatti. */
+.perspective,
+.perspective-tablet { transform: none; }
 
 /* Mobile: singola colonna con tutte le immagini */
 .m-mobile { overflow: hidden; height: 220vh; position: relative; }
@@ -256,6 +258,9 @@
   height: 150vh;
   overflow: hidden;
   cursor: grab;
+  /* Isolate each column's paint/layout so the marquee repaints stay confined to
+     the column instead of the whole gallery → smoother scroll. */
+  contain: layout paint style;
 }
 
 .m-track { 

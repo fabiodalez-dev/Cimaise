@@ -175,6 +175,12 @@ html.no-js main .album-card {
     background: #000;
 }
 
+/* Reserve the switcher row's height so it doesn't grow when FontAwesome loads
+   async (the .tpl-switch <i> glyphs are ~0px until the icon font arrives, then
+   ~42px). Without this the row expands on FA load and pushes the gallery below
+   it down — a visible jump / CLS while the page is "still loading". */
+#template-switcher { min-height: 42px; box-sizing: border-box; }
+
 /* Simple tooltip for template buttons */
 .tpl-switch { position: relative; }
 .tpl-switch[data-tooltip]:hover::after,
