@@ -390,8 +390,8 @@ return function (App $app, array $container) {
         return $resp;
     });
 
-    $app->get('/admin', function (Request $request, Response $response) {
-        $controller = new \App\Controllers\Admin\DashboardController(Twig::fromRequest($request));
+    $app->get('/admin', function (Request $request, Response $response) use ($container) {
+        $controller = new \App\Controllers\Admin\DashboardController($container['db'], Twig::fromRequest($request));
         return $controller->index($request, $response);
     })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
         $resp = new \Slim\Psr7\Response(503);
