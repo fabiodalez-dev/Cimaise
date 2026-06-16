@@ -13,18 +13,18 @@
   {% if analytics %}
   <div class="card mb-6" style="padding:0">
     <div class="flex items-center justify-between px-5 py-4" style="border-bottom:1px solid var(--color-border)">
-      <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500">Analytics</h2>
-      <a href="{{ base_path }}/admin/analytics" class="text-sm font-medium" style="color:var(--color-accent)">Apri analytics →</a>
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ trans('admin.dashboard.analytics') }}</h2>
+      <a href="{{ base_path }}/admin/analytics" class="text-sm font-medium" style="color:var(--color-accent)">{{ trans('admin.dashboard.open_analytics') }}</a>
     </div>
     <div class="grid grid-cols-1 lg:grid-cols-3">
       <div class="px-5 py-5 grid grid-cols-2 gap-y-4 gap-x-3">
-        <div><p class="text-xs uppercase tracking-wider text-gray-500">Pageview 24h</p><p class="font-serif text-2xl text-gray-900 mt-1 leading-none">{{ analytics.realtime.pageviews_24h|default(0) }}</p></div>
-        <div><p class="text-xs uppercase tracking-wider text-gray-500">Sessioni attive</p><p class="font-serif text-2xl text-gray-900 mt-1 leading-none">{{ analytics.realtime.active_sessions|default(0) }}</p></div>
-        <div><p class="text-xs uppercase tracking-wider text-gray-500">Pageview 7gg</p><p class="font-serif text-2xl text-gray-900 mt-1 leading-none">{{ analytics.pv7 }}</p></div>
-        <div><p class="text-xs uppercase tracking-wider text-gray-500">Sessioni 7gg</p><p class="font-serif text-2xl text-gray-900 mt-1 leading-none">{{ analytics.sess7 }}</p></div>
+        <div><p class="text-xs uppercase tracking-wider text-gray-500">{{ trans('admin.dashboard.pageviews_24h') }}</p><p class="font-serif text-2xl text-gray-900 mt-1 leading-none">{{ analytics.realtime.pageviews_24h|default(0) }}</p></div>
+        <div><p class="text-xs uppercase tracking-wider text-gray-500">{{ trans('admin.dashboard.active_sessions') }}</p><p class="font-serif text-2xl text-gray-900 mt-1 leading-none">{{ analytics.realtime.active_sessions|default(0) }}</p></div>
+        <div><p class="text-xs uppercase tracking-wider text-gray-500">{{ trans('admin.dashboard.pageviews_7d') }}</p><p class="font-serif text-2xl text-gray-900 mt-1 leading-none">{{ analytics.pv7 }}</p></div>
+        <div><p class="text-xs uppercase tracking-wider text-gray-500">{{ trans('admin.dashboard.sessions_7d') }}</p><p class="font-serif text-2xl text-gray-900 mt-1 leading-none">{{ analytics.sess7 }}</p></div>
       </div>
       <div class="px-5 py-5 lg:col-span-2" style="border-top:1px solid var(--color-border)">
-        <p class="text-xs uppercase tracking-wider text-gray-500 mb-3">Pageview · ultimi 7 giorni</p>
+        <p class="text-xs uppercase tracking-wider text-gray-500 mb-3">{{ trans('admin.dashboard.pageviews_last_7days') }}</p>
         {% if analytics.series %}
         <div class="flex items-end gap-2">
           {% for d in analytics.series %}
@@ -37,13 +37,13 @@
           {% endfor %}
         </div>
         {% else %}
-        <p class="text-sm text-gray-500">Nessun dato giornaliero ancora aggregato (gira <code>analytics:summarize</code>).</p>
+        <p class="text-sm text-gray-500">{{ trans('admin.dashboard.no_daily_data', {'command': '<code>analytics:summarize</code>'})|raw }}</p>
         {% endif %}
       </div>
     </div>
     {% if analytics.top_pages %}
     <div class="px-5 py-4" style="border-top:1px solid var(--color-border)">
-      <p class="text-xs uppercase tracking-wider text-gray-500 mb-3">Pagine più viste (ultimi 7 giorni)</p>
+      <p class="text-xs uppercase tracking-wider text-gray-500 mb-3">{{ trans('admin.dashboard.top_pages') }}</p>
       <div class="space-y-2">
         {% for p in analytics.top_pages %}
         <div class="flex items-center justify-between text-sm gap-4">
@@ -62,17 +62,17 @@
     <a href="{{ base_path }}/admin/albums" class="card p-5 hover:bg-gray-50 transition">
       <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ trans('admin.dashboard.albums') }}</p>
       <p class="font-serif text-3xl text-gray-900 mt-2 leading-none">{{ stats.albums|default(0) }}</p>
-      <p class="text-xs text-gray-500 mt-2">{{ stats.published|default(0) }} pubbl. · {{ stats.drafts|default(0) }} bozze</p>
+      <p class="text-xs text-gray-500 mt-2">{{ stats.published|default(0) }} {{ trans('admin.dashboard.published_abbr') }} · {{ stats.drafts|default(0) }} {{ trans('admin.dashboard.drafts_abbr') }}</p>
     </a>
     <a href="{{ base_path }}/admin/media" class="card p-5 hover:bg-gray-50 transition">
-      <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">Foto</p>
+      <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ trans('admin.dashboard.photos') }}</p>
       <p class="font-serif text-3xl text-gray-900 mt-2 leading-none">{{ stats.photos|default(0) }}</p>
-      <p class="text-xs text-gray-500 mt-2">immagini in libreria</p>
+      <p class="text-xs text-gray-500 mt-2">{{ trans('admin.dashboard.photos_desc') }}</p>
     </a>
     <div class="card p-5" style="background: var(--color-accent); color: var(--color-accent-contrast); border-color: var(--color-accent);">
-      <p class="text-xs font-semibold uppercase tracking-wider" style="opacity:.72">Spazio usato</p>
+      <p class="text-xs font-semibold uppercase tracking-wider" style="opacity:.72">{{ trans('admin.dashboard.storage_used') }}</p>
       <p class="font-serif text-3xl mt-2 leading-none">{{ stats.storage_human|default('0 MB') }}</p>
-      <p class="text-xs mt-2" style="opacity:.72">varianti generate</p>
+      <p class="text-xs mt-2" style="opacity:.72">{{ trans('admin.dashboard.storage_desc') }}</p>
     </div>
     <a href="{{ base_path }}/admin/categories" class="card p-5 hover:bg-gray-50 transition">
       <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ trans('admin.dashboard.categories') }}</p>
@@ -92,8 +92,8 @@
   {% if recentAlbums is defined and recentAlbums %}
   <div class="card overflow-hidden mb-6" style="padding:0">
     <div class="flex items-center justify-between px-5 py-4" style="border-bottom:1px solid var(--color-border)">
-      <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500">Ultimi album aggiornati</h2>
-      <a href="{{ base_path }}/admin/albums" class="text-sm font-medium" style="color:var(--color-accent)">Tutti gli album →</a>
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ trans('admin.dashboard.recent_albums') }}</h2>
+      <a href="{{ base_path }}/admin/albums" class="text-sm font-medium" style="color:var(--color-accent)">{{ trans('admin.dashboard.all_albums') }}</a>
     </div>
     <div>
       {% for al in recentAlbums %}
@@ -108,9 +108,9 @@
           <span class="block text-xs text-gray-500 truncate">{{ al.slug }}</span>
         </span>
         {% if al.is_published %}
-          <span class="text-xs font-semibold px-2.5 py-1 rounded-full" style="background:var(--color-accent-soft); color:var(--color-accent)">Pubblicato</span>
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full" style="background:var(--color-accent-soft); color:var(--color-accent)">{{ trans('admin.albums.published') }}</span>
         {% else %}
-          <span class="text-xs font-semibold px-2.5 py-1 rounded-full text-gray-500" style="background:var(--color-bg-tertiary)">Bozza</span>
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full text-gray-500" style="background:var(--color-bg-tertiary)">{{ trans('admin.albums.draft') }}</span>
         {% endif %}
       </a>
       {% endfor %}
@@ -144,7 +144,7 @@
           credentials: 'same-origin'
         }).then(function(r){ if (!r.ok) throw new Error('cache-clear-failed'); return r.json(); })
           .then(function(d){ if (msg) { msg.className = 'text-sm text-green-600'; msg.textContent = (d && d.message) ? d.message : '{{ trans('admin.dashboard.cache_done')|e('js') }}'; } })
-          .catch(function(){ if (msg) { msg.className = 'text-sm text-red-600'; msg.textContent = 'Error'; } })
+          .catch(function(){ if (msg) { msg.className = 'text-sm text-red-600'; msg.textContent = '{{ trans('admin.dashboard.error')|e('js') }}'; } })
           .then(function(){ btn.disabled = false; setTimeout(function(){ if (msg) msg.textContent = ''; }, 4000); });
       });
     })();
@@ -161,7 +161,7 @@
     .dash-launcher a:hover { border-color: var(--color-accent-soft-border); }
     .dash-launcher a:hover i { background: var(--color-accent); color: var(--color-accent-contrast); }
   </style>
-  <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Gestione</h2>
+  <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">{{ trans('admin.dashboard.management') }}</h2>
   <div class="dash-launcher grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
     <a class="card p-6 hover:bg-gray-50 transition" href="{{ base_path }}/admin/albums">
       <div class="flex items-center justify-between">

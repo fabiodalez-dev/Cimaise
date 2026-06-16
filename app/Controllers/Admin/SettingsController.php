@@ -339,8 +339,16 @@ class SettingsController extends BaseController
             }
             // Run the command in the background to prevent timeouts. All parts are
             // constant or escaped; the only variable is the validated app path.
+            // Use a unique log path (tempnam) instead of a fixed, predictable
+            // name in the shared temp dir: a pre-existing file or symlink at a
+            // guessable path could otherwise clobber the redirect or divert the
+            // write to an unintended destination (local DoS / file-clobber).
+            $logPath = tempnam(sys_get_temp_dir(), 'image_generation_');
+            if ($logPath === false) {
+                throw new \RuntimeException('Unable to create image generation log file');
+            }
             $cmd = 'nohup ' . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($consoleReal)
-                . ' images:generate --missing > ' . escapeshellarg(sys_get_temp_dir() . '/image_generation.log') . ' 2>&1 &';
+                . ' images:generate --missing > ' . escapeshellarg($logPath) . ' 2>&1 &';
             // nosemgrep: reviewed — every command part is escaped (escapeshellarg)
             // and the only variable is the app's own bin/console path, validated
             // with realpath() to live under the app root. No user input reaches
