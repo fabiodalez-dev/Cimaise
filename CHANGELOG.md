@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The release workflow extracts the `## [VERSION]` section below into the GitHub
 release notes, so keep one section per released tag.
 
+## [1.4.12] - 2026-06-16
+### Changed
+- Lightbox caption now fully hides when the photo is zoomed in / shown full
+  screen, so the enlarged image is unobstructed. Building on 1.4.11 (which keeps
+  the caption readable above the photo in the fit view), entering zoom now sets
+  the caption to `opacity:0; pointer-events:none` instead of leaving it to
+  overlap the enlarged image; returning to fit restores its toggled state.
+
 ## [1.4.11] - 2026-06-16
 ### Fixed
 - Lightbox caption was hidden behind the photo at full screen / when zoomed, and
@@ -139,6 +147,7 @@ release notes, so keep one section per released tag.
   (encrypted at rest), DELIMITER/BEGIN-END-aware migration SQL splitter, and a
   dual-DB migration smoke test.
 
+[1.4.12]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.12
 [1.4.11]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.11
 [1.4.10]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.10
 [1.4.9]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.9

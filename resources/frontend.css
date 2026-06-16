@@ -550,9 +550,7 @@ html.dark .pswp__custom-caption {
     z-index: 30;
 }
 
-/* When zoomed, the image is raised above the bottom UI clutter (counter,
-   bullets, …). The custom-caption is deliberately NOT in this list: it must
-   stay above the photo so the description/equipment is never hidden. */
+/* When zoomed, the image is raised above the bottom UI clutter. */
 .pswp--zoomed-in .pswp__counter,
 .pswp--zoomed-in .pswp__bullets-indicator,
 .pswp--zoomed-in .pswp__meta-panel,
@@ -563,6 +561,19 @@ html.dark .pswp__custom-caption {
 .pswp--zooming .pswp__zoom-indicator-br {
     z-index: 1;
     pointer-events: none;
+}
+
+/* Full screen / zoomed-in: HIDE the caption entirely so the photo is shown
+   unobstructed (the bar must not overlap the enlarged image). This fully hides
+   it (opacity:0) rather than the old approach of pushing it behind the image —
+   which left it half-visible and fighting the zoomed-image z-index. The
+   `.visible` variant is included so it wins over `.pswp__custom-caption.visible
+   { opacity:1 !important }` (higher specificity, 0,3,0). When the user returns
+   to fit (zoomed-in removed), the caption restores to its toggled state. */
+.pswp--zoomed-in .pswp__custom-caption,
+.pswp--zoomed-in .pswp__custom-caption.visible {
+    opacity: 0 !important;
+    pointer-events: none !important;
 }
 
 .pswp--zoomed-in .pswp__top-bar,
