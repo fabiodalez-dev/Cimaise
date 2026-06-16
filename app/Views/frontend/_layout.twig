@@ -2145,13 +2145,11 @@
                             name: 'custom-caption', order: 9, isButton: false, appendTo: 'root',
                             onInit: (el, pswp) => {
                                 el.className = 'pswp__custom-caption pswp__hide-on-close';
-                                // Styles are defined in CSS, only set positioning here
-                                el.style.cssText = `
-                                    position: absolute; left: 50%; transform: translateX(-50%);
-                                    bottom: 40px; width: min(1100px, calc(100% - 24px));
-                                    background: transparent; padding: 0 8px;
-                                    font-size: 14px; line-height: 1.5; text-align: center;
-                                `;
+                                // ALL styling lives in CSS (.pswp__custom-caption + its
+                                // responsive @media). Do NOT set inline styles here: an
+                                // inline style="" overrides the stylesheet (including the
+                                // mobile rule), which is exactly what hid the mobile
+                                // background/padding before.
                                 const renderCaption = () => {
                                   const curr = lb.pswp.currSlide && lb.pswp.currSlide.data && lb.pswp.currSlide.data.element;
                                   if (!curr) {

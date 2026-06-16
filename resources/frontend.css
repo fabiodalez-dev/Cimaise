@@ -272,18 +272,20 @@ html.dark #template-switcher .tpl-switch.bg-black {
 
 /* Migliorate PhotoSwipe caption con responsive design */
 .pswp__custom-caption {
+    /* Desktop: centered, transparent overlay (no card, no rounded corners). */
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
-    bottom: 56px;
-    max-width: 95vw;
+    bottom: 40px;
+    width: min(1100px, calc(100% - 24px));
+    max-width: none;
     text-align: center;
     font-size: 14px;
-    line-height: 1.3;
+    line-height: 1.5;
     z-index: 28;
-    background: none;
-    padding: 16px;
-    border-radius: 6px;
+    background: transparent;
+    padding: 0 8px;
+    border-radius: 0;
     transition: opacity 0.3s ease, transform 0.3s ease;
     /* Hidden by default, shown via toggle button or when content exists */
     opacity: 0;
@@ -484,21 +486,27 @@ html.dark .pswp__custom-caption {
 /* Responsive adjustments per caption */
 @media (max-width: 640px) {
     .pswp__custom-caption {
-        max-width: 98vw;
-        bottom: 36px;
-        padding: 10px 14px;
+        /* Full-width caption bar flush to the bottom edge — no floating card.
+           Solid background keeps the text readable over the photo. */
+        left: 0;
+        right: 0;
+        transform: none;
+        max-width: none;
+        width: 100%;
+        bottom: 0;
+        padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
         font-size: 13px;
-        /* Solid background so the description/equipment text never overlaps the
-           photo on mobile (the default transparent bg made it unreadable). */
         background: #ffffff;
         color: #171717;
-        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
+        /* No rounded corners, no shadow — it's an edge-to-edge bar. */
+        border-radius: 0;
+        box-shadow: none;
     }
-    /* Dark mode: keep a solid (dark) card so the light text stays readable. */
+    /* Dark mode: solid dark bar so the light text stays readable. */
     html.dark .pswp__custom-caption {
         background: #171717;
         color: #fafafa;
-        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.6);
+        box-shadow: none;
     }
 }
 
