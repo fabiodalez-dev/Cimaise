@@ -624,12 +624,17 @@ class AnalyticsService
             $stmt->execute([$todayStart, $tomorrowStart]);
             $today = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            // Top pages today
+            // Top pages today.
+            // Cross-DB: every non-aggregated column in the SELECT must appear in
+            // GROUP BY. MySQL's ONLY_FULL_GROUP_BY (on by default since 5.7)
+            // rejects bare page_title with error 1055; SQLite tolerates it. Group
+            // by both so the statement is portable — otherwise the PDOException
+            // bubbles up and the broad catch below zeroes out realtime/today too.
             $stmt = $this->db->prepare('
                 SELECT page_url, page_title, COUNT(*) as views
                 FROM analytics_pageviews
                 WHERE viewed_at >= ? AND viewed_at < ?
-                GROUP BY page_url
+                GROUP BY page_url, page_title
                 ORDER BY views DESC
                 LIMIT 5
             ');

@@ -26,8 +26,12 @@ class CompatSmokeCommand extends Command
 
         $pdo->beginTransaction();
         try {
-            // Ensure base rows exist
-            @ $pdo->exec("PRAGMA foreign_keys = ON");
+            // Ensure base rows exist. PRAGMA is SQLite-only and raises a 1064
+            // syntax error on MySQL (the @ does not suppress PDOException), so
+            // guard it on the driver rather than swallowing the failure.
+            if ($this->db->isSqlite()) {
+                $pdo->exec('PRAGMA foreign_keys = ON');
+            }
 
             // Create a category
             $cStmt = $pdo->prepare('INSERT INTO categories(name, slug, sort_order) VALUES(:n, :s, 0)');
