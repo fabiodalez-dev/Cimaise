@@ -193,6 +193,13 @@ class UploadService
             $info = @getimagesize($path);
             return $info === false ? null : [(int) $info[0], (int) $info[1]];
         }
+        // HEIC/HEIF: prefer libvips (header/sequential, bomb-safe) so vips-only
+        // hosts can measure admitted HEIC. Aligns with the heif_read gate
+        // (vips-OR-Imagick). Falls back to Imagick pingImage, then null.
+        $vipsDims = \App\Services\Imaging\ImageEngine::dimensions($path);
+        if ($vipsDims !== null) {
+            return $vipsDims;
+        }
         if (class_exists(\Imagick::class) && !$this->imagickDisabled()) {
             try {
                 $im = new \Imagick();
@@ -268,11 +275,12 @@ class UploadService
         // Normalize image orientation if needed
         if (isset($exif['Orientation']) && $exif['Orientation'] > 1) {
             $exifSvc->normalizeOrientation($dest, (int)$exif['Orientation']);
-            // Re-read dimensions after rotation
-            $size = getimagesize($dest);
-            if ($size) {
-                $width = $size[0];
-                $height = $size[1];
+            // Re-read dimensions after rotation via the HEIC-aware reader
+            // (bare getimagesize() can't measure HEIC originals). Keep prior
+            // values if the re-read fails — never zero out the dimensions.
+            $redims = $this->readImageDimensions($dest, $mime);
+            if ($redims !== null) {
+                [$width, $height] = $redims;
             }
         }
 
@@ -362,6 +370,17 @@ class UploadService
         $previewW = (int)($previewSettings['width'] ?? 480);
         $previewPath = $mediaDir . '/' . $imageId . '_sm.jpg';
         $preview = ImagesService::generateJpegPreview($dest, $previewPath, $previewW);
+        // generateJpegPreview() routes through GD/getimagesize() which cannot
+        // read HEIC/HEIF, so it returns null for iPhone originals. Fall back to
+        // the HEIC-capable variant path (ImageEngine::encode via vips/Imagick),
+        // which writes the SAME jpg sm preview. Protected/NSFW media stays in
+        // $mediaDir, so the path resolution is unchanged.
+        $isHeifOriginal = $mime === 'image/heic' || $mime === 'image/heif';
+        if (!$preview && $isHeifOriginal
+            && $this->resizeWithImagickOrGd($dest, $previewPath, $previewW, 'jpg', 82)
+            && is_file($previewPath)) {
+            $preview = $previewPath;
+        }
         if ($preview) {
             // The URL stays stable; MediaController maps it to public/ or
             // storage/protected-media after checking album access.
@@ -399,9 +418,20 @@ class UploadService
     {
         // Fast path (#109): libvips when available; falls through to Imagick
         // (below) when vips is absent or can't handle this format.
-        if (\App\Services\Imaging\ImageEngine::encode($src, $dest, $targetW, $format, $quality)) {
+        if (\App\Services\Imaging\ImageEngine::encode($src, $dest, $targetW, $format, $quality, $this->envFlag('STRIP_EXIF', true))) {
             return true;
         }
+        return $this->resizeWithImagickOnly($src, $dest, $targetW, $format, $quality);
+    }
+
+    /**
+     * Imagick-only resize (no libvips fast-path prefix). Extracted from
+     * resizeWithImagick() so resizeWithImagickOrGd()'s fallback can reach the
+     * Imagick body without re-running ImageEngine::encode() a second time
+     * (which already failed once at the top of resizeWithImagickOrGd).
+     */
+    private function resizeWithImagickOnly(string $src, string $dest, int $targetW, string $format, int $quality): bool
+    {
         try {
             self::applyImagickLimits();
             $im = new \Imagick($src);
@@ -437,11 +467,13 @@ class UploadService
     {
         // Fast path (#109): libvips when available (low-memory, reads HEIC).
         // Returns false when vips is absent/unable → fall through to Imagick/GD.
-        if (\App\Services\Imaging\ImageEngine::encode($src, $dest, $targetW, $format, $quality)) {
+        if (\App\Services\Imaging\ImageEngine::encode($src, $dest, $targetW, $format, $quality, $this->envFlag('STRIP_EXIF', true))) {
             return true;
         }
         if (class_exists(\Imagick::class) && !$this->imagickDisabled()) {
-            return $this->resizeWithImagick($src, $dest, $targetW, $format, $quality);
+            // encode() already attempted+failed above; call the Imagick-only
+            // body directly to avoid a redundant second encode() pass.
+            return $this->resizeWithImagickOnly($src, $dest, $targetW, $format, $quality);
         }
         // GD fallback JPEG only
         $info = @getimagesize($src);

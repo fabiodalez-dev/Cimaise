@@ -6,6 +6,7 @@ namespace App\Tasks;
 
 use App\Services\SettingsService;
 use App\Support\Database;
+use App\Support\Logger;
 use App\Traits\RegistersImageVariants;
 use Imagick;
 use RuntimeException;
@@ -180,12 +181,16 @@ class ImagesGenerateCommand extends Command
                     // the request; we then fall back to the existing Imagick/GD
                     // path below (zero behaviour change on hosts without vips).
                     $engineFmt = $fmt === 'jpg' ? 'jpeg' : $fmt;
+                    // Honour STRIP_EXIF (default true) so vips doesn't always
+                    // strip when the operator opted to retain metadata.
+                    $stripExif = filter_var(getenv('STRIP_EXIF') ?: 'true', FILTER_VALIDATE_BOOL);
                     $ok = \App\Services\Imaging\ImageEngine::encode(
                         $src,
                         $dest,
                         (int)$width,
                         $engineFmt,
-                        (int)($quality[$fmt] ?? 82)
+                        (int)($quality[$fmt] ?? 82),
+                        $stripExif
                     );
 
                     if (!$ok) {
@@ -203,16 +208,30 @@ class ImagesGenerateCommand extends Command
                     }
 
                     if ($ok) {
-                        $size = (int)filesize($dest);
-                        [$w, $h] = getimagesize($dest) ?: [(int)$width, 0];
-                        $replaceKeyword = $this->db->replaceKeyword();
-                        $stmt = $pdo->prepare(sprintf(
-                            '%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)',
-                            $replaceKeyword
-                        ));
-                        $stmt->execute([$imageId, $variant, $fmt, $destRelUrl, $w, $h, $size]);
-                        $variantsGenerated++;
-                        $totalGenerated++;
+                        // Defence-in-depth: a single constraint failure (e.g. a
+                        // format the DB schema doesn't yet allow) must not abort
+                        // the whole run — log and continue with the next variant.
+                        try {
+                            $size = (int)filesize($dest);
+                            [$w, $h] = getimagesize($dest) ?: [(int)$width, 0];
+                            $replaceKeyword = $this->db->replaceKeyword();
+                            $stmt = $pdo->prepare(sprintf(
+                                '%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)',
+                                $replaceKeyword
+                            ));
+                            $stmt->execute([$imageId, $variant, $fmt, $destRelUrl, $w, $h, $size]);
+                            $variantsGenerated++;
+                            $totalGenerated++;
+                        } catch (\Throwable $e) {
+                            Logger::warning('ImagesGenerateCommand: failed to record image variant', [
+                                'image_id' => $imageId,
+                                'variant'  => $variant,
+                                'format'   => $fmt,
+                                'error'    => $e->getMessage(),
+                            ], 'imaging');
+                            $output->writeln("<error>Failed to record {$fmt} variant {$variant} for image #{$imageId}: {$e->getMessage()}</error>");
+                            $totalErrors++;
+                        }
                     } else {
                         $output->writeln("<error>Failed to generate {$fmt} variant {$variant} for image #{$imageId}</error>");
                         $totalErrors++;

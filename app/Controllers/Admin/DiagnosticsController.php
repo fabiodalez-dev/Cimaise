@@ -230,7 +230,9 @@ class DiagnosticsController extends BaseController
             'value' => $engine,
             'message' => $caps['vips']
                 ? 'libvips active (fast, low-memory variant generation)'
-                : ($caps['imagick'] ? 'Imagick active (install php-vips for faster, lower-memory generation)' : 'No capable image engine'),
+                : ($caps['imagick']
+                    ? 'Imagick active (install php-vips for faster, lower-memory generation)'
+                    : ($caps['gd'] ? 'GD active — basic image processing only; install php-vips or Imagick for full variant generation' : 'No capable image engine')),
             'details' => [
                 'Engine'        => $engine,
                 'libvips'       => $caps['vips'] ? 'Yes' : 'No',

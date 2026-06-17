@@ -123,6 +123,31 @@ final class ImageEngine
     }
 
     /**
+     * Read [width, height] for a source image via libvips, header/sequential
+     * only (no full decode → preserves decompression-bomb safety). Returns null
+     * when vips is unavailable or cannot read the input, so callers fall back to
+     * their existing Imagick ping path.
+     *
+     * @return array{0:int,1:int}|null
+     */
+    public static function dimensions(string $src): ?array
+    {
+        if (!self::vipsAvailable()) {
+            return null;
+        }
+        try {
+            // 'sequential' access reads only what's needed off the header/stream
+            // rather than buffering the whole raster — no full decode.
+            $img = \Jcupitt\Vips\Image::newFromFile($src, ['access' => 'sequential']);
+            $w = (int) $img->width;
+            $h = (int) $img->height;
+            return ($w > 0 && $h > 0) ? [$w, $h] : null;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
      * Best-effort post-encode optimization via an installed CLI optimizer.
      * Silent no-op when no suitable binary is present.
      */
