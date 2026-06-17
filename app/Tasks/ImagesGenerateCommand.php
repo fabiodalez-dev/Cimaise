@@ -124,6 +124,12 @@ class ImagesGenerateCommand extends Command
                 continue;
             }
 
+            // Source dimensions, used to derive variant height for formats
+            // getimagesize() cannot read back from the generated file (JPEG-XL).
+            $srcDims = @getimagesize($src);
+            $srcW = (int)($srcDims[0] ?? 0);
+            $srcH = (int)($srcDims[1] ?? 0);
+
             $existingStmt = $pdo->prepare('SELECT variant, format, path FROM image_variants WHERE image_id = ?');
             $existingStmt->execute([$imageId]);
             $existingVariants = [];
@@ -213,7 +219,17 @@ class ImagesGenerateCommand extends Command
                         // the whole run — log and continue with the next variant.
                         try {
                             $size = (int)filesize($dest);
-                            [$w, $h] = getimagesize($dest) ?: [(int)$width, 0];
+                            $probe = @getimagesize($dest);
+                            if ($probe !== false) {
+                                [$w, $h] = $probe;
+                            } else {
+                                // getimagesize() can't read JPEG-XL: derive the
+                                // dims from the source aspect ratio and the
+                                // (never-upscaled) target width so height is
+                                // never silently stored as 0.
+                                $w = ($srcW > 0 && (int)$width > $srcW) ? $srcW : (int)$width;
+                                $h = ($srcW > 0 && $srcH > 0) ? (int)round($w * $srcH / $srcW) : 0;
+                            }
                             $replaceKeyword = $this->db->replaceKeyword();
                             $stmt = $pdo->prepare(sprintf(
                                 '%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)',

@@ -51,7 +51,10 @@ final class ImageEngine
             // Imagick HEIC delegate.
             'heif_read'     => ($vips && self::vipsCanLoad('probe.heic')) || self::imagickSupports('HEIC'),
             'avif_write'    => ($vips && self::vipsCanWrite('.avif')) || self::imagickSupports('AVIF'),
-            'jxl_write'     => $vips && self::vipsCanWrite('.jxl'),
+            // JPEG-XL: libvips+libjxl when available, otherwise the standalone
+            // cjxl (libjxl) CLI with Imagick producing the resized intermediate.
+            'jxl_write'     => ($vips && self::vipsCanWrite('.jxl'))
+                || (class_exists(\Imagick::class) && self::binaryExists('cjxl')),
             // Post-encode optimizer (only jpegoptim is actually invoked, for
             // jpeg variants; webp/avif/jxl are emitted at target quality and
             // PNG is never produced, so no other optimizer is detected).
@@ -84,12 +87,19 @@ final class ImageEngine
         int $quality,
         bool $strip = true
     ): bool {
-        if (!self::vipsAvailable()) {
-            return false;
-        }
-
         $targetW = max(1, $targetW);
         $quality = max(1, min(100, $quality));
+
+        if (!self::vipsAvailable()) {
+            // No libvips. JPEG-XL has no Imagick/GD path in the callers, but the
+            // standalone cjxl (libjxl) encoder can still produce it from an
+            // Imagick-resized intermediate. Every other format falls through to
+            // the caller's existing Imagick/GD fallback (return false).
+            if ($format === 'jxl') {
+                return self::encodeJxlViaCjxl($src, $dest, $targetW, $quality, $strip);
+            }
+            return false;
+        }
 
         try {
             // thumbnail() shrinks on load (decodes only what's needed) — the
@@ -119,6 +129,74 @@ final class ImageEngine
                 'src'    => $src,
                 'format' => $format,
                 'error'  => $e->getMessage(),
+            ], 'imaging');
+            // vips is present but couldn't write this format (e.g. a libvips
+            // build without libjxl). For JPEG-XL, try the standalone cjxl
+            // encoder before giving up — the Imagick/GD caller fallback can't
+            // emit jxl, so this is the only remaining route.
+            if ($format === 'jxl') {
+                return self::encodeJxlViaCjxl($src, $dest, $targetW, $quality, $strip);
+            }
+            return false;
+        }
+    }
+
+    /**
+     * Encode a resized JPEG-XL variant via the standalone cjxl (libjxl) CLI,
+     * for hosts whose libvips lacks libjxl. Imagick produces the resized,
+     * metadata-stripped PNG intermediate; cjxl transcodes it to .jxl. Returns
+     * false when neither Imagick nor cjxl is usable so the caller can skip jxl.
+     */
+    private static function encodeJxlViaCjxl(string $src, string $dest, int $targetW, int $quality, bool $strip): bool
+    {
+        if (!class_exists(\Imagick::class) || !self::binaryExists('cjxl')) {
+            return false;
+        }
+        $pngTmp = null;
+        try {
+            $im = new \Imagick();
+            $im->readImage($src);
+            // Never upscale; 0 height preserves the aspect ratio.
+            if ($im->getImageWidth() > $targetW) {
+                $im->thumbnailImage($targetW, 0);
+            }
+            if ($strip) {
+                $im->stripImage();
+            }
+            $im->setImageFormat('png');
+
+            $base = tempnam(sys_get_temp_dir(), 'cimaise_jxl_');
+            if ($base === false) {
+                $im->clear();
+                return false;
+            }
+            // cjxl picks the input codec by extension, so give the intermediate
+            // a .png suffix (tempnam can't set one).
+            $pngTmp = $base . '.png';
+            @unlink($base);
+            $im->writeImage($pngTmp);
+            $im->clear();
+
+            if (!is_dir(dirname($dest))) {
+                @mkdir(dirname($dest), 0775, true);
+            }
+            // cjxl refuses to overwrite silently on some builds; clear first.
+            if (is_file($dest)) {
+                @unlink($dest);
+            }
+            // argv array → no shell (see run()); $quality is a clamped int and
+            // the paths are app-controlled, never interpolated into a command.
+            self::run(['cjxl', $pngTmp, $dest, '-q', (string) $quality]);
+            @unlink($pngTmp);
+
+            return is_file($dest) && (int) filesize($dest) > 0;
+        } catch (\Throwable $e) {
+            if ($pngTmp !== null) {
+                @unlink($pngTmp);
+            }
+            Logger::warning('ImageEngine: cjxl encode failed', [
+                'src'   => $src,
+                'error' => $e->getMessage(),
             ], 'imaging');
             return false;
         }
