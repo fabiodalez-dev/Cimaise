@@ -133,8 +133,16 @@ class ImagesGenerateCommand extends Command
 
             $variantsGenerated = 0;
             foreach ($breakpoints as $variant => $width) {
-                foreach (['avif','webp','jpg'] as $fmt) {
+                // 'jxl' (JPEG-XL, #109) is included only when enabled in settings
+                // AND the build can write it (libvips+libjxl); it is emitted by
+                // the libvips engine. Browser support is still nascent, so the
+                // frontend <picture> does not serve it yet — generation is
+                // opt-in via settings.
+                foreach (['avif','webp','jpg','jxl'] as $fmt) {
                     if (empty($formats[$fmt])) {
+                        continue;
+                    }
+                    if ($fmt === 'jxl' && !\App\Services\Imaging\ImageEngine::capabilities()['jxl_write']) {
                         continue;
                     }
                     $destRelUrl = "/media/{$imageId}_{$variant}.{$fmt}";

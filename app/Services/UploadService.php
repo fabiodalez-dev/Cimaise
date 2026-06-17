@@ -16,14 +16,29 @@ class UploadService
     /** Maximum total pixel count accepted (decompression-bomb guard, ~40 megapixel). */
     private const MAX_IMAGE_PIXELS = 40000000;
 
-    private array $allowed = ['image/jpeg' => '.jpg','image/png' => '.png', 'image/webp' => '.webp'];
+    // HEIC/HEIF (#109) are accepted only when the server can actually decode
+    // them (ImageEngine::capabilities()['heif_read']); validateImageFile()
+    // gates on that so we never store an original we can't turn into web
+    // variants. Originals keep their .heic/.heif extension; variants are jpg/
+    // webp/avif as usual.
+    private array $allowed = [
+        'image/jpeg' => '.jpg',
+        'image/png'  => '.png',
+        'image/webp' => '.webp',
+        'image/heic' => '.heic',
+        'image/heif' => '.heif',
+    ];
 
     // Magic number signatures for image validation
     private array $magicNumbers = [
         'image/jpeg' => ["\xFF\xD8\xFF"],
         'image/png' => ["\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"],
         'image/webp' => ["RIFF", "WEBP"], // RIFF...WEBP
-        'image/gif' => ["GIF87a", "GIF89a"]
+        'image/gif' => ["GIF87a", "GIF89a"],
+        // HEIC/HEIF are ISO-BMFF: the 'ftyp' box sits at byte offset 4 (not 0),
+        // so it's matched specially in validateImageFile().
+        'image/heic' => ["ftyp"],
+        'image/heif' => ["ftyp"],
     ];
 
     public function __construct(private Database $db)
@@ -66,7 +81,11 @@ class UploadService
 
         foreach ($allowedRoots as $root) {
             if ($root !== '' && str_starts_with($real, $root . DIRECTORY_SEPARATOR)) {
-                return @unlink($real);
+                // nosemgrep: this IS the confinement guard — $real is
+                // realpath()-resolved and verified to live under an allowed
+                // root before deletion; callers route here precisely so the
+                // unlink cannot traverse outside storage/public-media/temp.
+                return @unlink($real); // nosemgrep
             }
         }
 
@@ -103,6 +122,13 @@ class UploadService
             throw new RuntimeException('Unsupported file type: ' . ($detectedMime ?: 'unknown'));
         }
 
+        // 3b. HEIC/HEIF (#109) is accepted only when the server can decode it,
+        // so we never store an original we can't turn into web variants.
+        $isHeif = $detectedMime === 'image/heic' || $detectedMime === 'image/heif';
+        if ($isHeif && !\App\Services\Imaging\ImageEngine::capabilities()['heif_read']) {
+            throw new RuntimeException('HEIC/HEIF is not supported on this server (no libheif / Imagick HEIC delegate).');
+        }
+
         // 4. Validate magic numbers (file header signatures)
         $fileHeader = file_get_contents($filePath, false, null, 0, 12);
         if ($fileHeader === false) {
@@ -118,6 +144,13 @@ class UploadService
                         $isValidMagic = true;
                         break;
                     }
+                } elseif ($isHeif) {
+                    // HEIC/HEIF are ISO-BMFF: the 'ftyp' box marker sits at byte
+                    // offset 4, not at the start of the file.
+                    if (substr($fileHeader, 4, 4) === 'ftyp') {
+                        $isValidMagic = true;
+                        break;
+                    }
                 } elseif (str_starts_with($fileHeader, (string) $signature)) {
                     $isValidMagic = true;
                     break;
@@ -129,16 +162,11 @@ class UploadService
             throw new RuntimeException('File header does not match expected format');
         }
 
-        // 5. Additional validation: try to get image dimensions
-        $imageInfo = getimagesize($filePath);
-        if ($imageInfo === false) {
-            throw new RuntimeException('Invalid image file - cannot read dimensions');
-        }
-
-        // 6. Validate image dimensions (prevent processing of malicious files)
-        [$width, $height] = $imageInfo;
+        // 5./6. Read + validate dimensions. getimagesize() can't read HEIC, so
+        // readImageDimensions() falls back to Imagick for those.
+        [$width, $height] = $this->readImageDimensions($filePath, $detectedMime) ?? [0, 0];
         if ($width <= 0 || $height <= 0 || $width > 20000 || $height > 20000) {
-            throw new RuntimeException('Invalid image dimensions');
+            throw new RuntimeException('Invalid image file - cannot read dimensions');
         }
 
         // 6b. Decompression-bomb guard: cap total pixel count before any GD/Imagick
@@ -149,6 +177,36 @@ class UploadService
         }
 
         return $detectedMime;
+    }
+
+    /**
+     * Read [width, height] for an image. Uses getimagesize() for standard
+     * formats and falls back to Imagick (header-only ping) for HEIC/HEIF,
+     * which getimagesize() cannot decode. Returns null when undeterminable.
+     *
+     * @return array{0:int,1:int}|null
+     */
+    private function readImageDimensions(string $path, string $mime): ?array
+    {
+        $isHeif = $mime === 'image/heic' || $mime === 'image/heif';
+        if (!$isHeif) {
+            $info = @getimagesize($path);
+            return $info === false ? null : [(int) $info[0], (int) $info[1]];
+        }
+        if (class_exists(\Imagick::class) && !$this->imagickDisabled()) {
+            try {
+                $im = new \Imagick();
+                $im->pingImage($path); // headers only — no full decode (bomb-safe)
+                $g = $im->getImageGeometry();
+                $im->clear();
+                $w = (int) ($g['width'] ?? 0);
+                $h = (int) ($g['height'] ?? 0);
+                return ($w > 0 && $h > 0) ? [$w, $h] : null;
+            } catch (\Throwable) {
+                return null;
+            }
+        }
+        return null;
     }
 
     public function ingestAlbumUpload(int $albumId, array $file): array
@@ -199,7 +257,9 @@ class UploadService
             throw new RuntimeException('File validation failed after upload: ' . $e->getMessage(), $e->getCode(), $e);
         }
 
-        [$width, $height] = getimagesize($dest) ?: [0,0];
+        // HEIC-aware: getimagesize() can't read HEIC, so use the helper that
+        // falls back to Imagick for those originals.
+        [$width, $height] = $this->readImageDimensions($dest, $mime) ?? [0, 0];
         // Extract EXIF and map lookups (best effort)
         $exifSvc = new \App\Services\ExifService($this->db);
         $exif = $exifSvc->extract($dest);
@@ -337,6 +397,11 @@ class UploadService
 
     private function resizeWithImagick(string $src, string $dest, int $targetW, string $format, int $quality): bool
     {
+        // Fast path (#109): libvips when available; falls through to Imagick
+        // (below) when vips is absent or can't handle this format.
+        if (\App\Services\Imaging\ImageEngine::encode($src, $dest, $targetW, $format, $quality)) {
+            return true;
+        }
         try {
             self::applyImagickLimits();
             $im = new \Imagick($src);
@@ -370,6 +435,11 @@ class UploadService
 
     private function resizeWithImagickOrGd(string $src, string $dest, int $targetW, string $format, int $quality): bool
     {
+        // Fast path (#109): libvips when available (low-memory, reads HEIC).
+        // Returns false when vips is absent/unable → fall through to Imagick/GD.
+        if (\App\Services\Imaging\ImageEngine::encode($src, $dest, $targetW, $format, $quality)) {
+            return true;
+        }
         if (class_exists(\Imagick::class) && !$this->imagickDisabled()) {
             return $this->resizeWithImagick($src, $dest, $targetW, $format, $quality);
         }
@@ -579,7 +649,10 @@ class UploadService
 
                 if ($ok && is_file($destPath)) {
                     $oppositeDir = $protectedStorage->directoryForProtection(!$isProtectedAlbum);
-                    @unlink($oppositeDir . "/{$imageId}_{$variant}.{$fmt}");
+                    // Route through safeUnlink so the deletion is confined to the
+                    // allowed storage roots (path-traversal guard) instead of a
+                    // raw unlink on a composed path.
+                    self::safeUnlink($oppositeDir . "/{$imageId}_{$variant}.{$fmt}");
                     $size = (int)filesize($destPath);
                     [$vw, $vh] = getimagesize($destPath) ?: [$targetW, 0];
                     $replaceKeyword = $this->db->replaceKeyword();

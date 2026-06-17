@@ -221,6 +221,33 @@ class DiagnosticsController extends BaseController
             ]
         ];
 
+        // Imaging engine capabilities (#109)
+        $caps = \App\Services\Imaging\ImageEngine::capabilities();
+        $engine = $caps['vips'] ? 'libvips' : ($caps['imagick'] ? 'Imagick' : ($caps['gd'] ? 'GD' : 'none'));
+        $results['imaging'] = [
+            'name' => 'Imaging Engine',
+            'status' => ($caps['vips'] || $caps['imagick']) ? 'ok' : 'warning',
+            'value' => $engine,
+            'message' => $caps['vips']
+                ? 'libvips active (fast, low-memory variant generation)'
+                : ($caps['imagick'] ? 'Imagick active (install php-vips for faster, lower-memory generation)' : 'No capable image engine'),
+            'details' => [
+                'Engine'        => $engine,
+                'libvips'       => $caps['vips'] ? 'Yes' : 'No',
+                'Imagick'       => $caps['imagick'] ? 'Yes' : 'No',
+                'GD'            => $caps['gd'] ? 'Yes' : 'No',
+                'HEIC/HEIF read' => $caps['heif_read'] ? 'Yes' : 'No',
+                'AVIF write'    => $caps['avif_write'] ? 'Yes' : 'No',
+                'JPEG-XL write' => $caps['jxl_write'] ? 'Yes' : 'No',
+                'Optimizers'    => implode(', ', array_keys(array_filter([
+                    'jpegoptim' => $caps['opt_jpegoptim'],
+                    'pngquant'  => $caps['opt_pngquant'],
+                    'cwebp'     => $caps['opt_cwebp'],
+                    'avifenc'   => $caps['opt_avifenc'],
+                ]))) ?: 'none',
+            ],
+        ];
+
         return $results;
     }
 
