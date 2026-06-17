@@ -241,7 +241,49 @@ final class MediaAccessSecurityTest extends TestCase
         self::assertSame(403, $noDownload->getStatusCode(), 'downloads-disabled album must not serve the original as a variant fallback');
     }
 
+    // ── TEST 5 — JPEG-XL serving end-to-end (#109) ────────────────────────
+
+    public function testJpegXlVariantServesWithImageJxlMimeAndStrictMagicCheck(): void
+    {
+        // (a) A genuine .jxl variant of a public album serves with the correct
+        // Content-Type. The strict DB-path MIME gate must accept it via the
+        // JXL magic bytes (libmagic often can't), not the extension alone.
+        $imageId = $this->insertImage(albumId: 1);
+        $jxlBytes = "\xFF\x0A" . str_repeat("\x00", 64); // bare JXL codestream signature
+        $this->writeRawVariant($imageId, 'md', 'jxl', $jxlBytes);
+
+        $served = $this->servePublic($imageId, 'md', 'jxl');
+        self::assertSame(200, $served->getStatusCode(), 'public JPEG-XL variant must serve, not 404');
+        self::assertSame('image/jxl', $served->getHeaderLine('Content-Type'), 'served with the JPEG-XL MIME type');
+        self::assertSame($jxlBytes, (string) $served->getBody(), 'serves the real jxl bytes');
+
+        // (b) A file with a .jxl extension but NON-JXL magic bytes must be
+        // rejected by the strict magic-byte cross-check (extension is never
+        // trusted on DB-sourced paths) → 403, not served as image/jxl.
+        $imageId2 = $this->insertImage(albumId: 2);
+        $this->writeRawVariant($imageId2, 'md', 'jxl', "\xFF\xD8\xFF\xE0" . str_repeat("\x00", 64)); // JPEG magic, .jxl name
+        $spoofed = $this->servePublic($imageId2, 'md', 'jxl');
+        self::assertSame(403, $spoofed->getStatusCode(), 'a .jxl file whose bytes are not JXL must be rejected');
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────
+
+    private function writeRawVariant(int $imageId, string $variant, string $format, string $bytes): string
+    {
+        $dbPath = "/media/{$imageId}_{$variant}.{$format}";
+        $path = $this->publicPath(basename($dbPath));
+        if (!is_dir(dirname($path))) {
+            mkdir(dirname($path), 0775, true);
+        }
+        file_put_contents($path, $bytes);
+        $this->createdFiles[] = $path;
+        $stmt = $this->db->pdo()->prepare(
+            'INSERT INTO image_variants (image_id, variant, format, path, width, height, size_bytes)
+             VALUES (?, ?, ?, ?, 16, 16, ?)'
+        );
+        $stmt->execute([$imageId, $variant, $format, $dbPath, strlen($bytes)]);
+        return $path;
+    }
 
     /**
      * The core security invariant: a gated response may be a generic blur
