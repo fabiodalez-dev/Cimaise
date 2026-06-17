@@ -808,9 +808,9 @@
       const inner = document.getElementById('toast-inner');
       if (!box || !inner) return;
       inner.textContent = msg;
-      const tone = type === 'error'
-        ? 'text-white'
-        : (type === 'success' ? 'text-white' : 'text-white');
+      // Text colour is uniform across toast types; per-type differentiation
+      // is via style.backgroundColor and the timeout below.
+      const tone = 'text-white';
       inner.className = 'px-4 py-3 rounded-lg shadow-lg text-sm font-medium ' + tone;
       inner.style.backgroundColor = type === 'error' ? '#b4452f' : (type === 'success' ? '#1c322d' : '#1c322d');
       // Error toasts are announced assertively; others politely.
