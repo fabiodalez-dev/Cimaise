@@ -149,22 +149,49 @@ class ImagesGenerateCommand extends Command
                         continue;
                     }
 
-                    // Delete orphan files (exist on disk but not in DB) before regenerating
+                    // Delete orphan files (exist on disk but not in DB) before
+                    // regenerating. Confine the deletion to public/media via
+                    // realpath so a deletion can never escape that directory
+                    // (defence-in-depth path-traversal guard).
                     if ($existsOnDisk && !$existsInDb) {
-                        @unlink($dest);
+                        $mediaRoot = realpath(dirname(__DIR__, 2) . '/public/media');
+                        $orphanReal = realpath($dest);
+                        if ($mediaRoot !== false && $orphanReal !== false
+                            && str_starts_with($orphanReal, $mediaRoot . DIRECTORY_SEPARATOR)) {
+                            // nosemgrep: $orphanReal is realpath()-resolved and
+                            // verified to live under public/media above, so this
+                            // deletion cannot traverse outside that directory.
+                            @unlink($orphanReal); // nosemgrep
+                        }
                     }
 
                     $ok = false;
-                    if ($fmt === 'jpg') {
-                        $ok = $this->resizeWithImagickOrGd($src, $dest, (int)$width, 'jpeg', (int)$quality['jpg']);
-                    } elseif ($fmt === 'webp') {
-                        if ($imagickOk) {
-                            $ok = $this->resizeWithImagick($src, $dest, (int)$width, 'webp', (int)$quality['webp']);
-                        } elseif ($gdWebpOk) {
-                            $ok = $this->resizeWithGdWebp($src, $dest, (int)$width, (int)$quality['webp']);
+                    // Fast path (#109): libvips — shrink-on-load, low memory,
+                    // supports AVIF/JPEG-XL/HEIC when the build provides them.
+                    // Returns false when vips is unavailable or cannot handle
+                    // the request; we then fall back to the existing Imagick/GD
+                    // path below (zero behaviour change on hosts without vips).
+                    $engineFmt = $fmt === 'jpg' ? 'jpeg' : $fmt;
+                    $ok = \App\Services\Imaging\ImageEngine::encode(
+                        $src,
+                        $dest,
+                        (int)$width,
+                        $engineFmt,
+                        (int)($quality[$fmt] ?? 82)
+                    );
+
+                    if (!$ok) {
+                        if ($fmt === 'jpg') {
+                            $ok = $this->resizeWithImagickOrGd($src, $dest, (int)$width, 'jpeg', (int)$quality['jpg']);
+                        } elseif ($fmt === 'webp') {
+                            if ($imagickOk) {
+                                $ok = $this->resizeWithImagick($src, $dest, (int)$width, 'webp', (int)$quality['webp']);
+                            } elseif ($gdWebpOk) {
+                                $ok = $this->resizeWithGdWebp($src, $dest, (int)$width, (int)$quality['webp']);
+                            }
+                        } elseif ($fmt === 'avif') {
+                            $ok = $imagickOk && $this->resizeWithImagick($src, $dest, (int)$width, 'avif', (int)$quality['avif']);
                         }
-                    } elseif ($fmt === 'avif') {
-                        $ok = $imagickOk && $this->resizeWithImagick($src, $dest, (int)$width, 'avif', (int)$quality['avif']);
                     }
 
                     if ($ok) {
