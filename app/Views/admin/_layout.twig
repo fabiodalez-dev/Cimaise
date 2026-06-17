@@ -912,17 +912,58 @@
       }
     }
 
-    // Escape closes whichever modal is currently open.
-    document.addEventListener('keydown', function(e) {
-      if (e.key !== 'Escape' && e.key !== 'Esc') return;
-      const profile = document.getElementById('profileModal');
-      const password = document.getElementById('passwordModal');
-      if (profile && !profile.classList.contains('hidden')) {
-        closeProfileModal();
-      } else if (password && !password.classList.contains('hidden')) {
-        closePasswordModal();
-      }
-    });
+    // SPA-safe global UI listeners. The admin SPA re-executes every inline
+    // script on each navigation, so per-run document.addEventListener calls
+    // would stack duplicates, and per-element bindings in DOMContentLoaded
+    // (which never re-fires on SPA nav) would miss dynamically-loaded content.
+    // Bind ONCE (window guard) using event delegation on document, so every
+    // handler also covers content loaded later via SPA navigation.
+    if (!window.__adminGlobalListenersBound) {
+      window.__adminGlobalListenersBound = true;
+
+      // Escape closes whichever modal is currently open.
+      document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Escape' && e.key !== 'Esc') return;
+        const profile = document.getElementById('profileModal');
+        const password = document.getElementById('passwordModal');
+        if (profile && !profile.classList.contains('hidden')) {
+          closeProfileModal();
+        } else if (password && !password.classList.contains('hidden')) {
+          closePasswordModal();
+        }
+      });
+
+      // Delegated click: modal-backdrop close + [data-action] buttons +
+      // [data-confirm] non-form elements.
+      document.addEventListener('click', function(e) {
+        if (e.target.id === 'profileModal') { closeProfileModal(); return; }
+        if (e.target.id === 'passwordModal') { closePasswordModal(); return; }
+        const actionEl = e.target.closest ? e.target.closest('[data-action]') : null;
+        if (actionEl) {
+          const actions = {
+            'open-profile-modal': openProfileModal,
+            'close-profile-modal': closeProfileModal,
+            'open-password-modal': openPasswordModal,
+            'close-password-modal': closePasswordModal,
+          };
+          const fn = actions[actionEl.getAttribute('data-action')];
+          if (fn) { e.preventDefault(); fn(); return; }
+        }
+        const confirmEl = e.target.closest ? e.target.closest('[data-confirm]') : null;
+        if (confirmEl && confirmEl.tagName.toLowerCase() !== 'form') {
+          const msg = confirmEl.getAttribute('data-confirm');
+          if (msg && !confirm(msg)) { e.preventDefault(); e.stopPropagation(); }
+        }
+      });
+
+      // Delegated submit: [data-confirm] on forms.
+      document.addEventListener('submit', function(e) {
+        const form = e.target.closest ? e.target.closest('form[data-confirm]') : null;
+        if (!form) return;
+        const msg = form.getAttribute('data-confirm');
+        if (msg && !confirm(msg)) { e.preventDefault(); e.stopPropagation(); }
+      });
+    }
 
     // Admin dark-mode toggle. The no-flash init in <head> applies the saved
     // theme on load; this wires the topbar button (persists in localStorage).
@@ -968,53 +1009,11 @@
       }
     });
 
-    // Close modals when clicking outside
-    document.addEventListener('click', function(e) {
-      if (e.target.id === 'profileModal') {
-        closeProfileModal();
-      }
-      if (e.target.id === 'passwordModal') {
-        closePasswordModal();
-      }
-    });
-
-    // Migrate inline handlers to JS for CSP compliance
-    document.addEventListener('DOMContentLoaded', function() {
-      const actions = {
-        'open-profile-modal': openProfileModal,
-        'close-profile-modal': closeProfileModal,
-        'open-password-modal': openPasswordModal,
-        'close-password-modal': closePasswordModal,
-      };
-      Object.entries(actions).forEach(([key, fn]) => {
-        document.querySelectorAll(`[data-action="${key}"]`).forEach(el => {
-          el.addEventListener('click', function(ev) {
-            ev.preventDefault();
-            fn();
-          });
-        });
-      });
-
-      // Generic confirm handler for elements with data-confirm
-      document.querySelectorAll('[data-confirm]').forEach(el => {
-        const msg = el.getAttribute('data-confirm');
-        if (!msg) return;
-        const handler = (ev) => {
-          if (!confirm(msg)) {
-            ev.preventDefault();
-            ev.stopPropagation();
-          }
-        };
-        if (el.tagName.toLowerCase() === 'form') {
-          el.addEventListener('submit', handler);
-        } else {
-          el.addEventListener('click', handler);
-        }
-      });
-
-      // Flash messages: close button and auto-dismiss
-      initFlashMessages();
-    });
+    // Modal-backdrop close, [data-action] and [data-confirm] are now handled
+    // by the delegated listeners in the SPA-safe block above (which also
+    // covers content loaded via SPA navigation). Only flash-message init
+    // remains a full-load concern.
+    document.addEventListener('DOMContentLoaded', initFlashMessages);
 
     function initFlashMessages() {
       const container = document.getElementById('flash-messages');
