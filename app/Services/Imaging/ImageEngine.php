@@ -52,11 +52,10 @@ final class ImageEngine
             'heif_read'     => ($vips && self::vipsCanLoad('probe.heic')) || self::imagickSupports('HEIC'),
             'avif_write'    => ($vips && self::vipsCanWrite('.avif')) || self::imagickSupports('AVIF'),
             'jxl_write'     => $vips && self::vipsCanWrite('.jxl'),
-            // Post-encode optimizers (used opportunistically).
+            // Post-encode optimizer (only jpegoptim is actually invoked, for
+            // jpeg variants; webp/avif/jxl are emitted at target quality and
+            // PNG is never produced, so no other optimizer is detected).
             'opt_jpegoptim' => self::binaryExists('jpegoptim'),
-            'opt_pngquant'  => self::binaryExists('pngquant'),
-            'opt_cwebp'     => self::binaryExists('cwebp'),
-            'opt_avifenc'   => self::binaryExists('avifenc'),
         ];
 
         return self::$caps;
@@ -68,9 +67,12 @@ final class ImageEngine
      * its existing Imagick/GD path).
      *
      * @param string $src     Source path (any vips-readable format, incl. HEIC).
-     * @param string $dest    Destination path; extension decides the format.
+     * @param string $dest    Destination path; only where the file is written
+     *                        (it does not influence the output format).
      * @param int    $targetW Target width in px (height auto, aspect kept).
-     * @param string $format  'jpeg' | 'webp' | 'avif' | 'jxl'.
+     * @param string $format  'jpeg' | 'webp' | 'avif' | 'jxl' — selects the
+     *                        encoder (passed to writeOptions); this argument,
+     *                        not the $dest extension, decides the output format.
      * @param int    $quality 1-100.
      * @param bool   $strip   Strip metadata from the variant (privacy).
      */
@@ -151,7 +153,7 @@ final class ImageEngine
      * Best-effort post-encode optimization via an installed CLI optimizer.
      * Silent no-op when no suitable binary is present.
      */
-    public static function optimize(string $path, string $format): void
+    private static function optimize(string $path, string $format): void
     {
         if (!is_file($path)) {
             return;
@@ -160,11 +162,10 @@ final class ImageEngine
 
         if (($format === 'jpeg' || $format === 'jpg') && $caps['opt_jpegoptim']) {
             self::run(['jpegoptim', '--strip-all', '--quiet', $path]);
-        } elseif ($format === 'png' && $caps['opt_pngquant']) {
-            self::run(['pngquant', '--force', '--skip-if-larger', '--output', $path, $path]);
         }
         // webp/avif are emitted at target quality by the encoder; re-optimizing
         // risks double-compression artefacts, so they are intentionally skipped.
+        // ImageEngine never encodes PNG, so no PNG optimizer is wired in.
     }
 
     // ── internals ────────────────────────────────────────────────────────

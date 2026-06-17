@@ -585,6 +585,7 @@ document.addEventListener('click', function(event) {
                    {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
                     <picture>
                         {% set variants_avif = [] %}
+                        {% set variants_jxl = [] %}
                         {% set variants_webp = [] %}
                         {% set variants_jpg = [] %}
                         {% set best_jpg_path = image.fallback_src|default(image.url|default('')) %}
@@ -596,6 +597,8 @@ document.addEventListener('click', function(event) {
                             {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
                             {% if variant.format == 'avif' %}
                                 {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                            {% elseif variant.format == 'jxl' %}
+                                {% set variants_jxl = variants_jxl|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
                             {% elseif variant.format == 'webp' %}
                                 {% set variants_webp = variants_webp|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
                             {% elseif variant.format == 'jpg' %}
@@ -609,6 +612,9 @@ document.addEventListener('click', function(event) {
 
                         {% if variants_avif %}
                             <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+                        {% endif %}
+                        {% if variants_jxl %}
+                            <source type="image/jxl" srcset="{{ variants_jxl|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
                         {% endif %}
                         {% if variants_webp %}
                             <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
@@ -736,6 +742,7 @@ document.addEventListener('click', function(event) {
                            {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
                             <picture>
                                 {% set variants_avif = [] %}
+                                {% set variants_jxl = [] %}
                                 {% set variants_webp = [] %}
                                 {% set variants_jpg = [] %}
                                 {% set best_jpg_path = image.fallback_src|default(image.url|default('')) %}
@@ -747,6 +754,8 @@ document.addEventListener('click', function(event) {
                                     {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
                                     {% if variant.format == 'avif' %}
                                         {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                                    {% elseif variant.format == 'jxl' %}
+                                        {% set variants_jxl = variants_jxl|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
                                     {% elseif variant.format == 'webp' %}
                                         {% set variants_webp = variants_webp|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
                                     {% elseif variant.format == 'jpg' %}
@@ -760,6 +769,9 @@ document.addEventListener('click', function(event) {
 
                                 {% if variants_avif %}
                                     <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+                                {% endif %}
+                                {% if variants_jxl %}
+                                    <source type="image/jxl" srcset="{{ variants_jxl|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
                                 {% endif %}
                                 {% if variants_webp %}
                                     <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
@@ -850,6 +862,7 @@ document.addEventListener('click', function(event) {
                        {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
                         <picture>
                             {% set variants_avif = [] %}
+                            {% set variants_jxl = [] %}
                             {% set variants_webp = [] %}
                             {% set variants_jpg = [] %}
                             {% set best_jpg_path = image.fallback_src|default(image.url|default('')) %}
@@ -861,6 +874,8 @@ document.addEventListener('click', function(event) {
                                 {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
                                 {% if variant.format == 'avif' %}
                                     {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                                {% elseif variant.format == 'jxl' %}
+                                    {% set variants_jxl = variants_jxl|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
                                 {% elseif variant.format == 'webp' %}
                                     {% set variants_webp = variants_webp|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
                                 {% elseif variant.format == 'jpg' %}
@@ -874,6 +889,9 @@ document.addEventListener('click', function(event) {
 
                             {% if variants_avif %}
                                 <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+                            {% endif %}
+                            {% if variants_jxl %}
+                                <source type="image/jxl" srcset="{{ variants_jxl|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
                             {% endif %}
                             {% if variants_webp %}
                                 <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">

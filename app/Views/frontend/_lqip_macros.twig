@@ -50,6 +50,9 @@
   {% if image.sources.avif|default([])|length > 0 %}
   <source type="image/avif" {% if image.lqip_placeholder %}data-srcset{% else %}srcset{% endif %}="{{ image.sources.avif|join(', ')|e('html_attr') }}" {% if sizes %}sizes="{{ sizes }}"{% endif %}>
   {% endif %}
+  {% if image.sources.jxl|default([])|length > 0 %}
+  <source type="image/jxl" {% if image.lqip_placeholder %}data-srcset{% else %}srcset{% endif %}="{{ image.sources.jxl|join(', ')|e('html_attr') }}" {% if sizes %}sizes="{{ sizes }}"{% endif %}>
+  {% endif %}
   {% if image.sources.webp|default([])|length > 0 %}
   <source type="image/webp" {% if image.lqip_placeholder %}data-srcset{% else %}srcset{% endif %}="{{ image.sources.webp|join(', ')|e('html_attr') }}" {% if sizes %}sizes="{{ sizes }}"{% endif %}>
   {% endif %}

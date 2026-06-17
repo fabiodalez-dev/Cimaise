@@ -239,6 +239,7 @@ html.dark .gallery-wall-item::after {
         {% set isHorizontal = (image.width|default(1600) / image.height|default(1000)) > 1.2 %}
         {# Build high-quality srcsets from sources #}
         {% set srcset_avif = [] %}
+        {% set srcset_jxl = [] %}
         {% set srcset_webp = [] %}
         {% set srcset_jpg = [] %}
         {% for src in image.sources.avif|default([]) %}
@@ -247,6 +248,14 @@ html.dark .gallery-wall-item::after {
           {% set src_rest = src_parts[1]|default('') %}
           {% if src_url != '' %}
             {% set srcset_avif = srcset_avif|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src_rest]) %}
+          {% endif %}
+        {% endfor %}
+        {% for src in image.sources.jxl|default([]) %}
+          {% set src_parts = src|split(' ') %}
+          {% set src_url = src_parts[0]|default('') %}
+          {% set src_rest = src_parts[1]|default('') %}
+          {% if src_url != '' %}
+            {% set srcset_jxl = srcset_jxl|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src_rest]) %}
           {% endif %}
         {% endfor %}
         {% for src in image.sources.webp|default([]) %}
@@ -272,6 +281,9 @@ html.dark .gallery-wall-item::after {
             <picture>
               {% if srcset_avif %}
               <source type="image/avif" srcset="{{ srcset_avif|join(', ')|e('html_attr') }}" sizes="100vw">
+              {% endif %}
+              {% if srcset_jxl %}
+              <source type="image/jxl" srcset="{{ srcset_jxl|join(', ')|e('html_attr') }}" sizes="100vw">
               {% endif %}
               {% if srcset_webp %}
               <source type="image/webp" srcset="{{ srcset_webp|join(', ')|e('html_attr') }}" sizes="100vw">
@@ -301,6 +313,7 @@ html.dark .gallery-wall-item::after {
       {% set isHorizontal = (image.width|default(1600) / image.height|default(1000)) > 1.2 %}
       {# Build srcsets for mobile #}
       {% set srcset_avif = [] %}
+      {% set srcset_jxl = [] %}
       {% set srcset_webp = [] %}
       {% set srcset_jpg = [] %}
       {% for src in image.sources.avif|default([]) %}
@@ -309,6 +322,14 @@ html.dark .gallery-wall-item::after {
         {% set src_rest = src_parts[1]|default('') %}
         {% if src_url != '' %}
           {% set srcset_avif = srcset_avif|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src_rest]) %}
+        {% endif %}
+      {% endfor %}
+      {% for src in image.sources.jxl|default([]) %}
+        {% set src_parts = src|split(' ') %}
+        {% set src_url = src_parts[0]|default('') %}
+        {% set src_rest = src_parts[1]|default('') %}
+        {% if src_url != '' %}
+          {% set srcset_jxl = srcset_jxl|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src_rest]) %}
         {% endif %}
       {% endfor %}
       {% for src in image.sources.webp|default([]) %}
@@ -334,6 +355,9 @@ html.dark .gallery-wall-item::after {
           <picture>
             {% if srcset_avif %}
             <source type="image/avif" srcset="{{ srcset_avif|join(', ')|e('html_attr') }}" sizes="100vw">
+            {% endif %}
+            {% if srcset_jxl %}
+            <source type="image/jxl" srcset="{{ srcset_jxl|join(', ')|e('html_attr') }}" sizes="100vw">
             {% endif %}
             {% if srcset_webp %}
             <source type="image/webp" srcset="{{ srcset_webp|join(', ')|e('html_attr') }}" sizes="100vw">

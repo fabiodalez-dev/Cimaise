@@ -1,12 +1,15 @@
 {# Reusable responsive <picture> partial #}
 {# Inputs: img (object/array with width,height,alt_text,original_path), variants (list like image_variants rows), index (optional), layout (optional), context (optional string used to derive img_context for image_priority/layout decisions) #}
 {% set variants_avif = [] %}
+{% set variants_jxl = [] %}
 {% set variants_webp = [] %}
 {% set variants_jpg = [] %}
 {% for v in variants %}
   {% set v_url = v.path starts with '/' ? base_path ~ v.path : v.path %}
   {% if v.format == 'avif' %}
     {% set variants_avif = variants_avif|merge([v_url ~ ' ' ~ v.width ~ 'w']) %}
+  {% elseif v.format == 'jxl' %}
+    {% set variants_jxl = variants_jxl|merge([v_url ~ ' ' ~ v.width ~ 'w']) %}
   {% elseif v.format == 'webp' %}
     {% set variants_webp = variants_webp|merge([v_url ~ ' ' ~ v.width ~ 'w']) %}
   {% elseif v.format == 'jpg' %}
@@ -25,6 +28,9 @@
 <picture>
   {% if variants_avif %}
     <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="{{ sizes_attr }}">
+  {% endif %}
+  {% if variants_jxl %}
+    <source type="image/jxl" srcset="{{ variants_jxl|join(', ') }}" sizes="{{ sizes_attr }}">
   {% endif %}
   {% if variants_webp %}
     <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="{{ sizes_attr }}">

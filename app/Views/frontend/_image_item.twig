@@ -46,6 +46,7 @@
   <div class="relative aspect-[4/3] md:aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm cursor-pointer">
     <picture>
       {% set variants_avif = [] %}
+      {% set variants_jxl = [] %}
       {% set variants_webp = [] %}
       {% set variants_jpg = [] %}
       {# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
@@ -58,6 +59,8 @@
         {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
         {% if variant.format == 'avif' %}
           {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+        {% elseif variant.format == 'jxl' %}
+          {% set variants_jxl = variants_jxl|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
         {% elseif variant.format == 'webp' %}
           {% set variants_webp = variants_webp|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
         {% elseif variant.format == 'jpg' %}
@@ -78,6 +81,9 @@
          - Mobile: full width = 100vw #}
       {% if variants_avif %}
         <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1536px) 50vw, (min-width: 1280px) 55vw, (min-width: 1024px) 60vw, (min-width: 768px) 70vw, (min-width: 640px) 95vw, 100vw">
+      {% endif %}
+      {% if variants_jxl %}
+        <source type="image/jxl" srcset="{{ variants_jxl|join(', ') }}" sizes="(min-width: 1536px) 50vw, (min-width: 1280px) 55vw, (min-width: 1024px) 60vw, (min-width: 768px) 70vw, (min-width: 640px) 95vw, 100vw">
       {% endif %}
       {% if variants_webp %}
         <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1536px) 50vw, (min-width: 1280px) 55vw, (min-width: 1024px) 60vw, (min-width: 768px) 70vw, (min-width: 640px) 95vw, 100vw">

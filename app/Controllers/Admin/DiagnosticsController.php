@@ -243,9 +243,6 @@ class DiagnosticsController extends BaseController
                 'JPEG-XL write' => $caps['jxl_write'] ? 'Yes' : 'No',
                 'Optimizers'    => implode(', ', array_keys(array_filter([
                     'jpegoptim' => $caps['opt_jpegoptim'],
-                    'pngquant'  => $caps['opt_pngquant'],
-                    'cwebp'     => $caps['opt_cwebp'],
-                    'avifenc'   => $caps['opt_avifenc'],
                 ]))) ?: 'none',
             ],
         ];

@@ -145,6 +145,9 @@
       {% if image.sources is defined and image.sources.avif is defined and image.sources.avif|length %}
         <source type="image/avif" srcset="{% for s in image.sources.avif %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1024px) 50vw, (min-width:640px) 70vw, 100vw">
       {% endif %}
+      {% if image.sources is defined and image.sources.jxl is defined and image.sources.jxl|length %}
+        <source type="image/jxl" srcset="{% for s in image.sources.jxl %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1024px) 50vw, (min-width:640px) 70vw, 100vw">
+      {% endif %}
       {% if image.sources is defined and image.sources.webp is defined and image.sources.webp|length %}
         <source type="image/webp" srcset="{% for s in image.sources.webp %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1024px) 50vw, (min-width:640px) 70vw, 100vw">
       {% endif %}

@@ -164,11 +164,11 @@ class ImageVariantsService
      * Build responsive sources for <picture> element
      *
      * @param array $variants All variants for an image
-     * @return array Sources grouped by format ['avif' => [], 'webp' => [], 'jpg' => []]
+     * @return array Sources grouped by format ['avif' => [], 'jxl' => [], 'webp' => [], 'jpg' => []]
      */
     public static function buildResponsiveSources(array $variants): array
     {
-        $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
+        $sources = ['avif' => [], 'jxl' => [], 'webp' => [], 'jpg' => []];
 
         foreach ($variants as $variant) {
             // Skip storage paths
