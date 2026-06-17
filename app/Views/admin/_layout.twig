@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  {# No-flash dark-mode init: apply the saved admin theme to <html> before first paint. #}
+  <script nonce="{{ csp_nonce() }}">(function(){try{if(localStorage.getItem('cimaise-admin-theme')==='dark'){document.documentElement.classList.add('dark');}}catch(e){}})();</script>
   <title>{% block title %}Admin — Cimaise{% endblock %}</title>
   <!-- Favicon & App Icons -->
   <link rel="icon" type="image/x-icon" href="{{ base_path }}/favicon.ico">
@@ -107,6 +109,18 @@
     html.dark .sidebar-link i { background-color: #2a2f37; color: #c2c7d0; }
     html.dark .nav-sub { color: #9aa1ad; }
     html.dark .sidebar-link.active i { background-color: #171a1f; }
+    /* Dark-mode topbar (F014) + dashboard legibility (F012/F013). The admin
+       theme toggle sets html.dark; these keep the topbar and page content
+       readable instead of black-on-dark / white-on-white. */
+    html.dark #admin-header { background-color: var(--color-bg-secondary); border-color: var(--color-border); }
+    html.dark #admin-header h1,
+    html.dark #admin-header .fa-camera { color: var(--color-text-primary); }
+    html.dark #admin-header .text-gray-600,
+    html.dark #admin-header .text-gray-700 { color: var(--color-text-secondary); }
+    html.dark #admin-header .hover\:text-black:hover { color: var(--color-text-primary); }
+    html.dark #page-content .text-gray-900 { color: var(--color-text-primary); }
+    html.dark #page-content .text-gray-700 { color: var(--color-text-secondary); }
+    html.dark #page-content .hover\:bg-gray-50:hover { background-color: var(--color-bg-tertiary); }
 
     /* ── Editorial dark-green sidebar (#sidebar IDs win in light + dark) ── */
     #sidebar { background-color: #1c322d; border-color: #16271f; }
@@ -381,6 +395,11 @@
         
         <!-- User Administration Area -->
         <div class="flex items-center space-x-6">
+          <!-- Dark-mode toggle -->
+          <button type="button" id="admin-theme-toggle" class="text-gray-600 hover:text-black transition-colors" title="{{ trans('admin.header.toggle_theme', {}, 'Toggle dark mode') }}" aria-label="{{ trans('admin.header.toggle_theme', {}, 'Toggle dark mode') }}">
+            <i class="fas fa-moon"></i>
+          </button>
+
           <!-- Frontend Link -->
           <a href="{{ base_path }}/" target="_blank" class="text-gray-600 hover:text-black transition-colors flex items-center space-x-2" title="{{ trans('admin.header.view_frontend') }}">
             <i class="fas fa-external-link-alt"></i>
@@ -886,6 +905,24 @@
         closePasswordModal();
       }
     });
+
+    // Admin dark-mode toggle. The no-flash init in <head> applies the saved
+    // theme on load; this wires the topbar button (persists in localStorage).
+    // The topbar lives outside #page-content, so the listener survives SPA nav.
+    (function(){
+      const btn = document.getElementById('admin-theme-toggle');
+      if (!btn) return;
+      function syncIcon(){
+        const i = btn.querySelector('i');
+        if (i) i.className = document.documentElement.classList.contains('dark') ? 'fas fa-sun' : 'fas fa-moon';
+      }
+      syncIcon();
+      btn.addEventListener('click', function(){
+        const dark = document.documentElement.classList.toggle('dark');
+        try { localStorage.setItem('cimaise-admin-theme', dark ? 'dark' : 'light'); } catch(e){}
+        syncIcon();
+      });
+    })();
 
     // Password confirmation validation
     document.addEventListener('DOMContentLoaded', function() {

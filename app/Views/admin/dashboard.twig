@@ -30,7 +30,7 @@
           {% for d in analytics.series %}
           <div class="flex-1 flex flex-col items-center">
             <div class="w-full flex items-end justify-center" style="height:84px">
-              <div title="{{ d.date }}: {{ d.pv }} pageview · {{ d.sessions }} sessioni" style="width:100%; min-height:2px; height:{{ (d.pv / analytics.max_pv * 100)|round }}%; background:var(--color-accent); border-radius:6px 6px 0 0"></div>
+              <div title="{{ d.date }}: {{ d.pv }} {{ trans('admin.dashboard.pageviews_unit') }} · {{ d.sessions }} {{ trans('admin.dashboard.sessions_unit') }}" style="width:100%; min-height:2px; height:{{ (d.pv / analytics.max_pv * 100)|round }}%; background:var(--color-accent); border-radius:6px 6px 0 0"></div>
             </div>
             <span class="text-gray-600 mt-1" style="font-size:11px">{{ d.date|date('d/m') }}</span>
           </div>
@@ -69,7 +69,7 @@
       <p class="font-serif text-3xl text-gray-900 mt-2 leading-none">{{ stats.photos|default(0) }}</p>
       <p class="text-xs text-gray-500 mt-2">{{ trans('admin.dashboard.photos_desc') }}</p>
     </a>
-    <div class="card p-5" style="background: var(--color-accent); color: var(--color-accent-contrast); border-color: var(--color-accent);">
+    <div class="card p-5" style="background: var(--color-accent); color: var(--color-accent-contrast); border-color: var(--color-accent); cursor: default;">
       <p class="text-xs font-semibold uppercase tracking-wider" style="opacity:.72">{{ trans('admin.dashboard.storage_used') }}</p>
       <p class="font-serif text-3xl mt-2 leading-none">{{ stats.storage_human|default('0 MB') }}</p>
       <p class="text-xs mt-2" style="opacity:.72">{{ trans('admin.dashboard.storage_desc') }}</p>

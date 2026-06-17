@@ -339,14 +339,17 @@ class SettingsController extends BaseController
             }
             // Run the command in the background to prevent timeouts. All parts are
             // constant or escaped; the only variable is the validated app path.
-            // Use a unique log path (tempnam) instead of a fixed, predictable
-            // name in the shared temp dir: a pre-existing file or symlink at a
-            // guessable path could otherwise clobber the redirect or divert the
-            // write to an unintended destination (local DoS / file-clobber).
-            $logPath = tempnam(sys_get_temp_dir(), 'image_generation_');
-            if ($logPath === false) {
-                throw new \RuntimeException('Unable to create image generation log file');
+            // Log to a single app-private, reused file under storage/logs rather
+            // than a per-run tempnam(): a tempnam() in the shared temp dir
+            // accumulated one file per invocation, while a fixed name in the
+            // shared temp dir risked symlink/clobber. An app-owned directory
+            // (not world-writable, not shared) avoids both — the file is reused
+            // (no accumulation) and the path is not attacker-influenced.
+            $logDir = $appRoot . '/storage/logs';
+            if (!is_dir($logDir) && !@mkdir($logDir, 0775, true) && !is_dir($logDir)) {
+                throw new \RuntimeException('Unable to create log directory');
             }
+            $logPath = $logDir . '/image_generation.log';
             $cmd = 'nohup ' . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($consoleReal)
                 . ' images:generate --missing > ' . escapeshellarg($logPath) . ' 2>&1 &';
             // nosemgrep: reviewed — every command part is escaped (escapeshellarg)
