@@ -926,19 +926,28 @@
 
     // Admin dark-mode toggle. The no-flash init in <head> applies the saved
     // theme on load; this wires the topbar button (persists in localStorage).
-    // The topbar lives outside #page-content, so the listener survives SPA nav.
+    //
+    // SPA-safe: the admin SPA re-executes every inline script on each page
+    // navigation, so a plain btn.addEventListener would stack a fresh listener
+    // per navigation — the toggle would fire an even number of times and
+    // appear to "stop working". Bind once via a global guard + delegated
+    // document listener; later re-runs only re-sync the icon and return.
     (function(){
-      const btn = document.getElementById('admin-theme-toggle');
-      if (!btn) return;
-      function syncIcon(){
-        const i = btn.querySelector('i');
+      function syncThemeIcon(){
+        var btn = document.getElementById('admin-theme-toggle');
+        if (!btn) return;
+        var i = btn.querySelector('i');
         if (i) i.className = document.documentElement.classList.contains('dark') ? 'fas fa-sun' : 'fas fa-moon';
       }
-      syncIcon();
-      btn.addEventListener('click', function(){
-        const dark = document.documentElement.classList.toggle('dark');
-        try { localStorage.setItem('cimaise-admin-theme', dark ? 'dark' : 'light'); } catch(e){}
-        syncIcon();
+      syncThemeIcon();
+      if (window.__adminThemeToggleBound) return;
+      window.__adminThemeToggleBound = true;
+      document.addEventListener('click', function(e){
+        var btn = e.target && e.target.closest ? e.target.closest('#admin-theme-toggle') : null;
+        if (!btn) return;
+        var dark = document.documentElement.classList.toggle('dark');
+        try { localStorage.setItem('cimaise-admin-theme', dark ? 'dark' : 'light'); } catch(err){}
+        syncThemeIcon();
       });
     })();
 
