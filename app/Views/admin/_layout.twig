@@ -187,10 +187,28 @@
       color: #fff;
       border-color: #b4452f;
     }
-    .btn-outline-danger:disabled { 
-      opacity: 0.5; 
+    .btn-outline-danger:disabled,
+    .btn-outline-danger[disabled] {
+      /* opacity:0.5 faded the terracotta text into illegibility; use a solid
+         muted token at full opacity instead so the label stays readable. */
+      color: var(--color-text-tertiary);
+      border-color: var(--color-border);
       cursor: not-allowed;
     }
+    /* Suppress the fill-on-hover for disabled buttons (a disabled control
+       must not look actionable). */
+    .btn-outline-danger:disabled:hover,
+    .btn-outline-danger[disabled]:hover {
+      background-color: transparent;
+      color: var(--color-text-tertiary);
+      border-color: var(--color-border);
+    }
+    /* Dark mode: lift the terracotta for contrast on the dark surface, and
+       keep the disabled muted token (resolves light in dark via the token). */
+    html.dark .btn-outline-danger { color: #dd7d63; }
+    html.dark .btn-outline-danger:hover { background-color: #b4452f; color: #fff; border-color: #b4452f; }
+    html.dark .btn-outline-danger:disabled,
+    html.dark .btn-outline-danger[disabled] { color: var(--color-text-tertiary); }
     .admin-sticky-actions {
       z-index: 9000; /* Above dropdowns (1000) and TomSelect (99999 is above this, but that's for inputs) */
       transition: left 0.3s ease-in-out;
