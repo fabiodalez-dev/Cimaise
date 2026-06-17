@@ -20,7 +20,7 @@ class UploadService
     // them (ImageEngine::capabilities()['heif_read']); validateImageFile()
     // gates on that so we never store an original we can't turn into web
     // variants. Originals keep their .heic/.heif extension; variants are jpg/
-    // webp/avif as usual.
+    // webp/avif/jxl as usual.
     private array $allowed = [
         'image/jpeg' => '.jpg',
         'image/png'  => '.png',
@@ -126,7 +126,8 @@ class UploadService
         // so we never store an original we can't turn into web variants.
         $isHeif = $detectedMime === 'image/heic' || $detectedMime === 'image/heif';
         if ($isHeif && !\App\Services\Imaging\ImageEngine::capabilities()['heif_read']) {
-            throw new RuntimeException('HEIC/HEIF is not supported on this server (no libheif / Imagick HEIC delegate).');
+            Logger::warning('HEIC upload rejected: no libheif / Imagick HEIC delegate', ['mime' => $detectedMime], 'upload');
+            throw new RuntimeException('HEIC/HEIF is not supported on this server.');
         }
 
         // 4. Validate magic numbers (file header signatures)
@@ -416,8 +417,9 @@ class UploadService
 
     private function resizeWithImagick(string $src, string $dest, int $targetW, string $format, int $quality): bool
     {
-        // Fast path (#109): libvips when available; falls through to Imagick
-        // (below) when vips is absent or can't handle this format.
+        // Fast path (#109): libvips when available; on failure delegates to
+        // resizeWithImagickOnly() (the Imagick body) — vips is tried once here,
+        // never twice.
         if (\App\Services\Imaging\ImageEngine::encode($src, $dest, $targetW, $format, $quality, $this->envFlag('STRIP_EXIF', true))) {
             return true;
         }

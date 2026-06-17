@@ -341,7 +341,13 @@ final class ImageEngine
             // nosemgrep: argv-array form bypasses the shell entirely; binary
             // names are hardcoded constants and the only dynamic element is a
             // filesystem path passed as a discrete argv element (never
-            // interpolated), so command injection is not possible.
+            // interpolated), so command injection is not possible. This is
+            // enforced by call-site discipline: run() is PRIVATE STATIC and
+            // every in-repo caller (encode→optimize's jpegoptim and
+            // encodeJxlViaCjxl's cjxl) passes a HARDCODED binary name plus an
+            // app-controlled (never user-supplied) path. Any new caller passing
+            // user-influenced argv would have to be added here and would be
+            // caught in review.
             $proc = @proc_open($argv, $descriptors, $pipes); // nosemgrep
             if (is_resource($proc)) {
                 @proc_close($proc);
