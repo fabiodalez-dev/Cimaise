@@ -170,6 +170,79 @@ final class ProtectedMediaStorageTest extends TestCase
         self::assertFileDoesNotExist($this->privatePath(basename($dbPath)));
     }
 
+    public function testJxlVariantIsQuarantinedForProtectedAlbum(): void
+    {
+        // mediaBasename() must accept .jxl so protected jxl variants relocate
+        // like jpg/webp/avif (#109 serving completion).
+        $imageId = $this->insertImage(nsfw: true);
+        $dbPath = "/media/{$imageId}_md.jxl";
+        $publicPath = $this->writeRaw($this->publicPath("{$imageId}_md.jxl"), "\xFF\x0A\x00\x00");
+        $this->db->pdo()->prepare(
+            'INSERT INTO image_variants (image_id, variant, format, path) VALUES (?, ?, ?, ?)'
+        )->execute([$imageId, 'md', 'jxl', $dbPath]);
+
+        $resolved = (new ProtectedMediaStorage($this->db))->resolveVariantPath($dbPath, true);
+
+        self::assertNotNull($resolved, 'a .jxl dbPath must resolve (mediaBasename accepts jxl)');
+        self::assertFileExists($this->privatePath("{$imageId}_md.jxl"), 'protected jxl quarantined to protected-media');
+        self::assertFileDoesNotExist($publicPath, 'protected jxl removed from public/media');
+    }
+
+    public function testJxlVariantStaysPublicForPublicAlbum(): void
+    {
+        $imageId = $this->insertImage(); // public album
+        $dbPath = "/media/{$imageId}_md.jxl";
+        $publicPath = $this->writeRaw($this->publicPath("{$imageId}_md.jxl"), "\xFF\x0A\x00\x00");
+        $this->db->pdo()->prepare(
+            'INSERT INTO image_variants (image_id, variant, format, path) VALUES (?, ?, ?, ?)'
+        )->execute([$imageId, 'md', 'jxl', $dbPath]);
+
+        $resolved = (new ProtectedMediaStorage($this->db))->resolveVariantPath($dbPath, false);
+
+        self::assertNotNull($resolved);
+        self::assertFileExists($publicPath, 'public jxl stays in public/media');
+        self::assertFileDoesNotExist($this->privatePath("{$imageId}_md.jxl"));
+    }
+
+    public function testDeleteVariantCopiesRemovesJxlInsideMediaRoots(): void
+    {
+        // confinedUnlink positive path: a jxl copy in public + private is
+        // removed once the last DB reference is gone.
+        $imageId = $this->insertImage();
+        $dbPath = "/media/{$imageId}_md.jxl";
+        $pub = $this->writeRaw($this->publicPath("{$imageId}_md.jxl"), "\xFF\x0A\x00\x00");
+        $priv = $this->writeRaw($this->privatePath("{$imageId}_md.jxl"), "\xFF\x0A\x00\x00");
+        // No image_variants row references $dbPath → deleteVariantCopies removes the bytes.
+
+        $ok = (new ProtectedMediaStorage($this->db))->deleteVariantCopies($dbPath);
+
+        self::assertTrue($ok);
+        self::assertFileDoesNotExist($pub);
+        self::assertFileDoesNotExist($priv);
+    }
+
+    public function testTraversalDbPathNeverResolvesOrDeletes(): void
+    {
+        // mediaBasename() rejects any path containing '..' or outside /media/,
+        // so confinedUnlink/resolveVariantPath can never escape the media dirs.
+        $storage = new ProtectedMediaStorage($this->db);
+        self::assertNull($storage->resolveVariantPath('/media/../../etc/passwd', true));
+        self::assertNull($storage->resolveVariantPath('/etc/passwd', false));
+        // deleteVariantCopies on a traversal path is a no-op that returns false
+        // (no basename ⇒ nothing deleted), and obviously touches nothing outside.
+        self::assertFalse($storage->deleteVariantCopies('/media/../../../etc/hosts'));
+    }
+
+    private function writeRaw(string $path, string $bytes): string
+    {
+        if (!is_dir(dirname($path))) {
+            mkdir(dirname($path), 0775, true);
+        }
+        file_put_contents($path, $bytes);
+        $this->createdFiles[] = $path;
+        return $path;
+    }
+
     private function insertImage(
         int $albumId = 1,
         bool $nsfw = false,
