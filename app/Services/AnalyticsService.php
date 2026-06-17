@@ -624,9 +624,16 @@ class AnalyticsService
             $stmt->execute([$todayStart, $tomorrowStart]);
             $today = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            // Top pages today
+            // Top pages today. Group by page_url alone so a URL whose title
+            // changed over time still aggregates into a single ranked row, and
+            // pick a representative title with MAX(page_title). This is also
+            // cross-DB safe: MAX() makes page_title an aggregate, satisfying
+            // MySQL's ONLY_FULL_GROUP_BY (on by default since 5.7) which would
+            // otherwise reject a bare page_title with error 1055 — and that
+            // PDOException would bubble up and the broad catch below would zero
+            // out realtime/today too.
             $stmt = $this->db->prepare('
-                SELECT page_url, page_title, COUNT(*) as views
+                SELECT page_url, MAX(page_title) as page_title, COUNT(*) as views
                 FROM analytics_pageviews
                 WHERE viewed_at >= ? AND viewed_at < ?
                 GROUP BY page_url

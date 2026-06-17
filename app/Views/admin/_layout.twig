@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  {# No-flash dark-mode init: apply the saved admin theme to <html> before first paint. #}
+  <script nonce="{{ csp_nonce() }}">(function(){try{if(localStorage.getItem('cimaise-admin-theme')==='dark'){document.documentElement.classList.add('dark');}}catch(e){}})();</script>
   <title>{% block title %}Admin — Cimaise{% endblock %}</title>
   <!-- Favicon & App Icons -->
   <link rel="icon" type="image/x-icon" href="{{ base_path }}/favicon.ico">
@@ -107,6 +109,39 @@
     html.dark .sidebar-link i { background-color: #2a2f37; color: #c2c7d0; }
     html.dark .nav-sub { color: #9aa1ad; }
     html.dark .sidebar-link.active i { background-color: #171a1f; }
+    /* Dark-mode topbar (F014) + dashboard legibility (F012/F013). The admin
+       theme toggle sets html.dark; these keep the topbar and page content
+       readable instead of black-on-dark / white-on-white. */
+    html.dark #admin-header { background-color: var(--color-bg-secondary); border-color: var(--color-border); }
+    html.dark #admin-header h1,
+    html.dark #admin-header .fa-camera { color: var(--color-text-primary); }
+    html.dark #admin-header .text-gray-600,
+    html.dark #admin-header .text-gray-700 { color: var(--color-text-secondary); }
+    html.dark #admin-header .hover\:text-black:hover { color: var(--color-text-primary); }
+    html.dark #page-content .text-gray-900 { color: var(--color-text-primary); }
+    html.dark #page-content .text-gray-700 { color: var(--color-text-secondary); }
+    html.dark #page-content .hover\:bg-gray-50:hover { background-color: var(--color-bg-tertiary); }
+
+    /* ── Editorial dark-green sidebar (#sidebar IDs win in light + dark) ── */
+    #sidebar { background-color: #1c322d; border-color: #16271f; }
+    #sidebar .text-gray-400 { color: rgba(248, 243, 238, 0.42); }
+    #sidebar #sidebar-close { color: rgba(248, 243, 238, 0.6); }
+    #sidebar #sidebar-close:hover { color: #f8f3ee; background-color: rgba(248, 243, 238, 0.08); }
+    #sidebar .sidebar-link { background-color: transparent; color: rgba(248, 243, 238, 0.74); }
+    #sidebar .sidebar-link:hover { background-color: rgba(248, 243, 238, 0.06); color: #f8f3ee; }
+    #sidebar .sidebar-link i { background-color: rgba(248, 243, 238, 0.08); color: rgba(248, 243, 238, 0.7); }
+    #sidebar .sidebar-link:hover i { color: #f8f3ee; }
+    #sidebar .sidebar-link.active { background-color: rgba(162, 194, 179, 0.18); color: #ffffff; }
+    #sidebar .sidebar-link.active i { background-color: #a2c2b3; color: #1c322d; }
+    #sidebar .nav-sub { color: rgba(248, 243, 238, 0.5); }
+    #sidebar .sidebar-link.active .nav-sub { color: rgba(255, 255, 255, 0.82); }
+
+    /* Editorial page titles — Playfair on the main heading of each page. */
+    #page-content h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
     .btn-primary {
       background-color: var(--color-accent);
       color: var(--color-accent-contrast);
@@ -133,25 +168,47 @@
     .btn-secondary:hover {
       background-color: var(--color-border);
     }
+    /* Restrained destructive button: a normal (neutral) button with a quiet
+       terracotta label — NOT a red box. It only fills with terracotta on hover
+       so destructive actions are recognisable without flooding the UI with red. */
     .btn-outline-danger {
       background-color: transparent;
-      color: #dc2626;
+      color: #b4452f;
       padding: 8px 24px;
-      border: 1px solid #dc2626;
+      border: 1px solid var(--color-border);
       border-radius: 6px;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
-      transition: background-color 0.15s ease, color 0.15s ease;
+      transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
     }
     .btn-outline-danger:hover {
-      background-color: #dc2626;
-      color: white;
+      background-color: #b4452f;
+      color: #fff;
+      border-color: #b4452f;
     }
-    .btn-outline-danger:disabled { 
-      opacity: 0.5; 
+    .btn-outline-danger:disabled,
+    .btn-outline-danger[disabled] {
+      /* opacity:0.5 faded the terracotta text into illegibility; use a solid
+         muted token at full opacity instead so the label stays readable. */
+      color: var(--color-text-tertiary);
+      border-color: var(--color-border);
       cursor: not-allowed;
     }
+    /* Suppress the fill-on-hover for disabled buttons (a disabled control
+       must not look actionable). */
+    .btn-outline-danger:disabled:hover,
+    .btn-outline-danger[disabled]:hover {
+      background-color: transparent;
+      color: var(--color-text-tertiary);
+      border-color: var(--color-border);
+    }
+    /* Dark mode: lift the terracotta for contrast on the dark surface, and
+       keep the disabled muted token (resolves light in dark via the token). */
+    html.dark .btn-outline-danger { color: #dd7d63; }
+    html.dark .btn-outline-danger:hover { background-color: #b4452f; color: #fff; border-color: #b4452f; }
+    html.dark .btn-outline-danger:disabled,
+    html.dark .btn-outline-danger[disabled] { color: var(--color-text-tertiary); }
     .admin-sticky-actions {
       z-index: 9000; /* Above dropdowns (1000) and TomSelect (99999 is above this, but that's for inputs) */
       transition: left 0.3s ease-in-out;
@@ -349,13 +406,18 @@
             <img src="{{ base_path ~ site_logo }}" alt="{{ site_title|default('Cimaise')|e }}" class="h-7 w-auto mr-3">
           {% else %}
             <i class="fas fa-camera text-2xl text-black mr-3"></i>
-            <h1 class="text-xl font-semibold text-black">{{ site_title|default('Cimaise') }}</h1>
+            <h1 class="font-serif text-2xl font-medium text-black tracking-tight">{{ site_title|default('Cimaise') }}</h1>
           {% endif %}
           <span class="ml-3 hidden lg:inline self-center text-[11px] leading-none text-gray-400 font-normal border border-gray-200 rounded px-1.5 py-0.5" title="{{ trans('admin.version_label', {}, 'Application version') }}">v{{ app_version|default('1.0.0') }}</span>
         </div>
         
         <!-- User Administration Area -->
         <div class="flex items-center space-x-6">
+          <!-- Dark-mode toggle -->
+          <button type="button" id="admin-theme-toggle" class="text-gray-600 hover:text-black transition-colors" title="{{ trans('admin.header.toggle_theme', {}, 'Toggle dark mode') }}" aria-label="{{ trans('admin.header.toggle_theme', {}, 'Toggle dark mode') }}">
+            <i class="fas fa-moon"></i>
+          </button>
+
           <!-- Frontend Link -->
           <a href="{{ base_path }}/" target="_blank" class="text-gray-600 hover:text-black transition-colors flex items-center space-x-2" title="{{ trans('admin.header.view_frontend') }}">
             <i class="fas fa-external-link-alt"></i>
@@ -688,16 +750,16 @@
   </div>
 
   <!-- Toast container -->
-  <div id="toast" class="fixed top-20 right-6 z-50 hidden">
+  <div id="toast" class="fixed top-20 right-6 z-50" role="status" aria-live="polite" aria-atomic="true" style="visibility:hidden;opacity:0;">
     <div id="toast-inner" class="px-4 py-3 rounded shadow text-sm"></div>
   </div>
 
   <!-- Profile Modal -->
-  <div id="profileModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+  <div id="profileModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50" role="dialog" aria-modal="true" aria-labelledby="profileModal-title">
     <div class="flex items-center justify-center min-h-screen px-4">
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">{{ trans('admin.profile.my_profile') }}</h3>
+          <h3 id="profileModal-title" class="text-lg font-semibold text-gray-900">{{ trans('admin.profile.my_profile') }}</h3>
           <button data-action="close-profile-modal" class="text-gray-400 hover:text-gray-600">
             <i class="fas fa-times"></i>
           </button>
@@ -728,11 +790,11 @@
   </div>
 
   <!-- Password Change Modal -->
-  <div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+  <div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50" role="dialog" aria-modal="true" aria-labelledby="passwordModal-title">
     <div class="flex items-center justify-center min-h-screen px-4">
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">{{ trans('admin.profile.change_password') }}</h3>
+          <h3 id="passwordModal-title" class="text-lg font-semibold text-gray-900">{{ trans('admin.profile.change_password') }}</h3>
           <button data-action="close-password-modal" class="text-gray-400 hover:text-gray-600">
             <i class="fas fa-times"></i>
           </button>
@@ -781,26 +843,154 @@
     window.showToast = function(msg, type){
       const box = document.getElementById('toast');
       const inner = document.getElementById('toast-inner');
+      if (!box || !inner) return;
       inner.textContent = msg;
-      inner.className = 'px-4 py-3 rounded shadow text-sm ' + (type==='error' ? 'bg-red-600 text-white' : 'bg-black text-white');
-      box.classList.remove('hidden');
-      setTimeout(()=>{ box.classList.add('hidden'); }, 2000);
+      // Text colour is uniform across toast types; per-type differentiation
+      // is via style.backgroundColor and the timeout below.
+      const tone = 'text-white';
+      inner.className = 'px-4 py-3 rounded-lg shadow-lg text-sm font-medium ' + tone;
+      inner.style.backgroundColor = type === 'error' ? '#b4452f' : (type === 'success' ? '#1c322d' : '#1c322d');
+      // Error toasts are announced assertively; others politely.
+      box.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+      // Toggle visibility/opacity (not Tailwind `hidden`/display:none) so the
+      // live region stays in the DOM and a11y tree before/after content injection.
+      box.style.visibility = 'visible';
+      box.style.opacity = '1';
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(()=>{ box.style.opacity = '0'; box.style.visibility = 'hidden'; }, type === 'error' ? 4000 : 2600);
     }
 
+    // Success toast after a redirect carrying ?saved=1 (reliable feedback that
+    // does not depend on the server flash banner).
+    document.addEventListener('DOMContentLoaded', function(){
+      try {
+        const p = new URLSearchParams(location.search);
+        if (p.get('saved') === '1') {
+          window.showToast({{ trans('admin.flash.settings_saved', {}, 'Salvato')|json_encode|raw }}, 'success');
+          p.delete('saved');
+          const qs = p.toString();
+          history.replaceState(null, '', location.pathname + (qs ? '?' + qs : ''));
+        }
+      } catch (e) { /* no-op */ }
+    });
+
     // Profile / Password Modal Functions
+    // Track which element opened the modal so focus can be restored on close.
+    window._modalOpener = null;
     function openProfileModal() {
-      document.getElementById('profileModal')?.classList.remove('hidden');
+      window._modalOpener = document.activeElement;
+      const modal = document.getElementById('profileModal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      // Move focus to the first real input.
+      const first = document.getElementById('profile-first-name')
+        || modal.querySelector('input[type="text"], input:not([tabindex="-1"]):not([type="hidden"])');
+      first?.focus();
     }
     function closeProfileModal() {
       document.getElementById('profileModal')?.classList.add('hidden');
+      restoreModalFocus();
     }
     function openPasswordModal() {
-      document.getElementById('passwordModal')?.classList.remove('hidden');
+      window._modalOpener = document.activeElement;
+      const modal = document.getElementById('passwordModal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      // Focus the current-password field (skip the sr-only username field).
+      document.getElementById('current-password')?.focus();
     }
     function closePasswordModal() {
       document.getElementById('passwordModal')?.classList.add('hidden');
       document.getElementById('passwordForm')?.reset();
+      restoreModalFocus();
     }
+    function restoreModalFocus() {
+      const opener = window._modalOpener;
+      window._modalOpener = null;
+      if (opener && typeof opener.focus === 'function') {
+        opener.focus();
+      }
+    }
+
+    // SPA-safe global UI listeners. The admin SPA re-executes every inline
+    // script on each navigation, so per-run document.addEventListener calls
+    // would stack duplicates, and per-element bindings in DOMContentLoaded
+    // (which never re-fires on SPA nav) would miss dynamically-loaded content.
+    // Bind ONCE (window guard) using event delegation on document, so every
+    // handler also covers content loaded later via SPA navigation.
+    if (!window.__adminGlobalListenersBound) {
+      window.__adminGlobalListenersBound = true;
+
+      // Escape closes whichever modal is currently open.
+      document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Escape' && e.key !== 'Esc') return;
+        const profile = document.getElementById('profileModal');
+        const password = document.getElementById('passwordModal');
+        if (profile && !profile.classList.contains('hidden')) {
+          closeProfileModal();
+        } else if (password && !password.classList.contains('hidden')) {
+          closePasswordModal();
+        }
+      });
+
+      // Delegated click: modal-backdrop close + [data-action] buttons +
+      // [data-confirm] non-form elements.
+      document.addEventListener('click', function(e) {
+        if (e.target.id === 'profileModal') { closeProfileModal(); return; }
+        if (e.target.id === 'passwordModal') { closePasswordModal(); return; }
+        const actionEl = e.target.closest ? e.target.closest('[data-action]') : null;
+        if (actionEl) {
+          const actions = {
+            'open-profile-modal': openProfileModal,
+            'close-profile-modal': closeProfileModal,
+            'open-password-modal': openPasswordModal,
+            'close-password-modal': closePasswordModal,
+          };
+          const fn = actions[actionEl.getAttribute('data-action')];
+          if (fn) { e.preventDefault(); fn(); return; }
+        }
+        const confirmEl = e.target.closest ? e.target.closest('[data-confirm]') : null;
+        if (confirmEl && confirmEl.tagName.toLowerCase() !== 'form') {
+          const msg = confirmEl.getAttribute('data-confirm');
+          if (msg && !confirm(msg)) { e.preventDefault(); e.stopPropagation(); }
+        }
+      });
+
+      // Delegated submit: [data-confirm] on forms.
+      document.addEventListener('submit', function(e) {
+        const form = e.target.closest ? e.target.closest('form[data-confirm]') : null;
+        if (!form) return;
+        const msg = form.getAttribute('data-confirm');
+        if (msg && !confirm(msg)) { e.preventDefault(); e.stopPropagation(); }
+      });
+    }
+
+    // Admin dark-mode toggle. The no-flash init in <head> applies the saved
+    // theme on load; this wires the topbar button (persists in localStorage).
+    //
+    // SPA-safe: the admin SPA re-executes every inline script on each page
+    // navigation, so a plain btn.addEventListener would stack a fresh listener
+    // per navigation — the toggle would fire an even number of times and
+    // appear to "stop working". Bind once via a global guard + delegated
+    // document listener; later re-runs only re-sync the icon and return.
+    (function(){
+      function syncThemeIcon(){
+        var btn = document.getElementById('admin-theme-toggle');
+        if (!btn) return;
+        var i = btn.querySelector('i');
+        if (i) i.className = document.documentElement.classList.contains('dark') ? 'fas fa-sun' : 'fas fa-moon';
+      }
+      syncThemeIcon();
+      if (window.__adminThemeToggleBound) return;
+      window.__adminThemeToggleBound = true;
+      document.addEventListener('click', function(e){
+        var btn = e.target && e.target.closest ? e.target.closest('#admin-theme-toggle') : null;
+        if (!btn) return;
+        var dark = document.documentElement.classList.toggle('dark');
+        try { localStorage.setItem('cimaise-admin-theme', dark ? 'dark' : 'light'); } catch(err){}
+        syncThemeIcon();
+      });
+    })();
 
     // Password confirmation validation
     document.addEventListener('DOMContentLoaded', function() {
@@ -819,53 +1009,11 @@
       }
     });
 
-    // Close modals when clicking outside
-    document.addEventListener('click', function(e) {
-      if (e.target.id === 'profileModal') {
-        closeProfileModal();
-      }
-      if (e.target.id === 'passwordModal') {
-        closePasswordModal();
-      }
-    });
-
-    // Migrate inline handlers to JS for CSP compliance
-    document.addEventListener('DOMContentLoaded', function() {
-      const actions = {
-        'open-profile-modal': openProfileModal,
-        'close-profile-modal': closeProfileModal,
-        'open-password-modal': openPasswordModal,
-        'close-password-modal': closePasswordModal,
-      };
-      Object.entries(actions).forEach(([key, fn]) => {
-        document.querySelectorAll(`[data-action="${key}"]`).forEach(el => {
-          el.addEventListener('click', function(ev) {
-            ev.preventDefault();
-            fn();
-          });
-        });
-      });
-
-      // Generic confirm handler for elements with data-confirm
-      document.querySelectorAll('[data-confirm]').forEach(el => {
-        const msg = el.getAttribute('data-confirm');
-        if (!msg) return;
-        const handler = (ev) => {
-          if (!confirm(msg)) {
-            ev.preventDefault();
-            ev.stopPropagation();
-          }
-        };
-        if (el.tagName.toLowerCase() === 'form') {
-          el.addEventListener('submit', handler);
-        } else {
-          el.addEventListener('click', handler);
-        }
-      });
-
-      // Flash messages: close button and auto-dismiss
-      initFlashMessages();
-    });
+    // Modal-backdrop close, [data-action] and [data-confirm] are now handled
+    // by the delegated listeners in the SPA-safe block above (which also
+    // covers content loaded via SPA navigation). Only flash-message init
+    // remains a full-load concern.
+    document.addEventListener('DOMContentLoaded', initFlashMessages);
 
     function initFlashMessages() {
       const container = document.getElementById('flash-messages');

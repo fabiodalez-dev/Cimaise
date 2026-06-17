@@ -593,6 +593,20 @@ html.dark .tag-item:hover span {
   color: #ffffff;
 }
 
+/* Secondary text inside a category card ("Vedi Tutto", the subcategory count,
+   and the subcategory list). The template applies group-hover:text-black /
+   hover:text-black, which on the dark panel turns these #000 and unreadable on
+   hover. Override both rest and hover so they stay light (mirrors the h3 rules
+   above; higher specificity than the Tailwind group-hover utility). */
+html.dark .category-parent-item p,
+html.dark .category-parent-item .subcategories-hover-text div {
+  color: #a3a3a3;
+}
+html.dark .category-parent-item:hover p,
+html.dark .category-parent-item:hover .subcategories-hover-text div {
+  color: #e5e5e5;
+}
+
 html.dark .category-parent-item .bg-gray-50,
 html.dark .tag-item .bg-gray-100 {
   background-color: #262626;

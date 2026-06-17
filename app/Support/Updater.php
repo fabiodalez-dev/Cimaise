@@ -2665,8 +2665,18 @@ class Updater
         try {
             $this->ensureUpdateLogsTableExists();
 
+            // The users table stores first_name/last_name (there is no `name`
+            // column). Build the display name in SQL, but portably: MySQL's `||`
+            // is logical-OR, not string concat, so SQLite must use `||` while
+            // MySQL must use CONCAT(). Without this the query failed with
+            // "unknown column name" on BOTH engines and the catch below silently
+            // returned an empty history.
+            $nameExpr = $this->db->isSqlite()
+                ? "TRIM(COALESCE(u.first_name, '') || ' ' || COALESCE(u.last_name, ''))"
+                : "TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')))";
+
             $stmt = $this->db->pdo()->prepare("
-                SELECT ul.*, u.name as executed_by_name
+                SELECT ul.*, {$nameExpr} as executed_by_name
                 FROM update_logs ul
                 LEFT JOIN users u ON ul.executed_by = u.id
                 ORDER BY ul.started_at DESC

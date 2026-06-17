@@ -9,6 +9,115 @@
     <a href="{{ base_path }}/admin/albums/create" class="btn-primary"><i class="fas fa-plus mr-2"></i>{{ trans('admin.dashboard.new_album') }}</a>
   </div>
 
+  {# Analytics snapshot (hidden when analytics is disabled / has no data) #}
+  {% if analytics %}
+  <div class="card mb-6" style="padding:0">
+    <div class="flex items-center justify-between px-5 py-4" style="border-bottom:1px solid var(--color-border)">
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ trans('admin.dashboard.analytics') }}</h2>
+      <a href="{{ base_path }}/admin/analytics" class="text-sm font-medium" style="color:var(--color-accent)">{{ trans('admin.dashboard.open_analytics') }}</a>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3">
+      <div class="px-5 py-5 grid grid-cols-2 gap-y-4 gap-x-3">
+        <div><p class="text-xs uppercase tracking-wider text-gray-500">{{ trans('admin.dashboard.pageviews_24h') }}</p><p class="font-serif text-2xl text-gray-900 mt-1 leading-none">{{ analytics.realtime.pageviews_24h|default(0) }}</p></div>
+        <div><p class="text-xs uppercase tracking-wider text-gray-500">{{ trans('admin.dashboard.active_sessions') }}</p><p class="font-serif text-2xl text-gray-900 mt-1 leading-none">{{ analytics.realtime.active_sessions|default(0) }}</p></div>
+        <div><p class="text-xs uppercase tracking-wider text-gray-500">{{ trans('admin.dashboard.pageviews_7d') }}</p><p class="font-serif text-2xl text-gray-900 mt-1 leading-none">{{ analytics.pv7 }}</p></div>
+        <div><p class="text-xs uppercase tracking-wider text-gray-500">{{ trans('admin.dashboard.sessions_7d') }}</p><p class="font-serif text-2xl text-gray-900 mt-1 leading-none">{{ analytics.sess7 }}</p></div>
+      </div>
+      <div class="px-5 py-5 lg:col-span-2" style="border-top:1px solid var(--color-border)">
+        <p class="text-xs uppercase tracking-wider text-gray-500 mb-3">{{ trans('admin.dashboard.pageviews_last_7days') }}</p>
+        {% if analytics.pv7 > 0 %}
+        <div class="flex items-end gap-2">
+          {% for d in analytics.series %}
+          <div class="flex-1 flex flex-col items-center">
+            <div class="w-full flex items-end justify-center" style="height:84px">
+              <div title="{{ d.date }}: {{ d.pv }} {{ trans('admin.dashboard.pageviews_unit') }} · {{ d.sessions }} {{ trans('admin.dashboard.sessions_unit') }}" style="width:100%; min-height:2px; height:{{ (d.pv / analytics.max_pv * 100)|round }}%; background:var(--color-accent); border-radius:6px 6px 0 0"></div>
+            </div>
+            <span class="text-gray-600 mt-1" style="font-size:11px">{{ d.date|date('d/m') }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-500">{{ trans('admin.dashboard.no_daily_data', {'command': '<code>analytics:summarize</code>'})|raw }}</p>
+        {% endif %}
+      </div>
+    </div>
+    {% if analytics.top_pages %}
+    <div class="px-5 py-4" style="border-top:1px solid var(--color-border)">
+      <p class="text-xs uppercase tracking-wider text-gray-500 mb-3">{{ trans('admin.dashboard.top_pages') }}</p>
+      <div class="space-y-2">
+        {% for p in analytics.top_pages %}
+        <div class="flex items-center justify-between text-sm gap-4">
+          <span class="truncate text-gray-700">{{ p.page_title|default(p.page_url)|default('—') }}</span>
+          <span class="font-medium text-gray-900 flex-none">{{ p.views }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {# KPI stat blocks — real counts from the database #}
+  <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+    <a href="{{ base_path }}/admin/albums" class="card p-5 hover:bg-gray-50 transition">
+      <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ trans('admin.dashboard.albums') }}</p>
+      <p class="font-serif text-3xl text-gray-900 mt-2 leading-none">{{ stats.albums|default(0) }}</p>
+      <p class="text-xs text-gray-500 mt-2">{{ stats.published|default(0) }} {{ trans('admin.dashboard.published_abbr') }} · {{ stats.drafts|default(0) }} {{ trans('admin.dashboard.drafts_abbr') }}</p>
+    </a>
+    <a href="{{ base_path }}/admin/media" class="card p-5 hover:bg-gray-50 transition">
+      <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ trans('admin.dashboard.photos') }}</p>
+      <p class="font-serif text-3xl text-gray-900 mt-2 leading-none">{{ stats.photos|default(0) }}</p>
+      <p class="text-xs text-gray-500 mt-2">{{ trans('admin.dashboard.photos_desc') }}</p>
+    </a>
+    <div class="card p-5" style="background: var(--color-accent); color: var(--color-accent-contrast); border-color: var(--color-accent); cursor: default;">
+      <p class="text-xs font-semibold uppercase tracking-wider" style="opacity:.72">{{ trans('admin.dashboard.storage_used') }}</p>
+      <p class="font-serif text-3xl mt-2 leading-none">{{ stats.storage_human|default('0 MB') }}</p>
+      <p class="text-xs mt-2" style="opacity:.72">{{ trans('admin.dashboard.storage_desc') }}</p>
+    </div>
+    <a href="{{ base_path }}/admin/categories" class="card p-5 hover:bg-gray-50 transition">
+      <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ trans('admin.dashboard.categories') }}</p>
+      <p class="font-serif text-3xl text-gray-900 mt-2 leading-none">{{ stats.categories|default(0) }}</p>
+    </a>
+    <a href="{{ base_path }}/admin/collections" class="card p-5 hover:bg-gray-50 transition">
+      <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ trans('admin.sidebar.collections') }}</p>
+      <p class="font-serif text-3xl text-gray-900 mt-2 leading-none">{{ stats.collections|default(0) }}</p>
+    </a>
+    <a href="{{ base_path }}/admin/tags" class="card p-5 hover:bg-gray-50 transition">
+      <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ trans('admin.dashboard.tags') }}</p>
+      <p class="font-serif text-3xl text-gray-900 mt-2 leading-none">{{ stats.tags|default(0) }}</p>
+    </a>
+  </div>
+
+  {# Recent albums #}
+  {% if recentAlbums is defined and recentAlbums %}
+  <div class="card overflow-hidden mb-6" style="padding:0">
+    <div class="flex items-center justify-between px-5 py-4" style="border-bottom:1px solid var(--color-border)">
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ trans('admin.dashboard.recent_albums') }}</h2>
+      <a href="{{ base_path }}/admin/albums" class="text-sm font-medium" style="color:var(--color-accent)">{{ trans('admin.dashboard.all_albums') }}</a>
+    </div>
+    <div>
+      {% for al in recentAlbums %}
+      <a href="{{ base_path }}/admin/albums/{{ al.id }}/edit" class="flex items-center gap-4 px-5 py-3 hover:bg-gray-50 transition" {% if not loop.first %}style="border-top:1px solid var(--color-border)"{% endif %}>
+        {% if al.cover_path %}
+          <img src="{% if al.cover_path starts with '/' %}{{ base_path }}{{ al.cover_path }}{% else %}{{ al.cover_path }}{% endif %}" alt="" class="w-12 h-9 object-cover rounded flex-none" style="border:1px solid var(--color-border)">
+        {% else %}
+          <span class="w-12 h-9 rounded flex-none flex items-center justify-center text-gray-400" style="background:var(--color-bg-tertiary)"><i class="fas fa-image"></i></span>
+        {% endif %}
+        <span class="flex-1 min-w-0">
+          <span class="block font-medium text-gray-900 truncate">{{ al.title }}</span>
+          <span class="block text-xs text-gray-500 truncate">{{ al.slug }}</span>
+        </span>
+        {% if al.is_published %}
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full" style="background:var(--color-accent-soft); color:var(--color-accent)">{{ trans('admin.albums.published') }}</span>
+        {% else %}
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full text-gray-500" style="background:var(--color-bg-tertiary)">{{ trans('admin.albums.draft') }}</span>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   {# Quick actions toolbar #}
   <div class="card p-4 mb-6">
     <div class="flex flex-wrap items-center gap-2">
@@ -35,13 +144,25 @@
           credentials: 'same-origin'
         }).then(function(r){ if (!r.ok) throw new Error('cache-clear-failed'); return r.json(); })
           .then(function(d){ if (msg) { msg.className = 'text-sm text-green-600'; msg.textContent = (d && d.message) ? d.message : '{{ trans('admin.dashboard.cache_done')|e('js') }}'; } })
-          .catch(function(){ if (msg) { msg.className = 'text-sm text-red-600'; msg.textContent = 'Error'; } })
+          .catch(function(){ if (msg) { msg.className = 'text-sm text-red-600'; msg.textContent = '{{ trans('admin.dashboard.error')|e('js') }}'; } })
           .then(function(){ btn.disabled = false; setTimeout(function(){ if (msg) msg.textContent = ''; }, 4000); });
       });
     })();
   </script>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  <style nonce="{{ csp_nonce() }}">
+    .dash-launcher a { transition: background-color .15s ease, border-color .15s ease; }
+    .dash-launcher a i {
+      width: 44px; height: 44px; border-radius: 12px; flex: none;
+      display: inline-flex; align-items: center; justify-content: center; font-size: 18px;
+      background: var(--color-accent-soft); color: var(--color-accent);
+      transition: background-color .15s ease, color .15s ease;
+    }
+    .dash-launcher a:hover { border-color: var(--color-accent-soft-border); }
+    .dash-launcher a:hover i { background: var(--color-accent); color: var(--color-accent-contrast); }
+  </style>
+  <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">{{ trans('admin.dashboard.management') }}</h2>
+  <div class="dash-launcher grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
     <a class="card p-6 hover:bg-gray-50 transition" href="{{ base_path }}/admin/albums">
       <div class="flex items-center justify-between">
         <div>

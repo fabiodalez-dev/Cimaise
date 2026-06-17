@@ -283,33 +283,57 @@ class ImageRating
         $this->db->beginTransaction();
         try {
             $this->db->exec("UPDATE plugin_image_ratings SET rated_by = 0 WHERE rated_by IS NULL");
-            // Collapse duplicates - including EXACT ties on (rated_at, rating).
-            // Strategy: rebuild the table from a deduped projection. ROW_NUMBER()
-            // is available in MySQL 8.0+ (we require PHP 8.2+, so this is safe);
-            // PARTITION BY (image_id, rated_by) with ORDER BY rated_at DESC, rating
-            // DESC and a final tie-breaker on a synthetic per-row sequence so two
-            // rows that share image_id+rated_by+rated_at+rating do NOT both
-            // survive - otherwise ADD UNIQUE KEY uniq_image_rated_by would fail.
-            $this->db->exec("CREATE TEMPORARY TABLE plugin_image_ratings_dedup AS
-                SELECT image_id, rating, rated_at, rated_by
-                FROM (
-                    SELECT image_id,
-                           rating,
-                           rated_at,
-                           rated_by,
-                           ROW_NUMBER() OVER (
-                               PARTITION BY image_id, rated_by
-                               ORDER BY rated_at DESC, rating DESC
-                           ) AS rn
-                    FROM plugin_image_ratings
-                ) ranked
-                WHERE rn = 1
-            ");
+            // Collapse duplicates - including EXACT ties on (rated_at, rating) -
+            // keeping the most recent rating per (image_id, rated_by) so the
+            // subsequent ADD UNIQUE KEY uniq_image_rated_by cannot fail.
+            //
+            // MySQL 5.7 compatibility: window functions (ROW_NUMBER) only exist
+            // in MySQL 8.0+, so we dedupe with an anti-join "greatest-per-group"
+            // instead. A surrogate AUTO_INCREMENT `seq` gives every row a unique
+            // rank so exact ties (same image_id+rated_by+rated_at+rating, or even
+            // two NULL rated_at) collapse to exactly one survivor. rated_at is
+            // COALESCE'd to a floor datetime so NULLs rank as oldest rather than
+            // making every comparison NULL (which would keep both tied rows).
+            //
+            // Two seq tables are required: MySQL cannot open the same TEMPORARY
+            // table twice in one statement (error 1137 "Can't reopen table"), so
+            // the self-comparison reads an independent copy (seq2). TEMPORARY
+            // DDL does not trigger an implicit COMMIT, so the surrounding
+            // transaction's rollback guarantee is preserved.
+            $this->db->exec("CREATE TEMPORARY TABLE plugin_image_ratings_seq (
+                    seq BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    image_id INT NOT NULL,
+                    rating INT NOT NULL,
+                    rated_at DATETIME NULL,
+                    rated_by INT NOT NULL
+                )");
+            $this->db->exec("INSERT INTO plugin_image_ratings_seq (image_id, rating, rated_at, rated_by)
+                SELECT image_id, rating, rated_at, rated_by FROM plugin_image_ratings");
+            $this->db->exec("CREATE TEMPORARY TABLE plugin_image_ratings_seq2 AS
+                SELECT seq, image_id, rating, rated_at, rated_by FROM plugin_image_ratings_seq");
+            // A row wins its (image_id, rated_by) group when no other row in the
+            // group ranks strictly higher by (rated_at, rating, seq). seq is
+            // unique, so exactly one winner survives per group.
+            $this->db->exec("CREATE TEMPORARY TABLE plugin_image_ratings_keep AS
+                SELECT a.seq
+                FROM plugin_image_ratings_seq a
+                LEFT JOIN plugin_image_ratings_seq2 b
+                    ON b.image_id = a.image_id
+                    AND b.rated_by = a.rated_by
+                    AND (
+                        COALESCE(b.rated_at, '1000-01-01 00:00:00') > COALESCE(a.rated_at, '1000-01-01 00:00:00')
+                        OR (COALESCE(b.rated_at, '1000-01-01 00:00:00') = COALESCE(a.rated_at, '1000-01-01 00:00:00') AND b.rating > a.rating)
+                        OR (COALESCE(b.rated_at, '1000-01-01 00:00:00') = COALESCE(a.rated_at, '1000-01-01 00:00:00') AND b.rating = a.rating AND b.seq > a.seq)
+                    )
+                WHERE b.seq IS NULL");
             $this->db->exec("DELETE FROM plugin_image_ratings");
             $this->db->exec("INSERT INTO plugin_image_ratings (image_id, rating, rated_at, rated_by)
-                SELECT image_id, rating, rated_at, rated_by FROM plugin_image_ratings_dedup
-            ");
-            $this->db->exec("DROP TEMPORARY TABLE plugin_image_ratings_dedup");
+                SELECT s.image_id, s.rating, s.rated_at, s.rated_by
+                FROM plugin_image_ratings_seq s
+                JOIN plugin_image_ratings_keep k ON k.seq = s.seq");
+            $this->db->exec("DROP TEMPORARY TABLE plugin_image_ratings_seq");
+            $this->db->exec("DROP TEMPORARY TABLE plugin_image_ratings_seq2");
+            $this->db->exec("DROP TEMPORARY TABLE plugin_image_ratings_keep");
             $this->db->commit();
         } catch (PDOException $e) {
             $this->db->rollBack();

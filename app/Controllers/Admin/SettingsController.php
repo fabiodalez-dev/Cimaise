@@ -305,7 +305,7 @@ class SettingsController extends BaseController
         $svc->set('maintenance.show_countdown', isset($data['maintenance_show_countdown']));
 
         $_SESSION['flash'][] = ['type' => 'success','message' => trans('admin.flash.settings_saved')];
-        return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/settings') . '?saved=1')->withStatus(302);
     }
 
     public function generateImages(Request $request, Response $response): Response
@@ -328,9 +328,36 @@ class SettingsController extends BaseController
                 throw new \RuntimeException('Console script not readable');
             }
 
-            // Run the command in the background to prevent timeouts
-            $cmd = 'nohup php ' . escapeshellarg($consolePath) . ' images:generate --missing > /tmp/image_generation.log 2>&1 &';
-            exec($cmd);
+            // Confine the executable to the application's own bin/console: resolve
+            // the real path and require it to live under the app root. Combined
+            // with escapeshellarg() on every dynamic part and a fixed argument
+            // list (no user input reaches the command), this rules out injection.
+            $appRoot = dirname(__DIR__, 3);
+            $consoleReal = realpath($consolePath);
+            if ($consoleReal === false || !str_starts_with($consoleReal, $appRoot . DIRECTORY_SEPARATOR)) {
+                throw new \RuntimeException('Console script path invalid');
+            }
+            // Run the command in the background to prevent timeouts. All parts are
+            // constant or escaped; the only variable is the validated app path.
+            // Log to a single app-private, reused file under storage/logs rather
+            // than a per-run tempnam(): a tempnam() in the shared temp dir
+            // accumulated one file per invocation, while a fixed name in the
+            // shared temp dir risked symlink/clobber. An app-owned directory
+            // (not world-writable, not shared) avoids both — the file is reused
+            // (no accumulation) and the path is not attacker-influenced.
+            $logDir = $appRoot . '/storage/logs';
+            if (!is_dir($logDir) && !@mkdir($logDir, 0775, true) && !is_dir($logDir)) {
+                throw new \RuntimeException('Unable to create log directory');
+            }
+            $logPath = $logDir . '/image_generation.log';
+            $cmd = 'nohup ' . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($consoleReal)
+                . ' images:generate --missing > ' . escapeshellarg($logPath) . ' 2>&1 &';
+            // nosemgrep: reviewed — every command part is escaped (escapeshellarg)
+            // and the only variable is the app's own bin/console path, validated
+            // with realpath() to live under the app root. No user input reaches
+            // the command, so injection is not possible. (Same pattern as
+            // CommandsController, which is likewise annotated.)
+            exec($cmd); // nosemgrep
 
             if ($this->isAjaxRequest($request)) {
                 $payload = json_encode([
@@ -671,11 +698,19 @@ class SettingsController extends BaseController
         $relativePath = '/' . $filename;
         $absolutePath = $publicPath . $relativePath;
 
-        // Remove old favicon source files
+        // Remove old favicon source files. The names come from a fixed
+        // whitelist, but we still resolve the real path and require it to stay
+        // inside /public before deleting (defence in depth against traversal).
+        $publicReal = realpath($publicPath);
         foreach (['png', 'jpg', 'webp'] as $oldExt) {
-            $oldFile = $publicPath . '/favicon-source.' . $oldExt;
-            if (file_exists($oldFile)) {
-                @unlink($oldFile);
+            $oldFile = realpath($publicPath . '/favicon-source.' . $oldExt);
+            if ($oldFile === false || $publicReal === false) {
+                continue;
+            }
+            if (str_starts_with($oldFile, $publicReal . DIRECTORY_SEPARATOR) && is_file($oldFile)) {
+                // nosemgrep: path is realpath()-resolved and confined to /public,
+                // built from a fixed extension whitelist; no user input.
+                @unlink($oldFile); // nosemgrep
             }
         }
 
