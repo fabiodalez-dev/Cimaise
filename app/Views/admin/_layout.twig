@@ -713,16 +713,16 @@
   </div>
 
   <!-- Toast container -->
-  <div id="toast" class="fixed top-20 right-6 z-50 hidden">
+  <div id="toast" class="fixed top-20 right-6 z-50" role="status" aria-live="polite" aria-atomic="true" style="visibility:hidden;opacity:0;">
     <div id="toast-inner" class="px-4 py-3 rounded shadow text-sm"></div>
   </div>
 
   <!-- Profile Modal -->
-  <div id="profileModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+  <div id="profileModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50" role="dialog" aria-modal="true" aria-labelledby="profileModal-title">
     <div class="flex items-center justify-center min-h-screen px-4">
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">{{ trans('admin.profile.my_profile') }}</h3>
+          <h3 id="profileModal-title" class="text-lg font-semibold text-gray-900">{{ trans('admin.profile.my_profile') }}</h3>
           <button data-action="close-profile-modal" class="text-gray-400 hover:text-gray-600">
             <i class="fas fa-times"></i>
           </button>
@@ -753,11 +753,11 @@
   </div>
 
   <!-- Password Change Modal -->
-  <div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+  <div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50" role="dialog" aria-modal="true" aria-labelledby="passwordModal-title">
     <div class="flex items-center justify-center min-h-screen px-4">
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">{{ trans('admin.profile.change_password') }}</h3>
+          <h3 id="passwordModal-title" class="text-lg font-semibold text-gray-900">{{ trans('admin.profile.change_password') }}</h3>
           <button data-action="close-password-modal" class="text-gray-400 hover:text-gray-600">
             <i class="fas fa-times"></i>
           </button>
@@ -813,9 +813,14 @@
         : (type === 'success' ? 'text-white' : 'text-white');
       inner.className = 'px-4 py-3 rounded-lg shadow-lg text-sm font-medium ' + tone;
       inner.style.backgroundColor = type === 'error' ? '#b4452f' : (type === 'success' ? '#1c322d' : '#1c322d');
-      box.classList.remove('hidden');
+      // Error toasts are announced assertively; others politely.
+      box.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+      // Toggle visibility/opacity (not Tailwind `hidden`/display:none) so the
+      // live region stays in the DOM and a11y tree before/after content injection.
+      box.style.visibility = 'visible';
+      box.style.opacity = '1';
       clearTimeout(window._toastTimer);
-      window._toastTimer = setTimeout(()=>{ box.classList.add('hidden'); }, type === 'error' ? 4000 : 2600);
+      window._toastTimer = setTimeout(()=>{ box.style.opacity = '0'; box.style.visibility = 'hidden'; }, type === 'error' ? 4000 : 2600);
     }
 
     // Success toast after a redirect carrying ?saved=1 (reliable feedback that
@@ -833,19 +838,54 @@
     });
 
     // Profile / Password Modal Functions
+    // Track which element opened the modal so focus can be restored on close.
+    window._modalOpener = null;
     function openProfileModal() {
-      document.getElementById('profileModal')?.classList.remove('hidden');
+      window._modalOpener = document.activeElement;
+      const modal = document.getElementById('profileModal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      // Move focus to the first real input.
+      const first = document.getElementById('profile-first-name')
+        || modal.querySelector('input[type="text"], input:not([tabindex="-1"]):not([type="hidden"])');
+      first?.focus();
     }
     function closeProfileModal() {
       document.getElementById('profileModal')?.classList.add('hidden');
+      restoreModalFocus();
     }
     function openPasswordModal() {
-      document.getElementById('passwordModal')?.classList.remove('hidden');
+      window._modalOpener = document.activeElement;
+      const modal = document.getElementById('passwordModal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      // Focus the current-password field (skip the sr-only username field).
+      document.getElementById('current-password')?.focus();
     }
     function closePasswordModal() {
       document.getElementById('passwordModal')?.classList.add('hidden');
       document.getElementById('passwordForm')?.reset();
+      restoreModalFocus();
     }
+    function restoreModalFocus() {
+      const opener = window._modalOpener;
+      window._modalOpener = null;
+      if (opener && typeof opener.focus === 'function') {
+        opener.focus();
+      }
+    }
+
+    // Escape closes whichever modal is currently open.
+    document.addEventListener('keydown', function(e) {
+      if (e.key !== 'Escape' && e.key !== 'Esc') return;
+      const profile = document.getElementById('profileModal');
+      const password = document.getElementById('passwordModal');
+      if (profile && !profile.classList.contains('hidden')) {
+        closeProfileModal();
+      } else if (password && !password.classList.contains('hidden')) {
+        closePasswordModal();
+      }
+    });
 
     // Password confirmation validation
     document.addEventListener('DOMContentLoaded', function() {

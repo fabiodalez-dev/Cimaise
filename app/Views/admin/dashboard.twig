@@ -25,14 +25,14 @@
       </div>
       <div class="px-5 py-5 lg:col-span-2" style="border-top:1px solid var(--color-border)">
         <p class="text-xs uppercase tracking-wider text-gray-500 mb-3">{{ trans('admin.dashboard.pageviews_last_7days') }}</p>
-        {% if analytics.series %}
+        {% if analytics.pv7 > 0 %}
         <div class="flex items-end gap-2">
           {% for d in analytics.series %}
           <div class="flex-1 flex flex-col items-center">
             <div class="w-full flex items-end justify-center" style="height:84px">
               <div title="{{ d.date }}: {{ d.pv }} pageview · {{ d.sessions }} sessioni" style="width:100%; min-height:2px; height:{{ (d.pv / analytics.max_pv * 100)|round }}%; background:var(--color-accent); border-radius:6px 6px 0 0"></div>
             </div>
-            <span class="text-gray-400 mt-1" style="font-size:10px">{{ d.date|date('d/m') }}</span>
+            <span class="text-gray-600 mt-1" style="font-size:11px">{{ d.date|date('d/m') }}</span>
           </div>
           {% endfor %}
         </div>
