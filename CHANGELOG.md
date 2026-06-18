@@ -8,6 +8,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The release workflow extracts the `## [VERSION]` section below into the GitHub
 release notes, so keep one section per released tag.
 
+## [1.4.13] - 2026-06-18
+### Added
+- **Modern image pipeline (#109).** A new capability-detected engine produces
+  variants via a fast, low-memory libvips path when available, falling back to
+  Imagick/GD so it runs unchanged on any host.
+- **HEIC/HEIF import** — iPhone photos are accepted whenever the server can
+  decode them (libheif via libvips, or the Imagick HEIC delegate) and converted
+  to standard web variants; originals keep their `.heic`/`.heif` extension.
+- **JPEG-XL (opt-in)** — when enabled in Settings → Image Processing and the
+  server can encode it (a libvips build with libjxl, or the standalone `cjxl`
+  binary), Cimaise generates `.jxl` variants and serves them via `<picture>` to
+  capable browsers, falling back to AVIF/WebP/JPEG everywhere else.
+- **Diagnostics → Imaging Engine** panel showing the active engine and what the
+  host supports (libvips, HEIC read, AVIF/JPEG-XL write, optimizers).
+- **"Back to Pages" arrow** on the home/about/cookie/license/privacy editors.
+- **Admin backend redesign** — the "Mindful Moments" palette (admin-scoped),
+  a dashboard with real KPI stat blocks + an analytics snapshot, a refreshed
+  launcher grid, and a dark-mode switcher.
+
+### Changed
+- `image_variants.format` now allows `jxl` (cross-DB migration 1.4.13 for both
+  SQLite and MySQL; prebuilt template regenerated).
+- Admin dark-mode toggle and the layout script block are SPA-safe (no duplicate
+  listeners after in-place navigation); destructive/disabled buttons are legible
+  in both themes.
+
+### Fixed
+- Cross-database SQL portability (SQLite + MySQL, incl. 5.7): analytics
+  top-pages, updater history, and the image-rating plugin migration no longer
+  rely on engine-specific syntax.
+- Protected-media serving hardened: the strict DB-path MIME gate verifies the
+  JPEG-XL signature directly (libmagic-independent), and all media deletions are
+  realpath-confined to the media directories.
+- Admin i18n: filled missing `admin.*` translation keys; JPEG-XL settings labels
+  use `trans()` like the other formats.
+- HEIC dimensions are read with a HEIC-aware reader (no more zeroed height), and
+  the "HEIC not supported" message no longer leaks server library details to the
+  client (logged server-side instead).
+
 ## [1.4.12] - 2026-06-16
 ### Changed
 - Lightbox caption now fully hides when the photo is zoomed in / shown full
