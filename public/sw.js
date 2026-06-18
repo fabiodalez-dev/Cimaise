@@ -7,7 +7,14 @@
  * - HTML: Network First (fresh content, fallback to cache if offline)
  */
 
-const CACHE_VERSION = 'cimaise-v5';
+// Cache version is tied to the APP version. The page registers the worker as
+// /sw.js?v=<app_version> (from version.json); every update changes this query,
+// so the browser installs the new worker and activate() purges the old caches.
+// Result: after any update, users get fresh assets automatically — they never
+// have to clear the cache by hand, and a corrupt/stale entry can't survive an
+// update. Falls back to a static tag if the worker is ever loaded without ?v=.
+const APP_VERSION = new URL(self.location.href).searchParams.get('v') || 'v7';
+const CACHE_VERSION = `cimaise-${APP_VERSION}`;
 const CACHE_STATIC = `${CACHE_VERSION}-static`;
 const CACHE_IMAGES = `${CACHE_VERSION}-images`;
 const CACHE_PAGES = `${CACHE_VERSION}-pages`;
@@ -81,6 +88,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Only handle SAME-ORIGIN requests. Cross-origin URLs (CDNs, fonts, and
+  // anything a browser extension injects into the page) are left untouched to
+  // the network + page CSP. Intercepting them only made the SW throw
+  // "Failed to fetch" when the CSP blocked the response.
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
   // Skip non-GET requests
   if (request.method !== 'GET') {
     return;
@@ -143,8 +158,17 @@ async function cacheFirstStrategy(request, cacheName, maxItems = 50) {
     log('[SW] Cache miss, fetching:', request.url);
     const networkResponse = await fetch(request);
 
-    // 3. Cache successful responses
-    if (networkResponse && networkResponse.status === 200) {
+    // 3. Cache ONLY a valid, same-origin image response. Guarding on the
+    //    content-type is what stops a transient 200 with an HTML error / empty
+    //    body from poisoning the image cache: cache-first would otherwise keep
+    //    serving that broken entry forever (the photos render as 0x0).
+    const contentType = networkResponse ? (networkResponse.headers.get('Content-Type') || '') : '';
+    if (
+      networkResponse &&
+      networkResponse.status === 200 &&
+      networkResponse.type === 'basic' &&
+      contentType.startsWith('image/')
+    ) {
       // Clone response before caching (can only read once)
       const responseToCache = networkResponse.clone();
 
@@ -330,6 +354,19 @@ self.addEventListener('message', (event) => {
           event.ports[0].postMessage({ success: true });
         }
       })
+    );
+  }
+
+  // Self-heal: the page asks us to drop a single bad entry (e.g. an image that
+  // failed to decode) from every cache so the next request re-fetches it fresh.
+  // ignoreSearch so a cache-busted retry URL still matches the cached original.
+  if (event.data && event.data.type === 'EVICT' && event.data.url) {
+    event.waitUntil(
+      caches.keys().then((cacheNames) => Promise.all(
+        cacheNames.map((name) =>
+          caches.open(name).then((cache) => cache.delete(event.data.url, { ignoreSearch: true }))
+        )
+      ))
     );
   }
 });

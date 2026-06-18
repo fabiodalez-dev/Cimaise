@@ -2872,6 +2872,27 @@
             });
         });
     });
+
+    // Self-heal broken media images. If a /media/ photo fails to load — e.g. a
+    // stale or corrupt Service-Worker/HTTP cache entry — we ask the SW to evict
+    // that URL and retry ONCE with a cache-bust. This means a user who ever
+    // cached a bad response recovers automatically on the next view, without
+    // ever having to clear the cache by hand. Capture phase + window: <img>
+    // 'error' events don't bubble, and this also covers images injected later
+    // (e.g. the home marquee built by home.js).
+    window.addEventListener('error', function(e) {
+        var img = e.target;
+        if (!img || img.tagName !== 'IMG' || img.dataset.swHealed) return;
+        var src = img.currentSrc || img.src || '';
+        if (src.indexOf('/media/') === -1) return;
+        img.dataset.swHealed = '1';
+        var clean = src.split('#')[0];
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({ type: 'EVICT', url: clean });
+        }
+        img.style.display = '';  // undo any data-fallback hide so a good retry shows
+        img.src = clean + (clean.indexOf('?') === -1 ? '?' : '&') + 'swcb=' + Date.now();
+    }, true);
     </script>
 
     {% if page_custom_js is defined and page_custom_js %}
@@ -2910,7 +2931,7 @@
       const pwaLog = pwaDebug ? console.log.bind(console) : function() {};
 
       window.addEventListener('load', function() {
-        navigator.serviceWorker.register('{{ base_path }}/sw.js')
+        navigator.serviceWorker.register('{{ base_path }}/sw.js?v={{ app_version|default('0')|e('url') }}')
           .then(function(registration) {
             pwaLog('[PWA] Service Worker registered:', registration.scope);
 

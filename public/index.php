@@ -59,6 +59,19 @@ unset($maintenanceFlagFile);
 
 require __DIR__ . '/../vendor/autoload.php';
 
+// Keep PHP diagnostics OUT of the HTTP response body. A warning/notice/
+// deprecation printed to output corrupts the response — most destructively for
+// BINARY responses: a stray "<br /><b>Deprecated</b>…" prepended to an image
+// makes the bytes undecodable, so photos render broken (and a service worker
+// then caches the corrupt bytes). Route them to the error log instead. Slim's
+// error middleware still renders real exceptions; APP_DEBUG re-enables on-screen
+// display below (after the env loads) for local development. Deprecations are
+// advisory (e.g. vendor code on a newer PHP) and never belong in the body, so
+// they stay suppressed regardless of debug.
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+
 use Slim\Factory\AppFactory;
 use Slim\Views\Twig;
 use Slim\Views\TwigMiddleware;
@@ -177,6 +190,13 @@ try {
 } catch (\Throwable $e) {
     // If bootstrap fails (e.g., no database), create minimal container
     $container = ['db' => null];
+}
+
+// Now that the env is loaded, surface on-screen errors for local development
+// only (APP_DEBUG=true). Deprecations stay suppressed either way — see the
+// error_reporting() call after the autoload above.
+if (filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+    ini_set('display_errors', '1');
 }
 
 // One-time upgrade hardening: move sharp variants belonging exclusively to
