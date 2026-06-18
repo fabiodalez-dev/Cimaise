@@ -193,9 +193,12 @@ try {
 }
 
 // Now that the env is loaded, surface on-screen errors for local development
-// only (APP_DEBUG=true). Deprecations stay suppressed either way — see the
-// error_reporting() call after the autoload above.
-if (filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+// (APP_DEBUG=true) — but NEVER on media/binary responses: a printed warning
+// there is prepended to the image bytes and corrupts the file, so those stay
+// log-only in every mode. Deprecations are suppressed either way (see the
+// error_reporting() call after the autoload above). Non-media HTML pages may
+// safely show errors in debug.
+if (!$isMediaRequest && filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
     ini_set('display_errors', '1');
 }
 
