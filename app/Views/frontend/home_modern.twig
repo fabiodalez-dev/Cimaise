@@ -423,6 +423,14 @@
                     {# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
                     {% set fallback_path = image.fallback_src ?? '' %}
                     {% set img_src = fallback_path starts with '/' ? base_path ~ fallback_path : fallback_path %}
+                    {# Force the bare <img> fallback to JPEG. fallback_src is the
+                       "best" variant and may be AVIF/WebP; an old browser without
+                       <picture> support (or a non-browser context) would then get
+                       an undecodable image. jpg is the mandatory baseline variant
+                       and shares the {id}_{size} name, so swapping the extension
+                       points at the same-size .jpg, which always exists. The
+                       <source> elements still serve avif/webp/jxl to capable browsers. #}
+                    {% set img_src = img_src|replace({'.avif': '.jpg', '.webp': '.jpg', '.jxl': '.jpg'}) %}
                     {% set srcset_avif = [] %}
                     {% set srcset_jxl = [] %}
                     {% set srcset_webp = [] %}

@@ -47,7 +47,12 @@ import { getBasePath, normalizeBasePath } from './utils/base-path.js'
     const jpgSrcset = buildSrcset(img.sources?.jpg);
 
     const fallbackSrc = img.fallback_src || img.url || '';
-    const imgSrc = fallbackSrc && fallbackSrc.startsWith('/') ? basePath + fallbackSrc : fallbackSrc;
+    // Force the bare <img> fallback to JPEG (the mandatory baseline variant,
+    // same {id}_{size} name) so browsers without <picture>/modern-format support
+    // get a decodable image; the <source> elements still serve avif/webp/jpeg.
+    // Mirrors the server templates (home_modern.twig / _infinite_gallery.twig).
+    const jpgFallback = fallbackSrc.replace(/\.(avif|webp|jxl)$/i, '.jpg');
+    const imgSrc = jpgFallback && jpgFallback.startsWith('/') ? basePath + jpgFallback : jpgFallback;
     const albumUrl = `${basePath}/album/${encodeURIComponent(img.album_slug || '')}`;
     const alt = img.alt || img.album_title || '';
     const title = img.album_title || '';

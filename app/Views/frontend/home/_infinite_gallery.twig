@@ -25,6 +25,10 @@
         <source type="image/jpeg" srcset="{% for s in image.sources.jpg %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1024px) 50vw, (min-width:640px) 70vw, 100vw">
       {% endif %}
       {% set img_src = image.fallback_src|default(image.url) %}
+      {# Force the bare <img> fallback to JPEG (the mandatory baseline variant,
+         same {id}_{size} name) so browsers without <picture>/modern-format
+         support get a decodable image; <source> still serves avif/webp/jxl. #}
+      {% set img_src = img_src|replace({'.avif': '.jpg', '.webp': '.jpg', '.jxl': '.jpg'}) %}
       <img src="{{ img_src starts with('/') ? (base_path ~ img_src) : img_src }}"
            alt="{{ image.alt|default(image.album_title)|e }}"
            width="{{ image.width|default(1600) }}" height="{{ image.height|default(1067) }}"
