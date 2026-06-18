@@ -8,6 +8,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The release workflow extracts the `## [VERSION]` section below into the GitHub
 release notes, so keep one section per released tag.
 
+## [1.4.14] - 2026-06-18
+### Fixed
+- **Broken photos / "some images don't load".** When the host had PHP
+  `display_errors` on, any warning/deprecation (e.g. a Twig deprecation on PHP
+  8.4) was printed into the HTTP response body; for binary `/media` responses
+  that prepended HTML to the image bytes, making them undecodable so the photo
+  rendered broken (and the service worker then cached the corrupt bytes). PHP
+  diagnostics now always go to the error log, never the response body — on-screen
+  display is enabled only when `APP_DEBUG=true`.
+- **Home (modern):** above-the-fold photos load eagerly (real `srcset` +
+  `fetchpriority`) instead of showing LQIP "holes" until JavaScript ran.
+- **Home (classic):** the animated infinite-gallery now server-renders the lead
+  images of all three columns, so each column's first + next photo are visible at
+  first paint instead of empty columns filling in later.
+- Admin page editors: the "view page" button now respects the configurable About
+  slug, and every `target="_blank"` view-page link carries `rel="noopener
+  noreferrer"`.
+
+### Changed
+- **Self-updating PWA cache (cleanup for returning visitors on every update).**
+  The service-worker cache is now tied to the app version (`cimaise-<version>`,
+  derived from the `/sw.js?v=<version>` the page registers), so each update
+  automatically purges the previous caches — visitors no longer need to clear
+  their browser cache by hand after an update. The worker also leaves
+  cross-origin requests to the network and only caches genuine image responses,
+  and a broken `/media` image self-heals at runtime (evict the bad cache entry,
+  then retry with a cache-bust).
+
 ## [1.4.13] - 2026-06-18
 ### Added
 - **Modern image pipeline (#109).** A new capability-detected engine produces
@@ -186,6 +214,8 @@ release notes, so keep one section per released tag.
   (encrypted at rest), DELIMITER/BEGIN-END-aware migration SQL splitter, and a
   dual-DB migration smoke test.
 
+[1.4.14]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.14
+[1.4.13]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.13
 [1.4.12]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.12
 [1.4.11]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.11
 [1.4.10]: https://github.com/fabiodalez-dev/Cimaise/releases/tag/v1.4.10
