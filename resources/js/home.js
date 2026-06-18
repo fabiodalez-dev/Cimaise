@@ -146,8 +146,9 @@ import { getBasePath, normalizeBasePath } from './utils/base-path.js'
   /**
    * Fill the desktop marquee tracks from the image data. The -50% scroll
    * animation needs an EVEN number of identical copies for a seamless loop.
-   * Column 0 already has `seed` server-rendered cells, so its first copy starts
-   * after the seed; the remaining copies are full.
+   * EVERY column is server-seeded with `seed` cells, so each column's first copy
+   * starts after the seed (the per-track [data-seed] check below); the remaining
+   * copies are full.
    * @param {HTMLElement} gallery
    * @param {Object} data - parsed #home-gallery-data
    * @param {string} basePath

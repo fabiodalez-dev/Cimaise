@@ -59,15 +59,18 @@ unset($maintenanceFlagFile);
 
 require __DIR__ . '/../vendor/autoload.php';
 
-// Keep PHP diagnostics OUT of the HTTP response body. A warning/notice/
-// deprecation printed to output corrupts the response — most destructively for
-// BINARY responses: a stray "<br /><b>Deprecated</b>…" prepended to an image
-// makes the bytes undecodable, so photos render broken (and a service worker
-// then caches the corrupt bytes). Route them to the error log instead. Slim's
-// error middleware still renders real exceptions; APP_DEBUG re-enables on-screen
-// display below (after the env loads) for local development. Deprecations are
-// advisory (e.g. vendor code on a newer PHP) and never belong in the body, so
-// they stay suppressed regardless of debug.
+// Keep PHP diagnostics OUT of the HTTP response body — ALWAYS, in every mode.
+// A warning/notice/deprecation printed to output corrupts the response, most
+// destructively for BINARY/non-HTML responses: a stray "<br /><b>Deprecated</b>…"
+// prepended to an image (/media, /download), a sitemap, or a feed (/feed.xml,
+// /feed/atom) makes the bytes undecodable, so photos render broken (and a
+// service worker then caches the corrupt bytes). Diagnostics go to the error
+// log. We deliberately do NOT re-enable display_errors in debug — Slim's error
+// middleware (gated on APP_DEBUG, below) renders rich EXCEPTION pages for
+// development, while warnings/notices go to the log; on-screen display_errors
+// is the legacy footgun that caused the corruption and there is no endpoint
+// where it is safe. Deprecations are advisory (e.g. vendor code on a newer
+// PHP) and stay suppressed either way.
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
@@ -190,16 +193,6 @@ try {
 } catch (\Throwable $e) {
     // If bootstrap fails (e.g., no database), create minimal container
     $container = ['db' => null];
-}
-
-// Now that the env is loaded, surface on-screen errors for local development
-// (APP_DEBUG=true) — but NEVER on media/binary responses: a printed warning
-// there is prepended to the image bytes and corrupts the file, so those stay
-// log-only in every mode. Deprecations are suppressed either way (see the
-// error_reporting() call after the autoload above). Non-media HTML pages may
-// safely show errors in debug.
-if (!$isMediaRequest && filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
-    ini_set('display_errors', '1');
 }
 
 // One-time upgrade hardening: move sharp variants belonging exclusively to

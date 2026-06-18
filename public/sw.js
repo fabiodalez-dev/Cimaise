@@ -162,12 +162,18 @@ async function cacheFirstStrategy(request, cacheName, maxItems = 50) {
     //    content-type is what stops a transient 200 with an HTML error / empty
     //    body from poisoning the image cache: cache-first would otherwise keep
     //    serving that broken entry forever (the photos render as 0x0).
+    //    Skip the self-heal retry URL (?swcb=…): it carries a unique timestamp,
+    //    so caching it would leave an orphaned entry that is never re-requested
+    //    (the next load asks for the canonical URL). The retry just needs to
+    //    reach the network and repaint — it doesn't need to be cached.
     const contentType = networkResponse ? (networkResponse.headers.get('Content-Type') || '') : '';
+    const isHealRetry = new URL(request.url).searchParams.has('swcb');
     if (
       networkResponse &&
       networkResponse.status === 200 &&
       networkResponse.type === 'basic' &&
-      contentType.startsWith('image/')
+      contentType.startsWith('image/') &&
+      !isHealRetry
     ) {
       // Clone response before caching (can only read once)
       const responseToCache = networkResponse.clone();
@@ -314,7 +320,7 @@ async function limitCacheSize(cacheName, maxItems) {
  */
 function isImageRequest(request) {
   const url = new URL(request.url);
-  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.svg'];
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.jxl', '.svg'];
   return imageExtensions.some((ext) => url.pathname.toLowerCase().endsWith(ext));
 }
 
@@ -360,13 +366,25 @@ self.addEventListener('message', (event) => {
   // Self-heal: the page asks us to drop a single bad entry (e.g. an image that
   // failed to decode) from every cache so the next request re-fetches it fresh.
   // ignoreSearch so a cache-busted retry URL still matches the cached original.
-  if (event.data && event.data.type === 'EVICT' && event.data.url) {
-    event.waitUntil(
-      caches.keys().then((cacheNames) => Promise.all(
-        cacheNames.map((name) =>
-          caches.open(name).then((cache) => cache.delete(event.data.url, { ignoreSearch: true }))
-        )
-      ))
-    );
+  // Validate the URL: same-origin AND a /media/ path only. Without this, any
+  // same-origin script (incl. an XSS payload) could postMessage an EVICT for an
+  // arbitrary URL (offline.html, app.css, the home page) and grief the cache.
+  if (event.data && event.data.type === 'EVICT' && typeof event.data.url === 'string') {
+    let evictUrl = null;
+    try {
+      const u = new URL(event.data.url, self.location.origin);
+      if (u.origin === self.location.origin && u.pathname.indexOf(`${BASE_PATH}/media/`) === 0) {
+        evictUrl = u.href;
+      }
+    } catch (e) { /* malformed URL — ignore */ }
+    if (evictUrl) {
+      event.waitUntil(
+        caches.keys().then((cacheNames) => Promise.all(
+          cacheNames.map((name) =>
+            caches.open(name).then((cache) => cache.delete(evictUrl, { ignoreSearch: true }))
+          )
+        ))
+      );
+    }
   }
 });

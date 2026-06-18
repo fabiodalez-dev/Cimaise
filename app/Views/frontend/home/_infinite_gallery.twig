@@ -81,12 +81,15 @@
     </div>
 
     {# Desktop marquee: the tracks are populated by home.js from the JSON
-       payload (#home-gallery-data) on the >=768px breakpoint. Only column/row 1
-       carries a small server-rendered SEED so a desktop visitor gets an LCP
-       candidate straight from the HTML; on mobile this whole variant is
-       display:none, so the seed (a few cells) is all the hidden DOM weight —
-       down from ~120 fully-rendered cells before. JS builds the full repeating
-       loop (even number of copies, required for the -50% seamless scroll). #}
+       payload (#home-gallery-data) on the >=768px breakpoint. ALL columns/rows
+       carry a small server-rendered SEED (seed_count cells each) so a desktop
+       visitor sees the first + next image of every column straight from the HTML
+       — the animated marquee never shows empty columns while JS fills the rest.
+       On mobile this whole variant is display:none, so the seeds are hidden DOM
+       weight only (a few cells per column, down from ~120 fully-rendered cells
+       before) and their lazy <img>s are not fetched there. JS builds the full
+       repeating loop (even number of copies, required for the -50% seamless
+       scroll), skipping the seeded cells in each column's first copy. #}
     {% set seed_count = 3 %}
     {% if scroll_direction == 'horizontal' %}
     {# Horizontal layout: 3 rows - all scroll right to prevent white space on load #}

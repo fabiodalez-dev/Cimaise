@@ -2864,36 +2864,7 @@
         {% endif %}
     </script>
 
-    <script nonce="{{ csp_nonce() }}">
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('img[data-fallback="hide"]').forEach(function(img) {
-            img.addEventListener('error', function() {
-                this.style.display = 'none';
-            });
-        });
-    });
-
-    // Self-heal broken media images. If a /media/ photo fails to load — e.g. a
-    // stale or corrupt Service-Worker/HTTP cache entry — we ask the SW to evict
-    // that URL and retry ONCE with a cache-bust. This means a user who ever
-    // cached a bad response recovers automatically on the next view, without
-    // ever having to clear the cache by hand. Capture phase + window: <img>
-    // 'error' events don't bubble, and this also covers images injected later
-    // (e.g. the home marquee built by home.js).
-    window.addEventListener('error', function(e) {
-        var img = e.target;
-        if (!img || img.tagName !== 'IMG' || img.dataset.swHealed) return;
-        var src = img.currentSrc || img.src || '';
-        if (src.indexOf('/media/') === -1) return;
-        img.dataset.swHealed = '1';
-        var clean = src.split('#')[0];
-        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({ type: 'EVICT', url: clean });
-        }
-        img.style.display = '';  // undo any data-fallback hide so a good retry shows
-        img.src = clean + (clean.indexOf('?') === -1 ? '?' : '&') + 'swcb=' + Date.now();
-    }, true);
-    </script>
+    {% include 'frontend/_pwa_runtime.twig' %}
 
     {% if page_custom_js is defined and page_custom_js %}
     {{ page_custom_js|raw }}
@@ -2923,89 +2894,6 @@
     </script>
     {% endif %}
 
-    {# PWA Service Worker Registration #}
-    <script nonce="{{ csp_nonce() }}">
-    // Register Service Worker for offline support and PWA features
-    if ('serviceWorker' in navigator) {
-      const pwaDebug = {{ app_debug|default(false) ? 'true' : 'false' }};
-      const pwaLog = pwaDebug ? console.log.bind(console) : function() {};
-
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('{{ base_path }}/sw.js?v={{ app_version|default('0')|e('url') }}')
-          .then(function(registration) {
-            pwaLog('[PWA] Service Worker registered:', registration.scope);
-
-            // Check for updates periodically (less aggressive)
-            const updateIntervalMs = 15 * 60 * 1000;
-            setInterval(function() {
-              registration.update();
-            }, updateIntervalMs);
-            document.addEventListener('visibilitychange', function() {
-              if (document.visibilityState === 'visible') {
-                registration.update();
-              }
-            });
-
-            // Handle updates
-            registration.addEventListener('updatefound', function() {
-              const newWorker = registration.installing;
-              newWorker.addEventListener('statechange', function() {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // New content available, notify user
-                  pwaLog('[PWA] New content available, please refresh.');
-                  // Show a non-blocking update banner
-                  if (!document.getElementById('pwa-update-banner')) {
-                    const banner = document.createElement('div');
-                    banner.id = 'pwa-update-banner';
-                    banner.className = 'fixed bottom-4 left-1/2 z-[9999] flex -translate-x-1/2 items-center gap-3 rounded-full bg-black/90 px-4 py-2 text-xs text-white shadow-lg';
-                    banner.setAttribute('role', 'status');
-                    banner.setAttribute('aria-live', 'polite');
-                    banner.setAttribute('aria-label', 'Update notification');
-                    banner.innerHTML = '<span>New version available</span>';
-                    const refreshBtn = document.createElement('button');
-                    refreshBtn.type = 'button';
-                    refreshBtn.className = 'rounded-full bg-white/10 px-3 py-1 text-xs hover:bg-white/20';
-                    refreshBtn.setAttribute('aria-label', 'Refresh to update now');
-                    refreshBtn.textContent = 'Refresh';
-                    refreshBtn.addEventListener('click', function() {
-                      newWorker.postMessage({ type: 'SKIP_WAITING' });
-                    });
-                    const dismissBtn = document.createElement('button');
-                    dismissBtn.type = 'button';
-                    dismissBtn.className = 'rounded-full bg-white/10 px-3 py-1 text-xs hover:bg-white/20';
-                    dismissBtn.setAttribute('aria-label', 'Dismiss update notification');
-                    dismissBtn.textContent = 'Dismiss';
-                    dismissBtn.addEventListener('click', function() {
-                      banner.remove();
-                    });
-                    banner.appendChild(refreshBtn);
-                    banner.appendChild(dismissBtn);
-                    document.body.appendChild(banner);
-                    setTimeout(function() {
-                      if (banner.parentNode) {
-                        banner.remove();
-                      }
-                    }, 30000);
-                  }
-                }
-              });
-            });
-          })
-          .catch(function(error) {
-            pwaLog('[PWA] Service Worker registration failed:', error);
-          });
-
-        // Reload page when new service worker takes control
-        let refreshing = false;
-        navigator.serviceWorker.addEventListener('controllerchange', function() {
-          if (!refreshing) {
-            refreshing = true;
-            window.location.reload();
-          }
-        });
-      });
-    }
-    </script>
 
     {# Cookie Banner with conditional script loader #}
     {% include 'partials/cookie-banner.twig' %}

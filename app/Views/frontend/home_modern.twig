@@ -497,11 +497,16 @@
                                 <div class="work-grid_img-height">
                                     {# Above-the-fold images load HD eagerly so the initially-visible
                                        grid never shows LQIP "holes": for them we emit the real
-                                       srcset/src (not the JS-deferred data-srcset) and
-                                       fetchpriority=high. Below the fold keeps LQIP + lazy.
-                                       8 ≈ the first 4 rows of the 2-column desktop grid, i.e. the
-                                       visible area at a standard laptop height. #}
+                                       srcset/src (not the JS-deferred data-srcset). Below the fold
+                                       keeps LQIP + lazy. 8 ≈ the first 4 rows of the 2-column desktop
+                                       grid, i.e. the visible area at a standard laptop height.
+                                       fetchpriority=high is reserved for the first ROW only (lcp):
+                                       a high-priority hint on all 8 dilutes the signal (the browser
+                                       honours ~1–2) and would flood a 1-column mobile viewport. The
+                                       <img>'s fetchpriority applies to whichever <picture> <source>
+                                       the browser selects, so it need not (and cannot) sit on <source>. #}
                                     {% set eager = loop.index <= 8 %}
+                                    {% set lcp = loop.index <= 2 %}
                                     {% set defer = image.lqip_placeholder and not eager %}
                                     <picture>
                                         {# Defer srcset when LQIP exists AND the image is below the fold #}
@@ -524,7 +529,7 @@
                                              alt="{{ ImageMacros.smart_alt(image, null, site_title)|trim|e('html_attr') }}"
                                              title="{{ seo_title|e('html_attr') }}"
                                              class="img-fill{% if defer %} lqip-blur{% endif %}"
-                                             {% if eager %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+                                             {% if eager %}{% if lcp %}fetchpriority="high"{% endif %}{% else %}loading="lazy"{% endif %}
                                              decoding="async"
                                              data-fallback="hide">
                                     </picture>
