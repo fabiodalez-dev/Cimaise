@@ -487,27 +487,34 @@
                         <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}" class="inf-work_link" title="{{ seo_title|e('html_attr') }}">
                             <div class="work-grid_img-holder">
                                 <div class="work-grid_img-height">
+                                    {# Above-the-fold images (first row(s)) load HD eagerly so the
+                                       initially-visible grid never shows LQIP "holes": for them we
+                                       emit the real srcset/src (not the JS-deferred data-srcset) and
+                                       fetchpriority=high. Below the fold keeps LQIP + lazy. #}
+                                    {% set eager = loop.index <= 6 %}
+                                    {% set defer = image.lqip_placeholder and not eager %}
                                     <picture>
-                                        {# Defer srcset when LQIP exists to prevent immediate HD download #}
+                                        {# Defer srcset when LQIP exists AND the image is below the fold #}
                                         {% if srcset_avif %}
-                                        <source type="image/avif" {% if image.lqip_placeholder %}data-srcset{% else %}srcset{% endif %}="{{ srcset_avif|join(', ')|e('html_attr') }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
+                                        <source type="image/avif" {% if defer %}data-srcset{% else %}srcset{% endif %}="{{ srcset_avif|join(', ')|e('html_attr') }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
                                         {% endif %}
                                         {% if srcset_jxl %}
-                                        <source type="image/jxl" {% if image.lqip_placeholder %}data-srcset{% else %}srcset{% endif %}="{{ srcset_jxl|join(', ')|e('html_attr') }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
+                                        <source type="image/jxl" {% if defer %}data-srcset{% else %}srcset{% endif %}="{{ srcset_jxl|join(', ')|e('html_attr') }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
                                         {% endif %}
                                         {% if srcset_webp %}
-                                        <source type="image/webp" {% if image.lqip_placeholder %}data-srcset{% else %}srcset{% endif %}="{{ srcset_webp|join(', ')|e('html_attr') }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
+                                        <source type="image/webp" {% if defer %}data-srcset{% else %}srcset{% endif %}="{{ srcset_webp|join(', ')|e('html_attr') }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
                                         {% endif %}
                                         {% if srcset_jpg %}
-                                        <source type="image/jpeg" {% if image.lqip_placeholder %}data-srcset{% else %}srcset{% endif %}="{{ srcset_jpg|join(', ')|e('html_attr') }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
+                                        <source type="image/jpeg" {% if defer %}data-srcset{% else %}srcset{% endif %}="{{ srcset_jpg|join(', ')|e('html_attr') }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
                                         {% endif %}
-                                        {# PERFORMANCE: LQIP for instant perceived loading (inline base64) #}
-                                        <img {% if image.lqip_placeholder %}src="{{ image.lqip_placeholder }}" data-src="{{ img_src }}"{% else %}src="{{ img_src }}"{% endif %}
+                                        {# LQIP for instant perceived loading below the fold; above the
+                                           fold the real image loads immediately (no blur placeholder). #}
+                                        <img {% if defer %}src="{{ image.lqip_placeholder }}" data-src="{{ img_src }}"{% else %}src="{{ img_src }}"{% endif %}
                                              sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
                                              alt="{{ ImageMacros.smart_alt(image, null, site_title)|trim|e('html_attr') }}"
                                              title="{{ seo_title|e('html_attr') }}"
-                                             class="img-fill{% if image.lqip_placeholder %} lqip-blur{% endif %}"
-                                             {% if loop.index <= 6 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+                                             class="img-fill{% if defer %} lqip-blur{% endif %}"
+                                             {% if eager %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
                                              decoding="async"
                                              data-fallback="hide">
                                     </picture>
