@@ -90,18 +90,21 @@ final class ImageEngineTest extends TestCase
 
     public function testEncodedJxlNeverUpscalesBeyondSource(): void
     {
-        if (!ImageEngine::capabilities()['jxl_write']) {
+        $caps = ImageEngine::capabilities();
+        if (!$caps['jxl_write']) {
             self::markTestSkipped('No JPEG-XL encoder on this host.');
         }
-        // Source is 40px wide; asking for 1000 must NOT upscale. We can't read
-        // jxl dims with getimagesize, so assert via a re-encode round-trip is
-        // out of scope — instead assert the encode succeeds and the file is a
-        // valid, non-empty jxl (the 'size'=>'down' guard is what prevents the
-        // upscale; this proves the small-source path doesn't error).
+        if (!$caps['vips']) {
+            self::markTestSkipped('Reading JPEG-XL dimensions to verify no-upscale requires libvips.');
+        }
+        // Source is 40px wide; requesting 1000 must NOT upscale (the 'size'=>'down'
+        // guard). Read the encoded output's real dimensions and assert the width
+        // never exceeds the source — a regression that upscales would now fail.
         $dest = $this->tmpPath('.jxl');
         self::assertTrue(ImageEngine::encode($this->makePng(40, 30), $dest, 1000, 'jxl', 70));
-        self::assertGreaterThan(0, (int) filesize($dest));
-        self::assertTrue($this->isJxl($dest));
+        $dims = ImageEngine::dimensions($dest);
+        self::assertNotNull($dims, 'should read dimensions of the encoded jxl');
+        self::assertLessThanOrEqual(40, $dims[0], 'must not upscale beyond the 40px source width');
     }
 
     public function testEncodeClampsDegenerateQualityAndWidth(): void
@@ -172,6 +175,7 @@ final class ImageEngineTest extends TestCase
     private function tmpPath(string $ext): string
     {
         $p = tempnam(sys_get_temp_dir(), 'cimaise_iet_');
+        self::assertNotFalse($p, 'tempnam() failed creating a temporary path');
         @unlink($p);
         $p .= $ext;
         $this->tmp[] = $p;

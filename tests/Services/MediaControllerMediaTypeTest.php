@@ -23,6 +23,9 @@ final class MediaControllerMediaTypeTest extends TestCase
     private int $nextId;
     /** @var string[] */
     private array $createdFiles = [];
+    /** Saved MEDIA_XSENDFILE so streamFile() streams the body deterministically. */
+    private mixed $origXsendfileEnv = null;
+    private string|false $origXsendfileGetenv = false;
 
     /** Bare JPEG-XL codestream signature + filler. */
     private const JXL_CODESTREAM = "\xFF\x0A" . "\x00\x00\x00\x00\x00\x00";
@@ -33,6 +36,14 @@ final class MediaControllerMediaTypeTest extends TestCase
     {
         $_SERVER['SCRIPT_NAME'] = '/index.php';
         $_SESSION = [];
+        // Isolate MEDIA_XSENDFILE: when set (apache/nginx) streamFile() delegates
+        // to the web server and returns an EMPTY body, which would break the exact
+        // -body assertions below. Save it (from both $_ENV and getenv) and clear it
+        // so the test always exercises the direct PSR-7 streaming path.
+        $this->origXsendfileEnv = $_ENV['MEDIA_XSENDFILE'] ?? null;
+        $this->origXsendfileGetenv = getenv('MEDIA_XSENDFILE');
+        unset($_ENV['MEDIA_XSENDFILE']);
+        putenv('MEDIA_XSENDFILE');
         $this->nextId = random_int(6_100_000, 6_900_000);
         $this->dbFile = sys_get_temp_dir() . '/cimaise_mediatype_' . uniqid('', true) . '.sqlite';
         $this->db = new Database(null, null, $this->dbFile, null, null, 'utf8mb4', 'utf8mb4_unicode_ci', true);
@@ -48,6 +59,17 @@ final class MediaControllerMediaTypeTest extends TestCase
     protected function tearDown(): void
     {
         $_SESSION = [];
+        // Restore MEDIA_XSENDFILE to whatever it was before this test.
+        if ($this->origXsendfileEnv !== null) {
+            $_ENV['MEDIA_XSENDFILE'] = $this->origXsendfileEnv;
+        } else {
+            unset($_ENV['MEDIA_XSENDFILE']);
+        }
+        if ($this->origXsendfileGetenv !== false) {
+            putenv('MEDIA_XSENDFILE=' . $this->origXsendfileGetenv);
+        } else {
+            putenv('MEDIA_XSENDFILE');
+        }
         unset($this->db);
         foreach (array_merge($this->createdFiles, [$this->dbFile, $this->dbFile . '-wal', $this->dbFile . '-shm']) as $f) {
             // nosemgrep: test-fixture cleanup; $f is a path this test created.
@@ -104,7 +126,9 @@ final class MediaControllerMediaTypeTest extends TestCase
     {
         $id = $this->insertImage();
         $this->writeRawVariant($id, 'md', 'jxl', '');
-        self::assertGreaterThanOrEqual(400, $this->servePublic($id, 'md', 'jxl')->getStatusCode());
+        // Empty file carries no JXL signature → same strict 403 gate as the
+        // spoofed/truncated cases above.
+        self::assertSame(403, $this->servePublic($id, 'md', 'jxl')->getStatusCode());
     }
 
     public function testUnknownExtensionDoesNotResolve(): void
@@ -117,7 +141,7 @@ final class MediaControllerMediaTypeTest extends TestCase
             new Response(),
             ['path' => "{$id}_sm.gif"]
         );
-        self::assertGreaterThanOrEqual(400, $r->getStatusCode());
+        self::assertSame(404, $r->getStatusCode());
     }
 
     public function testPublicJxlVariantIsCacheable(): void

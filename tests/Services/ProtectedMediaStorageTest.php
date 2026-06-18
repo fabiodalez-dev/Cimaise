@@ -226,6 +226,14 @@ final class ProtectedMediaStorageTest extends TestCase
         // mediaBasename() rejects any path containing '..' or outside /media/,
         // so confinedUnlink/resolveVariantPath can never escape the media dirs.
         $storage = new ProtectedMediaStorage($this->db);
+        // A traversal whose basename IS otherwise valid: only the '..' makes it
+        // unsafe, so this genuinely exercises the str_contains('..') guard —
+        // without that guard the basename regex would accept it and the path
+        // would resolve. (The passwd/hosts cases below have invalid basenames
+        // too, so they alone would still be rejected by the regex.)
+        $validLookingTraversal = '/media/../media/' . $this->nextId . '_md.jxl';
+        self::assertNull($storage->resolveVariantPath($validLookingTraversal, true));
+        self::assertFalse($storage->deleteVariantCopies($validLookingTraversal));
         self::assertNull($storage->resolveVariantPath('/media/../../etc/passwd', true));
         self::assertNull($storage->resolveVariantPath('/etc/passwd', false));
         // deleteVariantCopies on a traversal path is a no-op that returns false
