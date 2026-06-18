@@ -165,7 +165,11 @@ import { getBasePath, normalizeBasePath } from './utils/base-path.js'
 
     tracks.forEach((track, colIdx) => {
       const colImages = columns[colIdx] || images;
-      const hasSeed = colIdx === 0 && track.querySelector('[data-seed]') !== null;
+      // Every column is now server-seeded with `seed` lead cells (so the
+      // animated marquee shows each column's first + next image at first paint).
+      // Skip those already-rendered cells in this column's first copy to avoid
+      // duplicating them at the seam.
+      const hasSeed = track.querySelector('[data-seed]') !== null;
       const frag = document.createDocumentFragment();
       for (let c = 0; c < copies; c++) {
         const start = (c === 0 && hasSeed) ? seed : 0;

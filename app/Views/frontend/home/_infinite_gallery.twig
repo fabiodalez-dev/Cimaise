@@ -93,11 +93,12 @@
         {% set dur = idx == 0 ? '560s' : (idx == 1 ? '640s' : '720s') %}
         <div class="home-row" data-direction="right" style="--home-duration: {{ dur }}; --home-delay: 0s;" data-row-index="{{ idx }}">
           <div class="home-track-h">
-            {% if idx == 0 %}
-              {% for image in row|slice(0, seed_count) %}
-                <div class="home-cell-h" data-seed="1">{{ H.home_item(image, base_path, site_title, loop.index0 < 2) }}</div>
-              {% endfor %}
-            {% endif %}
+            {# Seed the lead cells of every row so the animated marquee shows the
+               first + next image of all rows immediately (see the vertical-layout
+               note above for the eager/lazy + mobile-cost reasoning). #}
+            {% for image in row|slice(0, seed_count) %}
+              <div class="home-cell-h" data-seed="1">{{ H.home_item(image, base_path, site_title, idx == 0 and loop.index0 < 2) }}</div>
+            {% endfor %}
           </div>
         </div>
       {% endfor %}
@@ -111,11 +112,17 @@
         {% set dur = idx == 0 ? '600s' : (idx == 1 ? '780s' : '960s') %}
         <div class="home-col" data-direction="down" style="--home-duration: {{ dur }}; --home-delay: 0s;" data-col-index="{{ idx }}">
           <div class="home-track">
-            {% if idx == 0 %}
-              {% for image in col|slice(0, seed_count) %}
-                <div class="home-cell" data-seed="1">{{ H.home_item(image, base_path, site_title, loop.index0 < 2) }}</div>
-              {% endfor %}
-            {% endif %}
+            {# Seed the lead cells of EVERY column (not just column 0) so the
+               animated desktop marquee shows the first + next image of all three
+               columns immediately at first paint — no empty-column "holes" while
+               home.js fills the rest at idle. Only column 0's lead pair is
+               eager+fetchpriority (the LCP, and identical to the mobile lead so it
+               costs no extra mobile fetch); the other columns' seed cells stay
+               lazy: in-viewport on desktop they load right away, but display:none
+               + lazy on mobile means they are never fetched there. #}
+            {% for image in col|slice(0, seed_count) %}
+              <div class="home-cell" data-seed="1">{{ H.home_item(image, base_path, site_title, idx == 0 and loop.index0 < 2) }}</div>
+            {% endfor %}
           </div>
         </div>
       {% endfor %}
