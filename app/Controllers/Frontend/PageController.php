@@ -1237,7 +1237,7 @@ class PageController extends BaseController
             }
 
             // Build responsive sources for <picture>
-            $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
+            $sources = ['avif' => [], 'jxl' => [], 'webp' => [], 'jpg' => []];
             foreach (($image['variants'] ?? []) as $v) {
                 if (!isset($sources[$v['format']])) {
                     continue;
@@ -1829,7 +1829,7 @@ class PageController extends BaseController
                 // Never use original_path (points to /storage/originals/ which is not web-accessible)
                 $bestUrl = '';
                 $lightboxUrl = '';
-                $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
+                $sources = ['avif' => [], 'jxl' => [], 'webp' => [], 'jpg' => []];
 
                 try {
                     $variants = $variantsByImage[(int) $img['id']] ?? [];
@@ -2785,7 +2785,7 @@ class PageController extends BaseController
         } catch (\Throwable $e) {
             Logger::warning('PageController: Error processing image sources (batch)', ['error' => $e->getMessage()], 'frontend');
             foreach ($images as &$image) {
-                $image['sources'] = ['avif' => [], 'webp' => [], 'jpg' => []];
+                $image['sources'] = ['avif' => [], 'jxl' => [], 'webp' => [], 'jpg' => []];
                 $image['variants'] = [];
                 // Security: never expose non-public storage paths
                 $fallback = $image['original_path'] ?? '';
@@ -2803,7 +2803,7 @@ class PageController extends BaseController
         // This eliminates hundreds of is_file() calls per page load
         $imageIndex = 0;
         foreach ($images as &$image) {
-            $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
+            $sources = ['avif' => [], 'jxl' => [], 'webp' => [], 'jpg' => []];
             $variants = $variantsByImage[(int) $image['id']] ?? [];
 
             foreach ($variants as $variant) {

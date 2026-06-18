@@ -209,6 +209,9 @@
             {% if image.sources.avif|length %}
               <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1200px) 50vw, 100vw">
             {% endif %}
+            {% if image.sources.jxl|length %}
+              <source type="image/jxl" srcset="{% for src in image.sources.jxl %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1200px) 50vw, 100vw">
+            {% endif %}
             {% if image.sources.webp|length %}
               <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1200px) 50vw, 100vw">
             {% endif %}
@@ -279,6 +282,9 @@
         <picture>
           {% if image.sources.avif|length %}
             <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
+          {% endif %}
+          {% if image.sources.jxl|length %}
+            <source type="image/jxl" srcset="{% for src in image.sources.jxl %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
           {% endif %}
           {% if image.sources.webp|length %}
             <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">

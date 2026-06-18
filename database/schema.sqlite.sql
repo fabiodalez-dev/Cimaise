@@ -350,7 +350,7 @@ CREATE TABLE IF NOT EXISTS image_variants (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   image_id INTEGER NOT NULL,
   variant TEXT NOT NULL,
-  format TEXT NOT NULL CHECK(format IN ('avif', 'webp', 'jpg')),
+  format TEXT NOT NULL CHECK(format IN ('avif', 'webp', 'jpg', 'jxl')),
   path TEXT NOT NULL,
   width INTEGER NOT NULL,
   height INTEGER NOT NULL,

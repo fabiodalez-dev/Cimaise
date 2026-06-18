@@ -865,7 +865,7 @@ class CacheWarmService
         } catch (\Throwable $e) {
             Logger::warning('CacheWarmService: Error processing image sources (batch)', ['error' => $e->getMessage()], 'frontend');
             foreach ($images as &$image) {
-                $image['sources'] = ['avif' => [], 'webp' => [], 'jpg' => []];
+                $image['sources'] = ['avif' => [], 'jxl' => [], 'webp' => [], 'jpg' => []];
                 $image['variants'] = [];
                 // Security: never expose non-public storage paths
                 $fallback = $image['original_path'] ?? '';
@@ -881,7 +881,7 @@ class CacheWarmService
         // PERFORMANCE: Trust database records instead of checking filesystem for every variant
         $imageIndex = 0;
         foreach ($images as &$image) {
-            $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
+            $sources = ['avif' => [], 'jxl' => [], 'webp' => [], 'jpg' => []];
             $variants = $variantsByImage[(int) $image['id']] ?? [];
 
             foreach ($variants as $variant) {

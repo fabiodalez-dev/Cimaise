@@ -33,6 +33,7 @@ class MediaController extends BaseController
         'jpeg' => 'image/jpeg',
         'webp' => 'image/webp',
         'avif' => 'image/avif',
+        'jxl'  => 'image/jxl',
         'png'  => 'image/png',
         'gif'  => 'image/gif',
         'tif'  => 'image/tiff',
@@ -88,6 +89,14 @@ class MediaController extends BaseController
             return $extMime;
         }
 
+        // JPEG-XL (#109): many libmagic builds don't recognize JXL, so a
+        // finfo_file() cross-check would spuriously fail the strict gate.
+        // Verify the JXL magic bytes directly instead — still a real
+        // magic-byte check (not extension trust), just one finfo can't do.
+        if ($extMime === 'image/jxl') {
+            return (!$strict || self::looksLikeJxl($realPath)) ? 'image/jxl' : null;
+        }
+
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         if ($finfo === false) {
             // In strict mode we must be able to verify; without finfo we cannot.
@@ -111,6 +120,30 @@ class MediaController extends BaseController
         }
 
         return $extMime ?? $detected;
+    }
+
+    /**
+     * Verify a file is a genuine JPEG-XL stream by its magic bytes, independent
+     * of libmagic (which often lacks JXL support). Accepts both encodings:
+     *   - bare codestream: starts with 0xFF 0x0A
+     *   - ISO-BMFF container: the 12-byte "JXL " signature box
+     */
+    private static function looksLikeJxl(string $realPath): bool
+    {
+        $fh = @fopen($realPath, 'rb');
+        if ($fh === false) {
+            return false;
+        }
+        $head = fread($fh, 12);
+        fclose($fh);
+        if ($head === false || strlen($head) < 2) {
+            return false;
+        }
+        if (substr($head, 0, 2) === "\xFF\x0A") {
+            return true; // bare codestream
+        }
+        return strlen($head) >= 12
+            && $head === "\x00\x00\x00\x0C\x4A\x58\x4C\x20\x0D\x0A\x87\x0A"; // ISO-BMFF box
     }
 
     /**
@@ -336,7 +369,7 @@ class MediaController extends BaseController
         }
 
         // Validate format
-        if (!\in_array($format, ['jpg', 'webp', 'avif'], true)) {
+        if (!\in_array($format, ['jpg', 'webp', 'avif', 'jxl'], true)) {
             return $response->withStatus(400);
         }
 
@@ -463,7 +496,7 @@ class MediaController extends BaseController
         // a finfo_file() magic-byte cross-check because the path is DB-sourced.
         $detectedMime = $this->mimeFromExtension($realPath, strict: true);
 
-        $allowedMimes = ['image/jpeg', 'image/webp', 'image/avif', 'image/png'];
+        $allowedMimes = ['image/jpeg', 'image/webp', 'image/avif', 'image/jxl', 'image/png'];
         if ($detectedMime === null || !\in_array($detectedMime, $allowedMimes, true)) {
             return $response->withStatus(403);
         }
@@ -627,7 +660,7 @@ class MediaController extends BaseController
         // Parse filename to extract image ID
         // Format: {imageId}_{variant}.{format} or {imageId}_blur.{format}
         $filename = basename((string) $path);
-        if (!preg_match('/^(\d+)_([a-z0-9_-]+)\.(jpg|webp|avif|png)$/i', $filename, $matches)) {
+        if (!preg_match('/^(\d+)_([a-z0-9_-]+)\.(jpg|webp|avif|jxl|png)$/i', $filename, $matches)) {
             // Any numeric-prefixed media filename could be an album variant
             // from an older/custom generator. Never let it fall through to
             // unauthenticated static serving merely because its shape changed.
@@ -642,7 +675,7 @@ class MediaController extends BaseController
 
         $imageId = (int)$matches[1];
         $variant = strtolower($matches[2]);
-        $format = strtolower($matches[3]); // regex-validated: jpg|webp|avif|png
+        $format = strtolower($matches[3]); // regex-validated: jpg|webp|avif|jxl|png
 
         // Get image and album info
         $pdo = $this->db->pdo();
@@ -819,7 +852,7 @@ class MediaController extends BaseController
         bool $protected
     ): Response {
         $detectedMime = $this->mimeFromExtension($realPath, strict: true);
-        if ($detectedMime === null || !\in_array($detectedMime, ['image/jpeg', 'image/webp', 'image/avif', 'image/png'], true)) {
+        if ($detectedMime === null || !\in_array($detectedMime, ['image/jpeg', 'image/webp', 'image/avif', 'image/jxl', 'image/png'], true)) {
             return $response->withStatus(403);
         }
 
@@ -886,7 +919,7 @@ class MediaController extends BaseController
 
         // Validate MIME type via fast extension lookup; finfo only if unknown extension
         $detectedMime = $this->mimeFromExtension($realPath);
-        $allowedMimes = ['image/jpeg', 'image/webp', 'image/avif', 'image/png', 'image/gif'];
+        $allowedMimes = ['image/jpeg', 'image/webp', 'image/avif', 'image/jxl', 'image/png', 'image/gif'];
         if ($detectedMime === null || !\in_array($detectedMime, $allowedMimes, true)) {
             return $response->withStatus(403);
         }

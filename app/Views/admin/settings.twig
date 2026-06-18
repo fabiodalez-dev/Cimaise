@@ -42,9 +42,16 @@
                 <strong>JPEG</strong> - {{ trans('admin.settings.jpg_desc') }}
               </span>
             </label>
+
+            <label class="flex items-center">
+              <input type="checkbox" name="fmt_jxl" id="fmt_jxl" class="rounded border-gray-300 text-black focus:ring-black" {% if settings['image.formats'].jxl|default(false) %}checked{% endif %}>
+              <span class="ml-3 text-sm text-gray-700">
+                <strong>JPEG-XL</strong> - {{ trans('admin.settings.jxl_desc') }}
+              </span>
+            </label>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.avif_quality') }}</label>
               <input type="number" name="q_avif" min="1" max="100" value="{{ settings['image.quality'].avif }}" class="form-input">
@@ -56,6 +63,10 @@
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.jpg_quality') }}</label>
               <input type="number" name="q_jpg" min="1" max="100" value="{{ settings['image.quality'].jpg }}" class="form-input">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.jxl_quality') }}</label>
+              <input type="number" name="q_jxl" min="1" max="100" value="{{ settings['image.quality'].jxl|default(60) }}" class="form-input">
             </div>
           </div>
         </div>

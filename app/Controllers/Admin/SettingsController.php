@@ -81,6 +81,7 @@ class SettingsController extends BaseController
             'avif' => isset($data['fmt_avif']),
             'webp' => isset($data['fmt_webp']),
             'jpg'  => isset($data['fmt_jpg']),
+            'jxl'  => isset($data['fmt_jxl']), // #109 — emitted only when the build can write JPEG-XL
         ];
         // Invariant: never persist an all-disabled set. With every format off,
         // generateVariantsForImage() skips all encodes and NO variant can ever be
@@ -94,6 +95,7 @@ class SettingsController extends BaseController
             'avif' => max(1, min(100, (int)($data['q_avif'] ?? 50))),
             'webp' => max(1, min(100, (int)($data['q_webp'] ?? 75))),
             'jpg'  => max(1, min(100, (int)($data['q_jpg'] ?? 85))),
+            'jxl'  => max(1, min(100, (int)($data['q_jxl'] ?? 60))),
         ];
         $preview = [
             'width' => max(64, (int)($data['preview_w'] ?? 480)),

@@ -322,7 +322,7 @@ CREATE TABLE IF NOT EXISTS `image_variants` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `image_id` INT UNSIGNED NOT NULL,
   `variant` VARCHAR(50) NOT NULL,
-  `format` ENUM('avif', 'webp', 'jpg') NOT NULL,
+  `format` ENUM('avif', 'webp', 'jpg', 'jxl') NOT NULL,
   `path` VARCHAR(255) NOT NULL,
   `width` INT NOT NULL,
   `height` INT NOT NULL,

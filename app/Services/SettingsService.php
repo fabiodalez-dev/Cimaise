@@ -117,8 +117,8 @@ class SettingsService
     public function defaults(): array
     {
         return [
-            'image.formats' => ['avif' => true, 'webp' => true, 'jpg' => true],
-            'image.quality' => ['avif' => 50, 'webp' => 75, 'jpg' => 85],
+            'image.formats' => ['avif' => true, 'webp' => true, 'jpg' => true, 'jxl' => false],
+            'image.quality' => ['avif' => 50, 'webp' => 75, 'jpg' => 85, 'jxl' => 60],
             'image.breakpoints' => ['sm' => 768, 'md' => 1200, 'lg' => 1920, 'xl' => 2560, 'xxl' => 3840],
             'image.preview' => ['width' => 480, 'height' => null],
             'image.variants_async' => true,

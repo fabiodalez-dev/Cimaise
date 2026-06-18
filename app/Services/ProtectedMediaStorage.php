@@ -204,8 +204,8 @@ final readonly class ProtectedMediaStorage
         if ($basename === null) {
             return false;
         }
-        @unlink($this->publicDir . '/' . $basename);
-        @unlink($this->privateDir . '/' . $basename);
+        $this->confinedUnlink($this->publicDir . '/' . $basename);
+        $this->confinedUnlink($this->privateDir . '/' . $basename);
         return !is_file($this->publicDir . '/' . $basename)
             && !is_file($this->privateDir . '/' . $basename);
     }
@@ -229,7 +229,7 @@ final readonly class ProtectedMediaStorage
     private function quarantineFile(string $publicPath, string $privatePath): void
     {
         if (is_file($privatePath)) {
-            @unlink($publicPath);
+            $this->confinedUnlink($publicPath);
             return;
         }
         if (!is_file($publicPath)) {
@@ -244,21 +244,21 @@ final readonly class ProtectedMediaStorage
         if (!$moved) {
             $moved = @copy($publicPath, $privatePath);
             if ($moved) {
-                @unlink($publicPath);
+                $this->confinedUnlink($publicPath);
             }
         }
 
         // Security takes precedence over availability. Never leave a sharp
         // protected variant under public/ after a failed relocation.
         if (!$moved || !is_file($privatePath)) {
-            @unlink($publicPath);
+            $this->confinedUnlink($publicPath);
         }
     }
 
     private function moveToPublic(string $privatePath, string $publicPath): void
     {
         if (is_file($publicPath)) {
-            @unlink($privatePath);
+            $this->confinedUnlink($privatePath);
             return;
         }
         if (!is_file($privatePath)) {
@@ -268,8 +268,35 @@ final readonly class ProtectedMediaStorage
             @mkdir($this->publicDir, 0775, true);
         }
         if (!@rename($privatePath, $publicPath) && @copy($privatePath, $publicPath)) {
-            @unlink($privatePath);
+            $this->confinedUnlink($privatePath);
         }
+    }
+
+    /**
+     * Delete a file only when it resolves INSIDE one of this service's media
+     * roots (public/media or storage/protected-media). Defence-in-depth on top
+     * of mediaBasename()'s filename whitelist: every deletion path is realpath-
+     * resolved and containment-checked, so neither a crafted DB value nor a
+     * future caller that builds a path some other way can ever delete a file
+     * outside the media directories.
+     */
+    private function confinedUnlink(string $path): void
+    {
+        $real = realpath($path);
+        if ($real === false) {
+            return; // nothing on disk to remove
+        }
+        $pub  = realpath($this->publicDir);
+        $priv = realpath($this->privateDir);
+        $inPublic  = $pub !== false && str_starts_with($real, $pub . DIRECTORY_SEPARATOR);
+        $inPrivate = $priv !== false && str_starts_with($real, $priv . DIRECTORY_SEPARATOR);
+        if (!$inPublic && !$inPrivate) {
+            return;
+        }
+        // nosemgrep: $real is realpath-resolved and verified to live under the
+        // public/media or storage/protected-media root immediately above — it
+        // cannot traverse outside the media dirs, and is never raw user input.
+        @unlink($real); // nosemgrep
     }
 
     private function mediaBasename(string $dbPath): ?string
@@ -288,7 +315,7 @@ final readonly class ProtectedMediaStorage
         }
 
         $basename = basename($normalized);
-        return preg_match('/^\d+_[a-z0-9_-]+\.(?:jpg|jpeg|webp|avif|png)$/i', $basename)
+        return preg_match('/^\d+_[a-z0-9_-]+\.(?:jpg|jpeg|webp|avif|jxl|png)$/i', $basename)
             ? $basename
             : null;
     }

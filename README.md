@@ -220,7 +220,7 @@ You've spent hours in the darkroom, days on location, years perfecting your craf
 
 ### Why Photographers Choose Cimaise
 
-**Blazing Fast** — Your images load instantly with automatic AVIF, WebP, and JPEG optimization. Six responsive breakpoints ensure perfect delivery on any device. No more visitors leaving because your site is slow.
+**Blazing Fast** — Your images load instantly with automatic AVIF, WebP, and JPEG optimization (plus optional JPEG-XL), powered by a libvips engine that also imports iPhone HEIC photos. Six responsive breakpoints ensure perfect delivery on any device. No more visitors leaving because your site is slow.
 
 **Film-Ready** — Unlike generic CMSs, Cimaise speaks your language. Track cameras, lenses, film stocks, developers, and labs. Whether you shoot Portra 400 on a Hasselblad or digital on a Leica, your metadata is organized and searchable.
 
@@ -634,20 +634,33 @@ Navigation menus show accurate album counts per category. Protected albums (NSFW
 
 **Upload once. Cimaise handles everything.**
 
+Variants are produced by a capability-detected engine: a fast, low-memory
+**libvips** path (shrink-on-load) when available, with automatic fallback to
+**Imagick**/GD so it runs unchanged on any host. **HEIC/HEIF uploads** (iPhone
+photos) are accepted whenever the server can decode them (libheif via libvips,
+or the Imagick HEIC delegate) and converted to standard web variants.
+
 Every photo you upload automatically generates optimized variants:
 
 ```text
-Your Upload (8000x5333 RAW/JPEG)
+Your Upload (8000x5333 RAW / JPEG / PNG / WebP / HEIC)
     ↓
 Originals stored safely in storage/originals/
     ↓
 Public variants generated:
-    ├── Small (768px)  → AVIF, WebP, JPEG
-    ├── Medium (1200px) → AVIF, WebP, JPEG
-    ├── Large (1920px)  → AVIF, WebP, JPEG
-    ├── XL (2560px)     → AVIF, WebP, JPEG
-    └── XXL (3840px)    → AVIF, WebP, JPEG
+    ├── Small (768px)  → AVIF, WebP, JPEG  (+ JPEG-XL, opt-in)
+    ├── Medium (1200px) → AVIF, WebP, JPEG  (+ JPEG-XL, opt-in)
+    ├── Large (1920px)  → AVIF, WebP, JPEG  (+ JPEG-XL, opt-in)
+    ├── XL (2560px)     → AVIF, WebP, JPEG  (+ JPEG-XL, opt-in)
+    └── XXL (3840px)    → AVIF, WebP, JPEG  (+ JPEG-XL, opt-in)
 ```
+
+**JPEG-XL (opt-in)** — when enabled in *Settings → Image Processing* and the
+server can encode it (a libvips build with libjxl, or the standalone `cjxl`
+binary), Cimaise also emits `.jxl` variants and serves them via `<picture>` to
+browsers that support them, falling back to AVIF/WebP/JPEG everywhere else. Off
+by default; check *Admin → Diagnostics → Imaging Engine* to see what your host
+supports.
 
 ### Client-Side Compression
 
@@ -675,6 +688,7 @@ From Admin → Settings → Image Processing:
 | AVIF | 50% | 40-70% |
 | WebP | 75% | 60-90% |
 | JPEG | 85% | 70-95% |
+| JPEG-XL (opt-in) | 60% | 50-90% |
 
 ---
 
@@ -695,7 +709,8 @@ Cimaise focuses on what photographers actually need:
 - **Home Page Layout** — 12 templates, switchable anytime
 
 ### Image Handling
-- **Format Enable/Disable** — Turn off AVIF if your host doesn't support it
+- **Format Enable/Disable** — Turn off AVIF if your host doesn't support it, or turn on JPEG-XL where the server can encode it
+- **HEIC/HEIF Import** — Accept iPhone photos directly when the server can decode them (libheif/Imagick); originals keep their extension, variants are standard web formats
 - **Quality Sliders** — Balance quality vs file size per format
 - **Breakpoints** — Customize which sizes get generated
 - **Lazy Loading** — Above-fold images load instantly, below-fold on scroll

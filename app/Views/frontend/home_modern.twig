@@ -424,6 +424,7 @@
                     {% set fallback_path = image.fallback_src ?? '' %}
                     {% set img_src = fallback_path starts with '/' ? base_path ~ fallback_path : fallback_path %}
                     {% set srcset_avif = [] %}
+                    {% set srcset_jxl = [] %}
                     {% set srcset_webp = [] %}
                     {% set srcset_jpg = [] %}
                     {% for src in image.sources.avif|default([]) %}
@@ -435,6 +436,16 @@
                         {% set src_rest = src_rest == '' ? '1x' : src_rest %}
                         {% if src_url != '' %}
                             {% set srcset_avif = srcset_avif|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src_rest]) %}
+                        {% endif %}
+                    {% endfor %}
+                    {% for src in image.sources.jxl|default([]) %}
+                        {% set src_str = src is iterable ? (src.url|default('') ~ (src.width ? (' ' ~ src.width ~ 'w') : '')) : src %}
+                        {% set src_parts = src_str|split(' ') %}
+                        {% set src_url = src_parts|first|default('') %}
+                        {% set src_rest = src_parts|slice(1)|join(' ')|trim %}
+                        {% set src_rest = src_rest == '' ? '1x' : src_rest %}
+                        {% if src_url != '' %}
+                            {% set srcset_jxl = srcset_jxl|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src_rest]) %}
                         {% endif %}
                     {% endfor %}
                     {% for src in image.sources.webp|default([]) %}
@@ -480,6 +491,9 @@
                                         {# Defer srcset when LQIP exists to prevent immediate HD download #}
                                         {% if srcset_avif %}
                                         <source type="image/avif" {% if image.lqip_placeholder %}data-srcset{% else %}srcset{% endif %}="{{ srcset_avif|join(', ')|e('html_attr') }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
+                                        {% endif %}
+                                        {% if srcset_jxl %}
+                                        <source type="image/jxl" {% if image.lqip_placeholder %}data-srcset{% else %}srcset{% endif %}="{{ srcset_jxl|join(', ')|e('html_attr') }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
                                         {% endif %}
                                         {% if srcset_webp %}
                                         <source type="image/webp" {% if image.lqip_placeholder %}data-srcset{% else %}srcset{% endif %}="{{ srcset_webp|join(', ')|e('html_attr') }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">

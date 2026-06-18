@@ -6,6 +6,7 @@ namespace App\Tasks;
 
 use App\Services\SettingsService;
 use App\Support\Database;
+use App\Support\Logger;
 use App\Traits\RegistersImageVariants;
 use Imagick;
 use RuntimeException;
@@ -123,6 +124,12 @@ class ImagesGenerateCommand extends Command
                 continue;
             }
 
+            // Source dimensions, used to derive variant height for formats
+            // getimagesize() cannot read back from the generated file (JPEG-XL).
+            $srcDims = @getimagesize($src);
+            $srcW = (int)($srcDims[0] ?? 0);
+            $srcH = (int)($srcDims[1] ?? 0);
+
             $existingStmt = $pdo->prepare('SELECT variant, format, path FROM image_variants WHERE image_id = ?');
             $existingStmt->execute([$imageId]);
             $existingVariants = [];
@@ -133,8 +140,16 @@ class ImagesGenerateCommand extends Command
 
             $variantsGenerated = 0;
             foreach ($breakpoints as $variant => $width) {
-                foreach (['avif','webp','jpg'] as $fmt) {
+                // 'jxl' (JPEG-XL, #109) is included only when enabled in settings
+                // AND the build can write it (libvips+libjxl); it is emitted by
+                // the libvips engine. Browser support is still nascent, so the
+                // frontend <picture> does not serve it yet — generation is
+                // opt-in via settings.
+                foreach (['avif','webp','jpg','jxl'] as $fmt) {
                     if (empty($formats[$fmt])) {
+                        continue;
+                    }
+                    if ($fmt === 'jxl' && !\App\Services\Imaging\ImageEngine::capabilities()['jxl_write']) {
                         continue;
                     }
                     $destRelUrl = "/media/{$imageId}_{$variant}.{$fmt}";
@@ -149,35 +164,90 @@ class ImagesGenerateCommand extends Command
                         continue;
                     }
 
-                    // Delete orphan files (exist on disk but not in DB) before regenerating
+                    // Delete orphan files (exist on disk but not in DB) before
+                    // regenerating. Confine the deletion to public/media via
+                    // realpath so a deletion can never escape that directory
+                    // (defence-in-depth path-traversal guard).
                     if ($existsOnDisk && !$existsInDb) {
-                        @unlink($dest);
+                        $mediaRoot = realpath(dirname(__DIR__, 2) . '/public/media');
+                        $orphanReal = realpath($dest);
+                        if ($mediaRoot !== false && $orphanReal !== false
+                            && str_starts_with($orphanReal, $mediaRoot . DIRECTORY_SEPARATOR)) {
+                            // nosemgrep: $orphanReal is realpath()-resolved and
+                            // verified to live under public/media above, so this
+                            // deletion cannot traverse outside that directory.
+                            @unlink($orphanReal); // nosemgrep
+                        }
                     }
 
                     $ok = false;
-                    if ($fmt === 'jpg') {
-                        $ok = $this->resizeWithImagickOrGd($src, $dest, (int)$width, 'jpeg', (int)$quality['jpg']);
-                    } elseif ($fmt === 'webp') {
-                        if ($imagickOk) {
-                            $ok = $this->resizeWithImagick($src, $dest, (int)$width, 'webp', (int)$quality['webp']);
-                        } elseif ($gdWebpOk) {
-                            $ok = $this->resizeWithGdWebp($src, $dest, (int)$width, (int)$quality['webp']);
+                    // Fast path (#109): libvips — shrink-on-load, low memory,
+                    // supports AVIF/JPEG-XL/HEIC when the build provides them.
+                    // Returns false when vips is unavailable or cannot handle
+                    // the request; we then fall back to the existing Imagick/GD
+                    // path below (zero behaviour change on hosts without vips).
+                    $engineFmt = $fmt === 'jpg' ? 'jpeg' : $fmt;
+                    // Honour STRIP_EXIF (default true) so vips doesn't always
+                    // strip when the operator opted to retain metadata.
+                    $stripExif = filter_var(getenv('STRIP_EXIF') ?: 'true', FILTER_VALIDATE_BOOL);
+                    $ok = \App\Services\Imaging\ImageEngine::encode(
+                        $src,
+                        $dest,
+                        (int)$width,
+                        $engineFmt,
+                        (int)($quality[$fmt] ?? 82),
+                        $stripExif
+                    );
+
+                    if (!$ok) {
+                        if ($fmt === 'jpg') {
+                            $ok = $this->resizeWithImagickOrGd($src, $dest, (int)$width, 'jpeg', (int)$quality['jpg']);
+                        } elseif ($fmt === 'webp') {
+                            if ($imagickOk) {
+                                $ok = $this->resizeWithImagick($src, $dest, (int)$width, 'webp', (int)$quality['webp']);
+                            } elseif ($gdWebpOk) {
+                                $ok = $this->resizeWithGdWebp($src, $dest, (int)$width, (int)$quality['webp']);
+                            }
+                        } elseif ($fmt === 'avif') {
+                            $ok = $imagickOk && $this->resizeWithImagick($src, $dest, (int)$width, 'avif', (int)$quality['avif']);
                         }
-                    } elseif ($fmt === 'avif') {
-                        $ok = $imagickOk && $this->resizeWithImagick($src, $dest, (int)$width, 'avif', (int)$quality['avif']);
                     }
 
                     if ($ok) {
-                        $size = (int)filesize($dest);
-                        [$w, $h] = getimagesize($dest) ?: [(int)$width, 0];
-                        $replaceKeyword = $this->db->replaceKeyword();
-                        $stmt = $pdo->prepare(sprintf(
-                            '%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)',
-                            $replaceKeyword
-                        ));
-                        $stmt->execute([$imageId, $variant, $fmt, $destRelUrl, $w, $h, $size]);
-                        $variantsGenerated++;
-                        $totalGenerated++;
+                        // Defence-in-depth: a single constraint failure (e.g. a
+                        // format the DB schema doesn't yet allow) must not abort
+                        // the whole run — log and continue with the next variant.
+                        try {
+                            $size = (int)filesize($dest);
+                            $probe = @getimagesize($dest);
+                            if ($probe !== false) {
+                                [$w, $h] = $probe;
+                            } else {
+                                // getimagesize() can't read JPEG-XL: derive the
+                                // dims from the source aspect ratio and the
+                                // (never-upscaled) target width so height is
+                                // never silently stored as 0.
+                                $w = ($srcW > 0 && (int)$width > $srcW) ? $srcW : (int)$width;
+                                $h = ($srcW > 0 && $srcH > 0) ? (int)round($w * $srcH / $srcW) : 0;
+                            }
+                            $replaceKeyword = $this->db->replaceKeyword();
+                            $stmt = $pdo->prepare(sprintf(
+                                '%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)',
+                                $replaceKeyword
+                            ));
+                            $stmt->execute([$imageId, $variant, $fmt, $destRelUrl, $w, $h, $size]);
+                            $variantsGenerated++;
+                            $totalGenerated++;
+                        } catch (\Throwable $e) {
+                            Logger::warning('ImagesGenerateCommand: failed to record image variant', [
+                                'image_id' => $imageId,
+                                'variant'  => $variant,
+                                'format'   => $fmt,
+                                'error'    => $e->getMessage(),
+                            ], 'imaging');
+                            $output->writeln("<error>Failed to record {$fmt} variant {$variant} for image #{$imageId}: {$e->getMessage()}</error>");
+                            $totalErrors++;
+                        }
                     } else {
                         $output->writeln("<error>Failed to generate {$fmt} variant {$variant} for image #{$imageId}</error>");
                         $totalErrors++;

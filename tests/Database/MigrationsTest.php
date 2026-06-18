@@ -67,7 +67,21 @@ final class MigrationsTest extends TestCase
             CREATE TABLE analytics_pageviews (id INTEGER PRIMARY KEY, page_type TEXT, viewed_at TEXT);
             CREATE TABLE analytics_events (id INTEGER PRIMARY KEY, event_type TEXT, occurred_at TEXT);
             CREATE TABLE albums (id INTEGER PRIMARY KEY, title TEXT);
-            CREATE TABLE images (id INTEGER PRIMARY KEY, album_id INTEGER);'
+            CREATE TABLE images (id INTEGER PRIMARY KEY, album_id INTEGER);
+            -- image_variants in its pre-1.4.13 shape (format CHECK without
+            -- jxl); the 1.4.13 migration rebuilds it to widen the CHECK.
+            CREATE TABLE image_variants (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                image_id INTEGER NOT NULL,
+                variant TEXT NOT NULL,
+                format TEXT NOT NULL CHECK(format IN ("avif", "webp", "jpg")),
+                path TEXT NOT NULL,
+                width INTEGER NOT NULL,
+                height INTEGER NOT NULL,
+                size_bytes INTEGER NOT NULL,
+                UNIQUE(image_id, variant, format),
+                FOREIGN KEY (image_id) REFERENCES images(id) ON DELETE CASCADE
+            );'
         );
         return $db;
     }
@@ -109,6 +123,14 @@ final class MigrationsTest extends TestCase
         // 1.4.0 — collections tables.
         $tables = $db->query("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN ('collections','collection_images')")->fetchColumn();
         self::assertSame(2, (int) $tables, '1.4.0 collections tables');
+
+        // 1.4.13 — image_variants.format CHECK widened to admit 'jxl'.
+        // Pre-migration the row would violate the CHECK; post-migration it
+        // must insert cleanly. A seeded image FK target is required.
+        $db->exec("INSERT INTO images(id, album_id) VALUES (1, NULL)");
+        $db->exec("INSERT INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES (1, 'md', 'jxl', '/m/1_md.jxl', 1200, 800, 1234)");
+        $jxl = $db->query("SELECT COUNT(*) FROM image_variants WHERE format='jxl'")->fetchColumn();
+        self::assertSame(1, (int) $jxl, "1.4.13 must allow format='jxl' in image_variants");
     }
 
     public function testMigrationsAreIdempotent(): void
