@@ -487,11 +487,13 @@
                         <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}" class="inf-work_link" title="{{ seo_title|e('html_attr') }}">
                             <div class="work-grid_img-holder">
                                 <div class="work-grid_img-height">
-                                    {# Above-the-fold images (first row(s)) load HD eagerly so the
-                                       initially-visible grid never shows LQIP "holes": for them we
-                                       emit the real srcset/src (not the JS-deferred data-srcset) and
-                                       fetchpriority=high. Below the fold keeps LQIP + lazy. #}
-                                    {% set eager = loop.index <= 6 %}
+                                    {# Above-the-fold images load HD eagerly so the initially-visible
+                                       grid never shows LQIP "holes": for them we emit the real
+                                       srcset/src (not the JS-deferred data-srcset) and
+                                       fetchpriority=high. Below the fold keeps LQIP + lazy.
+                                       8 ≈ the first 4 rows of the 2-column desktop grid, i.e. the
+                                       visible area at a standard laptop height. #}
+                                    {% set eager = loop.index <= 8 %}
                                     {% set defer = image.lqip_placeholder and not eager %}
                                     <picture>
                                         {# Defer srcset when LQIP exists AND the image is below the fold #}
