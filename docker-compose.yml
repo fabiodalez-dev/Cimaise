@@ -1,0 +1,69 @@
+# ───────────────────────────────────────────────────────────────────────────
+# Cimaise — Docker Compose
+#
+#   Default (SQLite, zero config):   docker compose up -d
+#   With MySQL:                      docker compose --profile mysql up -d
+#
+# Then open http://localhost:8080 and complete the web installer. All user data
+# (database, uploads, originals, cache, .env) lives in named volumes and
+# survives `docker compose down` / image upgrades. Use `down -v` to wipe.
+# ───────────────────────────────────────────────────────────────────────────
+services:
+  cimaise:
+    image: fabiodalez/cimaise:latest
+    # Comment `image:` and uncomment `build:` to build locally from source.
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cimaise
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_TIMEZONE: UTC
+      # When behind a reverse proxy (Traefik/nginx), set the trusted proxy CIDRs:
+      # TRUSTED_PROXIES: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+    volumes:
+      - cimaise_storage:/var/www/html/storage
+      - cimaise_database:/var/www/html/database
+      - cimaise_media:/var/www/html/public/media
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      mysql:
+        condition: service_healthy
+        required: false
+
+  # Optional MySQL backend. Enable with: docker compose --profile mysql up -d
+  # During the web installer choose "MySQL" and use host "mysql", the
+  # credentials below, database "cimaise".
+  mysql:
+    image: mysql:8.4
+    container_name: cimaise-mysql
+    restart: unless-stopped
+    profiles: ["mysql"]
+    environment:
+      MYSQL_DATABASE: cimaise
+      MYSQL_USER: cimaise
+      MYSQL_PASSWORD: cimaise
+      MYSQL_ROOT_PASSWORD: cimaise-root
+    volumes:
+      - cimaise_mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pcimaise-root"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  cimaise_storage:
+  cimaise_database:
+  cimaise_media:
+  cimaise_mysql:

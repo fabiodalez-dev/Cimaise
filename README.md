@@ -1091,6 +1091,9 @@ A dashboard that doesn't insult your intelligence:
 - Node.js 18+ (for building frontend assets)
 - Any web server (Apache, Nginx, Caddy) or PHP built-in server for development
 
+> Prefer containers? Skip the toolchain entirely and run the official
+> **[Docker image](#docker)** — no PHP, Composer or Node required on the host.
+
 ### Quick Install (5 Minutes)
 
 ```bash
@@ -1120,6 +1123,37 @@ php bin/console install
 ```
 
 Interactive prompts guide you through the same setup without a browser.
+
+### Docker
+
+Cimaise ships as a ready-to-run, multi-architecture (amd64 + arm64) Docker
+image bundling PHP 8.3, Apache, and every required extension (GD with
+AVIF/WebP, Imagick, `pdo_sqlite`/`pdo_mysql`, exif, intl, zip, opcache).
+
+```bash
+# Quick start (SQLite, zero config)
+docker run -d --name cimaise -p 8080:80 \
+  -v cimaise_storage:/var/www/html/storage \
+  -v cimaise_database:/var/www/html/database \
+  -v cimaise_media:/var/www/html/public/media \
+  fabiodalez/cimaise:latest
+```
+
+Or with Docker Compose (SQLite by default, optional bundled MySQL):
+
+```bash
+docker compose up -d                     # SQLite
+docker compose --profile mysql up -d     # with a MySQL 8.4 service
+```
+
+Then open `http://localhost:8080` and complete the web installer. All user
+data (database, uploads, originals, cache, `.env`) lives in named volumes and
+survives image upgrades. See **[DOCKER.md](DOCKER.md)** for the full guide:
+reverse-proxy/HTTPS setup, MySQL configuration, backups, upgrades, and how the
+image is built and published.
+
+> Images are published to **Docker Hub** (`fabiodalez/cimaise`) and the
+> **GitHub Container Registry** (`ghcr.io/fabiodalez-dev/cimaise`).
 
 ---
 

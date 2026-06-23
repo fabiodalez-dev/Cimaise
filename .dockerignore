@@ -1,0 +1,83 @@
+# ─── Docker build context exclusions ───────────────────────────────────────
+# Keep the build context tiny and reproducible. User content, local dev state,
+# VCS metadata and test artifacts must never end up in the image.
+
+# VCS / CI local state
+.git
+.github
+.gitignore
+.gitattributes
+
+# Local environment & secrets (the image is configured at runtime / via installer)
+.env
+.env.local
+.env.*.local
+.env.backup
+*.backup
+
+# Dependencies that are rebuilt inside the image
+node_modules
+vendor
+
+# User-generated / runtime content (provided via volumes at run time)
+public/media/*
+!public/media/.gitkeep
+!public/media/.htaccess
+public/assets/media
+storage/originals/*
+!storage/originals/.gitkeep
+!storage/originals/.htaccess
+storage/protected-media/*
+!storage/protected-media/.gitkeep
+!storage/protected-media/.htaccess
+storage/tmp/*
+!storage/tmp/.gitkeep
+storage/cache/*
+!storage/cache/.gitkeep
+storage/rate_limits/*
+!storage/rate_limits/.gitkeep
+storage/logs/*
+!storage/logs/.gitkeep
+storage/translations/*
+!storage/translations/.gitkeep
+database/database.sqlite
+database/cimaise.sqlite
+
+# Tests & QA artifacts
+tests
+test-results
+.phpunit.result.cache
+playwright.config.js
+.playwright-mcp
+
+# Local-only / scratch directories
+m8-before
+m8-after
+screenshot
+screenshot.png
+reports
+release-patches
+releases
+build-tmp
+demo
+models
+vectors.db
+config.json
+firebase-debug.log
+
+# Editor / OS cruft
+.DS_Store
+**/.DS_Store
+.idea
+.vscode
+*.swp
+*.swo
+
+# Claude / tooling
+.claude
+.code-review-graph
+**/CLAUDE.md
+
+# Docs that don't belong in the runtime image (README is kept for reference)
+*.zip
+*.tar.gz

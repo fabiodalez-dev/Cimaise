@@ -1,0 +1,104 @@
+name: Publish Docker image
+
+# Builds the multi-arch (amd64 + arm64) Cimaise image and pushes it to the
+# GitHub Container Registry (always) and Docker Hub (when the two Docker Hub
+# secrets are configured). Runs on every semver tag and can be triggered
+# manually.
+#
+# Required repository secrets for Docker Hub publishing (Settings → Secrets and
+# variables → Actions):
+#   DOCKERHUB_USERNAME  — your Docker Hub account / namespace (e.g. fabiodalez)
+#   DOCKERHUB_TOKEN     — a Docker Hub access token with Read/Write scope
+# GHCR needs no extra secret — it uses the built-in GITHUB_TOKEN.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Optional image tag override (e.g. 1.4.14). Defaults to the git tag / "manual".'
+        required: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    name: Build & push multi-arch image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Detect Docker Hub credentials
+        id: dh
+        run: |
+          if [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ] && [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
+            echo "enabled=true"  >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Docker Hub secrets not set — pushing to GHCR only."
+          fi
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        if: steps.dh.outputs.enabled == 'true'
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Compute image names
+        id: names
+        run: |
+          # Lower-case GHCR path (registry requires lower-case).
+          GHCR="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+          IMAGES="$GHCR"
+          if [ "${{ steps.dh.outputs.enabled }}" = "true" ]; then
+            IMAGES="$IMAGES"$'\n'"docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cimaise"
+          fi
+          {
+            echo 'images<<EOF'
+            echo "$IMAGES"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
+        with:
+          images: ${{ steps.names.outputs.images }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=${{ github.event.inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
