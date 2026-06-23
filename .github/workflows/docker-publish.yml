@@ -13,9 +13,12 @@ name: Publish Docker image
 # GHCR needs no extra secret — it uses the built-in GITHUB_TOKEN.
 #
 # Note: the arm64 (ubuntu-24.04-arm) runner is free only for PUBLIC repositories.
-# DOCKERHUB_USERNAME is a secret, so it is never placed in a job output (GitHub
-# scrubs secret-bearing job outputs to empty); each job rebuilds the image list
-# locally from the secret instead.
+#
+# IMPORTANT: nothing derived from a secret is ever passed as a cross-job output.
+# GitHub scrubs any job output that *contains* a secret value to empty — and the
+# DOCKERHUB_USERNAME secret can even be a substring of the org name (so the GHCR
+# path would be scrubbed too). Each job therefore rebuilds the image names
+# locally from `github.repository` (context, not an output) and the secret.
 
 on:
   push:
@@ -32,12 +35,11 @@ permissions:
   packages: write
 
 jobs:
-  # ── Compute the (non-secret) GHCR image, tags and Docker Hub availability ────
+  # ── Compute only secret-free values (tags + Docker Hub availability) ─────────
   prepare:
     name: Prepare
     runs-on: ubuntu-latest
     outputs:
-      ghcr_image: ${{ steps.cfg.outputs.ghcr_image }}
       tags: ${{ steps.cfg.outputs.tags }}
       dockerhub_enabled: ${{ steps.cfg.outputs.dockerhub_enabled }}
     steps:
@@ -47,7 +49,6 @@ jobs:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           INPUT_TAG: ${{ github.event.inputs.tag }}
-          REPO: ${{ github.repository }}
           REF: ${{ github.ref }}
         run: |
           set -euo pipefail
@@ -59,9 +60,6 @@ jobs:
             DH_ENABLED=false
             echo "::notice::Docker Hub secrets not set — pushing to GHCR only."
           fi
-
-          # GHCR path must be lower-case (not secret — safe as a job output).
-          GHCR="ghcr.io/$(printf '%s' "$REPO" | tr '[:upper:]' '[:lower:]')"
 
           # Version: from the git tag (refs/tags/vX.Y.Z) or the manual input.
           case "$REF" in
@@ -78,11 +76,10 @@ jobs:
           TAGS="$TAGS latest"
 
           {
-            echo "ghcr_image=$GHCR"
             echo "tags=$TAGS"
             echo "dockerhub_enabled=$DH_ENABLED"
           } >> "$GITHUB_OUTPUT"
-          echo "ghcr=$GHCR | tags=$TAGS | dockerhub=$DH_ENABLED"
+          echo "tags=$TAGS | dockerhub=$DH_ENABLED"
 
   # ── Build each architecture natively, push by digest (no tags yet) ──────────
   build:
@@ -104,15 +101,16 @@ jobs:
       - name: Compute build vars
         id: vars
         env:
-          GHCR_IMAGE: ${{ needs.prepare.outputs.ghcr_image }}
+          REPO: ${{ github.repository }}
           DH_ENABLED: ${{ needs.prepare.outputs.dockerhub_enabled }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           PLATFORM: ${{ matrix.platform }}
         run: |
           set -euo pipefail
-          # Build the comma-separated image-name list HERE (the username secret
-          # only lives inside this job, never in a cross-job output).
-          IMAGES="$GHCR_IMAGE"
+          # Build the image-name list HERE from github.repository (context) and
+          # the secret — never crossing a job boundary, so nothing gets scrubbed.
+          GHCR="ghcr.io/$(printf '%s' "$REPO" | tr '[:upper:]' '[:lower:]')"
+          IMAGES="$GHCR"
           [ "$DH_ENABLED" = "true" ] && IMAGES="$IMAGES,docker.io/${DOCKERHUB_USERNAME}/cimaise"
           {
             echo "images=$IMAGES"
@@ -195,13 +193,14 @@ jobs:
       - name: Create and push multi-arch manifests
         working-directory: ${{ runner.temp }}/digests
         env:
-          GHCR_IMAGE: ${{ needs.prepare.outputs.ghcr_image }}
+          REPO: ${{ github.repository }}
           DH_ENABLED: ${{ needs.prepare.outputs.dockerhub_enabled }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           TAGS: ${{ needs.prepare.outputs.tags }}
         run: |
           set -euo pipefail
-          IMAGES="$GHCR_IMAGE"
+          GHCR="ghcr.io/$(printf '%s' "$REPO" | tr '[:upper:]' '[:lower:]')"
+          IMAGES="$GHCR"
           [ "$DH_ENABLED" = "true" ] && IMAGES="$IMAGES docker.io/${DOCKERHUB_USERNAME}/cimaise"
           # Per-platform manifest digests are content-addressed and identical
           # across registries, so the same digest set applies to every image.
@@ -218,5 +217,8 @@ jobs:
 
       - name: Inspect published image
         env:
-          GHCR_IMAGE: ${{ needs.prepare.outputs.ghcr_image }}
-        run: docker buildx imagetools inspect "${GHCR_IMAGE}:latest"
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          GHCR="ghcr.io/$(printf '%s' "$REPO" | tr '[:upper:]' '[:lower:]')"
+          docker buildx imagetools inspect "${GHCR}:latest"
