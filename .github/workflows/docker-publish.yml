@@ -144,7 +144,9 @@ jobs:
           provenance: false
           cache-from: type=gha,scope=${{ steps.vars.outputs.pair }}
           cache-to: type=gha,mode=max,scope=${{ steps.vars.outputs.pair }}
-          outputs: type=image,name=${{ steps.vars.outputs.images }},push-by-digest=true,name-canonical=true,push=true
+          # name= is double-quoted so the comma between multiple image names is
+          # part of the value, not a new CSV field of the outputs string.
+          outputs: type=image,"name=${{ steps.vars.outputs.images }}",push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
         run: |
