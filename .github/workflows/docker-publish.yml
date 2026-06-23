@@ -13,6 +13,9 @@ name: Publish Docker image
 # GHCR needs no extra secret — it uses the built-in GITHUB_TOKEN.
 #
 # Note: the arm64 (ubuntu-24.04-arm) runner is free only for PUBLIC repositories.
+# DOCKERHUB_USERNAME is a secret, so it is never placed in a job output (GitHub
+# scrubs secret-bearing job outputs to empty); each job rebuilds the image list
+# locally from the secret instead.
 
 on:
   push:
@@ -29,12 +32,12 @@ permissions:
   packages: write
 
 jobs:
-  # ── Compute image names, tags and Docker Hub availability once ──────────────
+  # ── Compute the (non-secret) GHCR image, tags and Docker Hub availability ────
   prepare:
     name: Prepare
     runs-on: ubuntu-latest
     outputs:
-      images_csv: ${{ steps.cfg.outputs.images_csv }}
+      ghcr_image: ${{ steps.cfg.outputs.ghcr_image }}
       tags: ${{ steps.cfg.outputs.tags }}
       dockerhub_enabled: ${{ steps.cfg.outputs.dockerhub_enabled }}
     steps:
@@ -57,10 +60,8 @@ jobs:
             echo "::notice::Docker Hub secrets not set — pushing to GHCR only."
           fi
 
-          # GHCR path must be lower-case.
+          # GHCR path must be lower-case (not secret — safe as a job output).
           GHCR="ghcr.io/$(printf '%s' "$REPO" | tr '[:upper:]' '[:lower:]')"
-          IMAGES="$GHCR"
-          [ "$DH_ENABLED" = "true" ] && IMAGES="$IMAGES,docker.io/${DOCKERHUB_USERNAME}/cimaise"
 
           # Version: from the git tag (refs/tags/vX.Y.Z) or the manual input.
           case "$REF" in
@@ -77,11 +78,11 @@ jobs:
           TAGS="$TAGS latest"
 
           {
-            echo "images_csv=$IMAGES"
+            echo "ghcr_image=$GHCR"
             echo "tags=$TAGS"
             echo "dockerhub_enabled=$DH_ENABLED"
           } >> "$GITHUB_OUTPUT"
-          echo "images=$IMAGES | tags=$TAGS | dockerhub=$DH_ENABLED"
+          echo "ghcr=$GHCR | tags=$TAGS | dockerhub=$DH_ENABLED"
 
   # ── Build each architecture natively, push by digest (no tags yet) ──────────
   build:
@@ -100,9 +101,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Platform pair
-        id: pp
-        run: echo "value=${{ matrix.platform }}" | tr '/' '-' >> "$GITHUB_OUTPUT"
+      - name: Compute build vars
+        id: vars
+        env:
+          GHCR_IMAGE: ${{ needs.prepare.outputs.ghcr_image }}
+          DH_ENABLED: ${{ needs.prepare.outputs.dockerhub_enabled }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          set -euo pipefail
+          # Build the comma-separated image-name list HERE (the username secret
+          # only lives inside this job, never in a cross-job output).
+          IMAGES="$GHCR_IMAGE"
+          [ "$DH_ENABLED" = "true" ] && IMAGES="$IMAGES,docker.io/${DOCKERHUB_USERNAME}/cimaise"
+          {
+            echo "images=$IMAGES"
+            echo "pair=$(printf '%s' "$PLATFORM" | tr '/' '-')"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
@@ -129,9 +144,9 @@ jobs:
           file: ./Dockerfile
           platforms: ${{ matrix.platform }}
           provenance: false
-          cache-from: type=gha,scope=${{ steps.pp.outputs.value }}
-          cache-to: type=gha,mode=max,scope=${{ steps.pp.outputs.value }}
-          outputs: type=image,name=${{ needs.prepare.outputs.images_csv }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ steps.vars.outputs.pair }}
+          cache-to: type=gha,mode=max,scope=${{ steps.vars.outputs.pair }}
+          outputs: type=image,name=${{ steps.vars.outputs.images }},push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
         run: |
@@ -142,7 +157,7 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: digests-${{ steps.pp.outputs.value }}
+          name: digests-${{ steps.vars.outputs.pair }}
           path: ${{ runner.temp }}/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -180,13 +195,17 @@ jobs:
       - name: Create and push multi-arch manifests
         working-directory: ${{ runner.temp }}/digests
         env:
-          IMAGES_CSV: ${{ needs.prepare.outputs.images_csv }}
+          GHCR_IMAGE: ${{ needs.prepare.outputs.ghcr_image }}
+          DH_ENABLED: ${{ needs.prepare.outputs.dockerhub_enabled }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           TAGS: ${{ needs.prepare.outputs.tags }}
         run: |
           set -euo pipefail
+          IMAGES="$GHCR_IMAGE"
+          [ "$DH_ENABLED" = "true" ] && IMAGES="$IMAGES docker.io/${DOCKERHUB_USERNAME}/cimaise"
           # Per-platform manifest digests are content-addressed and identical
-          # across registries, so the same set of digests applies to every image.
-          for image in $(printf '%s' "$IMAGES_CSV" | tr ',' ' '); do
+          # across registries, so the same digest set applies to every image.
+          for image in $IMAGES; do
             tag_args=""
             for t in $TAGS; do tag_args="$tag_args -t ${image}:${t}"; done
             src=""
@@ -199,8 +218,5 @@ jobs:
 
       - name: Inspect published image
         env:
-          IMAGES_CSV: ${{ needs.prepare.outputs.images_csv }}
-        run: |
-          set -euo pipefail
-          first="$(printf '%s' "$IMAGES_CSV" | cut -d',' -f1)"
-          docker buildx imagetools inspect "${first}:latest"
+          GHCR_IMAGE: ${{ needs.prepare.outputs.ghcr_image }}
+        run: docker buildx imagetools inspect "${GHCR_IMAGE}:latest"
