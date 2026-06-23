@@ -25,7 +25,6 @@ RUN npm ci --no-audit --no-fund --ignore-scripts
 COPY vite.config.js postcss.config.js tailwind*.js ./
 COPY scripts ./scripts
 COPY resources ./resources
-COPY js ./js
 COPY app ./app
 COPY plugins ./plugins
 COPY database ./database
