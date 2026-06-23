@@ -1,15 +1,18 @@
 name: Publish Docker image
 
-# Builds the multi-arch (amd64 + arm64) Cimaise image and pushes it to the
-# GitHub Container Registry (always) and Docker Hub (when the two Docker Hub
-# secrets are configured). Runs on every semver tag and can be triggered
-# manually.
+# Builds the Cimaise image for each architecture on its OWN native runner
+# (amd64 on ubuntu-24.04, arm64 on ubuntu-24.04-arm — no QEMU emulation), then
+# merges the per-arch images into one multi-arch manifest. Pushes to the GitHub
+# Container Registry (always) and Docker Hub (when its secrets are set). Runs on
+# every semver tag and can be triggered manually.
 #
 # Required repository secrets for Docker Hub publishing (Settings → Secrets and
 # variables → Actions):
 #   DOCKERHUB_USERNAME  — your Docker Hub account / namespace (e.g. fabiodalez)
 #   DOCKERHUB_TOKEN     — a Docker Hub access token with Read/Write scope
 # GHCR needs no extra secret — it uses the built-in GITHUB_TOKEN.
+#
+# Note: the arm64 (ubuntu-24.04-arm) runner is free only for PUBLIC repositories.
 
 on:
   push:
@@ -18,7 +21,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Optional image tag override (e.g. 1.4.14). Defaults to the git tag / "manual".'
+        description: 'Optional image tag override (e.g. 1.4.14). Defaults to the git tag.'
         required: false
 
 permissions:
@@ -26,25 +29,80 @@ permissions:
   packages: write
 
 jobs:
-  build-and-push:
-    name: Build & push multi-arch image
+  # ── Compute image names, tags and Docker Hub availability once ──────────────
+  prepare:
+    name: Prepare
     runs-on: ubuntu-latest
+    outputs:
+      images_csv: ${{ steps.cfg.outputs.images_csv }}
+      tags: ${{ steps.cfg.outputs.tags }}
+      dockerhub_enabled: ${{ steps.cfg.outputs.dockerhub_enabled }}
+    steps:
+      - name: Compute configuration
+        id: cfg
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+          REPO: ${{ github.repository }}
+          REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+
+          # Docker Hub is optional — only when both secrets are present.
+          if [ -n "$DOCKERHUB_TOKEN" ] && [ -n "$DOCKERHUB_USERNAME" ]; then
+            DH_ENABLED=true
+          else
+            DH_ENABLED=false
+            echo "::notice::Docker Hub secrets not set — pushing to GHCR only."
+          fi
+
+          # GHCR path must be lower-case.
+          GHCR="ghcr.io/$(printf '%s' "$REPO" | tr '[:upper:]' '[:lower:]')"
+          IMAGES="$GHCR"
+          [ "$DH_ENABLED" = "true" ] && IMAGES="$IMAGES,docker.io/${DOCKERHUB_USERNAME}/cimaise"
+
+          # Version: from the git tag (refs/tags/vX.Y.Z) or the manual input.
+          case "$REF" in
+            refs/tags/v*) VERSION="${REF#refs/tags/v}" ;;
+            *)            VERSION="${INPUT_TAG}" ;;
+          esac
+
+          TAGS=""
+          if [ -n "$VERSION" ]; then
+            TAGS="$VERSION"
+            MM="$(printf '%s' "$VERSION" | grep -oE '^[0-9]+\.[0-9]+' || true)"
+            [ -n "$MM" ] && TAGS="$TAGS $MM"
+          fi
+          TAGS="$TAGS latest"
+
+          {
+            echo "images_csv=$IMAGES"
+            echo "tags=$TAGS"
+            echo "dockerhub_enabled=$DH_ENABLED"
+          } >> "$GITHUB_OUTPUT"
+          echo "images=$IMAGES | tags=$TAGS | dockerhub=$DH_ENABLED"
+
+  # ── Build each architecture natively, push by digest (no tags yet) ──────────
+  build:
+    name: Build ${{ matrix.platform }}
+    needs: prepare
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Detect Docker Hub credentials
-        id: dh
-        run: |
-          if [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ] && [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
-            echo "enabled=true"  >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Docker Hub secrets not set — pushing to GHCR only."
-          fi
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+      - name: Platform pair
+        id: pp
+        run: echo "value=${{ matrix.platform }}" | tr '/' '-' >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
@@ -57,48 +115,92 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to Docker Hub
-        if: steps.dh.outputs.enabled == 'true'
+        if: needs.prepare.outputs.dockerhub_enabled == 'true'
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Compute image names
-        id: names
-        run: |
-          # Lower-case GHCR path (registry requires lower-case).
-          GHCR="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
-          IMAGES="$GHCR"
-          if [ "${{ steps.dh.outputs.enabled }}" = "true" ]; then
-            IMAGES="$IMAGES"$'\n'"docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cimaise"
-          fi
-          {
-            echo 'images<<EOF'
-            echo "$IMAGES"
-            echo 'EOF'
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Extract metadata (tags, labels)
-        id: meta
-        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
-        with:
-          images: ${{ steps.names.outputs.images }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
-            type=raw,value=${{ github.event.inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '' }}
-
-      - name: Build and push
+      - name: Build and push by digest
+        id: build
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: .
           file: ./Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          platforms: ${{ matrix.platform }}
           provenance: false
+          cache-from: type=gha,scope=${{ steps.pp.outputs.value }}
+          cache-to: type=gha,mode=max,scope=${{ steps.pp.outputs.value }}
+          outputs: type=image,name=${{ needs.prepare.outputs.images_csv }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        run: |
+          mkdir -p "${{ runner.temp }}/digests"
+          digest="${{ steps.build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: digests-${{ steps.pp.outputs.value }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # ── Combine the per-arch digests into one multi-arch manifest, apply tags ───
+  merge:
+    name: Merge manifest
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        if: needs.prepare.outputs.dockerhub_enabled == 'true'
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Create and push multi-arch manifests
+        working-directory: ${{ runner.temp }}/digests
+        env:
+          IMAGES_CSV: ${{ needs.prepare.outputs.images_csv }}
+          TAGS: ${{ needs.prepare.outputs.tags }}
+        run: |
+          set -euo pipefail
+          # Per-platform manifest digests are content-addressed and identical
+          # across registries, so the same set of digests applies to every image.
+          for image in $(printf '%s' "$IMAGES_CSV" | tr ',' ' '); do
+            tag_args=""
+            for t in $TAGS; do tag_args="$tag_args -t ${image}:${t}"; done
+            src=""
+            for d in *; do src="$src ${image}@sha256:${d}"; done
+            echo "::group::imagetools create → ${image} [${TAGS}]"
+            # shellcheck disable=SC2086
+            docker buildx imagetools create $tag_args $src
+            echo "::endgroup::"
+          done
+
+      - name: Inspect published image
+        env:
+          IMAGES_CSV: ${{ needs.prepare.outputs.images_csv }}
+        run: |
+          set -euo pipefail
+          first="$(printf '%s' "$IMAGES_CSV" | cut -d',' -f1)"
+          docker buildx imagetools inspect "${first}:latest"

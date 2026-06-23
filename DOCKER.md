@@ -193,8 +193,10 @@ Two paths — automated (recommended) and manual.
 ### Automated (GitHub Actions)
 
 [`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml)
-builds the multi-arch image and pushes it on every `v*.*.*` tag you push (and
-on manual `workflow_dispatch`). It always pushes to **GHCR** using the built-in
+builds each architecture on its **own native runner** (amd64 on `ubuntu-24.04`,
+arm64 on `ubuntu-24.04-arm` — no QEMU emulation), then merges them into one
+multi-arch manifest. It runs on every `v*.*.*` tag you push (and on manual
+`workflow_dispatch`), always pushing to **GHCR** using the built-in
 `GITHUB_TOKEN`, and additionally to **Docker Hub** when these repository secrets
 are set (Settings → Secrets and variables → Actions):
 
