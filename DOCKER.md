@@ -215,6 +215,12 @@ git push origin v1.4.14
 
 The workflow publishes `fabiodalez/cimaise:1.4.14`, `:1.4`, and `:latest`.
 
+> The **same tag** also triggers the app release workflow (`release.yml`), so a
+> single `git tag vX.Y.Z` ships both the release ZIP and the refreshed Docker
+> image. If a change touches the runtime (PHP extensions, build steps, writable
+> dirs), update the [`Dockerfile`](Dockerfile) in the same commit. See the
+> maintainer release flow in [`docs/updater.md`](docs/updater.md).
+
 ### Manual (one-off, from your machine)
 
 1. **Create the Docker Hub repository** (once): sign in at

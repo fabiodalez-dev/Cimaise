@@ -56,6 +56,34 @@ Nota: per Cimaise l'uploader degli asset è `github-actions[bot]` — è il
 comportamento ATTESO (il pacchetto nasce in CI). In Pinakes lo stesso segnale
 indica invece un incidente, perché lì le release si costruiscono in locale.
 
+### ⚠️ Ogni release aggiorna ANCHE l'immagine Docker
+
+Lo **stesso tag `vX.Y.Z`** che lancia `release.yml` fa partire in parallelo
+anche [`.github/workflows/docker-publish.yml`](../.github/workflows/docker-publish.yml),
+che ricostruisce e pubblica l'**immagine Docker multi-arch** (amd64 + arm64) su
+Docker Hub e GHCR con i tag `X.Y.Z`, `X.Y` e `latest`. Quindi:
+
+- **A ogni modifica/release dell'app, l'immagine Docker si aggiorna da sola** —
+  non serve nessun push manuale dell'immagine. Basta taggare la release.
+- **Se la modifica tocca l'ambiente di esecuzione** (una nuova estensione PHP,
+  un nuovo step di build front-end, una nuova cartella scrivibile a runtime,
+  un bump della versione PHP minima), **aggiorna anche il [`Dockerfile`](../Dockerfile)
+  e [`docker/`](../docker)** nello stesso commit, altrimenti l'immagine resterà
+  indietro rispetto al codice. La guida completa è in [`DOCKER.md`](../DOCKER.md).
+- Gli utenti Docker **non** usano l'updater a runtime (vedi sotto): aggiornano
+  con `docker pull` del nuovo tag. Le due strade di aggiornamento sono distinte
+  ma partono dallo stesso tag git.
+
+#### Collegamenti tra repository e registry (cross-link)
+
+| Risorsa | URL |
+|---|---|
+| Repository sorgente (GitHub) | <https://github.com/fabiodalez-dev/Cimaise> |
+| Immagine Docker Hub | <https://hub.docker.com/r/fabiodalez/cimaise> |
+| Immagine GHCR | <https://github.com/fabiodalez-dev/Cimaise/pkgs/container/cimaise> |
+| Guida Docker | [`DOCKER.md`](../DOCKER.md) |
+| Workflow pubblicazione immagine | [`.github/workflows/docker-publish.yml`](../.github/workflows/docker-publish.yml) |
+
 ### Cosa verifica `verify_zip_package` (Step 5.5 adattato da Pinakes)
 
 Sullo ZIP finale, estratto in una dir temporanea:
