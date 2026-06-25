@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The release workflow extracts the `## [VERSION]` section below into the GitHub
 release notes, so keep one section per released tag.
 
+## [1.4.15] - 2026-06-25
+### Security
+- **slim/slim → 4.15.2** (CVE-2026-48157): reflected XSS in Slim's
+  `HtmlErrorRenderer` (affected `>=4.4.0,<=4.15.1`). Exposure here was limited
+  because the app overrides the built-in renderer with custom Twig error
+  handlers, but the dependency is now patched.
+- **twig/twig → 3.27.1** (CVE-2026-48808, CVE-2026-48805): Twig sandbox
+  allowlist-bypass / state-regression advisories (affected `<3.27.0`). Not
+  exploitable here (the app does not use the Twig sandbox); bumped to stay
+  current and clear the advisory.
+- **phpunit/phpunit → 10.5.63** (CVE-2026-24765, dev-only): not shipped in the
+  production build; bumped so `composer audit` reports no advisories.
+
+### Added
+- Official **Docker image** (multi-arch `linux/amd64` + `linux/arm64`):
+  `Dockerfile`, `docker-compose.yml`, `docker/` runtime config, and a
+  `docker-publish.yml` workflow that builds each architecture on a native runner
+  and publishes to Docker Hub (`fabiodalez/cimaise`) and GHCR on every tag. See
+  [`DOCKER.md`](DOCKER.md).
+
 ## [1.4.14] - 2026-06-18
 ### Fixed
 - **Broken photos / "some images don't load".** When the host had PHP
