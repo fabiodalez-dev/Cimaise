@@ -242,6 +242,8 @@
     {% block styles %}{% endblock %}
 </head>
 <body class="min-h-full bg-white text-black font-sans antialiased{% if admin_logged_in|default(false) %} has-admin-bar{% endif %}">
+    {# Keyboard/screen-reader users: jump past header + nav straight to content #}
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[10000] focus:bg-white focus:text-black focus:px-4 focus:py-2 focus:rounded-md focus:shadow-lg">{{ trans('nav.skip_to_content', {}, 'Skip to content') }}</a>
     {% include 'frontend/_admin_topbar.twig' %}
     <div id="pswp-open-overlay" aria-hidden="true"></div>
 
@@ -255,7 +257,9 @@
             <div class="flex justify-between items-center py-5">
                 <!-- Left: Logo and Desktop Navigation -->
                 <div class="flex items-center gap-8">
-                    <h1 class="text-xl font-semibold">
+                    {# div, not h1: the page content provides the single per-page h1;
+                       a second h1 in the site header breaks the heading outline #}
+                    <div class="text-xl font-semibold">
                         <a href="{{ base_path }}/" class="hover:text-gray-600 transition-colors duration-200 flex items-center gap-3">
                             {% if logo_type == 'image' and site_logo %}
                               <img src="{{ base_path ~ site_logo }}" alt="{{ site_title|default('Portfolio')|e }}" class="h-12 w-auto">
@@ -263,7 +267,7 @@
                               {{ site_title|default('Portfolio') }}
                             {% endif %}
                         </a>
-                    </h1>
+                    </div>
                     
                     <!-- Desktop Navigation -->
                     <nav class="hidden lg:flex items-center gap-6" id="desktop-nav">
@@ -397,7 +401,7 @@
                     </div>
 
                     <!-- Mobile Menu Button - Aligned with Logo -->
-                    <button id="mobile-menu-toggle" aria-controls="mobile-menu" aria-expanded="false" class="lg:hidden flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200">
+                    <button id="mobile-menu-toggle" aria-controls="mobile-menu" aria-expanded="false" aria-label="Menu" class="lg:hidden flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200">
                         <svg class="w-5 h-5 transition-transform duration-200" id="mobile-menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path class="hamburger-line" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                             <path class="close-line hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -594,7 +598,7 @@
     </script>
 
     <!-- Main content -->
-    <main>
+    <main id="main-content">
         {% block content %}{% endblock %}
     </main>
 

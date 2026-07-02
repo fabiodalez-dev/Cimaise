@@ -91,18 +91,20 @@
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}">
+          {% set dense_sizes = '(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw' %}
           <picture>
             {% if image.sources.avif|length %}
-              <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+              <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="{{ dense_sizes }}">
             {% endif %}
             {% if image.sources.jxl|length %}
-              <source type="image/jxl" srcset="{% for src in image.sources.jxl %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+              <source type="image/jxl" srcset="{% for src in image.sources.jxl %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="{{ dense_sizes }}">
             {% endif %}
             {% if image.sources.webp|length %}
-              <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+              <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="{{ dense_sizes }}">
             {% endif %}
 {# First 5 images get priority loading for faster LCP #}
             <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
+                 {% if image.sources.jpg|length %}srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="{{ dense_sizes }}"{% endif %}
                  alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
                  {% if loop.index <= 5 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
                  decoding="async"

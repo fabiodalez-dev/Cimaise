@@ -123,7 +123,12 @@
 }
 
 /* Albums Horizontal Infinite Carousel */
-.albums-carousel-container { margin: 0 -2rem; padding: 0 2rem 1rem 2rem; display: flex; align-items: stretch; }
+/* Full-bleed negative margins must MATCH the page container padding
+   (px-4 / sm:px-6 / lg:px-8): a fixed -2rem exceeds the mobile padding and
+   makes the whole page scroll horizontally (16px @375, 8px @768). */
+.albums-carousel-container { margin: 0 -1rem; padding: 0 1rem 1rem 1rem; display: flex; align-items: stretch; }
+@media (min-width: 640px) { .albums-carousel-container { margin: 0 -1.5rem; padding: 0 1.5rem 1rem 1.5rem; } }
+@media (min-width: 1024px) { .albums-carousel-container { margin: 0 -2rem; padding: 0 2rem 1rem 2rem; } }
 .albums-carousel-track { display: flex; will-change: transform; transition: transform 0.1s ease-out; align-items: stretch; gap: 16px; }
 @media (min-width: 640px) { .albums-carousel-track { gap: 20px; } }
 @media (min-width: 768px) { .albums-carousel-track { gap: 24px; } }

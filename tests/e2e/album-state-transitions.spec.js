@@ -374,17 +374,17 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     await clearCaches(admin);
     console.log('T1: Applied NSFW flag');
 
-    // ── Anon: Home classic — blur + overlay, no lock ──
+    // ── Anon: Home classic — NSFW albums are EXCLUDED from the anonymous home
+    //    (SQL-level filter in PageController::home; blur affordance lives on
+    //    the listing pages) ──
     const anonCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const anonPage = await anonCtx.newPage();
     await anonPage.goto(`${BASE}/?template=classic`);
     await anonPage.waitForLoadState('load');
     await anonPage.screenshot({ path: path.join(SCREENSHOTS, 'T1-home-classic-anon.png'), fullPage: true });
 
-    await verifyCardState(anonPage, 'article.album-card', albumId, {
-      blur: true, overlay: true, lock: false, dataNsfw: '1'
-    });
-    console.log('T1: Home classic anon — blur + overlay, no lock ✓');
+    expect(await anonPage.locator(`article.album-card[data-album-id="${albumId}"]`).count()).toBe(0);
+    console.log('T1: Home classic anon — NSFW album hidden from home ✓');
     await anonCtx.close();
 
     // ── Anon: Galleries — blur + overlay, no lock ──
@@ -471,17 +471,17 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     await clearCaches(admin);
     console.log('T3: Added password');
 
-    // ── Anon: Home classic — blur + lock, no NSFW overlay ──
+    // ── Anon: Home classic — password-protected albums are EXCLUDED from the
+    //    anonymous home (SQL-level filter in PageController::home; the lock
+    //    affordance lives on the listing pages) ──
     const anonCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const anonPage = await anonCtx.newPage();
     await anonPage.goto(`${BASE}/?template=classic`);
     await anonPage.waitForLoadState('load');
     await anonPage.screenshot({ path: path.join(SCREENSHOTS, 'T3-home-classic-anon.png'), fullPage: true });
 
-    await verifyCardState(anonPage, 'article.album-card', albumId, {
-      blur: true, overlay: false, lock: true, dataNsfw: null
-    });
-    console.log('T3: Home classic anon — blur + lock, no NSFW overlay ✓');
+    expect(await anonPage.locator(`article.album-card[data-album-id="${albumId}"]`).count()).toBe(0);
+    console.log('T3: Home classic anon — password-protected album hidden from home ✓');
     await anonCtx.close();
 
     // ── Anon: Galleries — lock overlay (nsfw-overlay class) + lock badge ──
@@ -560,17 +560,15 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     await clearCaches(admin);
     console.log('T5: Applied NSFW + password');
 
-    // ── Anon: Home classic — blur + overlay + lock ──
+    // ── Anon: Home classic — NSFW+password album EXCLUDED from anonymous home ──
     const anonCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const anonPage = await anonCtx.newPage();
     await anonPage.goto(`${BASE}/?template=classic`);
     await anonPage.waitForLoadState('load');
     await anonPage.screenshot({ path: path.join(SCREENSHOTS, 'T5-home-classic-anon.png'), fullPage: true });
 
-    await verifyCardState(anonPage, 'article.album-card', albumId, {
-      blur: true, overlay: true, lock: true, dataNsfw: '1'
-    });
-    console.log('T5: Home classic anon — blur + overlay + lock ✓');
+    expect(await anonPage.locator(`article.album-card[data-album-id="${albumId}"]`).count()).toBe(0);
+    console.log('T5: Home classic anon — NSFW+password album hidden from home ✓');
     await anonCtx.close();
 
     // ── Anon: Galleries — blur + NSFW overlay + lock badge ──
@@ -607,17 +605,15 @@ test.describe.serial('Album state transitions — NSFW & Password on same album'
     await clearCaches(admin);
     console.log('T6: Removed password, kept NSFW');
 
-    // ── Anon: Home classic — blur + overlay, no lock ──
+    // ── Anon: Home classic — NSFW album EXCLUDED from anonymous home ──
     const anonCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const anonPage = await anonCtx.newPage();
     await anonPage.goto(`${BASE}/?template=classic`);
     await anonPage.waitForLoadState('load');
     await anonPage.screenshot({ path: path.join(SCREENSHOTS, 'T6-home-classic-anon.png'), fullPage: true });
 
-    await verifyCardState(anonPage, 'article.album-card', albumId, {
-      blur: true, overlay: true, lock: false, dataNsfw: '1'
-    });
-    console.log('T6: Home classic anon — blur + overlay, no lock ✓');
+    expect(await anonPage.locator(`article.album-card[data-album-id="${albumId}"]`).count()).toBe(0);
+    console.log('T6: Home classic anon — NSFW album hidden from home ✓');
     await anonCtx.close();
 
     // ── Anon: Galleries — blur + overlay, no lock ──

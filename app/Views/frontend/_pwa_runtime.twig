@@ -121,9 +121,19 @@
             pwaLog('[PWA] Service Worker registration failed:', error);
           });
 
-        // Reload page when new service worker takes control
+        // Reload page when a NEW service worker replaces the current one (user
+        // accepted the update banner). The first-install claim() also fires
+        // controllerchange (controller: null → SW); reloading there would make
+        // every first visit load the page twice, so it must be skipped.
         let refreshing = false;
+        let hadController = !!navigator.serviceWorker.controller;
         navigator.serviceWorker.addEventListener('controllerchange', function() {
+          if (!hadController) {
+            // First-install claim: adopt the controller silently. A later
+            // controllerchange in the same page life (real update) reloads.
+            hadController = true;
+            return;
+          }
           if (!refreshing) {
             refreshing = true;
             window.location.reload();

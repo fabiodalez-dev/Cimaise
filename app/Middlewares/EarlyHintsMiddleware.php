@@ -98,16 +98,23 @@ class EarlyHintsMiddleware implements MiddlewareInterface
             return [];
         }
 
-        // Common resources for all frontend pages (stable paths only)
+        // Preload hints only make sense on HTML page responses. Media variants,
+        // static assets and the dynamic font CSS are fetched thousands of times
+        // per session — emitting Link headers there is pure overhead (and the
+        // browser ignores them anyway).
+        if (preg_match('#^/(media|assets|fonts|plugins)/#', $uri) === 1
+            || preg_match('#\.(avif|webp|jpe?g|png|gif|svg|ico|css|js|mjs|map|woff2?|ttf|json|xml|txt|webmanifest)$#i', $uri) === 1) {
+            return [];
+        }
+
+        // Common resources for all frontend pages (stable paths only).
+        // NOTE: /fonts/font-faces.css is NOT preloaded — no frontend layout
+        // references it as a stylesheet (typography.css already embeds the
+        // @font-face rules), so preloading it wasted a request on every page
+        // and triggered "preloaded but not used" console warnings.
         $resources = [
-            // Font stylesheets - stable paths
             [
                 'href' => $this->basePath . '/fonts/typography.css',
-                'rel' => 'preload',
-                'as' => 'style'
-            ],
-            [
-                'href' => $this->basePath . '/fonts/font-faces.css',
                 'rel' => 'preload',
                 'as' => 'style'
             ],
