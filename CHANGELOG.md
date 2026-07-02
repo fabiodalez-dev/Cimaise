@@ -8,6 +8,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The release workflow extracts the `## [VERSION]` section below into the GitHub
 release notes, so keep one section per released tag.
 
+## [1.4.16] - 2026-07-02
+### Fixed
+- **Every first visit loaded each page twice.** The PWA runtime reloaded the
+  page on `controllerchange` when the service worker claimed the page on its
+  very first install (~430 ms wasted plus a full refetch for every new
+  visitor). The reload now only fires for real updates (after the "Refresh"
+  banner); the first-install claim is adopted silently.
+- **Horizontal page scroll on mobile.** The home albums-carousel full-bleed
+  negative margin exceeded the container padding, making the whole page scroll
+  sideways by 16px at 375px and 8px at 768px. Margins now match the padding at
+  each breakpoint, with `overflow-x: clip` on the section as a safety net.
+- **Oversized image downloads in the dense-grid album layout.** Its
+  `<source>` elements had no `sizes` (browsers assumed 100vw on a 3–4 column
+  grid) and the `<img>` fallback pointed at the 3840px JPEG; both now carry the
+  proper responsive chain.
+- **Wasted preloads.** `Link: rel=preload` headers are no longer emitted on
+  media/asset responses, and `/fonts/font-faces.css` is no longer preloaded at
+  all — no layout references it as a stylesheet (typography.css embeds the
+  @font-face rules), so it burned a request per page and spammed "preloaded
+  but not used" console warnings.
+- **Tracked `vendor/` synced with `composer.lock`.** The 1.4.15 security bumps
+  (slim 4.15.2, twig 3.27.1) updated the lock file but not the committed
+  vendor tree, so git-clone installs still shipped the old packages. Release
+  ZIPs and the Docker image were unaffected (CI runs `composer install`).
+
+### Accessibility
+- Mobile menu button now has an `aria-label`; the header logo is no longer a
+  second `<h1>`; added a skip-to-content link and a `main` landmark id.
+
 ## [1.4.15] - 2026-06-25
 ### Security
 - **slim/slim → 4.15.2** (CVE-2026-48157): reflected XSS in Slim's
