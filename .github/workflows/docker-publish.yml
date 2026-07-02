@@ -224,3 +224,21 @@ jobs:
           set -euo pipefail
           GHCR="ghcr.io/$(printf '%s' "$REPO" | tr '[:upper:]' '[:lower:]')"
           docker buildx imagetools inspect "${GHCR}:latest"
+
+      # Keep the Docker Hub repository page (overview + short description) in
+      # sync with the repo on every release. Needs the checkout because the
+      # merge job otherwise runs without sources.
+      - name: Checkout (for Docker Hub README)
+        if: needs.prepare.outputs.dockerhub_enabled == 'true'
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Sync Docker Hub repository description
+        if: needs.prepare.outputs.dockerhub_enabled == 'true'
+        uses: peter-evans/dockerhub-description@1b9a80c056b620d92cedb9d9b5a223409c68ddfa # v5.0.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ secrets.DOCKERHUB_USERNAME }}/cimaise
+          short-description: "Minimalist photography portfolio CMS — PHP 8.3 + Apache. SQLite/MySQL. Multi-arch."
+          readme-filepath: ./.github/DOCKER_HUB_README.md
+          enable-url-completion: true
