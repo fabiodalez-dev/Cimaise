@@ -618,6 +618,7 @@ return array(
     'PHPUnit\\Runner\\ClassDoesNotExtendTestCaseException' => $vendorDir . '/phpunit/phpunit/src/Runner/Exception/ClassDoesNotExtendTestCaseException.php',
     'PHPUnit\\Runner\\ClassIsAbstractException' => $vendorDir . '/phpunit/phpunit/src/Runner/Exception/ClassIsAbstractException.php',
     'PHPUnit\\Runner\\CodeCoverage' => $vendorDir . '/phpunit/phpunit/src/Runner/CodeCoverage.php',
+    'PHPUnit\\Runner\\CodeCoverageFileExistsException' => $vendorDir . '/phpunit/phpunit/src/Runner/Exception/CodeCoverageFileExistsException.php',
     'PHPUnit\\Runner\\DirectoryDoesNotExistException' => $vendorDir . '/phpunit/phpunit/src/Runner/Exception/DirectoryDoesNotExistException.php',
     'PHPUnit\\Runner\\ErrorException' => $vendorDir . '/phpunit/phpunit/src/Runner/Exception/ErrorException.php',
     'PHPUnit\\Runner\\ErrorHandler' => $vendorDir . '/phpunit/phpunit/src/Runner/ErrorHandler.php',

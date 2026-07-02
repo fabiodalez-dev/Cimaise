@@ -2,6 +2,61 @@
 
 All notable changes of the PHPUnit 10.5 release series are documented in this file using the [Keep a CHANGELOG](https://keepachangelog.com/) principles.
 
+## [10.5.63] - 2026-01-27
+
+### Fixed
+
+* Regression introduced in PHPUnit 9.6.33
+
+## [10.5.62] - 2026-01-27
+
+### Changed
+
+* To prevent Poisoned Pipeline Execution (PPE) attacks using prepared `.coverage` files in pull requests, a PHPT test will no longer be run if the temporary file for writing code coverage information already exists before the test runs
+
+## [10.5.61] - 2026-01-24
+
+### Changed
+
+* `PHPUnit\Framework\MockObject` exceptions are now subtypes of `PHPUnit\Exception`
+
+## [10.5.60] - 2025-12-06
+
+* No changes; `phpunit.phar` rebuilt with PHP 8.4 to work around PHP-Scoper issue [#1139](https://github.com/humbug/php-scoper/issues/1139)
+
+## [10.5.59] - 2025-12-01
+
+### Changed
+
+* [#6338](https://github.com/sebastianbergmann/phpunit/pull/6338): Removed code from `PHPUnit\Runner\TestSuiteSorter` that was only used in the tests for this class
+* Updated list of deprecated PHP configuration settings for PHP 8.4, PHP 8.5, and PHP 8.6
+
+## [10.5.58] - 2025-09-28
+
+### Fixed
+
+* [#6368](https://github.com/sebastianbergmann/phpunit/issues/6368): `failOnPhpunitWarning="false"` has no effect
+
+## [10.5.57] - 2025-09-24
+
+* No changes; `phpunit.phar` rebuilt with updated dependencies
+
+## [10.5.56] - 2025-09-23
+
+* No changes; `phpunit.phar` rebuilt with updated dependencies
+
+## [10.5.55] - 2025-09-14
+
+### Changed
+
+* [#6366](https://github.com/sebastianbergmann/phpunit/issues/6366): Exclude `__sleep()` and `__wakeup()` from test double code generation on PHP >= 8.5
+
+## [10.5.54] - 2025-09-11
+
+### Changed
+
+* Do not use `__sleep()` method (which will be deprecated in PHP 8.5)
+
 ## [10.5.53] - 2025-08-20
 
 ### Changed
@@ -472,6 +527,16 @@ All notable changes of the PHPUnit 10.5 release series are documented in this fi
 
 * [#5563](https://github.com/sebastianbergmann/phpunit/issues/5563): `createMockForIntersectionOfInterfaces()` does not automatically register mock object for expectation verification
 
+[10.5.63]: https://github.com/sebastianbergmann/phpunit/compare/10.5.62...10.5.63
+[10.5.62]: https://github.com/sebastianbergmann/phpunit/compare/10.5.61...10.5.62
+[10.5.61]: https://github.com/sebastianbergmann/phpunit/compare/10.5.60...10.5.61
+[10.5.60]: https://github.com/sebastianbergmann/phpunit/compare/10.5.59...10.5.60
+[10.5.59]: https://github.com/sebastianbergmann/phpunit/compare/10.5.58...10.5.59
+[10.5.58]: https://github.com/sebastianbergmann/phpunit/compare/10.5.57...10.5.58
+[10.5.57]: https://github.com/sebastianbergmann/phpunit/compare/10.5.56...10.5.57
+[10.5.56]: https://github.com/sebastianbergmann/phpunit/compare/10.5.55...10.5.56
+[10.5.55]: https://github.com/sebastianbergmann/phpunit/compare/10.5.54...10.5.55
+[10.5.54]: https://github.com/sebastianbergmann/phpunit/compare/10.5.53...10.5.54
 [10.5.53]: https://github.com/sebastianbergmann/phpunit/compare/10.5.52...10.5.53
 [10.5.52]: https://github.com/sebastianbergmann/phpunit/compare/10.5.51...10.5.52
 [10.5.51]: https://github.com/sebastianbergmann/phpunit/compare/10.5.50...10.5.51

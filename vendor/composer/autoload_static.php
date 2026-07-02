@@ -28,15 +28,15 @@ class ComposerStaticInita3402077a7909349fe673fa553059c7f
     );
 
     public static $prefixLengthsPsr4 = array (
-        'l' => 
+        'l' =>
         array (
             'lsolesen\\pel\\' => 13,
         ),
-        'T' => 
+        'T' =>
         array (
             'Twig\\' => 5,
         ),
-        'S' => 
+        'S' =>
         array (
             'Symfony\\Polyfill\\Php81\\' => 23,
             'Symfony\\Polyfill\\Php80\\' => 23,
@@ -51,11 +51,11 @@ class ComposerStaticInita3402077a7909349fe673fa553059c7f
             'Slim\\Psr7\\' => 10,
             'Slim\\' => 5,
         ),
-        'R' => 
+        'R' =>
         array (
             'ReCaptcha\\' => 10,
         ),
-        'P' => 
+        'P' =>
         array (
             'Psr\\Log\\' => 8,
             'Psr\\Http\\Server\\' => 16,
@@ -64,173 +64,173 @@ class ComposerStaticInita3402077a7909349fe673fa553059c7f
             'PhpParser\\' => 10,
             'PhpOption\\' => 10,
         ),
-        'M' => 
+        'M' =>
         array (
             'MaxMind\\WebService\\' => 19,
             'MaxMind\\Exception\\' => 18,
             'MaxMind\\Db\\' => 11,
         ),
-        'I' => 
+        'I' =>
         array (
             'Icamys\\SitemapGenerator\\' => 24,
         ),
-        'G' => 
+        'G' =>
         array (
             'GrahamCampbell\\ResultType\\' => 26,
             'GeoIp2\\' => 7,
         ),
-        'F' => 
+        'F' =>
         array (
             'Fig\\Http\\Message\\' => 17,
             'FastRoute\\' => 10,
         ),
-        'D' => 
+        'D' =>
         array (
             'Dotenv\\' => 7,
             'DeepCopy\\' => 9,
         ),
-        'C' => 
+        'C' =>
         array (
             'Composer\\CaBundle\\' => 18,
         ),
-        'A' => 
+        'A' =>
         array (
             'App\\' => 4,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
-        'lsolesen\\pel\\' => 
+        'lsolesen\\pel\\' =>
         array (
             0 => __DIR__ . '/..' . '/fileeye/pel/src',
         ),
-        'Twig\\' => 
+        'Twig\\' =>
         array (
             0 => __DIR__ . '/..' . '/twig/twig/src',
         ),
-        'Symfony\\Polyfill\\Php81\\' => 
+        'Symfony\\Polyfill\\Php81\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-php81',
         ),
-        'Symfony\\Polyfill\\Php80\\' => 
+        'Symfony\\Polyfill\\Php80\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-php80',
         ),
-        'Symfony\\Polyfill\\Mbstring\\' => 
+        'Symfony\\Polyfill\\Mbstring\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-mbstring',
         ),
-        'Symfony\\Polyfill\\Intl\\Normalizer\\' => 
+        'Symfony\\Polyfill\\Intl\\Normalizer\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-intl-normalizer',
         ),
-        'Symfony\\Polyfill\\Intl\\Grapheme\\' => 
+        'Symfony\\Polyfill\\Intl\\Grapheme\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-intl-grapheme',
         ),
-        'Symfony\\Polyfill\\Ctype\\' => 
+        'Symfony\\Polyfill\\Ctype\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-ctype',
         ),
-        'Symfony\\Contracts\\Service\\' => 
+        'Symfony\\Contracts\\Service\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/service-contracts',
         ),
-        'Symfony\\Component\\String\\' => 
+        'Symfony\\Component\\String\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/string',
         ),
-        'Symfony\\Component\\Console\\' => 
+        'Symfony\\Component\\Console\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/console',
         ),
-        'Slim\\Views\\' => 
+        'Slim\\Views\\' =>
         array (
             0 => __DIR__ . '/..' . '/slim/twig-view/src',
         ),
-        'Slim\\Psr7\\' => 
+        'Slim\\Psr7\\' =>
         array (
             0 => __DIR__ . '/..' . '/slim/psr7/src',
         ),
-        'Slim\\' => 
+        'Slim\\' =>
         array (
             0 => __DIR__ . '/..' . '/slim/slim/Slim',
         ),
-        'ReCaptcha\\' => 
+        'ReCaptcha\\' =>
         array (
             0 => __DIR__ . '/..' . '/google/recaptcha/src/ReCaptcha',
         ),
-        'Psr\\Log\\' => 
+        'Psr\\Log\\' =>
         array (
             0 => __DIR__ . '/..' . '/psr/log/src',
         ),
-        'Psr\\Http\\Server\\' => 
+        'Psr\\Http\\Server\\' =>
         array (
             0 => __DIR__ . '/..' . '/psr/http-server-middleware/src',
             1 => __DIR__ . '/..' . '/psr/http-server-handler/src',
         ),
-        'Psr\\Http\\Message\\' => 
+        'Psr\\Http\\Message\\' =>
         array (
             0 => __DIR__ . '/..' . '/psr/http-factory/src',
             1 => __DIR__ . '/..' . '/psr/http-message/src',
         ),
-        'Psr\\Container\\' => 
+        'Psr\\Container\\' =>
         array (
             0 => __DIR__ . '/..' . '/psr/container/src',
         ),
-        'PhpParser\\' => 
+        'PhpParser\\' =>
         array (
             0 => __DIR__ . '/..' . '/nikic/php-parser/lib/PhpParser',
         ),
-        'PhpOption\\' => 
+        'PhpOption\\' =>
         array (
             0 => __DIR__ . '/..' . '/phpoption/phpoption/src/PhpOption',
         ),
-        'MaxMind\\WebService\\' => 
+        'MaxMind\\WebService\\' =>
         array (
             0 => __DIR__ . '/..' . '/maxmind/web-service-common/src/WebService',
         ),
-        'MaxMind\\Exception\\' => 
+        'MaxMind\\Exception\\' =>
         array (
             0 => __DIR__ . '/..' . '/maxmind/web-service-common/src/Exception',
         ),
-        'MaxMind\\Db\\' => 
+        'MaxMind\\Db\\' =>
         array (
             0 => __DIR__ . '/..' . '/maxmind-db/reader/src/MaxMind/Db',
         ),
-        'Icamys\\SitemapGenerator\\' => 
+        'Icamys\\SitemapGenerator\\' =>
         array (
             0 => __DIR__ . '/..' . '/icamys/php-sitemap-generator/src',
         ),
-        'GrahamCampbell\\ResultType\\' => 
+        'GrahamCampbell\\ResultType\\' =>
         array (
             0 => __DIR__ . '/..' . '/graham-campbell/result-type/src',
         ),
-        'GeoIp2\\' => 
+        'GeoIp2\\' =>
         array (
             0 => __DIR__ . '/..' . '/geoip2/geoip2/src',
         ),
-        'Fig\\Http\\Message\\' => 
+        'Fig\\Http\\Message\\' =>
         array (
             0 => __DIR__ . '/..' . '/fig/http-message-util/src',
         ),
-        'FastRoute\\' => 
+        'FastRoute\\' =>
         array (
             0 => __DIR__ . '/..' . '/nikic/fast-route/src',
         ),
-        'Dotenv\\' => 
+        'Dotenv\\' =>
         array (
             0 => __DIR__ . '/..' . '/vlucas/phpdotenv/src',
         ),
-        'DeepCopy\\' => 
+        'DeepCopy\\' =>
         array (
             0 => __DIR__ . '/..' . '/myclabs/deep-copy/src/DeepCopy',
         ),
-        'Composer\\CaBundle\\' => 
+        'Composer\\CaBundle\\' =>
         array (
             0 => __DIR__ . '/..' . '/composer/ca-bundle/src',
         ),
-        'App\\' => 
+        'App\\' =>
         array (
             0 => __DIR__ . '/../..' . '/app',
         ),
@@ -849,6 +849,7 @@ class ComposerStaticInita3402077a7909349fe673fa553059c7f
         'PHPUnit\\Runner\\ClassDoesNotExtendTestCaseException' => __DIR__ . '/..' . '/phpunit/phpunit/src/Runner/Exception/ClassDoesNotExtendTestCaseException.php',
         'PHPUnit\\Runner\\ClassIsAbstractException' => __DIR__ . '/..' . '/phpunit/phpunit/src/Runner/Exception/ClassIsAbstractException.php',
         'PHPUnit\\Runner\\CodeCoverage' => __DIR__ . '/..' . '/phpunit/phpunit/src/Runner/CodeCoverage.php',
+        'PHPUnit\\Runner\\CodeCoverageFileExistsException' => __DIR__ . '/..' . '/phpunit/phpunit/src/Runner/Exception/CodeCoverageFileExistsException.php',
         'PHPUnit\\Runner\\DirectoryDoesNotExistException' => __DIR__ . '/..' . '/phpunit/phpunit/src/Runner/Exception/DirectoryDoesNotExistException.php',
         'PHPUnit\\Runner\\ErrorException' => __DIR__ . '/..' . '/phpunit/phpunit/src/Runner/Exception/ErrorException.php',
         'PHPUnit\\Runner\\ErrorHandler' => __DIR__ . '/..' . '/phpunit/phpunit/src/Runner/ErrorHandler.php',
