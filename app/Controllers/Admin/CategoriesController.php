@@ -44,6 +44,10 @@ class CategoriesController extends BaseController
             $pageCache->invalidateHome();
             $pageCache->invalidateGalleries();
         }
+
+        // Re-warm in background: soft invalidation would otherwise serve the
+        // stale page once to the next visitor (usually the admin verifying).
+        \App\Services\CacheWarmService::scheduleWarm($this->db, ['home', 'galleries']);
     }
 
     public function index(Request $request, Response $response): Response

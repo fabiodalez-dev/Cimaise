@@ -1267,4 +1267,71 @@ class CacheWarmService
     {
         return $this->pageCacheService;
     }
+
+    /**
+     * Schedule a background cache warm after the current response is sent.
+     *
+     * Admin save handlers soft-invalidate the page cache (see
+     * PageCacheService::invalidateInDatabase): the entry is marked expired but
+     * kept for the stale-while-revalidate path, so WITHOUT a warm the very
+     * next visitor — usually the admin checking their own change — is served
+     * the OLD page once. Scheduling a warm here closes that window: by the
+     * time the admin (or anyone) reloads the frontend, the cache already
+     * holds the fresh render. Uses the same per-page lock files as the
+     * frontend lazy regeneration, so concurrent warms stay single-flight.
+     *
+     * @param Database $db      Database handle (captured for the shutdown fn)
+     * @param string[] $targets Any of 'home', 'galleries', 'album:{slug}'
+     */
+    public static function scheduleWarm(Database $db, array $targets): void
+    {
+        static $queued = [];
+        $targets = array_values(array_unique(array_diff($targets, $queued)));
+        if ($targets === []) {
+            return;
+        }
+        $queued = array_merge($queued, $targets);
+        $first = count($queued) === count($targets);
+        if (!$first) {
+            return; // shutdown fn already registered; it reads $queued via closure below
+        }
+
+        register_shutdown_function(function () use ($db, &$queued) {
+            // Flush the response to the client before doing slow work.
+            if (function_exists('fastcgi_finish_request')) {
+                fastcgi_finish_request();
+            }
+            $lockDir = dirname(__DIR__, 2) . '/storage/tmp';
+            if (!is_dir($lockDir)) {
+                @mkdir($lockDir, 0775, true);
+            }
+            $svc = new self($db);
+            foreach ($queued as $target) {
+                $lockName = $target === 'home'
+                    ? 'home_cache_warm.lock' // shared with PageController lazy regeneration
+                    : 'warm_' . preg_replace('/[^a-z0-9_-]/i', '_', $target) . '.lock';
+                $fh = @fopen($lockDir . '/' . $lockName, 'c');
+                if ($fh === false || !@flock($fh, LOCK_EX | LOCK_NB)) {
+                    if ($fh !== false) {
+                        @fclose($fh);
+                    }
+                    continue; // another process is already warming this target
+                }
+                try {
+                    if ($target === 'home') {
+                        $svc->warmHome();
+                    } elseif ($target === 'galleries') {
+                        $svc->warmGalleries();
+                    } elseif (str_starts_with($target, 'album:')) {
+                        $svc->warmAlbum(substr($target, 6));
+                    }
+                } catch (\Throwable $e) {
+                    Logger::warning('Post-save cache warm failed', ['target' => $target, 'error' => $e->getMessage()]);
+                } finally {
+                    @flock($fh, LOCK_UN);
+                    @fclose($fh);
+                }
+            }
+        });
+    }
 }

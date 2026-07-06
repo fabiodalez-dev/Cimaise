@@ -207,6 +207,11 @@ class PagesController extends BaseController
         // Invalidate Twig globals cache (home settings affect layout)
         TwigGlobalsCache::invalidate();
 
+        // Re-warm in background: invalidation is soft (stale-while-revalidate),
+        // so without this the next visitor — typically the admin checking the
+        // change — would still be served the OLD home once.
+        \App\Services\CacheWarmService::scheduleWarm($this->db, ['home']);
+
         $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.home_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/pages/home'))->withStatus(302);
     }
@@ -440,6 +445,10 @@ class PagesController extends BaseController
         $pageCache->invalidateByTag(CacheTags::GALLERIES);
         $pageCache->invalidateGalleries();
         TwigGlobalsCache::invalidate();
+
+        // Re-warm in background so the next visit gets the fresh listing
+        // (soft invalidation would otherwise serve the stale page once).
+        \App\Services\CacheWarmService::scheduleWarm($this->db, ['galleries', 'home']);
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.galleries_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/pages/galleries'))->withStatus(302);

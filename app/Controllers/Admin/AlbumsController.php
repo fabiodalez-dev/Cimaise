@@ -96,7 +96,11 @@ class AlbumsController extends BaseController
             // GalleriesController::getFilterOptions() (storage/cache/filter_options.cache)
             @unlink(dirname(__DIR__, 3) . '/storage/cache/filter_options.cache');
 
-            // Auto-warm: regenerate cache if setting is enabled
+            // Auto-warm: regenerate cache if setting is enabled (synchronous,
+            // the admin request waits for the rebuild). When disabled, still
+            // schedule a BACKGROUND warm after the response: invalidation is
+            // soft (stale-while-revalidate), so without it the next visitor —
+            // usually the admin checking their change — got the OLD page once.
             $autoWarm = (bool) $settings->get('cache.auto_warm', false);
             if ($autoWarm) {
                 $warmService = new CacheWarmService($this->db);
@@ -105,6 +109,12 @@ class AlbumsController extends BaseController
                 if ($warmAlbum && $albumSlug !== null) {
                     $warmService->warmAlbum($albumSlug);
                 }
+            } else {
+                $targets = ['home', 'galleries'];
+                if ($warmAlbum && $albumSlug !== null) {
+                    $targets[] = 'album:' . $albumSlug;
+                }
+                CacheWarmService::scheduleWarm($this->db, $targets);
             }
         } catch (\Throwable) {
             // Cache invalidation/warming failure should not break admin operations

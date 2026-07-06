@@ -11,6 +11,10 @@
   <div class="pb-48"> <!-- Increased padding bottom for sticky footer -->
     <form method="post" action="{{ base_path }}/admin/settings" id="settings-form" class="space-y-8">
     <input type="hidden" name="csrf" value="{{ csrf }}">
+    {# Default submit: HTML implicit submission (Enter in a text field) fires the
+       FIRST submit button in tree order. Without this, Enter triggered the
+       "Generate favicons" buttons (formaction) instead of saving the settings. #}
+    <button type="submit" class="hidden" aria-hidden="true" tabindex="-1"></button>
     
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <!-- Image Formats -->

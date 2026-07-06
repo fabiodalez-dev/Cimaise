@@ -28,6 +28,9 @@ class FilterSettingsController extends BaseController
             $cache = new \App\Services\PageCacheService(new \App\Services\SettingsService($this->db), $this->db);
             $cache->invalidateGalleries();
             $cache->invalidateHome();
+            // Re-warm in background: soft invalidation would otherwise serve
+            // the stale filter bar once to the next visitor.
+            \App\Services\CacheWarmService::scheduleWarm($this->db, ['galleries', 'home']);
         } catch (\Throwable) {
             // best-effort: never block the save on a cache error
         }
