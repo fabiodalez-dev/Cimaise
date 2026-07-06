@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The release workflow extracts the `## [VERSION]` section below into the GitHub
 release notes, so keep one section per released tag.
 
+## [1.4.17] - 2026-07-06
+### Fixed
+- **Admin changes now reach the frontend immediately.** Saving home, galleries,
+  filter, category or album settings soft-invalidates the page cache
+  (stale-while-revalidate), so the next visitor — typically the admin checking
+  their own change — was still served the OLD page once, and on low-traffic
+  sites the stale copy could linger. Affected pages are now re-warmed in the
+  background right after the save (single-flight, no admin slowdown): the very
+  first visit after saving gets the fresh page.
+- **Settings page: Enter now saves.** Pressing Enter in a text field on
+  `/admin/settings` triggered "Generate favicons" instead of saving — HTML
+  implicit submission fires the first `type=submit` button in the form, which
+  was the favicon one. A hidden default submit now makes Enter save the form.
+
 ## [1.4.16] - 2026-07-02
 ### Fixed
 - **Every first visit loaded each page twice.** The PWA runtime reloaded the
