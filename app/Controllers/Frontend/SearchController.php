@@ -43,6 +43,12 @@ final class SearchController extends BaseController
 
         $result = $this->search->search($query, $page, $perPage);
 
+        // Let plugins observe the search (e.g. analytics-pro). Only for real
+        // queries, not the empty landing page.
+        if ($query !== '') {
+            \App\Support\Hooks::doAction('search_performed', $query, (array)($result['albums'] ?? []));
+        }
+
         $isAdmin = $this->isAdmin();
         $nsfwConsent = $this->hasNsfwConsent();
 

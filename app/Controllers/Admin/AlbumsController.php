@@ -446,6 +446,12 @@ class AlbumsController extends BaseController
             // Invalidate page caches
             $this->invalidatePageCaches($slug, null, $albumId);
 
+            // Let plugins observe album creation (e.g. analytics-pro).
+            \App\Support\Hooks::doAction('album_created', (int)$albumId, [
+                'title' => (string)($d['title'] ?? ''),
+                'slug' => $slug,
+            ]);
+
             // If client expects JSON, return album id for AJAX flows (e.g., upload on create)
             $accept = $request->getHeaderLine('Accept');
             if (str_contains($accept, 'application/json')) {

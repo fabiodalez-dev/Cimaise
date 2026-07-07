@@ -479,6 +479,12 @@ class AnalyticsController extends BaseController
                         $data['page_type'] = '404';
                     }
                     $this->analytics->trackPageView($data);
+                    // Let plugins observe the same page view (e.g. analytics-pro).
+                    \App\Support\Hooks::doAction(
+                        'frontend_page_view',
+                        (string)($data['page_url'] ?? $data['page_path'] ?? '/'),
+                        $data
+                    );
                     break;
 
                 case 'event':

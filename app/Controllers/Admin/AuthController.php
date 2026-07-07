@@ -140,6 +140,11 @@ class AuthController extends BaseController
         $_SESSION['admin_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
         $_SESSION['admin_role'] = $user['role'];
 
+        // Let plugins observe a successful login (e.g. analytics-pro).
+        \App\Support\Hooks::doAction('user_login_success', (int)$user['id'], [
+            'role' => $user['role'] ?? null,
+        ]);
+
         // Handle "Remember Me" functionality
         if ($rememberMe) {
             $this->setRememberToken((int)$user['id']);
@@ -291,6 +296,9 @@ class AuthController extends BaseController
         // Clear remember token before destroying session
         if (!empty($_SESSION['admin_id'])) {
             $this->clearRememberToken((int)$_SESSION['admin_id']);
+            // Let plugins observe the logout (e.g. analytics-pro) before we
+            // tear the session down.
+            \App\Support\Hooks::doAction('user_logout', (int)$_SESSION['admin_id']);
         }
 
         $_SESSION = [];
