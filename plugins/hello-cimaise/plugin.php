@@ -5,25 +5,34 @@
  * Version: 1.0.0
  * Author: Cimaise Team
  * License: MIT
+ *
+ * This is the REFERENCE example plugin — it is meant to be copied. Every
+ * pattern here is deliberately the *safe* one: guard direct access, read the
+ * settings you declare (and actually use them), escape everything you emit to
+ * HTML, and never feed unsanitised input to a log. Follow these and your
+ * plugin inherits the app's security posture.
  */
 
 declare(strict_types=1);
 
 use App\Support\Hooks;
 
-// Prevent direct access
+// Prevent direct access: if this file is reached outside the app bootstrap
+// (CIMAISE_VERSION is only defined there), stop immediately. Do NOT define the
+// constant yourself and continue — that defeats the guard.
 if (!defined('CIMAISE_VERSION')) {
-    define('CIMAISE_VERSION', '1.0.0');
+    http_response_code(403);
+    exit('Direct access is not allowed.');
 }
 
 /**
  * Hello Cimaise Plugin
  *
  * Demonstrates basic plugin functionality:
- * - Adding admin menu item
- * - Adding settings tab
- * - Hooking into application lifecycle
- * - Logging events
+ * - Adding an admin menu item and a settings tab
+ * - Reading the plugin's own settings and acting on them
+ * - Hooking into the application lifecycle
+ * - Safely emitting HTML and writing logs
  */
 class HelloCimaisePlugin
 {
@@ -32,7 +41,6 @@ class HelloCimaisePlugin
 
     public function __construct()
     {
-        // Auto-initialization
         $this->init();
     }
 
@@ -55,38 +63,41 @@ class HelloCimaisePlugin
 
         // Add custom message to frontend footer
         Hooks::addFilter('footer_content', [$this, 'addFooterMessage'], 10, self::PLUGIN_NAME);
+    }
 
-        error_log("Hello Cimaise plugin initialized v" . self::VERSION);
+    /**
+     * Read one of this plugin's settings. Plugins don't get the container
+     * injected into filter callbacks, so reach it via the global set during
+     * bootstrap — the canonical way for a plugin to read a setting.
+     */
+    private function setting(string $key, mixed $default = null): mixed
+    {
+        $container = $GLOBALS['container'] ?? null;
+        if (!$container || empty($container['db'])) {
+            return $default;
+        }
+        try {
+            return (new \App\Services\SettingsService($container['db']))->get($key, $default);
+        } catch (\Throwable) {
+            return $default;
+        }
     }
 
     /**
      * Hook: cimaise_init
-     * Called when application boots
+     * Called when the application boots. Kept quiet by default — logging on the
+     * hot per-request boot path is noise; gate it behind the declared setting.
      */
     public function onAppInit($db, $pluginManager): void
     {
-        // Demo plugin: keep logs out of the hot per-request boot path.
-        // Set HELLO_CIMAISE_VERBOSE=1 in env to re-enable the diagnostic logs.
-        $verbose = (string)($_ENV['HELLO_CIMAISE_VERBOSE'] ?? getenv('HELLO_CIMAISE_VERBOSE') ?: '0') === '1';
-        if (!$verbose) {
+        if ($this->setting('hello_log_level', 'none') !== 'debug') {
             return;
         }
-
-        error_log("Hello Cimaise: Application initialized!");
-
-        if ($db) {
-            error_log("Hello Cimaise: Database connected successfully");
-        }
-
-        if (is_object($pluginManager) && method_exists($pluginManager, 'getStats')) {
-            $stats = $pluginManager->getStats();
-            error_log("Hello Cimaise: Total hooks registered: " . $stats['total_hooks']);
-        }
+        error_log('Hello Cimaise: application initialized, db=' . ($db ? 'yes' : 'no'));
     }
 
     /**
      * Hook: admin_menu_items (filter)
-     * Add custom admin menu item
      */
     public function addMenuItems(array $menuItems): array
     {
@@ -94,7 +105,7 @@ class HelloCimaisePlugin
             'title' => 'Hello Plugin',
             'url' => '/admin/hello-plugin',
             'icon' => '👋',
-            'position' => 999, // Bottom of menu
+            'position' => 999,
         ];
 
         return $menuItems;
@@ -102,7 +113,6 @@ class HelloCimaisePlugin
 
     /**
      * Hook: settings_tabs (filter)
-     * Add custom settings tab
      */
     public function addSettingsTab(array $tabs): array
     {
@@ -114,13 +124,13 @@ class HelloCimaisePlugin
                 'hello_enabled' => [
                     'type' => 'checkbox',
                     'label' => 'Enable Hello Plugin',
-                    'description' => 'Turn on/off the Hello plugin features',
+                    'description' => 'Show the footer message',
                     'default' => true
                 ],
                 'hello_message' => [
                     'type' => 'text',
                     'label' => 'Welcome Message',
-                    'description' => 'Custom message shown in footer',
+                    'description' => 'Custom message shown in the footer',
                     'default' => 'Powered by Hello Cimaise Plugin!',
                     'placeholder' => 'Enter your message...'
                 ],
@@ -130,11 +140,9 @@ class HelloCimaisePlugin
                     'description' => 'How verbose should logging be?',
                     'options' => [
                         'none' => 'None (disable logging)',
-                        'error' => 'Errors only',
-                        'info' => 'Info + Errors',
                         'debug' => 'Everything (debug)'
                     ],
-                    'default' => 'info'
+                    'default' => 'none'
                 ]
             ]
         ];
@@ -144,33 +152,38 @@ class HelloCimaisePlugin
 
     /**
      * Hook: album_after_create (action)
-     * Log when a new album is created
+     * Log when a new album is created. The title is user-controlled, so strip
+     * CR/LF before logging — otherwise a crafted title could forge extra log
+     * lines (log injection).
      */
     public function logAlbumCreation(int $albumId, array $albumData): void
     {
-        $title = $albumData['title'] ?? 'Unknown';
-        $message = "Hello Cimaise: New album created! ID: {$albumId}, Title: {$title}";
-
-        error_log($message);
-
-        // Could also:
-        // - Send notification email
-        // - Post to Slack/Discord
-        // - Update statistics
-        // - Trigger other automation
+        if ($this->setting('hello_log_level', 'none') === 'none') {
+            return;
+        }
+        $title = str_replace(["\r", "\n"], ' ', (string)($albumData['title'] ?? 'Unknown'));
+        error_log("Hello Cimaise: new album created — ID {$albumId}, title: {$title}");
     }
 
     /**
      * Hook: footer_content (filter)
-     * Add custom message to frontend footer
+     * Append a message to the frontend footer. The `footer_content` filter
+     * output is rendered as raw HTML (is_safe:html), so ANYTHING interpolated
+     * here MUST be escaped — the message is admin-editable free text and would
+     * otherwise be a stored-XSS sink.
      */
     public function addFooterMessage(string $html): string
     {
-        $message = "Powered by Hello Cimaise Plugin v" . self::VERSION;
+        if (!$this->setting('hello_enabled', true)) {
+            return $html;
+        }
+
+        $message = (string)$this->setting('hello_message', 'Powered by Hello Cimaise Plugin!');
+        $safeMessage = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
 
         $customHtml = <<<HTML
         <div class="hello-plugin-footer" style="text-align: center; padding: 10px; color: #666; font-size: 0.9em;">
-            <p>👋 {$message}</p>
+            <p>👋 {$safeMessage}</p>
         </div>
         HTML;
 

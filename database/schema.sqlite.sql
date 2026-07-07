@@ -727,38 +727,6 @@ CREATE INDEX IF NOT EXISTS idx_frontend_texts_context ON frontend_texts(context)
 -- PLUGIN TABLES
 -- ============================================
 
-CREATE TABLE IF NOT EXISTS plugin_analytics_custom_events (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  session_id TEXT,
-  event_type TEXT NOT NULL,
-  event_category TEXT,
-  event_action TEXT,
-  event_label TEXT,
-  event_value INTEGER,
-  user_id INTEGER,
-  metadata TEXT,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (session_id) REFERENCES analytics_sessions(session_id) ON DELETE SET NULL,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_plugin_analytics_session ON plugin_analytics_custom_events(session_id);
-CREATE INDEX IF NOT EXISTS idx_plugin_analytics_type ON plugin_analytics_custom_events(event_type);
-CREATE INDEX IF NOT EXISTS idx_plugin_analytics_user ON plugin_analytics_custom_events(user_id);
-
-CREATE TABLE IF NOT EXISTS plugin_image_ratings (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  image_id INTEGER NOT NULL,
-  rating INTEGER NOT NULL CHECK(rating >= 0 AND rating <= 5),
-  rated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  rated_by INTEGER NULL,
-  UNIQUE(image_id, rated_by),
-  FOREIGN KEY (image_id) REFERENCES images(id) ON DELETE CASCADE,
-  FOREIGN KEY (rated_by) REFERENCES users(id) ON DELETE SET NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_plugin_image_ratings_image_id ON plugin_image_ratings(image_id);
-CREATE INDEX IF NOT EXISTS idx_plugin_image_ratings_rated_by ON plugin_image_ratings(rated_by);
 
 -- ============================================
 -- ANALYTICS PRO TABLES (Plugin)
@@ -1098,8 +1066,6 @@ INSERT INTO settings (key, value, type) VALUES
 
 -- Plugin schema markers (pre-seeded so plugin boot skips CREATE TABLE IF NOT EXISTS
 -- on every request — the schema is already part of this fresh install).
-('plugin_image_ratings_schema', '2', 'string'),
-('plugin_analytics_logger_schema', '1', 'string'),
 ('plugin_analytics_pro_schema', '1', 'string');
 
 -- Default filter settings
@@ -1134,12 +1100,10 @@ INSERT INTO analytics_settings (setting_key, setting_value, description) VALUES
 
 -- Default plugin status (pre-installed plugins)
 INSERT OR IGNORE INTO plugin_status (slug, name, version, description, author, path, is_active, is_installed) VALUES
-('analytics-logger', 'Analytics Logger', '1.0.0', 'Advanced analytics logging with custom events and detailed tracking', 'Cimaise Team', 'plugins/analytics-logger', 1, 1),
 ('cimaise-analytics-pro', 'Cimaise Analytics Pro', '1.0.0', 'Sistema di analytics professionale con tracking avanzato, dashboard interattiva, report personalizzabili, funnel analysis, heatmap, export dati e real-time monitoring per Cimaise', 'Cimaise Team', 'plugins/cimaise-analytics-pro', 1, 1),
 ('custom-templates-pro', 'Custom Templates Pro', '1.0.0', 'Carica template personalizzati per gallerie, album e homepage con guide e prompt personalizzabili', 'Cimaise Team', 'plugins/custom-templates-pro', 1, 1),
 ('demo-mode', 'Demo Mode', '1.0.0', 'Activates demo mode features for showcasing Cimaise CMS', 'Cimaise Team', 'plugins/demo-mode', 0, 1),
 ('hello-cimaise', 'Hello Cimaise', '1.0.0', 'Simple example plugin demonstrating the hooks system', 'Cimaise Team', 'plugins/hello-cimaise', 1, 1),
-('image-rating', 'Image Rating', '1.0.0', 'Add star rating system to images (1-5 stars) with sorting and filtering', 'Cimaise Team', 'plugins/image-rating', 1, 1),
 ('maintenance-mode', 'Maintenance Mode', '1.0.0', 'Put your site under construction with a beautiful maintenance page. Only admins can access the site.', 'Cimaise Team', 'plugins/maintenance-mode', 1, 1);
 
 -- Default custom templates (plugin)

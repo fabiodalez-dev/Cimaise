@@ -709,43 +709,6 @@ ALTER TABLE `custom_templates`
 -- PLUGIN TABLES
 -- ============================================
 
-CREATE TABLE IF NOT EXISTS `plugin_analytics_custom_events` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `session_id` VARCHAR(64) NULL,
-  `event_type` VARCHAR(50) NOT NULL,
-  `event_category` VARCHAR(100) NULL,
-  `event_action` VARCHAR(100) NULL,
-  `event_label` VARCHAR(255) NULL,
-  `event_value` INT NULL,
-  `user_id` INT UNSIGNED NULL,
-  `metadata` TEXT NULL,
-  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `idx_plugin_analytics_session` (`session_id`),
-  KEY `idx_plugin_analytics_type` (`event_type`),
-  KEY `idx_plugin_analytics_user` (`user_id`),
-  CONSTRAINT `fk_plugin_analytics_custom_events_session`
-    FOREIGN KEY (`session_id`) REFERENCES `analytics_sessions`(`session_id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_plugin_analytics_custom_events_user`
-    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `plugin_image_ratings` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `image_id` INT UNSIGNED NOT NULL,
-  `rating` TINYINT UNSIGNED NOT NULL,
-  `rated_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-  `rated_by` INT UNSIGNED NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uniq_plugin_image_ratings_image_rated_by` (`image_id`, `rated_by`),
-  KEY `idx_plugin_image_ratings_image_id` (`image_id`),
-  KEY `idx_plugin_image_ratings_rated_by` (`rated_by`),
-  CONSTRAINT `fk_plugin_image_ratings_image`
-    FOREIGN KEY (`image_id`) REFERENCES `images`(`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_plugin_image_ratings_user`
-    FOREIGN KEY (`rated_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 -- ============================================
 -- ANALYTICS PRO TABLES (Plugin)
 -- ============================================
@@ -1097,8 +1060,6 @@ INSERT INTO `settings` (`key`, `value`, `type`) VALUES
 
 -- Plugin schema markers (pre-seeded so plugin boot skips CREATE TABLE IF NOT EXISTS
 -- on every request — the schema is already part of this fresh install).
-('plugin_image_ratings_schema', '2', 'string'),
-('plugin_analytics_logger_schema', '1', 'string'),
 ('plugin_analytics_pro_schema', '1', 'string');
 
 -- Default filter settings
@@ -1134,12 +1095,10 @@ INSERT INTO `analytics_settings` (`setting_key`, `setting_value`, `description`)
 -- Default plugin status (pre-installed plugins)
 INSERT IGNORE INTO `plugin_status` (`slug`, `name`, `version`, `description`, `author`, `path`, `is_active`, `is_installed`)
 VALUES
-('analytics-logger', 'Analytics Logger', '1.0.0', 'Advanced analytics logging with custom events and detailed tracking', 'Cimaise Team', 'plugins/analytics-logger', 1, 1),
 ('cimaise-analytics-pro', 'Cimaise Analytics Pro', '1.0.0', 'Sistema di analytics professionale con tracking avanzato, dashboard interattiva, report personalizzabili, funnel analysis, heatmap, export dati e real-time monitoring per Cimaise', 'Cimaise Team', 'plugins/cimaise-analytics-pro', 1, 1),
 ('custom-templates-pro', 'Custom Templates Pro', '1.0.0', 'Carica template personalizzati per gallerie, album e homepage con guide e prompt personalizzabili', 'Cimaise Team', 'plugins/custom-templates-pro', 1, 1),
 ('demo-mode', 'Demo Mode', '1.0.0', 'Activates demo mode features for showcasing Cimaise CMS', 'Cimaise Team', 'plugins/demo-mode', 0, 1),
 ('hello-cimaise', 'Hello Cimaise', '1.0.0', 'Simple example plugin demonstrating the hooks system', 'Cimaise Team', 'plugins/hello-cimaise', 1, 1),
-('image-rating', 'Image Rating', '1.0.0', 'Add star rating system to images (1-5 stars) with sorting and filtering', 'Cimaise Team', 'plugins/image-rating', 1, 1),
 ('maintenance-mode', 'Maintenance Mode', '1.0.0', 'Put your site under construction with a beautiful maintenance page. Only admins can access the site.', 'Cimaise Team', 'plugins/maintenance-mode', 1, 1);
 
 -- Default custom templates (plugin)

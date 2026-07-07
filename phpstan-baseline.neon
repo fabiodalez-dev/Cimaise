@@ -2664,35 +2664,10 @@ parameters:
 			count: 1
 			path: app/helpers.php
 
-		-
-			message: '#^Method ImageRating\:\:bulkSetRating\(\) has parameter \$imageIds with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: plugins/image-rating/src/ImageRating.php
 
-		-
-			message: '#^Method ImageRating\:\:getImagesByRating\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: plugins/image-rating/src/ImageRating.php
 
-		-
-			message: '#^Method ImageRating\:\:getStatistics\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: plugins/image-rating/src/ImageRating.php
 
-		-
-			message: '#^Method ImageRating\:\:getTopRated\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: plugins/image-rating/src/ImageRating.php
 
-		-
-			message: '#^Method ImageRating\:\:getUnratedImages\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: plugins/image-rating/src/ImageRating.php
 
 		-
 			message: '#^Function checkRequirements\(\) has no return type specified\.$#'

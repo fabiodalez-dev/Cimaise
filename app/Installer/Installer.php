@@ -167,7 +167,6 @@ class Installer
                     'templates', 'categories', 'tags', 'cameras', 'lenses',
                     'films', 'developers', 'labs', 'locations', 'filter_settings',
                     'frontend_texts', 'custom_templates', 'plugin_status',
-                    'plugin_analytics_custom_events', 'plugin_image_ratings',
                     'analytics_pro_events', 'analytics_pro_sessions',
                     'analytics_pro_funnels', 'analytics_pro_dimensions'
                 ];
