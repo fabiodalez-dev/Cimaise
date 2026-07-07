@@ -7,7 +7,6 @@ parameters:
     level: 6
     paths:
         - app
-        - plugins/image-rating/src
         - public/installer.php
     excludePaths:
         - app/Views

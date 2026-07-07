@@ -129,26 +129,8 @@ test.describe('CodeRabbit + adamsreview fix verification', () => {
         expect(installerClassSrc).toMatch(/isInstalled[\s\S]{0,500}envUnescape/);
     });
 
-    test('CR-FIX-07: image-rating schema migration is wrapped in transaction (CR-8)', async () => {
-        const fs = await import('fs');
-        const path = await import('path');
-        const src = fs.readFileSync(
-            path.resolve(process.cwd(), 'plugins/image-rating/src/ImageRating.php'),
-            'utf-8',
-        );
-        // migrateSchemaSqlite must call beginTransaction BEFORE any UPDATE/DELETE
-        const sqliteMig = src.match(/function\s+migrateSchemaSqlite[\s\S]+?(?=function\s)/);
-        expect(sqliteMig).not.toBeNull();
-        if (sqliteMig) {
-            const beginIdx = sqliteMig[0].indexOf('beginTransaction');
-            const updateIdx = sqliteMig[0].indexOf('UPDATE plugin_image_ratings');
-            const deleteIdx = sqliteMig[0].indexOf('DELETE');
-            expect(beginIdx).toBeGreaterThan(0);
-            // UPDATE and DELETE must come AFTER beginTransaction
-            if (updateIdx >= 0) expect(updateIdx).toBeGreaterThan(beginIdx);
-            if (deleteIdx >= 0) expect(deleteIdx).toBeGreaterThan(beginIdx);
-        }
-    });
+    // CR-FIX-07 removed: the image-rating plugin it inspected was deleted
+    // (inert plugin — registered hooks the core never emitted).
 
     test('CR-FIX-08: backfillBlurForProtectedAlbums honours $force (CR-11)', async () => {
         const fs = await import('fs');
