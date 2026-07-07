@@ -57,6 +57,11 @@ class CimaiseAnalyticsProPlugin
         // Admin UI hooks
         Hooks::addFilter('admin_menu_items', [$this, 'addAdminMenuItem'], 20, 'cimaise-analytics-pro');
         Hooks::addFilter('admin_dashboard_widgets', [$this, 'addDashboardWidgets'], 10, 'cimaise-analytics-pro');
+
+        // Sidebar entry: the core admin menu is built by the
+        // `admin_sidebar_navigation` action (each plugin prints its own link),
+        // not the admin_menu_items filter above — so register here too.
+        Hooks::addAction('admin_sidebar_navigation', [$this, 'renderSidebarLink'], 20, 'cimaise-analytics-pro');
     }
 
     /**
@@ -492,6 +497,67 @@ class CimaiseAnalyticsProPlugin
         }
 
         return 'referral';
+    }
+
+    /**
+     * Hook: admin_sidebar_navigation
+     * Print the sidebar entry that links to the dashboard.
+     */
+    public function renderSidebarLink(array $context): void
+    {
+        $basePath = htmlspecialchars((string)($context['base_path'] ?? ''), ENT_QUOTES, 'UTF-8');
+        echo <<<HTML
+            <a href="{$basePath}/admin/analytics-pro" class="sidebar-link" data-spa-link>
+                <i class="fas fa-chart-line"></i><span class="nav-text"><span class="nav-title">Analytics Pro</span><span class="nav-sub">Statistiche avanzate</span></span>
+            </a>
+HTML;
+    }
+
+    /**
+     * Build the dashboard HTML (real KPIs from the collected events). All values
+     * are integers/floats or htmlspecialchars-escaped before output.
+     */
+    public function renderDashboardPage(Database $db): string
+    {
+        $analytics = $this->analytics ?? new \CimaiseAnalyticsPro\AnalyticsPro($db);
+        $stats = $analytics->getRealtimeStats();
+        $recent = $analytics->getTopEventsByCategory('engagement', 8);
+
+        $kpi = static function (string $label, string $value): string {
+            $label = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
+            $value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+            return "<div class=\"bg-white rounded-lg border border-gray-200 p-5\">"
+                 . "<div class=\"text-3xl font-semibold text-gray-900\">{$value}</div>"
+                 . "<div class=\"text-sm text-gray-500 mt-1\">{$label}</div></div>";
+        };
+
+        $cards = $kpi('Utenti attivi (5 min)', (string)(int)($stats['active_users'] ?? 0))
+               . $kpi('Eventi oggi', (string)(int)($stats['events_today'] ?? 0))
+               . $kpi('Pageview oggi', (string)(int)($stats['pageviews_today'] ?? 0))
+               . $kpi('Durata media sessione (s)', (string)(float)($stats['avg_session_duration'] ?? 0));
+
+        $rows = '';
+        foreach ($recent as $ev) {
+            $name = htmlspecialchars((string)($ev['event_name'] ?? $ev['label'] ?? ''), ENT_QUOTES, 'UTF-8');
+            $count = (int)($ev['total'] ?? $ev['count'] ?? 0);
+            $rows .= "<tr class=\"border-t border-gray-100\"><td class=\"py-2 px-3\">{$name}</td>"
+                   . "<td class=\"py-2 px-3 text-right\">{$count}</td></tr>";
+        }
+        if ($rows === '') {
+            $rows = '<tr><td class="py-3 px-3 text-gray-400" colspan="2">Nessun evento ancora registrato.</td></tr>';
+        }
+
+        return <<<HTML
+        <div class="mb-6">
+            <h1 class="text-2xl font-semibold text-gray-900">Analytics Pro</h1>
+            <p class="text-gray-500">Statistiche in tempo reale dagli eventi raccolti.</p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">{$cards}</div>
+        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-100 font-medium text-gray-700">Eventi engagement principali</div>
+            <table class="w-full text-sm"><tbody>{$rows}</tbody></table>
+        </div>
+HTML;
     }
 }
 

@@ -1256,6 +1256,24 @@ return function (App $app, array $container) {
     });
 
     // Custom Templates Pro Plugin Routes (registered via closure to defer Twig loading)
+    // Cimaise Analytics Pro — dashboard page (the plugin renders its own HTML,
+    // wrapped in the shared admin chrome via admin/plugin-page.twig).
+    if (class_exists('CimaiseAnalyticsProPlugin') && file_exists(__DIR__ . '/../../plugins/cimaise-analytics-pro/plugin.php')) {
+        $app->get('/admin/analytics-pro', function (Request $request, Response $response) use ($container) {
+            $plugin = new \CimaiseAnalyticsProPlugin();
+            $plugin->initialize($container['db']);
+            $html = $plugin->renderDashboardPage($container['db']);
+            return Twig::fromRequest($request)->render($response, 'admin/plugin-page.twig', [
+                'plugin_page_title' => 'Analytics Pro',
+                'plugin_content' => $html,
+            ]);
+        })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+            $resp = new \Slim\Psr7\Response(503);
+            $resp->getBody()->write('Service Unavailable');
+            return $resp;
+        });
+    }
+
     if (class_exists('CustomTemplatesProPlugin') && file_exists(__DIR__ . '/../../plugins/custom-templates-pro/plugin.php')) {
         $app->get('/admin/custom-templates', function (Request $request, Response $response) use ($container) {
             $controller = new \CustomTemplatesPro\Controllers\CustomTemplatesController($container['db'], Twig::fromRequest($request));

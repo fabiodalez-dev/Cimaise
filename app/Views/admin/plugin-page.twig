@@ -1,0 +1,10 @@
+{# Generic admin shell for a plugin-rendered page. A plugin builds its own HTML
+   (already escaped) and passes it as `plugin_content`; this wraps it in the
+   standard admin chrome so plugins don't have to ship a full layout. #}
+{% extends "admin/_layout.twig" %}
+
+{% block title %}{{ plugin_page_title|default('Plugin') }} — Cimaise{% endblock %}
+
+{% block content %}
+{{ plugin_content|raw }}
+{% endblock %}
