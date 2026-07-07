@@ -47,14 +47,25 @@ class DemoModePlugin
         'gallery' => 'Gallery',
     ];
 
-    // Blocked admin endpoints for demo user (security protection)
+    // Blocked admin endpoints for demo user (security protection). Blocked for
+    // ANY HTTP method — these are never safe for a public demo account, not
+    // even to view (e.g. the plugin upload form is one step from RCE).
     private const BLOCKED_ENDPOINTS = [
         '/admin/commands' => 'System commands are disabled in demo mode.',
         '/admin/updates' => 'System updates are disabled in demo mode.',
-        '/admin/users/create' => 'Creating users is disabled in demo mode.',
-        '/admin/users/store' => 'Creating users is disabled in demo mode.',
-        '/admin/users/delete' => 'Deleting users is disabled in demo mode.',
+        '/admin/plugins' => 'Plugin management is disabled in demo mode.',
+        '/admin/users' => 'User management is disabled in demo mode.',
     ];
+
+    // Write methods: for the demo user, ANY of these under /admin/ is blocked
+    // (the demo is strictly read-only). This is the real guard — the previous
+    // path blocklist missed /admin/plugins/upload (RCE), album/media deletes and
+    // POST /admin/settings, letting the public demo admin wipe or hijack the
+    // site. Enumerating every write route is fragile; blocking the verb is not.
+    private const WRITE_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
+
+    // Write routes the demo user IS allowed to hit (session lifecycle only).
+    private const WRITE_ALLOWLIST = ['/admin/login', '/admin/logout'];
 
     public function __construct()
     {
@@ -127,7 +138,7 @@ class DemoModePlugin
         // Get normalized request path (URL-decoded, lowercase, base path removed)
         $path = $this->normalizeRequestPath();
 
-        // Check if path matches any blocked endpoint
+        // Check if path matches any always-blocked endpoint
         // Must be exact match or blocked path followed by '/' to avoid blocking legitimate routes
         foreach (self::BLOCKED_ENDPOINTS as $blockedPath => $message) {
             $blockedPathLower = strtolower($blockedPath);
@@ -138,6 +149,17 @@ class DemoModePlugin
                 $this->renderBlockedPage($message);
                 exit;
             }
+        }
+
+        // Read-only enforcement: block EVERY write under /admin/ (except the
+        // session-lifecycle routes). This closes plugin upload (RCE), content
+        // deletes and settings changes without having to enumerate each route.
+        $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+        if (in_array($method, self::WRITE_METHODS, true)
+            && str_starts_with($path, '/admin/')
+            && !in_array($path, self::WRITE_ALLOWLIST, true)) {
+            $this->renderBlockedPage('Changes are disabled in demo mode (read-only).');
+            exit;
         }
     }
 

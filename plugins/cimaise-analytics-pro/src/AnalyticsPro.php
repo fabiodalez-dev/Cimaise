@@ -61,7 +61,7 @@ class AnalyticsPro
         try {
             $sql = $this->db->isSqlite()
                 ? "INSERT OR REPLACE INTO settings (`key`, value) VALUES (?, ?)"
-                : "INSERT INTO settings (`key`, value) VALUES (?, ?) AS new ON DUPLICATE KEY UPDATE value = new.value";
+                : "INSERT INTO settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)";
             $stmt = $this->db->pdo()->prepare($sql);
             $stmt->bindValue(1, self::SCHEMA_SETTING_KEY);
             $stmt->bindValue(2, self::SCHEMA_VERSION);
@@ -619,6 +619,18 @@ class AnalyticsPro
     }
 
     /**
+     * Prefix a value that a spreadsheet would treat as a formula with a single
+     * quote, so it is rendered as literal text (CSV/formula injection guard).
+     */
+    private static function csvSafe(mixed $value): mixed
+    {
+        if (!is_string($value) || $value === '') {
+            return $value;
+        }
+        return preg_match('/^[=+\-@\t\r]/', $value) === 1 ? "'" . $value : $value;
+    }
+
+    /**
      * Export events to CSV
      */
     public function exportToCSV(array $filters = []): string
@@ -661,7 +673,12 @@ class AnalyticsPro
                     fputcsv($csv, array_keys($row));
                     $headerWritten = true;
                 }
-                fputcsv($csv, $row);
+                // Neutralise CSV/formula injection: fields like label, referrer
+                // and user_agent are attacker-controlled (HTTP headers, search
+                // queries). A value starting with = + - @ (or tab/CR) is run as
+                // a formula by Excel/Sheets when the admin opens the export, so
+                // prefix those with a single quote to force text.
+                fputcsv($csv, array_map([self::class, 'csvSafe'], $row));
             }
 
             rewind($csv);

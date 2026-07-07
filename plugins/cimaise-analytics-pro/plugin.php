@@ -81,15 +81,18 @@ class CimaiseAnalyticsProPlugin
             return;
         }
 
+        // Do NOT store PII in the clear. The email as `label` and the raw IP in
+        // `metadata` bypassed the plugin's own IP anonymisation and left
+        // correlatable personal data (email + IP) in the analytics DB. Identify
+        // the login by opaque user id only; the IP is hashed via the same path
+        // as every other event (ip_hash column), never stored raw here.
         $this->analytics->trackEvent('user_login', [
             'category' => 'authentication',
             'action' => 'login',
-            'label' => $userData['email'] ?? 'unknown',
+            'label' => $userId !== null ? 'user_' . $userId : 'unknown',
             'user_id' => $userId,
             'metadata' => [
                 'role' => $userData['role'] ?? null,
-                'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
-                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
             ]
         ]);
     }

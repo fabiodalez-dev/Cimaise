@@ -155,6 +155,16 @@ class TemplateUploadService
                 continue;
             }
 
+            // Validate the slug FORMAT before it ever reaches a filesystem path.
+            // validateZip() only checks the first folder's metadata, so folders
+            // 2..N would otherwise carry an arbitrary slug straight into
+            // getExtractPath() (…/uploads/{type}/{slug}) — a slug like
+            // "../../../../tmp/pwn" escapes the uploads dir (path traversal).
+            if (!is_string($metadata['slug']) || !preg_match('/^[a-z0-9-]+$/', $metadata['slug'])) {
+                $results['errors'][] = $this->t('ctp.upload.error_metadata_invalid', ['folder' => $folder]);
+                continue;
+            }
+
             // Verifica slug univoco
             if ($this->slugExists($metadata['slug'])) {
                 $results['errors'][] = $this->t('ctp.upload.error_slug_exists_skip', ['slug' => $metadata['slug']]);
@@ -545,6 +555,29 @@ class TemplateUploadService
             return false;
         }
 
+        // Validate EVERY .twig in the package, not just the entry template: any
+        // .twig in the uploaded dir joins the shared Twig loader and can be
+        // pulled in via {% include %}, so a malicious secondary template would
+        // otherwise slip past the entry-only check (RCE).
+        $twigIter = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($extractPath, \FilesystemIterator::SKIP_DOTS)
+        );
+        foreach ($twigIter as $fileInfo) {
+            if (!$fileInfo->isFile() || strtolower($fileInfo->getExtension()) !== 'twig') {
+                continue;
+            }
+            if ($fileInfo->getPathname() === $templatePath) {
+                continue; // already validated above
+            }
+            $content = file_get_contents($fileInfo->getPathname());
+            if ($content === false || !$this->validator->validateTwigSyntax($content)) {
+                $this->validator->addError($this->t('ctp.upload.error_main_template_missing', [
+                    'file' => $fileInfo->getFilename(),
+                ]));
+                return false;
+            }
+        }
+
         // Valida CSS se presente
         if (isset($metadata['assets']['css'])) {
             foreach ($metadata['assets']['css'] as $cssFile) {
@@ -757,7 +790,11 @@ class TemplateUploadService
         $realExtractPath = realpath($extractPath);
         $uploadsDir = realpath($this->pluginDir . '/uploads');
 
-        if (!$realExtractPath || !$uploadsDir || !str_starts_with($realExtractPath, $uploadsDir)) {
+        // Append the separator so a sibling like "…/uploads-evil" can't pass the
+        // prefix check (str_starts_with("…/uploads-evil", "…/uploads") is true).
+        if (!$realExtractPath || !$uploadsDir
+            || ($realExtractPath !== $uploadsDir
+                && !str_starts_with($realExtractPath, $uploadsDir . DIRECTORY_SEPARATOR))) {
             return false;
         }
 

@@ -155,7 +155,7 @@ class AnalyticsLoggerPlugin
             $driver = $this->db->getAttribute(\PDO::ATTR_DRIVER_NAME);
             $sql = $driver === 'sqlite'
                 ? "INSERT OR REPLACE INTO settings (`key`, value) VALUES (?, ?)"
-                : "INSERT INTO settings (`key`, value) VALUES (?, ?) AS new ON DUPLICATE KEY UPDATE value = new.value";
+                : "INSERT INTO settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)";
             $stmt = $this->db->prepare($sql);
             $stmt->bindValue(1, self::SCHEMA_SETTING_KEY);
             $stmt->bindValue(2, self::SCHEMA_VERSION);

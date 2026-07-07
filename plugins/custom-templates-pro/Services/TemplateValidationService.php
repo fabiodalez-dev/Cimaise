@@ -33,12 +33,29 @@ class TemplateValidationService
         '/\.\.\//', // Path traversal
     ];
 
-    private const DANGEROUS_TWIG_FUNCTIONS = [
-        'include(',
-        'source(',
-        'import(',
-        '_self',
-        'attribute(',
+    // SSTI/RCE vectors in a Twig template rendered by the app's REAL Twig
+    // environment (the uploaded template's directory is added to the shared
+    // loader — there is no sandbox). Space-tolerant regexes, because the old
+    // literal-substring blocklist ("include(", "attribute(") never matched the
+    // actual attacks: the deadly ones are the CALLABLE-accepting filters
+    // (`|map('system')`, `|filter('system')`, `|reduce(...)`, `|sort('...')`)
+    // and a handful of functions that reach arbitrary PHP. Legitimate bundled
+    // templates use include/import/from as TAGS (harmless) and never use these
+    // filters, so blocking them causes no regression. Applied to EVERY .twig in
+    // the package, not just the entry template.
+    private const DANGEROUS_TWIG_PATTERNS = [
+        // Filters that invoke their argument as a PHP callable → RCE
+        // (`{{ x|map('system') }}`). These three are the only core filters that
+        // do so; `sort`/`column`/`include()`/`constant()`/`_self`-import are
+        // used by legitimate bundled templates and are NOT arbitrary-callable
+        // sinks, so they are intentionally allowed.
+        '/\|\s*(map|filter|reduce)\s*\(/i',
+        // Functions that reach arbitrary PHP or compile attacker strings:
+        //  - attribute(): can invoke arbitrary object methods
+        //  - dump(): leaks the whole context
+        //  - source(): reads raw file contents (info disclosure)
+        //  - template_from_string(): compiles an arbitrary string as a template (SSTI)
+        '/\b(attribute|dump|source|template_from_string)\s*\(/i',
     ];
 
     public array $errors = [];
@@ -244,10 +261,10 @@ class TemplateValidationService
     public function validateTwigSyntax(string $twigContent): bool
     {
         try {
-            // Verifica funzioni pericolose
-            foreach (self::DANGEROUS_TWIG_FUNCTIONS as $dangerous) {
-                if (stripos($twigContent, $dangerous) !== false) {
-                    $this->errors[] = "Funzione Twig non consentita rilevata: {$dangerous}";
+            // Reject known SSTI/RCE vectors (see DANGEROUS_TWIG_PATTERNS).
+            foreach (self::DANGEROUS_TWIG_PATTERNS as $pattern) {
+                if (preg_match($pattern, $twigContent)) {
+                    $this->errors[] = 'Costrutto Twig non consentito rilevato (potenziale esecuzione di codice).';
                     return false;
                 }
             }

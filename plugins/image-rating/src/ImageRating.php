@@ -394,8 +394,8 @@ class ImageRating
             if ($this->isSqlite) {
                 $stmt = $this->db->prepare("INSERT OR REPLACE INTO settings (`key`, value) VALUES (?, ?)");
             } else {
-                $stmt = $this->db->prepare("INSERT INTO settings (`key`, value) VALUES (?, ?) AS src
-                    ON DUPLICATE KEY UPDATE value = src.value");
+                $stmt = $this->db->prepare("INSERT INTO settings (`key`, value) VALUES (?, ?)
+                    ON DUPLICATE KEY UPDATE value = VALUES(value)");
             }
             $stmt->execute(['plugin_image_ratings_schema', $version]);
         } catch (PDOException $e) {
@@ -459,8 +459,8 @@ class ImageRating
                 $stmt->execute([$imageId, $rating, $userId]);
             } else {
                 $sql = "INSERT INTO plugin_image_ratings (image_id, rating, rated_by, rated_at)
-                    VALUES (?, ?, ?, NOW()) AS src
-                    ON DUPLICATE KEY UPDATE rating = src.rating, rated_by = src.rated_by, rated_at = NOW()";
+                    VALUES (?, ?, ?, NOW())
+                    ON DUPLICATE KEY UPDATE rating = VALUES(rating), rated_by = VALUES(rated_by), rated_at = NOW()";
                 $stmt = $this->db->prepare($sql);
                 $stmt->execute([$imageId, $rating, $userId]);
             }
