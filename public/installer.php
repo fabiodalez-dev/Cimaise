@@ -1076,6 +1076,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Get form data from session
 $dbFormData = $_SESSION['db_form_data'] ?? [];
+
+// Docker / orchestrated installs: when the container ships database
+// coordinates via CIMAISE_DB_* environment variables (see docker-compose.yml),
+// preselect MySQL and prefill the whole form — the user just clicks
+// "Test & Continue" without ever having to know the credentials. Values the
+// user already submitted in this session always win over the env prefill.
+$envDbPrefill = false;
+$envDbHost = (string) (getenv('CIMAISE_DB_HOST') ?: '');
+if ($dbFormData === [] && $envDbHost !== '') {
+    $dbFormData = [
+        'type' => 'mysql',
+        'host' => $envDbHost,
+        'port' => (string) (getenv('CIMAISE_DB_PORT') ?: '3306'),
+        'database' => (string) (getenv('CIMAISE_DB_DATABASE') ?: 'cimaise'),
+        'username' => (string) (getenv('CIMAISE_DB_USER') ?: ''),
+    ];
+    $envDbPrefill = true;
+}
 $dbErrors = $_SESSION['db_errors'] ?? [];
 $adminFormData = $_SESSION['admin_form_data'] ?? [];
 $adminErrors = $_SESSION['admin_errors'] ?? [];
@@ -1480,6 +1498,12 @@ $requirementsPassed = !in_array(false, $requirements);
                             
                             <!-- MySQL Config -->
                             <div id="mysql-config" class="space-y-6 <?= ($dbFormData['type'] ?? 'sqlite') === 'mysql' ? '' : 'hidden' ?>">
+                                <?php if ($envDbPrefill): ?>
+                                    <div class="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg">
+                                        <i class="fas fa-info-circle mr-2"></i>
+                                        A bundled MySQL server was detected (Docker) — the connection details below are prefilled. Just click "Test &amp; Continue".
+                                    </div>
+                                <?php endif; ?>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Host</label>
@@ -1520,7 +1544,7 @@ $requirementsPassed = !in_array(false, $requirements);
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
                                         <input type="password" name="db_password" class="form-input w-full"
-                                               value="" autocomplete="new-password" placeholder="Password (optional)">
+                                               value="<?= $envDbPrefill ? htmlspecialchars((string) (getenv('CIMAISE_DB_PASSWORD') ?: '')) : '' ?>" autocomplete="new-password" placeholder="Password (optional)">
                                     </div>
                                 </div>
                             </div>
