@@ -23,12 +23,12 @@
     "name": "lenis"
   },
   "resources/admin-app.css": {
-    "file": "admin-app-BIVRj_IL.css",
+    "file": "admin-app-nqbdg2Fu.css",
     "src": "resources/admin-app.css",
     "isEntry": true
   },
   "resources/admin.js": {
-    "file": "admin-R8nArFSG.js",
+    "file": "admin-CoDgvQhn.js",
     "name": "admin",
     "src": "resources/admin.js",
     "isEntry": true,
@@ -36,11 +36,11 @@
       "__commonjsHelpers-lGe4XDVY.js"
     ],
     "css": [
-      "admin-DMLC04MW.css"
+      "admin-DhmGQElJ.css"
     ]
   },
   "resources/app.css": {
-    "file": "app-BBeNoDm8.css",
+    "file": "app-CnQmMgwn.css",
     "src": "resources/app.css",
     "isEntry": true
   },

@@ -37,8 +37,8 @@
     "select2": "^4.1.0-rc.0",
     "simple-parallax-js": "^6.3.3",
     "sortablejs": "^1.15.6",
-    "swiper": "^11.1.15",
-    "tinymce": "^6.8.6",
+    "swiper": "^14.0.2",
+    "tinymce": "^8.7.0",
     "tom-select": "^2.4.3"
   }
 }
