@@ -547,6 +547,10 @@ function initTinyMCE() {
   
   tinymce.init({
     selector: 'textarea.richtext',
+    // TinyMCE 7+ requires an explicit license declaration for self-hosted
+    // builds; 'gpl' matches the project license (GPL-3.0-only) and silences
+    // the "no license key" console warning without phoning home.
+    license_key: 'gpl',
     menubar: false,
     statusbar: true,
     branding: false,
