@@ -345,6 +345,7 @@ CREATE INDEX IF NOT EXISTS idx_images_album_sort ON images(album_id, sort_order,
 CREATE INDEX IF NOT EXISTS idx_images_date_original ON images(date_original);
 CREATE INDEX IF NOT EXISTS idx_images_gps ON images(gps_lat, gps_lng);
 CREATE INDEX IF NOT EXISTS idx_images_artist ON images(artist);
+CREATE INDEX IF NOT EXISTS idx_images_original_path ON images(original_path);
 
 CREATE TABLE IF NOT EXISTS image_variants (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -358,6 +359,7 @@ CREATE TABLE IF NOT EXISTS image_variants (
   UNIQUE(image_id, variant, format),
   FOREIGN KEY (image_id) REFERENCES images(id) ON DELETE CASCADE
 );
+CREATE INDEX IF NOT EXISTS idx_image_variants_path ON image_variants(path);
 
 -- ============================================
 -- JUNCTION TABLES (Many-to-Many)

@@ -67,7 +67,8 @@ final class MigrationsTest extends TestCase
             CREATE TABLE analytics_pageviews (id INTEGER PRIMARY KEY, page_type TEXT, viewed_at TEXT);
             CREATE TABLE analytics_events (id INTEGER PRIMARY KEY, event_type TEXT, occurred_at TEXT);
             CREATE TABLE albums (id INTEGER PRIMARY KEY, title TEXT);
-            CREATE TABLE images (id INTEGER PRIMARY KEY, album_id INTEGER);
+            -- original_path present since the beginning; 1.4.19 indexes it.
+            CREATE TABLE images (id INTEGER PRIMARY KEY, album_id INTEGER, original_path TEXT);
             -- image_variants in its pre-1.4.13 shape (format CHECK without
             -- jxl); the 1.4.13 migration rebuilds it to widen the CHECK.
             CREATE TABLE image_variants (

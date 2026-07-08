@@ -521,6 +521,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'password' => $_POST['db_password'] ?? ''
         ];
 
+        // Docker zero-typing flow: the env-provided password is never rendered
+        // into the pre-auth HTML, so a prefilled submit arrives with an empty
+        // password field. Apply the CIMAISE_DB_PASSWORD server-side — but ONLY
+        // when the submitted host/user/database exactly match the env-provided
+        // coordinates, so this fallback can never be abused to replay the
+        // secret against an attacker-chosen MySQL host.
+        if ($dbType === 'mysql' && $dbConfig['password'] === '') {
+            $envHost = (string) (getenv('CIMAISE_DB_HOST') ?: '');
+            if ($envHost !== ''
+                && $dbConfig['host'] === $envHost
+                && $dbConfig['username'] === (string) (getenv('CIMAISE_DB_USER') ?: '')
+                && $dbConfig['database'] === (string) (getenv('CIMAISE_DB_DATABASE') ?: '')
+            ) {
+                $dbConfig['password'] = (string) (getenv('CIMAISE_DB_PASSWORD') ?: '');
+            }
+        }
+
         // Validate
         if ($dbConfig['type'] === 'mysql') {
             if (empty($dbConfig['host'])) {
@@ -1079,12 +1096,16 @@ $dbFormData = $_SESSION['db_form_data'] ?? [];
 
 // Docker / orchestrated installs: when the container ships database
 // coordinates via CIMAISE_DB_* environment variables (see docker-compose.yml),
-// preselect MySQL and prefill the whole form — the user just clicks
-// "Test & Continue" without ever having to know the credentials. Values the
-// user already submitted in this session always win over the env prefill.
-$envDbPrefill = false;
+// preselect MySQL and prefill the form — the user just clicks
+// "Test & Continue" without ever having to know the credentials. The PASSWORD
+// is deliberately NEVER rendered into this pre-auth HTML (any visitor could
+// read it during the install window): it is applied server-side on submit,
+// see the empty-password fallback in the database POST handler. Values the
+// user already submitted in this session win over the env prefill, but the
+// notice stays visible as long as the env coordinates are configured.
 $envDbHost = (string) (getenv('CIMAISE_DB_HOST') ?: '');
-if ($dbFormData === [] && $envDbHost !== '') {
+$envDbPrefill = $envDbHost !== '';
+if ($dbFormData === [] && $envDbPrefill) {
     $dbFormData = [
         'type' => 'mysql',
         'host' => $envDbHost,
@@ -1092,7 +1113,6 @@ if ($dbFormData === [] && $envDbHost !== '') {
         'database' => (string) (getenv('CIMAISE_DB_DATABASE') ?: 'cimaise'),
         'username' => (string) (getenv('CIMAISE_DB_USER') ?: ''),
     ];
-    $envDbPrefill = true;
 }
 $dbErrors = $_SESSION['db_errors'] ?? [];
 $adminFormData = $_SESSION['admin_form_data'] ?? [];
@@ -1501,7 +1521,7 @@ $requirementsPassed = !in_array(false, $requirements);
                                 <?php if ($envDbPrefill): ?>
                                     <div class="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg">
                                         <i class="fas fa-info-circle mr-2"></i>
-                                        A bundled MySQL server was detected (Docker) — the connection details below are prefilled. Just click "Test &amp; Continue".
+                                        A bundled MySQL server was detected (Docker) — the connection details are prefilled and the password is applied automatically on submit. Leave the Password field empty and click "Test &amp; Continue".
                                     </div>
                                 <?php endif; ?>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1544,7 +1564,7 @@ $requirementsPassed = !in_array(false, $requirements);
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
                                         <input type="password" name="db_password" class="form-input w-full"
-                                               value="<?= $envDbPrefill ? htmlspecialchars((string) (getenv('CIMAISE_DB_PASSWORD') ?: '')) : '' ?>" autocomplete="new-password" placeholder="Password (optional)">
+                                               value="" autocomplete="new-password" placeholder="<?= $envDbPrefill ? 'Applied automatically — leave empty' : 'Password (optional)' ?>">
                                     </div>
                                 </div>
                             </div>

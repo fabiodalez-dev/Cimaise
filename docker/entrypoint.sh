@@ -46,14 +46,48 @@ done
 # ── base translation packs ──────────────────────────────────────────────────
 # The base language packs (en/it *.json) are application code, but the storage
 # volume mounts OVER the image copy of storage/, hiding them — without this
-# seed the UI renders raw translation keys. Refreshed on every boot so image
-# upgrades deliver new/updated keys; user customizations live as DB overlays
-# and extra language packs we don't ship are left untouched.
+# seed the UI renders raw translation keys. Seeded on every boot so image
+# upgrades deliver new/updated keys, BUT admin-modified packs are preserved:
+# the admin can legitimately edit these files (Texts → import with
+# "save to file"), so a pack is only overwritten when it is missing or still
+# byte-identical to what a previous boot seeded (checksums tracked in a
+# manifest). Extra language packs we don't ship are never touched.
 SEED_DIR="/usr/share/cimaise/translations"
+DEST_DIR="$APP_DIR/storage/translations"
+SEED_MANIFEST="$DEST_DIR/.seed-sha256"
 if [ -d "$SEED_DIR" ]; then
-  echo "[cimaise] seeding base translation packs…"
-  cp -f "$SEED_DIR"/*.json "$APP_DIR/storage/translations/" 2>/dev/null || true
-  chown "$WEB_USER":"$WEB_USER" "$APP_DIR/storage/translations/"*.json 2>/dev/null || true
+  seeded=0; preserved=0; failed=0
+  new_manifest=""
+  for f in "$SEED_DIR"/*.json; do
+    [ -f "$f" ] || continue
+    name=$(basename "$f")
+    dest="$DEST_DIR/$name"
+    seed_sum=$(sha256sum "$f" | cut -d' ' -f1)
+    new_manifest="${new_manifest}${seed_sum}  ${name}
+"
+    if [ -f "$dest" ]; then
+      dest_sum=$(sha256sum "$dest" | cut -d' ' -f1)
+      # `|| true`: the manifest does not exist on first boot and this script
+      # runs under `set -e` — a bare failing command substitution would abort
+      # the entrypoint before Apache starts.
+      prev_sum=$(awk -v n="$name" '$2 == n { print $1 }' "$SEED_MANIFEST" 2>/dev/null || true)
+      if [ "$dest_sum" != "$seed_sum" ] && [ "$dest_sum" != "$prev_sum" ]; then
+        preserved=$((preserved + 1))   # admin-modified — keep it
+        continue
+      fi
+    fi
+    if cp -f "$f" "$dest" 2>/dev/null; then
+      seeded=$((seeded + 1))
+    else
+      failed=$((failed + 1))
+    fi
+  done
+  printf '%s' "$new_manifest" > "$SEED_MANIFEST" 2>/dev/null || true
+  chown "$WEB_USER":"$WEB_USER" "$DEST_DIR"/*.json "$SEED_MANIFEST" 2>/dev/null || true
+  echo "[cimaise] translation packs: $seeded seeded, $preserved preserved (admin-modified), $failed failed"
+  if [ "$failed" -gt 0 ]; then
+    echo "[cimaise] WARNING: could not write translation packs into storage/translations (read-only volume? disk full?) — the UI may show raw translation keys." >&2
+  fi
 fi
 
 # ── .env persistence ────────────────────────────────────────────────────────
@@ -97,13 +131,9 @@ else
   echo "[cimaise]"
   echo "[cimaise]  Installer → database:"
   echo "[cimaise]    • SQLite (default): no credentials needed."
-  if getent hosts "$DB_HOST_HINT" >/dev/null 2>&1; then
-    echo "[cimaise]    • MySQL (compose service detected): the installer form is"
-    echo "[cimaise]      PREFILLED with the bundled credentials — just confirm."
-  else
-    echo "[cimaise]    • MySQL: start it with  docker compose --profile mysql up -d"
-    echo "[cimaise]      and the installer form comes prefilled."
-  fi
+  echo "[cimaise]    • MySQL: start it with  docker compose --profile mysql up -d"
+  echo "[cimaise]      The installer form comes prefilled (password applied"
+  echo "[cimaise]      server-side) — just click Test & Continue."
   echo "[cimaise]      (host: $DB_HOST_HINT  db: $DB_NAME_HINT  user: $DB_USER_HINT  pass: $DB_PASS_HINT)"
   echo "[cimaise]      Override via CIMAISE_MYSQL_* in a .env next to"
   echo "[cimaise]      docker-compose.yml BEFORE the first start (see DOCKER.md)."
