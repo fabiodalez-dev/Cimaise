@@ -81,7 +81,25 @@ final class MigrationsTest extends TestCase
                 size_bytes INTEGER NOT NULL,
                 UNIQUE(image_id, variant, format),
                 FOREIGN KEY (image_id) REFERENCES images(id) ON DELETE CASCADE
-            );'
+            );
+            -- plugin_status as seeded on pre-1.4.18 installs: the 1.4.18
+            -- migration deactivates the retired bundled plugins in it.
+            CREATE TABLE plugin_status (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                slug TEXT NOT NULL UNIQUE,
+                name TEXT NOT NULL,
+                version TEXT NOT NULL,
+                description TEXT,
+                author TEXT,
+                path TEXT NOT NULL,
+                is_active INTEGER DEFAULT 1,
+                is_installed INTEGER DEFAULT 1,
+                installed_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+            INSERT INTO plugin_status (slug, name, version, path) VALUES
+                ("analytics-logger", "Analytics Logger", "1.0.0", "plugins/analytics-logger"),
+                ("image-rating", "Image Rating", "1.0.0", "plugins/image-rating");'
         );
         return $db;
     }
@@ -116,9 +134,18 @@ final class MigrationsTest extends TestCase
         $idx = $db->query("SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name IN ('idx_analytics_pageviews_type_viewed','idx_analytics_events_type_occurred')")->fetchColumn();
         self::assertSame(2, (int) $idx, '1.2.0 analytics indexes');
 
-        // 1.2.0 / 1.3.0 — marker settings.
-        $settings = $db->query("SELECT COUNT(*) FROM settings WHERE key IN ('plugin_image_ratings_schema','plugin_analytics_logger_schema','plugin_analytics_pro_schema','search_fts_schema')")->fetchColumn();
-        self::assertSame(4, (int) $settings, '1.2.0/1.3.0 settings');
+        // 1.2.0 / 1.3.0 — marker settings. The retired-plugin markers
+        // (plugin_image_ratings_schema, plugin_analytics_logger_schema) are
+        // inserted by 1.2.0 and then DELETED again by 1.4.18, so after the
+        // full chain only these two must remain.
+        $settings = $db->query("SELECT COUNT(*) FROM settings WHERE key IN ('plugin_analytics_pro_schema','search_fts_schema')")->fetchColumn();
+        self::assertSame(2, (int) $settings, '1.2.0/1.3.0 settings');
+        $retired = $db->query("SELECT COUNT(*) FROM settings WHERE key IN ('plugin_image_ratings_schema','plugin_analytics_logger_schema')")->fetchColumn();
+        self::assertSame(0, (int) $retired, '1.4.18 must remove the retired-plugin schema markers');
+
+        // 1.4.18 — retired bundled plugins deactivated (rows kept, flags off).
+        $retiredPlugins = $db->query("SELECT COUNT(*) FROM plugin_status WHERE slug IN ('analytics-logger','image-rating') AND is_active = 0 AND is_installed = 0")->fetchColumn();
+        self::assertSame(2, (int) $retiredPlugins, '1.4.18 must deactivate the retired bundled plugins');
 
         // 1.4.0 — collections tables.
         $tables = $db->query("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN ('collections','collection_images')")->fetchColumn();

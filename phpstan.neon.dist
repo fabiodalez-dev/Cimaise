@@ -17,6 +17,11 @@ parameters:
     # PHPStan even though composer's autoload only knows `App\`.
     scanDirectories:
         - plugins
+    # Optional runtime deps referenced behind class_exists() guards: symbol
+    # stubs so PHPStan can resolve them without composer-installing packages
+    # that need extra PHP extensions (jcupitt/vips needs ext-ffi).
+    scanFiles:
+        - resources/stubs/jcupitt-vips.php
     # Don't trust PHPDoc types blindly — some of our vendored libs have
     # imprecise annotations that would otherwise cascade as "always true"
     # comparisons across our defensive code.
