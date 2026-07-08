@@ -191,13 +191,14 @@ class MediaController extends BaseController
         if ($albumId > 0) {
             $this->invalidateAlbumCaches($albumId);
         }
-        $root = dirname(__DIR__, 2);
         $protectedStorage = new \App\Services\ProtectedMediaStorage($this->db);
         foreach ($files as $p) {
             if (str_starts_with((string)$p, '/media/')) {
                 $protectedStorage->deleteVariantCopies((string)$p);
             } else {
-                @unlink($root . $p);
+                // Originals can be shared (sha1 dedup / attach): only unlink
+                // when no other images row still references the same file.
+                \App\Services\UploadService::deleteOriginalIfUnreferenced($this->db, (string)$p);
             }
         }
         $response->getBody()->write(json_encode(['ok' => true]));

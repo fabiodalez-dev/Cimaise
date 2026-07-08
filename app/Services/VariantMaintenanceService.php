@@ -63,6 +63,7 @@ class VariantMaintenanceService
                 return;
             }
 
+            $this->reconcileProtectedStorage();
             $stats = $this->generateMissingVariants($settings);
             $settings->set(self::SETTINGS_KEY, $today);
 
@@ -118,6 +119,39 @@ class VariantMaintenanceService
         }
         flock($handle, LOCK_UN);
         fclose($handle);
+    }
+
+    /**
+     * Re-enforce the storage location of every protected album's variants.
+     * Sharp variants of password/NSFW albums can reappear under public/media
+     * (e.g. regenerated while the album was temporarily public, or via a CLI
+     * run that read different flags); the lazy quarantine in
+     * ProtectedMediaStorage::resolveVariantPath() only runs on AUTHORIZED
+     * requests, so this daily reconciliation keeps public/ clean regardless.
+     */
+    private function reconcileProtectedStorage(): void
+    {
+        try {
+            $storage = new ProtectedMediaStorage($this->db);
+            $albumIds = $this->db->pdo()->query(
+                "SELECT id FROM albums
+                 WHERE is_nsfw = 1
+                    OR (password_hash IS NOT NULL AND password_hash <> '')"
+            )->fetchAll(\PDO::FETCH_COLUMN) ?: [];
+
+            $summary = ['moved' => 0, 'deleted' => 0, 'skipped' => 0];
+            foreach ($albumIds as $albumId) {
+                $stats = $storage->relocateAlbumVariants((int)$albumId, true);
+                foreach (array_keys($summary) as $key) {
+                    $summary[$key] += $stats[$key];
+                }
+            }
+            if ($summary['moved'] > 0 || $summary['deleted'] > 0) {
+                Logger::info('Protected media reconciliation relocated variants', $summary, 'maintenance');
+            }
+        } catch (\Throwable $e) {
+            Logger::warning('Protected media reconciliation failed', ['error' => $e->getMessage()], 'maintenance');
+        }
     }
 
     private function generateMissingVariants(SettingsService $settings): array
@@ -259,12 +293,24 @@ class VariantMaintenanceService
             $breakpoints = $defaults['image.breakpoints'];
         }
 
+        // Count only formats generateVariantsForImage() can actually emit in
+        // THIS runtime. 'jxl' is deliberately absent: only the images:generate
+        // CLI can produce it — counting it here made every image perpetually
+        // "missing" and forced the daily maintenance to re-scan the whole
+        // library (with repeated failed encodes) on every run.
+        $caps = \App\Services\Imaging\ImageEngine::capabilities();
+        $generatable = [
+            'jpg'  => true, // GD baseline (the installer requires ext-gd)
+            'webp' => $caps['imagick'] || $caps['vips'] || \function_exists('imagewebp'),
+            'avif' => $caps['avif_write'] || \function_exists('imageavif'),
+        ];
+
         $enabledFormats = [];
         foreach ($formats as $format => $enabled) {
             if (is_string($enabled)) {
                 $enabled = filter_var($enabled, FILTER_VALIDATE_BOOLEAN);
             }
-            if ($enabled) {
+            if ($enabled && ($generatable[(string)$format] ?? false)) {
                 $enabledFormats[] = (string)$format;
             }
         }
