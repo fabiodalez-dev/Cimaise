@@ -153,12 +153,15 @@ jobs:
           if [ "$DBKIND" = "sqlite" ]; then
             q() { sqlite3 /tmp/cimaise.db "$1"; }
             tcount=$(q "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN ('collections','collection_images');")
-            scount=$(q "SELECT COUNT(*) FROM settings WHERE key IN ('search_fts_schema','plugin_image_ratings_schema');")
+            # plugin_analytics_pro_schema (not plugin_image_ratings_schema):
+            # the 1.4.18 migration deliberately DELETEs the retired-plugin
+            # markers, so asserting on them fails on any up-to-date chain.
+            scount=$(q "SELECT COUNT(*) FROM settings WHERE key IN ('search_fts_schema','plugin_analytics_pro_schema');")
             icount=$(q "SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name IN ('idx_analytics_pageviews_type_viewed','idx_analytics_events_type_occurred');")
           else
             q() { mysql -N -h 127.0.0.1 -u root "$MYSQL_DB" -e "$1"; }
             tcount=$(q "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$MYSQL_DB' AND table_name IN ('collections','collection_images');")
-            scount=$(q "SELECT COUNT(*) FROM settings WHERE \`key\` IN ('search_fts_schema','plugin_image_ratings_schema');")
+            scount=$(q "SELECT COUNT(*) FROM settings WHERE \`key\` IN ('search_fts_schema','plugin_analytics_pro_schema');")
             icount=$(q "SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema='$MYSQL_DB' AND index_name IN ('idx_analytics_pageviews_type_viewed','idx_analytics_events_type_occurred');")
           fi
           echo "tables(collections,collection_images)=$tcount  settings_markers=$scount  analytics_indexes=$icount"
