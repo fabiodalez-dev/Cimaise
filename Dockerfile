@@ -82,6 +82,18 @@ RUN install-php-extensions \
       pdo_mysql \
       pdo_sqlite
 
+# The php base image ships a full build toolchain (PHPIZE_DEPS: gcc, make,
+# autoconf, …) so extensions can be compiled at image-build time. Everything
+# is compiled above and nothing compiles at runtime, so drop the toolchain and
+# its header packages: linux-libc-dev alone is the single largest CRITICAL/HIGH
+# CVE surface scanners flag on this image, and none of it is reachable code.
+# (Anyone extending this image with more PHP extensions should use
+# install-php-extensions, which fetches its own build deps.)
+RUN apt-get purge -y --auto-remove \
+      gcc g++ cpp make autoconf dpkg-dev re2c pkgconf pkg-config \
+      libc6-dev linux-libc-dev libcrypt-dev libgcc-14-dev libstdc++-14-dev \
+ && rm -rf /var/lib/apt/lists/*
+
 # Apache: rewrite + headers for the project's .htaccess contract. The global
 # ServerName silences the AH00558 "could not reliably determine the server's
 # fully qualified domain name" startup warning inside containers.
