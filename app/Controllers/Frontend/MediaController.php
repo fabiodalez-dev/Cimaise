@@ -19,7 +19,6 @@ use Psr\Http\Message\ServerRequestInterface as Request;
  */
 class MediaController extends BaseController
 {
-    private const BLUR_CACHE_SECONDS = 86400; // 24 hours for blur variants
     private const PUBLIC_CACHE_SECONDS = 31536000; // 1 year for public images
     private readonly ProtectedMediaStorage $protectedStorage;
 
@@ -330,11 +329,17 @@ class MediaController extends BaseController
         $etag = $this->generateEtag($blurPath, $filesize);
         $clientEtag = $request->getHeaderLine('If-None-Match');
 
+        // This response substitutes blur bytes UNDER THE SHARP VARIANT URL for a
+        // visitor who is (currently) denied access. It must never be cached:
+        // a cached (worse: immutable) copy would keep showing the blur for that
+        // URL even after the visitor unlocks the album / gives NSFW consent.
+        // The blur served at its own {id}_blur.jpg URL stays cacheable as usual.
         if ($clientEtag !== '' && $clientEtag === $etag) {
             return $response
                 ->withStatus(304)
                 ->withHeader('ETag', $etag)
-                ->withHeader('Cache-Control', 'public, max-age=' . self::BLUR_CACHE_SECONDS . ', immutable');
+                ->withHeader('Cache-Control', 'private, no-store, max-age=0')
+                ->withHeader('Pragma', 'no-cache');
         }
 
         // Stream the blur file
@@ -344,7 +349,8 @@ class MediaController extends BaseController
         }
 
         return $streamed
-            ->withHeader('Cache-Control', 'public, max-age=' . self::BLUR_CACHE_SECONDS . ', immutable')
+            ->withHeader('Cache-Control', 'private, no-store, max-age=0')
+            ->withHeader('Pragma', 'no-cache')
             ->withHeader('ETag', $etag);
     }
 
@@ -408,7 +414,12 @@ class MediaController extends BaseController
                 if ($placeholderUrl !== null) {
                     $placeholderResponse = $this->serveStaticFile($request, $response, ltrim($placeholderUrl, '/'));
                     if ($placeholderResponse->getStatusCode() < 400) {
-                        return $placeholderResponse;
+                        // Denial response served under the sharp variant URL:
+                        // never cacheable, or the browser would keep showing the
+                        // placeholder after the visitor unlocks the album.
+                        return $placeholderResponse
+                            ->withHeader('Cache-Control', 'private, no-store, max-age=0')
+                            ->withHeader('Pragma', 'no-cache');
                     }
                 }
             }
@@ -719,7 +730,12 @@ class MediaController extends BaseController
                 if ($placeholderUrl !== null) {
                     $placeholderResponse = $this->serveStaticFile($request, $response, ltrim($placeholderUrl, '/'));
                     if ($placeholderResponse->getStatusCode() < 400) {
-                        return $placeholderResponse;
+                        // Denial response served under the sharp variant URL:
+                        // never cacheable, or the browser would keep showing the
+                        // placeholder after the visitor unlocks the album.
+                        return $placeholderResponse
+                            ->withHeader('Cache-Control', 'private, no-store, max-age=0')
+                            ->withHeader('Pragma', 'no-cache');
                     }
                 }
             }

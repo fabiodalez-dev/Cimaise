@@ -1034,7 +1034,6 @@ class AlbumsController extends BaseController
 
         // Collect all file paths BEFORE deleting from DB (CASCADE will delete images/variants records)
         $files = [];
-        $root = dirname(__DIR__, 2);
 
         // Get all original image paths
         $stmt = $pdo->prepare('SELECT id, original_path FROM images WHERE album_id = ?');
@@ -1078,16 +1077,11 @@ class AlbumsController extends BaseController
                     }
                     continue;
                 }
-                $abs = $root . $p;
-                if (!is_file($abs)) {
-                    continue; // already gone — nothing to clean up
-                }
-                if (!@unlink($abs)) {
-                    $lastError = error_get_last();
-                    $reason = ($lastError !== null && str_contains($lastError['message'], 'unlink'))
-                        ? $lastError['message']
-                        : 'unknown reason';
-                    $failedDeletions[] = $abs . ' (' . $reason . ')';
+                // Originals can be shared with images in OTHER albums (sha1
+                // dedup / attach): the helper unlinks only when no surviving
+                // images row references the same file.
+                if (!\App\Services\UploadService::deleteOriginalIfUnreferenced($this->db, (string)$p)) {
+                    $failedDeletions[] = $p . ' (original could not be removed)';
                 }
             }
 
@@ -1357,9 +1351,9 @@ class AlbumsController extends BaseController
             return $response->withStatus(500);
         }
         $this->invalidatePageCaches($this->getAlbumSlug($albumId), null, $albumId);
-        // try unlink files (best-effort)
-        $root = dirname(__DIR__, 2);
-        @unlink($root . $row['original_path']);
+        // try unlink files (best-effort). Originals can be shared (sha1 dedup /
+        // attach): only unlink when no other images row references the file.
+        \App\Services\UploadService::deleteOriginalIfUnreferenced($this->db, (string)$row['original_path']);
         $protectedStorage = new \App\Services\ProtectedMediaStorage($this->db);
         foreach ($variantPaths as $p) {
             $protectedStorage->deleteVariantCopies((string)$p);
@@ -1414,13 +1408,14 @@ class AlbumsController extends BaseController
             return $response->withStatus(500);
         }
         $this->invalidatePageCaches($this->getAlbumSlug($albumId), null, $albumId);
-        $root = dirname(__DIR__, 2);
         $protectedStorage = new \App\Services\ProtectedMediaStorage($this->db);
         foreach ($files as $p) {
             if (str_starts_with((string)$p, '/media/')) {
                 $protectedStorage->deleteVariantCopies((string)$p);
             } else {
-                @unlink($root . $p);
+                // Originals can be shared (sha1 dedup / attach): only unlink
+                // when no other images row still references the same file.
+                \App\Services\UploadService::deleteOriginalIfUnreferenced($this->db, (string)$p);
             }
         }
         $response->getBody()->write(json_encode(['ok' => true]));

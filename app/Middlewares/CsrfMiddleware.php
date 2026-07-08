@@ -48,8 +48,14 @@ class CsrfMiddleware implements MiddlewareInterface
         }
         // Pass down the chain
         $response = $handler->handle($request);
-        // Expose the current CSRF token so clients can update their token after POSTs
-        if (isset($_SESSION['csrf'])) {
+        // Expose the current CSRF token so clients can update their token after
+        // POSTs — but never on image responses (/media/ variants and the like):
+        // those are long-cacheable (public, immutable), and a shared cache/CDN
+        // would store one visitor's session-bound token and replay it to every
+        // other visitor. Content-Type is used instead of the path so the guard
+        // also holds for subdirectory installs (prefixed request paths).
+        $isImage = str_starts_with($response->getHeaderLine('Content-Type'), 'image/');
+        if (isset($_SESSION['csrf']) && !$isImage) {
             return $response->withHeader('X-CSRF-Token', $_SESSION['csrf']);
         }
         return $response;

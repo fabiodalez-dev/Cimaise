@@ -94,6 +94,38 @@ class UploadService
     }
 
     /**
+     * Delete an image original from disk only when no images row still
+     * references the same file. Originals are SHARED by design: identical
+     * uploads dedupe onto one storage/originals/{sha1}.{ext} file and
+     * attachExisting() copies original_path into the new row — a raw unlink
+     * after deleting a single row would destroy the source for every
+     * surviving reference (variants could never be regenerated again).
+     *
+     * Call AFTER the owning images row(s) have been deleted from the DB.
+     * Returns true when the file is gone or intentionally kept (still
+     * referenced), false only on an actual failed unlink.
+     */
+    public static function deleteOriginalIfUnreferenced(Database $db, string $originalPath): bool
+    {
+        $originalPath = trim($originalPath);
+        if ($originalPath === '') {
+            return false;
+        }
+
+        $stmt = $db->pdo()->prepare('SELECT 1 FROM images WHERE original_path = :p LIMIT 1');
+        $stmt->execute([':p' => $originalPath]);
+        if ($stmt->fetchColumn() !== false) {
+            return true; // still referenced by another image — keep the bytes
+        }
+
+        $abs = dirname(__DIR__, 2) . '/' . ltrim($originalPath, '/');
+        if (!is_file($abs)) {
+            return true; // already gone — nothing to clean up
+        }
+        return self::safeUnlink($abs);
+    }
+
+    /**
      * Validates file using both MIME type detection and magic number verification
      */
     private function validateImageFile(string $filePath): string
@@ -539,6 +571,44 @@ class UploadService
     }
 
     /**
+     * GD AVIF fallback (imageavif, PHP >= 8.1) for hosts whose web SAPI has
+     * neither Imagick nor libvips. Mirrors resizeWithGdWebp.
+     */
+    private function resizeWithGdAvif(string $src, string $dest, int $targetW, int $quality): bool
+    {
+        $info = @getimagesize($src);
+        if (!$info) {
+            return false;
+        }
+        [$w, $h] = $info;
+        $ratio = $h > 0 ? $w / $h : 1;
+        $newW = $targetW;
+        $newH = (int)round($targetW / $ratio);
+        $srcImg = match ($info['mime']) {
+            'image/jpeg' => @imagecreatefromjpeg($src),
+            'image/png' => @imagecreatefrompng($src),
+            default => null,
+        };
+        if (!$srcImg) {
+            return false;
+        }
+        $dst = imagecreatetruecolor($newW, $newH);
+
+        // Preserve transparency for PNG sources
+        if ($info['mime'] === 'image/png') {
+            imagealphablending($dst, false);
+            imagesavealpha($dst, true);
+        }
+
+        imagecopyresampled($dst, $srcImg, 0, 0, 0, 0, $newW, $newH, $w, $h);
+        @mkdir(dirname($dest), 0775, true);
+        $ok = imageavif($dst, $dest, $quality);
+        imagedestroy($srcImg);
+        imagedestroy($dst);
+        return $ok;
+    }
+
+    /**
      * Generate variants for an image that was uploaded in fast mode
      * Returns array with statistics: ['generated' => int, 'failed' => int, 'skipped' => int]
      * @param bool $force Force regeneration of existing variants
@@ -670,15 +740,27 @@ class UploadService
                 if ($fmt === 'jpg') {
                     $ok = $this->resizeWithImagickOrGd($originalPath, $destPath, $targetW, 'jpeg', (int)($quality['jpg'] ?? 85));
                 } elseif ($fmt === 'webp') {
+                    $q = (int)($quality['webp'] ?? 75);
                     if ($haveImagick) {
-                        $ok = $this->resizeWithImagick($originalPath, $destPath, $targetW, 'webp', (int)($quality['webp'] ?? 75));
+                        $ok = $this->resizeWithImagick($originalPath, $destPath, $targetW, 'webp', $q);
+                    } elseif (\App\Services\Imaging\ImageEngine::encode($originalPath, $destPath, $targetW, 'webp', $q, $this->envFlag('STRIP_EXIF', true))) {
+                        $ok = true; // libvips available without Imagick
                     } elseif (function_exists('imagewebp')) {
-                        $ok = $this->resizeWithGdWebp($originalPath, $destPath, $targetW, (int)($quality['webp'] ?? 75));
+                        $ok = $this->resizeWithGdWebp($originalPath, $destPath, $targetW, $q);
                     }
-                } elseif ($haveImagick) {
+                } else {
                     // Remaining format: 'avif' (narrowed by the if/elseif chain
-                    // above). Only Imagick can produce AVIF in this codebase.
-                    $ok = $this->resizeWithImagick($originalPath, $destPath, $targetW, 'avif', (int)($quality['avif'] ?? 50));
+                    // above). Prefer Imagick/vips; fall back to GD's imageavif()
+                    // (PHP >= 8.1) so hosts whose web SAPI lacks both extensions
+                    // still produce AVIF instead of failing on every request.
+                    $q = (int)($quality['avif'] ?? 50);
+                    if ($haveImagick) {
+                        $ok = $this->resizeWithImagick($originalPath, $destPath, $targetW, 'avif', $q);
+                    } elseif (\App\Services\Imaging\ImageEngine::encode($originalPath, $destPath, $targetW, 'avif', $q, $this->envFlag('STRIP_EXIF', true))) {
+                        $ok = true; // libvips available without Imagick
+                    } elseif (function_exists('imageavif')) {
+                        $ok = $this->resizeWithGdAvif($originalPath, $destPath, $targetW, $q);
+                    }
                 }
 
                 if ($ok && is_file($destPath)) {
