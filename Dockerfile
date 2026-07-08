@@ -1,12 +1,12 @@
 # ╔═══════════════════════════════════════════════════════════════════════════╗
 # ║  Cimaise — Professional Photography Portfolio CMS                          ║
-# ║  Multi-stage production image: PHP 8.3 + Apache, SQLite (default) / MySQL  ║
+# ║  Multi-stage production image: PHP 8.5 + Apache, SQLite (default) / MySQL  ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 
 # ─── Stage 1: frontend assets ───────────────────────────────────────────────
-# Mirrors the project's CI build (Node 18 + Vite + Tailwind + FA subset) so the
-# served JS/CSS are produced from source, not copied from a developer machine.
-FROM node:18-bookworm-slim AS assets
+# Mirrors the project's CI build (Node LTS + Vite + Tailwind + FA subset) so
+# the served JS/CSS are produced from source, not copied from a dev machine.
+FROM node:22-bookworm-slim AS assets
 WORKDIR /app
 
 # Note: build-fa-subset.mjs can additionally emit *subsetted* webfont files when
@@ -49,13 +49,23 @@ RUN composer dump-autoload --no-dev --optimize --classmap-authoritative
 
 
 # ─── Stage 3: runtime ───────────────────────────────────────────────────────
-FROM php:8.3-apache-bookworm AS runtime
+# Debian 13 (trixie) + PHP 8.5: newest stable base = current security fixes for
+# the imaging system libraries (libheif, openexr, libde265, …) that the older
+# bookworm snapshot shipped with known CVEs.
+FROM php:8.5-apache-trixie AS runtime
 
 LABEL org.opencontainers.image.title="Cimaise" \
-      org.opencontainers.image.description="Minimalist photography portfolio CMS (PHP 8.3, Slim 4, Twig) — SQLite or MySQL." \
+      org.opencontainers.image.description="Minimalist photography portfolio CMS (PHP 8.5, Slim 4, Twig) — SQLite or MySQL." \
       org.opencontainers.image.source="https://github.com/fabiodalez-dev/cimaise" \
       org.opencontainers.image.licenses="GPL-3.0-only" \
       org.opencontainers.image.documentation="https://github.com/fabiodalez-dev/cimaise/blob/main/DOCKER.md"
+
+# Pull in every pending Debian security update at build time — the pinned base
+# image is a point-in-time snapshot and routinely lags the security archive.
+RUN apt-get update \
+ && apt-get -y --no-install-recommends dist-upgrade \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
 
 # PHP extensions (gd with AVIF/WebP, Imagick, exif, intl, zip, opcache, PDO
 # drivers, bcmath). install-php-extensions resolves & cleans up all the system
@@ -72,9 +82,13 @@ RUN install-php-extensions \
       pdo_mysql \
       pdo_sqlite
 
-# Apache: rewrite + headers for the project's .htaccess contract.
+# Apache: rewrite + headers for the project's .htaccess contract. The global
+# ServerName silences the AH00558 "could not reliably determine the server's
+# fully qualified domain name" startup warning inside containers.
 RUN a2enmod rewrite headers \
- && rm -f /etc/apache2/sites-enabled/000-default.conf
+ && rm -f /etc/apache2/sites-enabled/000-default.conf \
+ && printf 'ServerName localhost\n' > /etc/apache2/conf-available/zz-servername.conf \
+ && a2enconf zz-servername
 COPY docker/apache-vhost.conf /etc/apache2/sites-available/cimaise.conf
 RUN a2ensite cimaise
 COPY docker/php.ini /usr/local/etc/php/conf.d/zz-cimaise.ini
@@ -86,6 +100,12 @@ WORKDIR /var/www/html
 COPY --chown=www-data:www-data . .
 COPY --from=vendor   --chown=www-data:www-data /app/vendor ./vendor
 COPY --from=assets   --chown=www-data:www-data /app/public/assets ./public/assets
+
+# Baked seed of the base language packs: storage/ is a volume at runtime and
+# mounts OVER the image content, so the entrypoint re-seeds these JSONs into
+# the volume on every boot (an existing volume would otherwise never receive
+# them — the UI would render raw translation keys).
+COPY --chown=www-data:www-data storage/translations/ /usr/share/cimaise/translations/
 
 # Entrypoint prepares the writable runtime tree (volumes) and starts Apache.
 COPY --chmod=0755 docker/entrypoint.sh /usr/local/bin/cimaise-entrypoint

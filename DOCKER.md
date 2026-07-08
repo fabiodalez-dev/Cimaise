@@ -1,10 +1,14 @@
 # Running Cimaise with Docker
 
 Cimaise ships as a self-contained, multi-architecture image (`linux/amd64` +
-`linux/arm64`) built on **PHP 8.3 + Apache**. It bundles every extension the CMS
-needs — GD (with AVIF/WebP), Imagick (AVIF/HEIC/WebP), `pdo_sqlite`,
-`pdo_mysql`, `exif`, `intl`, `zip`, `bcmath` and OPcache — so you don't install
-PHP, Composer or Node on the host.
+`linux/arm64`) built on **PHP 8.5 + Apache** (Debian trixie, patched at build
+time). It bundles every extension the CMS needs — GD (with AVIF/WebP), Imagick
+(AVIF/HEIC/WebP), `pdo_sqlite`, `pdo_mysql`, `exif`, `intl`, `zip`, `bcmath`
+and OPcache — so you don't install PHP, Composer or Node on the host.
+
+The container listens on **port 80**; map it to the host port you prefer
+(`-p 8080:80` → <http://localhost:8080> is the documented default, and what
+`docker-compose.yml` does out of the box).
 
 - **Docker Hub:** `fabiodalez/cimaise`
 - **GHCR:** `ghcr.io/fabiodalez-dev/cimaise`
@@ -52,8 +56,14 @@ To run the published image instead of building locally, comment out the
 
 ### Using MySQL
 
-Start with the `mysql` profile (above), then in the web installer pick
-**MySQL** and enter:
+Start with the `mysql` profile (above) and open the installer: the **MySQL
+option comes preselected and fully prefilled** with the bundled database's
+coordinates (the compose file passes them to the app as `CIMAISE_DB_*`
+variables). You never have to know or type the credentials — just click
+*Test & Continue*. The same values are printed by
+`docker compose logs cimaise` until the installer has run.
+
+For reference, the defaults are:
 
 | Field    | Value     |
 |----------|-----------|
@@ -63,8 +73,20 @@ Start with the `mysql` profile (above), then in the web installer pick
 | Username | `cimaise` |
 | Password | `cimaise` |
 
-Change these defaults in `docker-compose.yml` (`mysql.environment`) before the
-first launch for anything beyond local testing.
+**Are shared defaults a risk?** The bundled MySQL publishes **no host port** —
+it is reachable only from containers on the compose network, never from the
+host or the LAN. For anything beyond local evaluation, set your own secrets in
+a `.env` file next to `docker-compose.yml` **before the first start** (MySQL
+bakes them into its data volume on initialization):
+
+```bash
+# .env (next to docker-compose.yml)
+CIMAISE_MYSQL_PASSWORD=change-me
+CIMAISE_MYSQL_ROOT_PASSWORD=change-me-too
+# optional: CIMAISE_MYSQL_DATABASE / CIMAISE_MYSQL_USER
+```
+
+The installer prefill and the log banner pick the overrides up automatically.
 
 ---
 
@@ -175,11 +197,11 @@ docker buildx build --platform linux/amd64,linux/arm64 -t cimaise:local .
 
 The [`Dockerfile`](Dockerfile) is a three-stage build:
 
-1. **assets** (`node:18`) — `npm ci` + `npm run build` (Vite + Tailwind + the
+1. **assets** (`node:22`) — `npm ci` + `npm run build` (Vite + Tailwind + the
    FontAwesome subset) produces the served JS/CSS from source.
 2. **vendor** (`composer:2`) — `composer install --no-dev` with an optimized,
    classmap-authoritative autoloader.
-3. **runtime** (`php:8.3-apache`) — extensions via
+3. **runtime** (`php:8.5-apache-trixie`) — extensions via
    [`mlocati/docker-php-extension-installer`](https://github.com/mlocati/docker-php-extension-installer),
    the project's `.htaccess` honoured (`AllowOverride All`), and an entrypoint
    that prepares the writable volumes before starting Apache.
@@ -259,3 +281,4 @@ The workflow publishes `fabiodalez/cimaise:1.4.14`, `:1.4`, and `:latest`.
 | Site loads but links use `http://`        | Set the **Application URL** to your `https://` host in the installer, and `TRUSTED_PROXIES`. |
 | Images don't generate                     | Confirm the container has Imagick/GD: `docker exec cimaise php -m \| grep -E 'gd\|imagick'`. |
 | Changed MySQL creds after install         | Edit `storage/.env` in the volume, then restart the container.      |
+| UI shows raw translation keys (`admin.…`) | Update to an image ≥ 1.4.19 and restart: the entrypoint re-seeds the base language packs into the storage volume on every boot. |

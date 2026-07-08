@@ -43,6 +43,19 @@ for d in $WRITABLE_DIRS; do
   chown -R "$WEB_USER":"$WEB_USER" "$APP_DIR/$d" 2>/dev/null || true
 done
 
+# ── base translation packs ──────────────────────────────────────────────────
+# The base language packs (en/it *.json) are application code, but the storage
+# volume mounts OVER the image copy of storage/, hiding them — without this
+# seed the UI renders raw translation keys. Refreshed on every boot so image
+# upgrades deliver new/updated keys; user customizations live as DB overlays
+# and extra language packs we don't ship are left untouched.
+SEED_DIR="/usr/share/cimaise/translations"
+if [ -d "$SEED_DIR" ]; then
+  echo "[cimaise] seeding base translation packs…"
+  cp -f "$SEED_DIR"/*.json "$APP_DIR/storage/translations/" 2>/dev/null || true
+  chown "$WEB_USER":"$WEB_USER" "$APP_DIR/storage/translations/"*.json 2>/dev/null || true
+fi
+
 # ── .env persistence ────────────────────────────────────────────────────────
 # isInstalled() reads <root>/.env, but the application root is part of the
 # read-only image layer, so a plain install would be lost on the next restart.
@@ -69,7 +82,32 @@ chown -h "$WEB_USER":"$WEB_USER" "$ENV_LINK" 2>/dev/null || true
 if [ -f "$ENV_STORE" ]; then
   echo "[cimaise] .env present — application already configured."
 else
-  echo "[cimaise] no .env — open the site in a browser to run the installer."
+  # First-boot banner: everything a user needs to reach the installer. When
+  # CIMAISE_DB_* is set (compose does this) the installer form comes already
+  # prefilled with the bundled-MySQL credentials — no typing needed.
+  DB_HOST_HINT="${CIMAISE_DB_HOST:-mysql}"
+  DB_NAME_HINT="${CIMAISE_DB_DATABASE:-cimaise}"
+  DB_USER_HINT="${CIMAISE_DB_USER:-cimaise}"
+  DB_PASS_HINT="${CIMAISE_DB_PASSWORD:-cimaise}"
+  echo "[cimaise] ────────────────────────────────────────────────────────────"
+  echo "[cimaise]  No .env yet — open the app in a browser to run the installer."
+  echo "[cimaise]  The container listens on port 80; map it when starting:"
+  echo "[cimaise]    docker run -p 8080:80 …      →  http://localhost:8080"
+  echo "[cimaise]    (docker compose maps 8080 out of the box)"
+  echo "[cimaise]"
+  echo "[cimaise]  Installer → database:"
+  echo "[cimaise]    • SQLite (default): no credentials needed."
+  if getent hosts "$DB_HOST_HINT" >/dev/null 2>&1; then
+    echo "[cimaise]    • MySQL (compose service detected): the installer form is"
+    echo "[cimaise]      PREFILLED with the bundled credentials — just confirm."
+  else
+    echo "[cimaise]    • MySQL: start it with  docker compose --profile mysql up -d"
+    echo "[cimaise]      and the installer form comes prefilled."
+  fi
+  echo "[cimaise]      (host: $DB_HOST_HINT  db: $DB_NAME_HINT  user: $DB_USER_HINT  pass: $DB_PASS_HINT)"
+  echo "[cimaise]      Override via CIMAISE_MYSQL_* in a .env next to"
+  echo "[cimaise]      docker-compose.yml BEFORE the first start (see DOCKER.md)."
+  echo "[cimaise] ────────────────────────────────────────────────────────────"
 fi
 
 echo "[cimaise] starting Apache…"

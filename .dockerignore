@@ -38,8 +38,11 @@ storage/rate_limits/*
 !storage/rate_limits/.gitkeep
 storage/logs/*
 !storage/logs/.gitkeep
-storage/translations/*
-!storage/translations/.gitkeep
+# NOTE: storage/translations is deliberately NOT excluded — the base language
+# packs (en/it *.json) are application code. The Dockerfile bakes them into
+# /usr/share/cimaise/translations and the entrypoint seeds the storage volume
+# from there on every boot (the volume mounts over storage/ and would
+# otherwise hide them → the UI renders raw translation keys).
 database/database.sqlite
 database/cimaise.sqlite
 

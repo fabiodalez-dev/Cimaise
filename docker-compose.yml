@@ -23,6 +23,15 @@ services:
       APP_ENV: production
       APP_DEBUG: "false"
       APP_TIMEZONE: UTC
+      # Bundled-MySQL coordinates, kept in sync with the mysql service below.
+      # The web installer reads these and prefills the whole MySQL form, so
+      # the user never has to know the credentials (they are also printed by
+      # `docker compose logs cimaise` until the installer has run).
+      CIMAISE_DB_HOST: mysql
+      CIMAISE_DB_PORT: "3306"
+      CIMAISE_DB_DATABASE: ${CIMAISE_MYSQL_DATABASE:-cimaise}
+      CIMAISE_DB_USER: ${CIMAISE_MYSQL_USER:-cimaise}
+      CIMAISE_DB_PASSWORD: ${CIMAISE_MYSQL_PASSWORD:-cimaise}
       # When behind a reverse proxy (Traefik/nginx), set the trusted proxy CIDRs:
       # TRUSTED_PROXIES: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
     volumes:
@@ -41,22 +50,29 @@ services:
         required: false
 
   # Optional MySQL backend. Enable with: docker compose --profile mysql up -d
-  # During the web installer choose "MySQL" and use host "mysql", the
-  # credentials below, database "cimaise".
+  # During the web installer choose "MySQL" and use host "mysql", database,
+  # user and password below (also printed by `docker compose logs cimaise`).
+  #
+  # SECURITY: this service publishes NO host port — it is reachable only from
+  # containers on this compose network, never from the host or the LAN. The
+  # defaults are fine for local/evaluation use; for anything serious set your
+  # own secrets in a `.env` file next to this docker-compose.yml BEFORE the
+  # first start (they are baked into the MySQL data volume on initialization):
+  #   CIMAISE_MYSQL_PASSWORD=…       CIMAISE_MYSQL_ROOT_PASSWORD=…
   mysql:
     image: mysql:8.4
     container_name: cimaise-mysql
     restart: unless-stopped
     profiles: ["mysql"]
     environment:
-      MYSQL_DATABASE: cimaise
-      MYSQL_USER: cimaise
-      MYSQL_PASSWORD: cimaise
-      MYSQL_ROOT_PASSWORD: cimaise-root
+      MYSQL_DATABASE: ${CIMAISE_MYSQL_DATABASE:-cimaise}
+      MYSQL_USER: ${CIMAISE_MYSQL_USER:-cimaise}
+      MYSQL_PASSWORD: ${CIMAISE_MYSQL_PASSWORD:-cimaise}
+      MYSQL_ROOT_PASSWORD: ${CIMAISE_MYSQL_ROOT_PASSWORD:-cimaise-root}
     volumes:
       - cimaise_mysql:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pcimaise-root"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${CIMAISE_MYSQL_ROOT_PASSWORD:-cimaise-root}"]
       interval: 10s
       timeout: 5s
       retries: 10
