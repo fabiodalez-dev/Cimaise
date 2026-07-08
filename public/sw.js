@@ -168,12 +168,19 @@ async function cacheFirstStrategy(request, cacheName, maxItems = 50) {
     //    reach the network and repaint — it doesn't need to be cached.
     const contentType = networkResponse ? (networkResponse.headers.get('Content-Type') || '') : '';
     const isHealRetry = new URL(request.url).searchParams.has('swcb');
+    // Honour no-store: access-denied media (blur/placeholder served under the
+    // SHARP variant URL of a password/NSFW album) is marked no-store by the
+    // server. Caching it here would keep showing the blur forever after the
+    // visitor unlocks the album — cache-first never revalidates.
+    const cacheControl = networkResponse ? (networkResponse.headers.get('Cache-Control') || '') : '';
+    const isNoStore = cacheControl.toLowerCase().includes('no-store');
     if (
       networkResponse &&
       networkResponse.status === 200 &&
       networkResponse.type === 'basic' &&
       contentType.startsWith('image/') &&
-      !isHealRetry
+      !isHealRetry &&
+      !isNoStore
     ) {
       // Clone response before caching (can only read once)
       const responseToCache = networkResponse.clone();

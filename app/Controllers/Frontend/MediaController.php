@@ -212,6 +212,21 @@ class MediaController extends BaseController
     }
 
     /**
+     * Stamp the headers every ACCESS-DENIED media response must carry. These
+     * responses substitute blur/placeholder bytes under the SHARP variant URL,
+     * so they must never be stored by any cache (browser, proxy, service
+     * worker) — a cached copy would keep showing the blur after the visitor
+     * unlocks the album — and must never be indexed under that URL.
+     */
+    private function withDenialHeaders(Response $response): Response
+    {
+        return $response
+            ->withHeader('Cache-Control', 'private, no-store, max-age=0')
+            ->withHeader('Pragma', 'no-cache')
+            ->withHeader('X-Robots-Tag', 'noindex, noimageindex, noarchive');
+    }
+
+    /**
      * Resolve the blur variant path for an image.
      * First checks database, then falls back to conventional path.
      *
@@ -329,17 +344,17 @@ class MediaController extends BaseController
         $etag = $this->generateEtag($blurPath, $filesize);
         $clientEtag = $request->getHeaderLine('If-None-Match');
 
-        // This response substitutes blur bytes UNDER THE SHARP VARIANT URL for a
-        // visitor who is (currently) denied access. It must never be cached:
-        // a cached (worse: immutable) copy would keep showing the blur for that
-        // URL even after the visitor unlocks the album / gives NSFW consent.
-        // The blur served at its own {id}_blur.jpg URL stays cacheable as usual.
+        // The blur served at its own {id}_blur.jpg URL stays cacheable as
+        // usual; see withDenialHeaders() for why THIS response must not be.
+        // Content-Type is set on the 304 too so header-based middleware (e.g.
+        // the CsrfMiddleware image guard) treats it like the 200 it refreshes.
         if ($clientEtag !== '' && $clientEtag === $etag) {
-            return $response
-                ->withStatus(304)
-                ->withHeader('ETag', $etag)
-                ->withHeader('Cache-Control', 'private, no-store, max-age=0')
-                ->withHeader('Pragma', 'no-cache');
+            return $this->withDenialHeaders(
+                $response
+                    ->withStatus(304)
+                    ->withHeader('Content-Type', 'image/jpeg')
+                    ->withHeader('ETag', $etag)
+            );
         }
 
         // Stream the blur file
@@ -348,10 +363,7 @@ class MediaController extends BaseController
             return null;
         }
 
-        return $streamed
-            ->withHeader('Cache-Control', 'private, no-store, max-age=0')
-            ->withHeader('Pragma', 'no-cache')
-            ->withHeader('ETag', $etag);
+        return $this->withDenialHeaders($streamed->withHeader('ETag', $etag));
     }
 
     /**
@@ -414,12 +426,7 @@ class MediaController extends BaseController
                 if ($placeholderUrl !== null) {
                     $placeholderResponse = $this->serveStaticFile($request, $response, ltrim($placeholderUrl, '/'));
                     if ($placeholderResponse->getStatusCode() < 400) {
-                        // Denial response served under the sharp variant URL:
-                        // never cacheable, or the browser would keep showing the
-                        // placeholder after the visitor unlocks the album.
-                        return $placeholderResponse
-                            ->withHeader('Cache-Control', 'private, no-store, max-age=0')
-                            ->withHeader('Pragma', 'no-cache');
+                        return $this->withDenialHeaders($placeholderResponse);
                     }
                 }
             }
@@ -522,6 +529,7 @@ class MediaController extends BaseController
         if ($clientEtag !== '' && $clientEtag === $etag) {
             return $response
                 ->withStatus(304)
+                ->withHeader('Content-Type', $detectedMime)
                 ->withHeader('ETag', $etag)
                 ->withHeader('Cache-Control', 'private, no-store, max-age=0')
                 ->withHeader('Pragma', 'no-cache')
@@ -628,6 +636,7 @@ class MediaController extends BaseController
         if ($clientEtag !== '' && $clientEtag === $etag) {
             return $response
                 ->withStatus(304)
+                ->withHeader('Content-Type', $detectedMime)
                 ->withHeader('ETag', $etag)
                 ->withHeader('Cache-Control', 'private, no-store, max-age=0')
                 ->withHeader('Pragma', 'no-cache')
@@ -730,12 +739,7 @@ class MediaController extends BaseController
                 if ($placeholderUrl !== null) {
                     $placeholderResponse = $this->serveStaticFile($request, $response, ltrim($placeholderUrl, '/'));
                     if ($placeholderResponse->getStatusCode() < 400) {
-                        // Denial response served under the sharp variant URL:
-                        // never cacheable, or the browser would keep showing the
-                        // placeholder after the visitor unlocks the album.
-                        return $placeholderResponse
-                            ->withHeader('Cache-Control', 'private, no-store, max-age=0')
-                            ->withHeader('Pragma', 'no-cache');
+                        return $this->withDenialHeaders($placeholderResponse);
                     }
                 }
             }
@@ -878,7 +882,13 @@ class MediaController extends BaseController
         }
         $etag = $this->generateEtag($realPath, $filesize);
         if ($request->getHeaderLine('If-None-Match') === $etag) {
-            $notModified = $response->withStatus(304)->withHeader('ETag', $etag);
+            // Content-Type on the 304 keeps header-based middleware (CsrfMiddleware's
+            // image guard) treating the revalidation like the 200 it refreshes —
+            // otherwise the session-bound X-CSRF-Token would be folded into
+            // publicly-cached image entries by revalidating shared caches.
+            $notModified = $response->withStatus(304)
+                ->withHeader('Content-Type', $detectedMime)
+                ->withHeader('ETag', $etag);
             return $protected
                 ? $notModified
                     ->withHeader('Cache-Control', 'private, no-store, max-age=0')
@@ -949,6 +959,7 @@ class MediaController extends BaseController
         if ($clientEtag !== '' && $clientEtag === $etag) {
             return $response
                 ->withStatus(304)
+                ->withHeader('Content-Type', $detectedMime)
                 ->withHeader('ETag', $etag)
                 ->withHeader('Cache-Control', $cacheVisibility . ', max-age=' . self::PUBLIC_CACHE_SECONDS . ', immutable');
         }

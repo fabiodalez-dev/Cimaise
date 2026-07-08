@@ -678,6 +678,7 @@
         });
 
         tinymce.init({
+          license_key: 'gpl', // required by self-hosted TinyMCE 7+ (GPL build)
           selector: 'textarea.richtext',
           base_url: (window.basePath || '') + '/assets/vendor/tinymce',
           menubar: false,

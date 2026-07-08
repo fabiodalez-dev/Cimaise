@@ -139,6 +139,32 @@ final readonly class ProtectedMediaStorage
     }
 
     /**
+     * Re-enforce private storage for the variants of EVERY protected album.
+     * Single home of the "which albums are protected" predicate + loop, shared
+     * by the one-time upgrade quarantine and the daily reconciliation in
+     * VariantMaintenanceService.
+     *
+     * @return array{moved:int, deleted:int, skipped:int}
+     */
+    public function relocateAllProtectedAlbums(): array
+    {
+        $albumIds = $this->db->pdo()->query(
+            "SELECT id FROM albums
+             WHERE is_nsfw = 1
+                OR (password_hash IS NOT NULL AND password_hash <> '')"
+        )->fetchAll(\PDO::FETCH_COLUMN) ?: [];
+
+        $summary = ['moved' => 0, 'deleted' => 0, 'skipped' => 0];
+        foreach ($albumIds as $albumId) {
+            $stats = $this->relocateAlbumVariants((int)$albumId, true);
+            foreach (array_keys($summary) as $key) {
+                $summary[$key] += $stats[$key];
+            }
+        }
+        return $summary;
+    }
+
+    /**
      * One-time upgrade quarantine for variants created before private storage.
      */
     public function quarantineExistingProtectedVariants(): void
@@ -164,19 +190,7 @@ final readonly class ProtectedMediaStorage
             if (is_file($marker)) {
                 return;
             }
-            $albumIds = $this->db->pdo()->query(
-                "SELECT id FROM albums
-                 WHERE is_nsfw = 1
-                    OR (password_hash IS NOT NULL AND password_hash <> '')"
-            )->fetchAll(\PDO::FETCH_COLUMN) ?: [];
-
-            $summary = ['moved' => 0, 'deleted' => 0, 'skipped' => 0];
-            foreach ($albumIds as $albumId) {
-                $stats = $this->relocateAlbumVariants((int)$albumId, true);
-                foreach (array_keys($summary) as $key) {
-                    $summary[$key] += $stats[$key];
-                }
-            }
+            $summary = $this->relocateAllProtectedAlbums();
 
             if (@file_put_contents($marker, gmdate('c'), LOCK_EX) === false) {
                 Logger::warning('Unable to write protected media migration marker', ['marker' => $marker], 'security');

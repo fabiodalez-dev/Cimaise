@@ -109,7 +109,7 @@ class UploadService
     {
         $originalPath = trim($originalPath);
         if ($originalPath === '') {
-            return false;
+            return true; // legacy blank row — nothing on disk to clean up
         }
 
         $stmt = $db->pdo()->prepare('SELECT 1 FROM images WHERE original_path = :p LIMIT 1');
@@ -118,11 +118,48 @@ class UploadService
             return true; // still referenced by another image — keep the bytes
         }
 
-        $abs = dirname(__DIR__, 2) . '/' . ltrim($originalPath, '/');
-        if (!is_file($abs)) {
-            return true; // already gone — nothing to clean up
+        // Resolve against the same candidate locations generateVariantsForImage()
+        // uses: legacy installs stored '/media/originals/…' (lives under public/)
+        // while current ones store '/storage/originals/…'. Delete every copy we
+        // find — no DB row references this original anymore.
+        $root = dirname(__DIR__, 2);
+        $candidates = array_unique([
+            $root . '/' . ltrim($originalPath, '/'),
+            $root . '/public/' . ltrim($originalPath, '/'),
+            $root . '/storage/originals/' . basename($originalPath),
+        ]);
+
+        $ok = true;
+        foreach ($candidates as $abs) {
+            if (is_file($abs) && !self::safeUnlink($abs)) {
+                $ok = false;
+            }
         }
-        return self::safeUnlink($abs);
+        return $ok; // true also when nothing was found (already gone)
+    }
+
+    /**
+     * True when the CURRENT runtime can actually produce the given variant
+     * format through generateVariantsForImage()'s encoder chain (Imagick →
+     * libvips → GD). Mirrors that chain exactly — including the
+     * CIMAISE_DISABLE_IMAGICK opt-out, which raw ImageEngine capabilities do
+     * not know about — so maintenance never counts a format the generator
+     * cannot emit (that would flag every image as perpetually "missing" and
+     * re-scan the whole library on each daily run).
+     */
+    public static function canGenerateFormat(string $format): bool
+    {
+        $caps = \App\Services\Imaging\ImageEngine::capabilities();
+        $raw = function_exists('envv') ? envv('CIMAISE_DISABLE_IMAGICK', 'false') : ($_ENV['CIMAISE_DISABLE_IMAGICK'] ?? 'false');
+        $imagickUsable = $caps['imagick']
+            && !(is_bool($raw) ? $raw : filter_var((string)$raw, FILTER_VALIDATE_BOOLEAN));
+
+        return match ($format) {
+            'jpg', 'jpeg' => true, // GD baseline — the installer requires ext-gd
+            'webp' => $imagickUsable || $caps['vips'] || \function_exists('imagewebp'),
+            'avif' => (($imagickUsable || $caps['vips']) && $caps['avif_write']) || \function_exists('imageavif'),
+            default => false, // jxl & co. are CLI-only (images:generate)
+        };
     }
 
     /**
@@ -535,46 +572,11 @@ class UploadService
         return $ok;
     }
 
-    private function resizeWithGdWebp(string $src, string $dest, int $targetW, int $quality): bool
-    {
-        // GD WebP generation
-        $info = @getimagesize($src);
-        if (!$info) {
-            return false;
-        }
-        [$w, $h] = $info;
-        $ratio = $h > 0 ? $w / $h : 1;
-        $newW = $targetW;
-        $newH = (int)round($targetW / $ratio);
-        $srcImg = match ($info['mime']) {
-            'image/jpeg' => @imagecreatefromjpeg($src),
-            'image/png' => @imagecreatefrompng($src),
-            default => null,
-        };
-        if (!$srcImg) {
-            return false;
-        }
-        $dst = imagecreatetruecolor($newW, $newH);
-
-        // Preserve transparency for PNG sources
-        if ($info['mime'] === 'image/png') {
-            imagealphablending($dst, false);
-            imagesavealpha($dst, true);
-        }
-
-        imagecopyresampled($dst, $srcImg, 0, 0, 0, 0, $newW, $newH, $w, $h);
-        @mkdir(dirname($dest), 0775, true);
-        $ok = imagewebp($dst, $dest, $quality);
-        imagedestroy($srcImg);
-        imagedestroy($dst);
-        return $ok;
-    }
-
     /**
-     * GD AVIF fallback (imageavif, PHP >= 8.1) for hosts whose web SAPI has
-     * neither Imagick nor libvips. Mirrors resizeWithGdWebp.
+     * GD fallback encoder for webp/avif variants (hosts without Imagick and
+     * libvips). One shared body for both formats so they can never drift.
      */
-    private function resizeWithGdAvif(string $src, string $dest, int $targetW, int $quality): bool
+    private function resizeWithGd(string $src, string $dest, int $targetW, int $quality, string $format): bool
     {
         $info = @getimagesize($src);
         if (!$info) {
@@ -602,7 +604,12 @@ class UploadService
 
         imagecopyresampled($dst, $srcImg, 0, 0, 0, 0, $newW, $newH, $w, $h);
         @mkdir(dirname($dest), 0775, true);
-        $ok = imageavif($dst, $dest, $quality);
+        // AVIF speed 7: libaom's default (6) is drastically slower for a few
+        // percent of size — on GD-only hosts the avif encode dominates the
+        // whole upload/cron pass.
+        $ok = $format === 'avif'
+            ? imageavif($dst, $dest, $quality, 7)
+            : imagewebp($dst, $dest, $quality);
         imagedestroy($srcImg);
         imagedestroy($dst);
         return $ok;
@@ -739,27 +746,22 @@ class UploadService
                 // Generate based on format
                 if ($fmt === 'jpg') {
                     $ok = $this->resizeWithImagickOrGd($originalPath, $destPath, $targetW, 'jpeg', (int)($quality['jpg'] ?? 85));
-                } elseif ($fmt === 'webp') {
-                    $q = (int)($quality['webp'] ?? 75);
-                    if ($haveImagick) {
-                        $ok = $this->resizeWithImagick($originalPath, $destPath, $targetW, 'webp', $q);
-                    } elseif (\App\Services\Imaging\ImageEngine::encode($originalPath, $destPath, $targetW, 'webp', $q, $this->envFlag('STRIP_EXIF', true))) {
-                        $ok = true; // libvips available without Imagick
-                    } elseif (function_exists('imagewebp')) {
-                        $ok = $this->resizeWithGdWebp($originalPath, $destPath, $targetW, $q);
-                    }
                 } else {
-                    // Remaining format: 'avif' (narrowed by the if/elseif chain
-                    // above). Prefer Imagick/vips; fall back to GD's imageavif()
-                    // (PHP >= 8.1) so hosts whose web SAPI lacks both extensions
-                    // still produce AVIF instead of failing on every request.
-                    $q = (int)($quality['avif'] ?? 50);
+                    // 'webp' or 'avif' (narrowed by the if/elseif chain above).
+                    // Same 3-tier chain for both: Imagick (which internally
+                    // tries libvips first) → libvips alone → GD (PHP >= 8.1
+                    // ships imageavif; imagewebp is much older). The GD tier
+                    // matters on hosts whose web SAPI has neither extension —
+                    // without it AVIF silently never generates and every
+                    // request 404s and retries the encode.
+                    $q = (int)($quality[$fmt] ?? ($fmt === 'webp' ? 75 : 50));
+                    $gdFn = $fmt === 'webp' ? 'imagewebp' : 'imageavif';
                     if ($haveImagick) {
-                        $ok = $this->resizeWithImagick($originalPath, $destPath, $targetW, 'avif', $q);
-                    } elseif (\App\Services\Imaging\ImageEngine::encode($originalPath, $destPath, $targetW, 'avif', $q, $this->envFlag('STRIP_EXIF', true))) {
+                        $ok = $this->resizeWithImagick($originalPath, $destPath, $targetW, $fmt, $q);
+                    } elseif (\App\Services\Imaging\ImageEngine::encode($originalPath, $destPath, $targetW, $fmt, $q, $this->envFlag('STRIP_EXIF', true))) {
                         $ok = true; // libvips available without Imagick
-                    } elseif (function_exists('imageavif')) {
-                        $ok = $this->resizeWithGdAvif($originalPath, $destPath, $targetW, $q);
+                    } elseif (function_exists($gdFn)) {
+                        $ok = $this->resizeWithGd($originalPath, $destPath, $targetW, $q, $fmt);
                     }
                 }
 

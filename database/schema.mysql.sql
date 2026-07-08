@@ -297,6 +297,7 @@ CREATE TABLE IF NOT EXISTS `images` (
   KEY `idx_images_album` (`album_id`),
   KEY `idx_images_sort` (`sort_order`),
   KEY `idx_images_hash` (`file_hash`),
+  KEY `idx_images_original_path` (`original_path`(191)),
   KEY `idx_images_camera` (`camera_id`),
   KEY `idx_images_lens` (`lens_id`),
   KEY `idx_images_film` (`film_id`),
@@ -329,6 +330,7 @@ CREATE TABLE IF NOT EXISTS `image_variants` (
   `size_bytes` INT UNSIGNED NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_image_variants_unique` (`image_id`, `variant`, `format`),
+  KEY `idx_image_variants_path` (`path`(191)),
   CONSTRAINT `fk_image_variants_image` FOREIGN KEY (`image_id`) REFERENCES `images`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
