@@ -647,6 +647,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $testResult = testDatabaseConnection($dbConfig);
             if (!$testResult['success']) {
                 $errors['connection'] = 'Database connection failed. Please check your credentials and try again.';
+                // Docker single-container hint (only inside the Cimaise image):
+                // MySQL was picked but no bundled DB is wired in — CIMAISE_DB_HOST
+                // is injected by `docker compose --profile mysql`, absent on a
+                // plain `docker run` / Docker Desktop "Run". The generic message
+                // is misleading here (there is simply nothing to connect to), so
+                // point at the two real ways out. Bare-metal installs never set
+                // CIMAISE_DOCKER, so their error text is unchanged.
+                if ($dbType === 'mysql'
+                    && (string) (getenv('CIMAISE_DOCKER') ?: '') !== ''
+                    && (string) (getenv('CIMAISE_DB_HOST') ?: '') === ''
+                ) {
+                    $errors['connection'] = 'No MySQL server is bundled in this single container. '
+                        . 'Choose SQLite above (recommended here — no setup needed), or start the '
+                        . 'bundled MySQL with "docker compose --profile mysql up -d" and reload. See DOCKER.md.';
+                }
                 error_log('Installer DB connection error: ' . $testResult['error']);
             } else {
                 $_SESSION['db_config'] = $dbConfig;
@@ -1105,6 +1120,11 @@ $dbFormData = $_SESSION['db_form_data'] ?? [];
 // notice stays visible as long as the env coordinates are configured.
 $envDbHost = (string) (getenv('CIMAISE_DB_HOST') ?: '');
 $envDbPrefill = $envDbHost !== '';
+// Running inside the Cimaise Docker image but with NO bundled MySQL wired in
+// (single `docker run` / Docker Desktop "Run" instead of the mysql compose
+// profile). Used to render a Docker-specific note in the MySQL panel. Empty
+// outside Docker, so bare-metal installs render nothing extra.
+$dockerNoBundledMysql = ((string) (getenv('CIMAISE_DOCKER') ?: '') !== '') && !$envDbPrefill;
 if ($dbFormData === [] && $envDbPrefill) {
     $dbFormData = [
         'type' => 'mysql',
@@ -1522,6 +1542,11 @@ $requirementsPassed = !in_array(false, $requirements);
                                     <div class="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg">
                                         <i class="fas fa-info-circle mr-2"></i>
                                         A bundled MySQL server was detected (Docker) — the connection details are prefilled and the password is applied automatically on submit. Leave the Password field empty and click "Test &amp; Continue".
+                                    </div>
+                                <?php elseif ($dockerNoBundledMysql): ?>
+                                    <div class="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg">
+                                        <i class="fas fa-info-circle mr-2"></i>
+                                        This single container has no bundled MySQL. Pick <strong>SQLite</strong> above (recommended here — zero setup), or start MySQL with <code class="bg-blue-100 px-1 rounded">docker compose --profile mysql up -d</code> and reload. See DOCKER.md.
                                     </div>
                                 <?php endif; ?>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

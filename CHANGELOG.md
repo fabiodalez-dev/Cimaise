@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The release workflow extracts the `## [VERSION]` section below into the GitHub
 release notes, so keep one section per released tag.
 
+## [1.4.21] - 2026-07-09
+### Changed
+- **Docker installer now explains the MySQL single-container case.** Starting the
+  image as a lone container (`docker run`, or Docker Desktop's *Run* button) gives
+  you SQLite out of the box but no bundled MySQL — that database is a second
+  container defined only by `docker-compose.yml`. Previously, picking *MySQL* in
+  that situation failed with a generic "connection failed". The installer now
+  detects it (via a `CIMAISE_DOCKER` marker baked into the image) and, when MySQL
+  is selected without a bundled database, shows an actionable note: use SQLite, or
+  start MySQL with `docker compose --profile mysql up -d`. The guidance appears both
+  as an upfront banner in the MySQL panel and in the connection-error message.
+  Bare-metal installs are unaffected — the marker exists only inside the Docker image.
+- `DOCKER.md`: new *Docker Desktop (GUI users)* section and a matching troubleshooting row.
+
 ## [1.4.17] - 2026-07-06
 ### Fixed
 - **Admin changes now reach the frontend immediately.** Saving home, galleries,

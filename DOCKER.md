@@ -88,6 +88,39 @@ CIMAISE_MYSQL_ROOT_PASSWORD=change-me-too
 
 The installer prefill and the log banner pick the overrides up automatically.
 
+### Docker Desktop (GUI users)
+
+If you use **Docker Desktop** and start Cimaise with the **Run** button on the
+image (*Images → cimaise → Run*), Docker Desktop launches a **single
+container** — the equivalent of `docker run`. That is perfect for **SQLite**
+(pick it in the installer, no credentials), but it has **no bundled MySQL**: the
+MySQL server is a *second* container that only the `docker-compose.yml` defines,
+and the installer's MySQL prefill is driven by the `CIMAISE_DB_*` variables that
+only Compose injects. So if you "Run" the bare image and then choose *MySQL* in
+the installer, there is nothing to connect to — this is the usual cause of a
+"connection failed" at that step.
+
+To get the bundled MySQL **with** the prefill, use Compose (Docker Desktop
+ships the `docker compose` CLI — no extra install):
+
+1. Put [`docker-compose.yml`](docker-compose.yml) in a folder (clone the repo,
+   or download just that file).
+2. Open a terminal in that folder — the one built into Docker Desktop
+   (*Terminal* tab, bottom bar) works fine — and run:
+
+   ```bash
+   docker compose --profile mysql up -d
+   ```
+
+3. Docker Desktop now shows a **cimaise** stack under *Containers* with two
+   services (`cimaise` + `cimaise-mysql`). Open <http://localhost:8080>: in the
+   installer MySQL is **preselected and prefilled** — leave *Password* empty and
+   click *Test & Continue*.
+
+In short: **Run button → SQLite**; **`docker compose --profile mysql up -d` →
+MySQL with automatic prefill**. (Plain `docker compose up -d`, without the
+`--profile mysql`, starts only the app container — SQLite again.)
+
 ---
 
 ## 3. Persistence — your data
@@ -280,5 +313,6 @@ The workflow publishes `fabiodalez/cimaise:1.4.14`, `:1.4`, and `:latest`.
 | "directory not writable" during install  | Ensure the three volumes are mounted; the entrypoint chowns them.   |
 | Site loads but links use `http://`        | Set the **Application URL** to your `https://` host in the installer, and `TRUSTED_PROXIES`. |
 | Images don't generate                     | Confirm the container has Imagick/GD: `docker exec cimaise php -m \| grep -E 'gd\|imagick'`. |
+| MySQL "connection failed" in the installer | You started the bare image (Docker Desktop **Run** button, or `docker run`) — that single container has no bundled MySQL. Use `docker compose --profile mysql up -d`, or choose *SQLite*. See [Docker Desktop](#docker-desktop-gui-users). |
 | Changed MySQL creds after install         | Edit `storage/.env` in the volume, then restart the container.      |
 | UI shows raw translation keys (`admin.…`) | Update to an image ≥ 1.4.19 and restart: the entrypoint re-seeds the base language packs into the storage volume on every boot. |

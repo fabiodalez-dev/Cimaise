@@ -60,6 +60,13 @@ LABEL org.opencontainers.image.title="Cimaise" \
       org.opencontainers.image.licenses="GPL-3.0-only" \
       org.opencontainers.image.documentation="https://github.com/fabiodalez-dev/cimaise/blob/main/DOCKER.md"
 
+# Marker inherited by every container started from this image (both `docker run`
+# and compose). The web installer uses it to give Docker-specific guidance —
+# e.g. when MySQL is picked in a single container that has no bundled DB wired
+# in (CIMAISE_DB_* is injected only by compose). Never set outside this image,
+# so a bare-metal install is unaffected.
+ENV CIMAISE_DOCKER=1
+
 # Pull in every pending Debian security update at build time — the pinned base
 # image is a point-in-time snapshot and routinely lags the security archive.
 RUN apt-get update \
