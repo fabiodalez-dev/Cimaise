@@ -71,6 +71,24 @@ final class SearchServiceTest extends TestCase
         self::assertNotContains('secret-album', $slugs, 'password-protected album must be hidden');
     }
 
+    public function testExcludesNsfwAlbumsUnlessConsentGiven(): void
+    {
+        if (!$this->fts5Available()) {
+            $this->markTestSkipped('SQLite build without FTS5');
+        }
+
+        $service = new SearchService($this->db);
+
+        // Default (no consent): the NSFW album must not surface, consistent with
+        // the sitemap/feed/home (B5).
+        $anon = array_column($service->search('kodak')['albums'], 'slug');
+        self::assertNotContains('after-hours', $anon, 'NSFW album hidden without consent');
+
+        // With consent/admin ($includeNsfw = true): it appears.
+        $consented = array_column($service->search('kodak', 1, 12, true)['albums'], 'slug');
+        self::assertContains('after-hours', $consented, 'NSFW album visible once consent is given');
+    }
+
     public function testImageMatchExposesMatchedImageIds(): void
     {
         if (!$this->fts5Available()) {
@@ -186,5 +204,8 @@ final class SearchServiceTest extends TestCase
         // 4: unpublished, must be excluded
         $pdo->exec("INSERT INTO albums (id, title, slug, category_id, excerpt, body, is_published, password_hash) VALUES
             (4, 'Draft Roll', 'draft-roll', 1, '', 'Kodak draft notes', 0, NULL)");
+        // 5: published NSFW — hidden by default, shown only with $includeNsfw
+        $pdo->exec("INSERT INTO albums (id, title, slug, category_id, excerpt, body, is_published, is_nsfw, password_hash) VALUES
+            (5, 'After Hours', 'after-hours', 2, '', 'Kodak film after hours', 1, 1, NULL)");
     }
 }
