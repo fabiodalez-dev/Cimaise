@@ -81,7 +81,7 @@ class ApiController extends BaseController
         $visibleAlbums = [];
         foreach ($albums as $album) {
             $this->enrichAlbum($album);
-            if (!$isAdmin && !empty($album['password_hash']) && !$this->hasAlbumPasswordAccess((int)$album['id'])) {
+            if (!$isAdmin && !empty($album['password_hash']) && !$this->hasAlbumPasswordAccess((int)$album['id'], (string)$album['password_hash'])) {
                 continue;
             }
             $album = $this->sanitizeAlbumCoverForNsfw($album, $isAdmin, $nsfwConsent);
@@ -133,7 +133,7 @@ class ApiController extends BaseController
 
         $isPasswordProtected = !empty($album['password_hash']);
         $isNsfw = (bool)$album['is_nsfw'];
-        $accessResult = $this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw);
+        $accessResult = $this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, null, false, (string)($album['password_hash'] ?? ''));
         if ($accessResult !== true) {
             $error = match ($accessResult) {
                 'password' => 'Album is password protected',
@@ -319,7 +319,7 @@ class ApiController extends BaseController
         // Check album access (password protection & NSFW)
         $isPasswordProtected = !empty($row['password_hash']);
         $isNsfw = (bool)$row['is_nsfw'];
-        $accessResult = $this->validateAlbumAccess((int)$row['album_id'], $isPasswordProtected, $isNsfw);
+        $accessResult = $this->validateAlbumAccess((int)$row['album_id'], $isPasswordProtected, $isNsfw, null, false, (string)($row['password_hash'] ?? ''));
         if ($accessResult !== true) {
             $error = match ($accessResult) {
                 'password' => 'Album is password protected',

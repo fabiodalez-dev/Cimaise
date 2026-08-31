@@ -78,8 +78,14 @@ class GalleriesController extends BaseController
         [$pageTemplateSlug, $pageTemplateFile] = $this->resolvePageTemplate();
         $cacheKey = $pageTemplateSlug === 'classic' ? 'galleries' : 'galleries_' . $pageTemplateSlug;
 
-        // Cache is only used for unfiltered public view
-        $canUseCache = !$isAdmin && !$nsfwConsent && !$hasActiveFilters;
+        // Cache is only used for unfiltered public view.
+        // SECURITY (N1): a visitor who has unlocked a password-protected album
+        // carries $_SESSION['album_access']; their render resolves that album as
+        // unlocked (is_locked=false, sharp/unsanitized cover, sharp variant URL
+        // in the card). Writing that into the SHARED page cache would serve the
+        // unlocked state to everyone until the TTL. Never cache for such a session.
+        $canUseCache = !$isAdmin && !$nsfwConsent && !$hasActiveFilters
+            && empty($_SESSION['album_access']);
 
         // Try cache first for public unfiltered view
         if ($canUseCache) {

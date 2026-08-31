@@ -67,9 +67,27 @@ final readonly class ProtectedMediaStorage
         $publicPath = $this->publicDir . '/' . $basename;
         $privatePath = $this->privateDir . '/' . $basename;
 
+        // P9: steady-state fast paths. Once the cron reconciler
+        // (VariantMaintenanceService) and the album protection toggle have placed
+        // a variant in its correct root, every subsequent serve of that image
+        // re-ran a double-JOIN hasPublicReference() query plus is_file()/rename
+        // churn for nothing. When the file is already where it belongs (and not
+        // duplicated in the other root), resolve it directly — no query, no
+        // mutation. The full reconciliation below still runs whenever a copy is
+        // found lingering in the wrong root, preserving the quarantine safety net.
+        $publicExists = is_file($publicPath);
+        $privateExists = is_file($privatePath);
+
         if (!$protected) {
+            if ($publicExists && !$privateExists) {
+                return realpath($publicPath) ?: $publicPath;
+            }
             $this->moveToPublic($privatePath, $publicPath);
             return is_file($publicPath) ? (realpath($publicPath) ?: $publicPath) : null;
+        }
+
+        if ($privateExists && !$publicExists) {
+            return realpath($privatePath) ?: $privatePath;
         }
 
         // A variant may be shared by an explicitly attached public image. In

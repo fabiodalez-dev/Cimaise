@@ -61,8 +61,13 @@
           {% endif %}
         {% endif %}
         {% set real_url = card_img_url ? (card_img_url starts with '/' ? base_path ~ card_img_url : card_img_url) : blur_path %}
+        {# M4/PW4: only NSFW-gated (not password-locked) covers get the reveal URL.
+           A password-locked album must NOT expose its sharp cover URL here, and its
+           blur must not be lifted by the NSFW consent swap — the two gates are
+           independent, and the card re-renders unblurred after a successful unlock. #}
+        {% set emit_nsfw_swap = album.is_nsfw and not is_locked and not (is_admin|default(false)) %}
         <img src="{{ blur_path }}"
-             data-nsfw-real-src="{{ real_url }}"
+             {% if emit_nsfw_swap %}data-nsfw-real-src="{{ real_url }}"{% endif %}
              alt="{{ (album.cover.alt_text ?? album.title)|e }}"
              title="{{ seo_title|e('html_attr') }}"
              loading="lazy"

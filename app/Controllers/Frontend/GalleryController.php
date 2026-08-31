@@ -464,7 +464,10 @@ class GalleryController extends BaseController
                 'custom_fields' => $img['custom_fields'] ?? [],
                 'settings' => '',
                 'sources' => $sources, // Add sources array with base_path prepended
-                'fallback_src' => $lightboxUrl ?: $bestUrl,
+                // P10: the grid <img src> fallback must be the SMALL grid variant,
+                // not the largest (lightbox) one — otherwise a full-size image is
+                // fetched for a thumbnail and inflates the JSON-LD.
+                'fallback_src' => $bestUrl ?: $lightboxUrl,
                 'variants' => []
             ];
         }
@@ -945,7 +948,10 @@ class GalleryController extends BaseController
                     'artist' => $img['artist'] ?? null,
                     'copyright' => $img['copyright'] ?? null,
                     'sources' => $sources,
-                    'fallback_src' => $lightboxUrl ?: $bestUrl,
+                    // P10: the grid <img src> fallback must be the SMALL grid variant,
+                // not the largest (lightbox) one — otherwise a full-size image is
+                // fetched for a thumbnail and inflates the JSON-LD.
+                'fallback_src' => $bestUrl ?: $lightboxUrl,
                     'variants' => []
                 ];
             }

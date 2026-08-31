@@ -111,30 +111,40 @@
 
   const loadHDImage = (img) => {
     const hdSrc = img.getAttribute('data-src');
-    if (!hdSrc) return;
-
-    // Restore picture source srcsets (if any)
     const picture = img.closest('picture');
+    if (!hdSrc && !picture) return;
+
+    // Restore <picture> source srcsets so the browser can select webp/avif.
     if (picture) {
-      const sources = picture.querySelectorAll('source[data-srcset]');
-      sources.forEach(source => {
+      picture.querySelectorAll('source[data-srcset]').forEach(source => {
         source.setAttribute('srcset', source.getAttribute('data-srcset'));
         source.removeAttribute('data-srcset');
       });
     }
 
-    const hdImage = new Image();
-    hdImage.onload = () => {
-      img.src = hdSrc;
+    // P6: unblur when the ACTUALLY DISPLAYED resource finishes — the <img>
+    // itself, whose currentSrc the browser resolves from the restored <picture>
+    // sources. The old code preloaded `new Image(hdSrc)`: that double-downloaded
+    // the jpg fallback the <picture> would never show AND fired 'lqip-loaded'
+    // against that wrong resource, lifting the blur while the real webp/avif was
+    // still downloading.
+    const reveal = () => {
       img.removeAttribute('data-src');
-      requestAnimationFrame(() => {
-        img.classList.add('lqip-loaded');
-      });
+      requestAnimationFrame(() => img.classList.add('lqip-loaded'));
     };
-    hdImage.onerror = () => {
-      img.classList.add('lqip-loaded');
-    };
-    hdImage.src = hdSrc;
+    img.addEventListener('load', reveal, { once: true });
+    img.addEventListener('error', () => img.classList.add('lqip-loaded'), { once: true });
+
+    // Point the <img> at the HD fallback; with the sources restored the browser
+    // picks the best source and fires load/error on the <img>.
+    if (hdSrc) {
+      img.src = hdSrc;
+    }
+
+    // Already complete (served from cache): 'load' may not fire — reveal now.
+    if (img.complete && img.naturalWidth > 0) {
+      reveal();
+    }
   };
 
   // Use IntersectionObserver to load only visible images

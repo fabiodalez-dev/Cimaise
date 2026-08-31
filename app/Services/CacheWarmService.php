@@ -358,6 +358,23 @@ class CacheWarmService
         // Get filter settings
         $filterSettings = $this->getFilterSettings();
 
+        // N6: the live GalleriesController::index INCLUDES NSFW and
+        // password-protected albums (with blurred/sanitized covers and a lock
+        // badge), but this warmer can only faithfully reproduce the plain public
+        // subset. Writing a divergent 'galleries' entry means those albums flip
+        // in and out of the listing depending on whether the warm cron or a live
+        // request populated the cache last. When any such album exists, skip the
+        // warm write and let the live request (which has stale-while-revalidate)
+        // build the correct, complete listing.
+        $hasGatedAlbums = (int) $pdo->query(
+            "SELECT COUNT(*) FROM albums
+             WHERE is_published = 1 AND (is_nsfw = 1 OR (password_hash IS NOT NULL AND password_hash != ''))"
+        )->fetchColumn() > 0;
+        if ($hasGatedAlbums) {
+            Logger::info('CacheWarm: skipping galleries list warm (gated albums present — see N6)', [], 'cache');
+            return false;
+        }
+
         // Get albums (public view = exclude NSFW and password-protected)
         $stmt = $pdo->prepare('
             SELECT
@@ -898,7 +915,7 @@ class CacheWarmService
                 if (str_starts_with($path, '/storage/')) {
                     continue;
                 }
-                if ($variantType === 'blur') {
+                if ($variantType === 'blur' || $variantType === 'lqip') {
                     continue;
                 }
                 // Trust database - variant exists means file exists
@@ -930,7 +947,7 @@ class CacheWarmService
                 if ($w <= 0) {
                     continue;
                 }
-                if ($variantType === 'blur') {
+                if ($variantType === 'blur' || $variantType === 'lqip') {
                     continue;
                 }
                 if ($w < $bestWidth) {

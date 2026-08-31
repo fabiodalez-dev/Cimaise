@@ -48,7 +48,7 @@ class DownloadController extends BaseController
         }
 
         // Check album password if present
-        if (!empty($row['password_hash']) && !$this->hasAlbumPasswordAccess((int)$row['album_id'])) {
+        if (!empty($row['password_hash']) && !$this->hasAlbumPasswordAccess((int)$row['album_id'], (string)$row['password_hash'])) {
             return $response->withStatus(403);
         }
 

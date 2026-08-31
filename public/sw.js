@@ -119,7 +119,7 @@ self.addEventListener('fetch', (event) => {
 
   // Strategy 1: IMAGES - Cache First (instant load!)
   if (isImageRequest(request)) {
-    event.respondWith(cacheFirstStrategy(request, CACHE_IMAGES, MAX_IMAGE_CACHE));
+    event.respondWith(cacheFirstStrategy(request, CACHE_IMAGES, MAX_IMAGE_CACHE, event));
     return;
   }
 
@@ -143,7 +143,7 @@ self.addEventListener('fetch', (event) => {
  * Cache First Strategy - Best for images
  * Check cache first, fetch from network if not found, then cache it
  */
-async function cacheFirstStrategy(request, cacheName, maxItems = 50) {
+async function cacheFirstStrategy(request, cacheName, maxItems = 50, event = null) {
   try {
     // 1. Try cache first
     const cache = await caches.open(cacheName);
@@ -185,10 +185,16 @@ async function cacheFirstStrategy(request, cacheName, maxItems = 50) {
       // Clone response before caching (can only read once)
       const responseToCache = networkResponse.clone();
 
-      // Limit cache size
-      await limitCacheSize(cacheName, maxItems);
-
-      cache.put(request, responseToCache);
+      // P11: keep the cache write AND the size trim (which enumerates cache.keys()
+      // and deletes up to `maxItems` entries) OFF the critical path — the visitor
+      // must not wait on it before the image paints. event.waitUntil keeps the SW
+      // alive for the deferred work; without an event we fall back to a detached
+      // promise (best-effort).
+      const persist = cache.put(request, responseToCache)
+        .then(() => limitCacheSize(cacheName, maxItems));
+      if (event && typeof event.waitUntil === 'function') {
+        event.waitUntil(persist);
+      }
     }
 
     return networkResponse;

@@ -2831,9 +2831,13 @@
         }
 
         window.applyNsfwConsentState = function() {
-            const localConfirmed = safeLocalStorageGet('nsfw_confirmed') === 'true'
-                || safeLocalStorageGet('nsfw_global_confirmed') === 'true';
-            const canShow = window.isAdmin || window.nsfwConsent === true || localConfirmed;
+            // N5: the SERVER is the source of truth. The signed consent cookie
+            // expires after 30 days but localStorage never does, so trusting
+            // localStorage alone made cover swaps fire while the server kept
+            // serving blur bytes — leaving covers blurred with no overlay and no
+            // way back to the gate. Only reveal when the server actually grants
+            // consent (window.nsfwConsent) or the viewer is an admin.
+            const canShow = window.isAdmin || window.nsfwConsent === true;
             if (!canShow) return;
 
             document.documentElement.classList.add('nsfw-confirmed');

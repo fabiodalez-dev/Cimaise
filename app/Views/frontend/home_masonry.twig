@@ -166,7 +166,9 @@
           height="{{ img_height }}"
           style="aspect-ratio: {{ img_width }} / {{ img_height }};"
           class="{% if use_lqip %}lqip-blur{% endif %}"
-          {% if loop.index0 < 5 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+          {# P7: only the first image (the LCP candidate) is high priority; the rest
+             of the eager set loads eagerly without competing for high priority. #}
+          {% if loop.index0 == 0 %}fetchpriority="high" decoding="async"{% elseif loop.index0 < 5 %}decoding="async"{% else %}loading="lazy" decoding="async"{% endif %}
         >
       </picture>
     </a>

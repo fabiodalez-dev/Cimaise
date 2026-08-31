@@ -106,8 +106,8 @@
             <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
                  {% if image.sources.jpg|length %}srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="{{ dense_sizes }}"{% endif %}
                  alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
-                 {% if loop.index <= 5 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
-                 decoding="async"
+                 {% if image.width %}width="{{ image.width }}"{% endif %}{% if image.height %} height="{{ image.height }}"{% endif %}
+                 {% if loop.index == 1 %}fetchpriority="high" decoding="async"{% elseif loop.index <= 5 %}decoding="async"{% else %}loading="lazy" decoding="async"{% endif %}
                  class="dense-grid-img">
           </picture>
         </a>
@@ -193,7 +193,7 @@
               <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
                    alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
                    title="{{ seo_title|e('html_attr') }}"
-                   {% if loop.index <= 5 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+                   {% if loop.index == 1 %}fetchpriority="high" decoding="async"{% elseif loop.index <= 5 %}decoding="async"{% else %}loading="lazy" decoding="async"{% endif %}
                    decoding="async"
                    data-fallback="hide">
             </picture>
@@ -286,7 +286,7 @@
                  title="{{ seo_title|e('html_attr') }}"
                  width="{{ image.width }}"
                  height="{{ image.height }}"
-                 {% if loop.index <= 5 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+                 {% if loop.index == 1 %}fetchpriority="high" decoding="async"{% elseif loop.index <= 5 %}decoding="async"{% else %}loading="lazy" decoding="async"{% endif %}
                  decoding="async"
                  data-fallback="hide"
                  class="w-full h-full object-cover transition-transform duration-300 {{ hover_class }}">

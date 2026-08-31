@@ -161,7 +161,10 @@ final class MediaControllerMediaTypeTest extends TestCase
         $r = $this->servePublic($id, 'md', 'jxl');
         self::assertSame(200, $r->getStatusCode());
         self::assertSame('image/jxl', $r->getHeaderLine('Content-Type'));
-        self::assertStringContainsString('no-store', $r->getHeaderLine('Cache-Control'));
+        // P2: authorized protected media is private + revalidate (never public/shared).
+        self::assertStringContainsString('private', $r->getHeaderLine('Cache-Control'));
+        self::assertStringContainsString('no-cache', $r->getHeaderLine('Cache-Control'));
+        self::assertStringNotContainsString('public', $r->getHeaderLine('Cache-Control'));
         self::assertFileExists($this->privatePath("{$id}_md.jxl"), 'protected jxl must be quarantined to protected-media');
     }
 
