@@ -1018,6 +1018,8 @@ INSERT INTO settings (key, value, type) VALUES
 ('seo.sitemap_enabled', 'true', 'boolean'),
 ('seo.analytics_gtag', '', 'string'),
 ('seo.analytics_gtm', '', 'string'),
+('seo.google_verification', '', 'string'),
+('seo.bing_verification', '', 'string'),
 ('seo.image_alt_auto', 'true', 'boolean'),
 ('seo.image_copyright_notice', '', 'string'),
 ('seo.image_license_url', '', 'string'),

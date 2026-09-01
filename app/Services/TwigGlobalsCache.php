@@ -23,7 +23,7 @@ class TwigGlobalsCache
      * globals changes (new/renamed keys), so deployed caches with the old shape
      * are never served to templates expecting the new key.
      */
-    private const CACHE_KEY_PREFIX = 'twig_globals:v3:';
+    private const CACHE_KEY_PREFIX = 'twig_globals:v4:';
     private const TTL = 300; // 5 minutes
 
     /**
@@ -146,6 +146,12 @@ class TwigGlobalsCache
 
                 $globals['analytics_gtag'] = $settings->get('seo.analytics_gtag', '');
                 $globals['analytics_gtm'] = $settings->get('seo.analytics_gtm', '');
+
+                // Search-engine ownership verification meta tags (rendered in
+                // _layout only when non-empty). Wiring the globals is what makes
+                // the <meta> tags real rather than always-empty dead markup.
+                $globals['google_verification'] = $settings->get('seo.google_verification', '');
+                $globals['bing_verification'] = $settings->get('seo.bing_verification', '');
             }
 
             return $globals;
