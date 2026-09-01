@@ -98,8 +98,13 @@ abstract class BaseController
 
     /**
      * Check if user has valid password access for a specific album (24h window).
+     *
+     * @param string|null $currentHash When provided (the caller knows the album's
+     *   current password_hash), the stored grant fingerprint must still match it;
+     *   a rotated/cleared password no longer matches and the stale grant is
+     *   revoked on the spot (PW1). Passing null keeps the legacy time-only check.
      */
-    protected function hasAlbumPasswordAccess(int $albumId): bool
+    protected function hasAlbumPasswordAccess(int $albumId, ?string $currentHash = null): bool
     {
         if ($albumId <= 0) {
             return false;
@@ -111,16 +116,33 @@ abstract class BaseController
             return false;
         }
         if ((time() - $accessTime) >= self::ALBUM_ACCESS_WINDOW_SECONDS) {
-            unset($_SESSION['album_access'][$albumId]);
+            unset($_SESSION['album_access'][$albumId], $_SESSION['album_access_fp'][$albumId]);
             return false;
+        }
+        // PW1: bind the grant to the password that was in force at unlock time.
+        // When the caller supplies the album's current hash AND this grant carries
+        // a fingerprint that no longer matches it (password rotated or cleared),
+        // revoke on the spot. Grants with no stored fingerprint are legacy (issued
+        // before this binding existed): they are left to expire on the 24h window
+        // rather than force a mass re-login on deploy — every NEW grant records a
+        // fingerprint and is fully revocable.
+        if ($currentHash !== null) {
+            $stored = $_SESSION['album_access_fp'][$albumId] ?? null;
+            if ($stored !== null && $stored !== $this->albumPasswordFingerprint($currentHash)) {
+                unset($_SESSION['album_access'][$albumId], $_SESSION['album_access_fp'][$albumId]);
+                return false;
+            }
         }
         return true;
     }
 
     /**
      * Grant password access for a specific album (stored in session).
+     *
+     * @param string $passwordHash The album's password_hash at unlock time; its
+     *   fingerprint is stored so a later password change revokes this grant (PW1).
      */
-    protected function grantAlbumPasswordAccess(int $albumId): void
+    protected function grantAlbumPasswordAccess(int $albumId, string $passwordHash = ''): void
     {
         if ($albumId <= 0) {
             return;
@@ -129,7 +151,20 @@ abstract class BaseController
         if (!isset($_SESSION['album_access'])) {
             $_SESSION['album_access'] = [];
         }
+        if (!isset($_SESSION['album_access_fp'])) {
+            $_SESSION['album_access_fp'] = [];
+        }
         $_SESSION['album_access'][$albumId] = time();
+        $_SESSION['album_access_fp'][$albumId] = $this->albumPasswordFingerprint($passwordHash);
+    }
+
+    /**
+     * Short, non-reversible fingerprint of an album password_hash, used to bind a
+     * session unlock grant to the password value that produced it (PW1).
+     */
+    private function albumPasswordFingerprint(string $passwordHash): string
+    {
+        return $passwordHash === '' ? '' : substr(hash('sha256', $passwordHash), 0, 24);
     }
 
     /**
@@ -168,7 +203,11 @@ abstract class BaseController
     }
 
     /**
-     * Grant NSFW consent globally (cookie + session) and optionally per-album.
+     * Grant NSFW consent. Age verification is a SITE-WIDE assertion: this always
+     * sets the global session flag + 30-day signed cookie, so confirming once
+     * satisfies the age gate for every NSFW album. The optional $albumId only
+     * additionally records a per-album flag (belt-and-suspenders; the global flag
+     * already covers it — see hasNsfwAlbumConsent).
      */
     protected function grantNsfwConsent(?int $albumId = null): void
     {
@@ -244,7 +283,8 @@ abstract class BaseController
         bool $isPasswordProtected,
         bool $isNsfw,
         ?string $variant = null,
-        bool $log = false
+        bool $log = false,
+        ?string $passwordHash = null
     ): bool|string {
         if ($this->isAdmin()) {
             return true;
@@ -257,9 +297,15 @@ abstract class BaseController
             return true;
         }
 
-        // Password-protected albums: require session access for non-blur variants
-        if ($isPasswordProtected && !$this->hasAlbumPasswordAccess($albumId)) {
-            if ($log) {
+        // Password-protected albums: require session access for non-blur variants.
+        // $passwordHash (when known by the caller) lets the grant be revoked the
+        // moment the album password is rotated — see hasAlbumPasswordAccess (PW1).
+        if ($isPasswordProtected && !$this->hasAlbumPasswordAccess($albumId, $passwordHash)) {
+            if ($log && getenv('MEDIA_ACCESS_DEBUG')) {
+                // B2: this fires once per denied image (a no-consent visitor on an
+                // NSFW site triggers one per image per pageview), so gate it behind
+                // an explicit debug flag to keep it out of the normal log. Left as
+                // error_log (not Logger) so it stays dependency-free on the hot path.
                 error_log("[MediaAccess] DENY password album={$albumId} variant={$variant}");
             }
             return 'password';
@@ -267,7 +313,7 @@ abstract class BaseController
 
         // NSFW albums require consent for non-blur variants
         if ($isNsfw && !$this->hasNsfwAlbumConsent($albumId)) {
-            if ($log) {
+            if ($log && getenv('MEDIA_ACCESS_DEBUG')) {
                 $consentCount = isset($_SESSION['nsfw_confirmed']) && \is_array($_SESSION['nsfw_confirmed'])
                     ? count($_SESSION['nsfw_confirmed'])
                     : 0;

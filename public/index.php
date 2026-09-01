@@ -385,9 +385,15 @@ if ($loader instanceof \Twig\Loader\FilesystemLoader) {
     }
 }
 
-// Add translation extension (only if database is available)
+// Add translation extension (only if database is available).
+// PERFORMANCE (P1): /media/* is hot-path image serving handled by MediaController,
+// which renders no Twig and calls no trans(). Building the TranslationService
+// (which loads the full translation set from the DB) and the PerformanceService
+// on every single image request is pure overhead — a 40-photo gallery fires 40
+// such requests. Skip both for media requests. $translationService stays null;
+// the error handlers below already guard on `instanceof`.
 $translationService = null;
-if ($container['db'] !== null) {
+if ($container['db'] !== null && !$isMediaRequest) {
     $translationService = new \App\Services\TranslationService($container['db']);
     $twig->getEnvironment()->addExtension(new \App\Extensions\TranslationTwigExtension($translationService));
     // Expose globally for trans() helper function in controllers

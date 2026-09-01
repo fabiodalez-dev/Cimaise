@@ -41,16 +41,19 @@ final class SearchController extends BaseController
         $page = max(1, (int) ($params['page'] ?? 1));
         $perPage = 12;
 
-        $result = $this->search->search($query, $page, $perPage);
+        $isAdmin = $this->isAdmin();
+        $nsfwConsent = $this->hasNsfwConsent();
+
+        // B5: hide NSFW albums from search for visitors who haven't consented,
+        // consistent with the sitemap/feed/home. Admins and consenting viewers
+        // still get them (with the same cover sanitisation applied below).
+        $result = $this->search->search($query, $page, $perPage, $isAdmin || $nsfwConsent);
 
         // Let plugins observe the search (e.g. analytics-pro). Only for real
         // queries, not the empty landing page.
         if ($query !== '') {
             \App\Support\Hooks::doAction('search_performed', $query, (array)($result['albums'] ?? []));
         }
-
-        $isAdmin = $this->isAdmin();
-        $nsfwConsent = $this->hasNsfwConsent();
 
         $albums = $this->enrichAlbums($result['albums']);
         $albums = $this->attachMatchedPhotos($albums);

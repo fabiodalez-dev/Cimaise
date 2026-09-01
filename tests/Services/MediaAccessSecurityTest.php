@@ -124,11 +124,15 @@ final class MediaAccessSecurityTest extends TestCase
         self::assertStringStartsWith('public,', $blur->getHeaderLine('Cache-Control'), 'blur is a public cover asset');
 
         // (c) After NSFW consent, the sharp variant is served — quarantined to
-        // private storage and never cacheable / never indexable.
+        // private storage, never SHARED-cacheable (private) and never indexable,
+        // but privately cacheable with mandatory revalidation (P2: no-cache, so
+        // the browser can 304 while every view still re-checks the access grant).
         $_SESSION['nsfw_confirmed_global'] = true;
         $granted = $this->servePublic($imageId, 'sm');
         self::assertSame(200, $granted->getStatusCode());
-        self::assertStringContainsString('no-store', $granted->getHeaderLine('Cache-Control'));
+        self::assertStringContainsString('private', $granted->getHeaderLine('Cache-Control'));
+        self::assertStringContainsString('no-cache', $granted->getHeaderLine('Cache-Control'));
+        self::assertStringNotContainsString('public', $granted->getHeaderLine('Cache-Control'));
         self::assertStringContainsString('noimageindex', $granted->getHeaderLine('X-Robots-Tag'));
         self::assertFileDoesNotExist($sharpPublic, 'sharp NSFW variant must be quarantined out of public/media');
         self::assertFileExists($this->privatePath("{$imageId}_sm.jpg"), 'sharp NSFW variant lives in protected-media');
@@ -146,12 +150,13 @@ final class MediaAccessSecurityTest extends TestCase
         $denied = $this->serveProtected($imageId, 'sm');
         $this->assertNoSharpLeak($denied, $sharpBytes, 'password sharp variant before unlock');
 
-        // (b) Valid unlock session → served, private + no-store.
+        // (b) Valid unlock session → served, private + revalidate (P2: no-cache).
         $_SESSION['album_access'][1] = time();
         $granted = $this->serveProtected($imageId, 'sm');
         self::assertSame(200, $granted->getStatusCode());
-        self::assertStringContainsString('no-store', $granted->getHeaderLine('Cache-Control'));
-        self::assertStringContainsString('no-cache', $granted->getHeaderLine('Pragma'));
+        self::assertStringContainsString('private', $granted->getHeaderLine('Cache-Control'));
+        self::assertStringContainsString('no-cache', $granted->getHeaderLine('Cache-Control'));
+        self::assertStringNotContainsString('public', $granted->getHeaderLine('Cache-Control'));
         self::assertSame($sharpBytes, (string) $granted->getBody(), 'authorized viewer receives the real variant');
 
         // (c) Expired unlock (older than the 24h window) → gated again, and
@@ -187,11 +192,13 @@ final class MediaAccessSecurityTest extends TestCase
         $_SESSION['nsfw_confirmed_global'] = true;
         $this->assertNoSharpLeak($this->serveProtected($imageId, 'sm'), $sharpBytes, 'NSFW consent alone is not enough');
 
-        // (d) Both cleared → served, private + no-store, real bytes.
+        // (d) Both cleared → served, private + revalidate (P2), real bytes.
         $_SESSION['album_access'][1] = time();
         $granted = $this->serveProtected($imageId, 'sm');
         self::assertSame(200, $granted->getStatusCode(), 'both gates cleared → serve');
-        self::assertStringContainsString('no-store', $granted->getHeaderLine('Cache-Control'));
+        self::assertStringContainsString('private', $granted->getHeaderLine('Cache-Control'));
+        self::assertStringContainsString('no-cache', $granted->getHeaderLine('Cache-Control'));
+        self::assertStringNotContainsString('public', $granted->getHeaderLine('Cache-Control'));
         self::assertStringContainsString('noimageindex', $granted->getHeaderLine('X-Robots-Tag'));
         self::assertSame($sharpBytes, (string) $granted->getBody(), 'fully-authorized viewer receives the real variant');
     }

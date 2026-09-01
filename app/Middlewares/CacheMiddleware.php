@@ -213,6 +213,17 @@ class CacheMiddleware implements MiddlewareInterface
 
     private function addHtmlCache(Response $response, Request $request, string $normalizedPath): Response
     {
+        // PW2: a controller may mark an HTML response as not shareable — e.g. the
+        // password/NSFW gate pages, which embed a session-bound CSRF token. For a
+        // first-time visitor isSessionDependent() is still false (no album_access
+        // /nsfw/admin flag set yet), so without this guard the gate would be
+        // stamped 'public' and a shared cache could replay one visitor's gate (and
+        // CSRF token) to another. Respect an existing private/no-store just like
+        // the static and media cache decorators already do.
+        if ($this->hasRestrictedCacheControl($response)) {
+            return $response;
+        }
+
         $maxAge = $this->settings->get('performance.html_cache_max_age', 3600); // 1 hour default
 
         // Determine cache visibility: use 'private' when the session contains user-specific

@@ -81,6 +81,29 @@ class MediaController extends BaseController
      */
     private function mimeFromExtension(string $realPath, bool $strict = false): ?string
     {
+        // P13: the strict path runs finfo_file() (a magic-byte read from disk) on
+        // EVERY request for a variant the app itself generated. Memoize the strict
+        // verdict per (path, mtime, size) in APCu when available so repeat serves
+        // skip the disk read. The non-strict path is already a cheap array lookup.
+        if ($strict && \function_exists('apcu_fetch')) {
+            $st = @stat($realPath);
+            if ($st !== false) {
+                $memoKey = 'media_mime_strict:' . $realPath . '|' . $st['mtime'] . '|' . $st['size'];
+                $cached = apcu_fetch($memoKey, $hit);
+                if ($hit === true) {
+                    return $cached === '' ? null : (string) $cached;
+                }
+                $result = $this->computeMimeFromExtension($realPath, true);
+                apcu_store($memoKey, $result ?? '', 3600);
+                return $result;
+            }
+        }
+
+        return $this->computeMimeFromExtension($realPath, $strict);
+    }
+
+    private function computeMimeFromExtension(string $realPath, bool $strict = false): ?string
+    {
         $ext = strtolower(pathinfo($realPath, PATHINFO_EXTENSION));
         $extMime = self::EXT_TO_MIME[$ext] ?? null;
 
@@ -227,9 +250,37 @@ class MediaController extends BaseController
     }
 
     /**
+     * Stamp the headers for an AUTHORIZED protected-media response (the access
+     * check has already passed). `private` keeps shared caches/CDNs from
+     * reusing the bytes for a different visitor; `no-cache` lets the visitor's
+     * OWN browser store them but forces revalidation on every view. That
+     * revalidation re-runs the access check server-side each time — an expired
+     * grant then yields blur/403 — while unchanged, still-authorized bytes come
+     * back as a bodyless 304 instead of a full re-download (previously
+     * `no-store` disabled the browser cache entirely, so every scroll/revisit
+     * re-transferred every byte of every photo). `Last-Modified` lets proxies
+     * that prefer `If-Modified-Since` revalidate too.
+     */
+    private function withAuthorizedProtectedHeaders(Response $response, string $etag, string $realPath): Response
+    {
+        $response = $response
+            ->withHeader('Cache-Control', 'private, no-cache')
+            ->withHeader('X-Robots-Tag', 'noindex, noimageindex, noarchive')
+            ->withHeader('ETag', $etag);
+        $mtime = @filemtime($realPath);
+        if ($mtime !== false) {
+            $response = $response->withHeader('Last-Modified', gmdate('D, d M Y H:i:s', $mtime) . ' GMT');
+        }
+        return $response;
+    }
+
+    /**
      * Resolve the blur variant path for an image.
      * First checks database, then falls back to conventional path.
      *
+     * @phpstan-impure The blur variant can be generated between calls (async job
+     *                 or the synchronous fallback in generateBlurOnDemand), so a
+     *                 null result must not be memoized by static analysis.
      * @return string|null Filesystem path to blur file, or null if not found
      */
     private function resolveBlurPath(int $imageId): ?string
@@ -277,6 +328,11 @@ class MediaController extends BaseController
      */
     private function generateBlurOnDemand(int $imageId): ?string
     {
+        // Already generated (by a prior request or the cron)? Serve it directly.
+        if ($this->resolveBlurPath($imageId) !== null) {
+            return '/media/' . $imageId . '_blur.jpg';
+        }
+
         $dispatched = false;
         try {
             $dispatched = BlurGenerationJob::dispatch($imageId);
@@ -287,10 +343,40 @@ class MediaController extends BaseController
             ], 'media');
         }
 
+        // B1: BlurGenerationJob shells out via exec(), which is disabled on much
+        // shared hosting (including the cPanel target). There the async job never
+        // runs and the sharp-variant URL would serve the generic gray placeholder
+        // forever. Fall back to generating the blur SYNCHRONOUSLY — its source is
+        // the cheap 'sm' variant, so the cost is bounded — guarded by a per-image
+        // lock so parallel requests don't all regenerate it.
         if (!$dispatched) {
-            Logger::warning('Blur generation job dispatch failed', [
-                'image_id' => $imageId,
-            ], 'media');
+            $lockDir = dirname(__DIR__, 3) . '/storage/tmp/blur-locks';
+            if (!is_dir($lockDir)) {
+                @mkdir($lockDir, 0775, true);
+            }
+            $lockHandle = @fopen("{$lockDir}/{$imageId}.lock", 'c');
+            $locked = $lockHandle !== false && flock($lockHandle, LOCK_EX);
+            try {
+                if (!$locked || $this->resolveBlurPath($imageId) === null) {
+                    $this->uploadService->generateBlurredVariant($imageId);
+                }
+            } catch (\Throwable $e) {
+                Logger::warning('Synchronous blur generation failed', [
+                    'image_id' => $imageId,
+                    'error' => $e->getMessage(),
+                ], 'media');
+            } finally {
+                if ($lockHandle !== false) {
+                    if ($locked) {
+                        flock($lockHandle, LOCK_UN);
+                    }
+                    fclose($lockHandle);
+                }
+            }
+
+            if ($this->resolveBlurPath($imageId) !== null) {
+                return '/media/' . $imageId . '_blur.jpg';
+            }
         }
 
         $placeholder = $this->uploadService->ensureBlurPlaceholder();
@@ -411,7 +497,7 @@ class MediaController extends BaseController
         $isPasswordProtected = !empty($row['password_hash']);
         $isNsfw = (bool)$row['is_nsfw'];
 
-        $accessResult = $this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant, true);
+        $accessResult = $this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant, true, (string)($row['password_hash'] ?? ''));
         if ($accessResult !== true) {
             // Try blur fallback for protected albums (password or NSFW)
             $blurResponse = $this->tryServeBlurFallback($request, $response, $imageId, $isPasswordProtected || $isNsfw, $variant);
@@ -450,19 +536,44 @@ class MediaController extends BaseController
                     return $response->withStatus(404);
                 }
             } else {
-                // For non-blur variants, fallback to original — but never hand the
-                // full-resolution original to a viewer of a downloads-disabled album
-                // (that would bypass allow_downloads while a variant is still pending).
-                if (!$this->isAdmin() && empty($row['allow_downloads'])) {
-                    return $response->withStatus(403);
+                // Non-blur variant missing. Serving the full-resolution original
+                // for a grid thumbnail (multi-MB, possibly a 40MP TIFF) is a huge
+                // waste, so (P5): 1) generate the requested variant on demand
+                // (cheap, matches servePublic), 2) failing that serve the largest
+                // ALREADY-generated variant, 3) only as a last resort hand out the
+                // original — and never when downloads are disabled.
+                $protectedVariant = $isPasswordProtected || $isNsfw;
+                $conventionalPath = "media/{$imageId}_{$variant}.{$format}";
+                $this->ensureVariantGenerated($imageId, $variant, $format, $conventionalPath, $protectedVariant);
+                $variantStmt->execute([':id' => $imageId, ':variant' => $variant, ':format' => $format]);
+                $variantRow = $variantStmt->fetch();
+
+                if (!$variantRow || empty($variantRow['path'])) {
+                    $bestStmt = $pdo->prepare(
+                        "SELECT path FROM image_variants
+                         WHERE image_id = :id AND variant NOT IN ('blur', 'lqip') AND path != ''
+                         ORDER BY width DESC LIMIT 1"
+                    );
+                    $bestStmt->execute([':id' => $imageId]);
+                    $bestPath = $bestStmt->fetchColumn();
+                    if ($bestPath) {
+                        $variantRow = ['path' => $bestPath];
+                    } else {
+                        // No variants at all: fall back to the original, but never
+                        // hand it to a viewer of a downloads-disabled album (that
+                        // would bypass allow_downloads).
+                        if (!$this->isAdmin() && empty($row['allow_downloads'])) {
+                            return $response->withStatus(403);
+                        }
+                        $origStmt = $pdo->prepare('SELECT original_path FROM images WHERE id = :id');
+                        $origStmt->execute([':id' => $imageId]);
+                        $origPath = $origStmt->fetchColumn();
+                        if (!$origPath) {
+                            return $response->withStatus(404);
+                        }
+                        $variantRow = ['path' => $origPath];
+                    }
                 }
-                $origStmt = $pdo->prepare('SELECT original_path FROM images WHERE id = :id');
-                $origStmt->execute([':id' => $imageId]);
-                $origPath = $origStmt->fetchColumn();
-                if (!$origPath) {
-                    return $response->withStatus(404);
-                }
-                $variantRow = ['path' => $origPath];
             }
         }
 
@@ -527,13 +638,11 @@ class MediaController extends BaseController
         $etag = $this->generateEtag($realPath, $filesize);
         $clientEtag = $request->getHeaderLine('If-None-Match');
         if ($clientEtag !== '' && $clientEtag === $etag) {
-            return $response
-                ->withStatus(304)
-                ->withHeader('Content-Type', $detectedMime)
-                ->withHeader('ETag', $etag)
-                ->withHeader('Cache-Control', 'private, no-store, max-age=0')
-                ->withHeader('Pragma', 'no-cache')
-                ->withHeader('X-Robots-Tag', 'noindex, noimageindex, noarchive');
+            return $this->withAuthorizedProtectedHeaders(
+                $response->withStatus(304)->withHeader('Content-Type', $detectedMime),
+                $etag,
+                $realPath
+            );
         }
 
         $streamed = $this->streamFile($response, $realPath, $detectedMime);
@@ -541,13 +650,9 @@ class MediaController extends BaseController
             return $response->withStatus(500);
         }
 
-        // Never retain authorized protected bytes after the access grant expires
-        // and never allow a shared cache/CDN to reuse them for another visitor.
-        return $streamed
-            ->withHeader('Cache-Control', 'private, no-store, max-age=0')
-            ->withHeader('Pragma', 'no-cache')
-            ->withHeader('X-Robots-Tag', 'noindex, noimageindex, noarchive')
-            ->withHeader('ETag', $etag);
+        // Authorized protected bytes: private + revalidate so the browser can
+        // cache and 304 (perf) while every view still re-checks the access grant.
+        return $this->withAuthorizedProtectedHeaders($streamed, $etag, $realPath);
     }
 
     /**
@@ -585,7 +690,7 @@ class MediaController extends BaseController
 
         // Check access for protected albums
         if (!$isAdmin) {
-            $accessResult = $this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, 'original');
+            $accessResult = $this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, 'original', false, (string)($row['password_hash'] ?? ''));
             if ($accessResult !== true) {
                 return $response->withStatus(403);
             }
@@ -723,7 +828,7 @@ class MediaController extends BaseController
         $isPasswordProtected = !empty($row['password_hash']);
         $isNsfw = (bool)$row['is_nsfw'];
 
-        $accessResult = $this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant, true);
+        $accessResult = $this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant, true, (string)($row['password_hash'] ?? ''));
         if ($accessResult !== true) {
             // Try blur fallback for protected albums (password or NSFW)
             $blurResponse = $this->tryServeBlurFallback($request, $response, $imageId, $isPasswordProtected || $isNsfw, $variant);
@@ -782,6 +887,9 @@ class MediaController extends BaseController
     /** Variant sizes that can be (re)generated on demand from the original. */
     private const ON_DEMAND_VARIANTS = ['sm', 'md', 'lg', 'xl', 'xxl'];
 
+    /** How long (seconds) a failed on-demand generation is remembered (P4). */
+    private const VARIANT_FAILURE_TTL = 600;
+
     /**
      * Lazily generate ONLY the requested variant+format when the requested file
      * is missing (M4). A full generateVariantsForImage() run is up to 5 sizes ×
@@ -813,6 +921,16 @@ class MediaController extends BaseController
             return;
         }
 
+        // Negative cache (P4): a variant+format that just failed to generate
+        // (a .jxl the encoder never emits, a genuinely broken source, a
+        // transient error) must not re-run the full lock + settings load +
+        // encode on every subsequent request. Skip until the marker ages out.
+        $failDir = dirname(__DIR__, 3) . '/storage/tmp/variant-failures';
+        $failMarker = "{$failDir}/{$imageId}_{$variant}_{$format}.fail";
+        if (is_file($failMarker) && (time() - (int) @filemtime($failMarker)) < self::VARIANT_FAILURE_TTL) {
+            return;
+        }
+
         $lockDir = dirname(__DIR__, 3) . '/storage/tmp/variant-locks';
         if (!is_dir($lockDir)) {
             @mkdir($lockDir, 0775, true);
@@ -841,6 +959,15 @@ class MediaController extends BaseController
                 }
                 fclose($lockHandle);
             }
+        }
+
+        // If generation still didn't produce the file, remember the failure so
+        // the next request for the same variant+format short-circuits (P4).
+        if (!$this->variantFileExists($relativePath, $protected)) {
+            if (!is_dir($failDir)) {
+                @mkdir($failDir, 0775, true);
+            }
+            @touch($failMarker);
         }
     }
 
@@ -890,10 +1017,7 @@ class MediaController extends BaseController
                 ->withHeader('Content-Type', $detectedMime)
                 ->withHeader('ETag', $etag);
             return $protected
-                ? $notModified
-                    ->withHeader('Cache-Control', 'private, no-store, max-age=0')
-                    ->withHeader('Pragma', 'no-cache')
-                    ->withHeader('X-Robots-Tag', 'noindex, noimageindex, noarchive')
+                ? $this->withAuthorizedProtectedHeaders($notModified, $etag, $realPath)
                 : $notModified->withHeader('Cache-Control', 'public, max-age=' . self::PUBLIC_CACHE_SECONDS . ', immutable');
         }
 
@@ -903,11 +1027,7 @@ class MediaController extends BaseController
         }
 
         if ($protected) {
-            return $streamed
-                ->withHeader('Cache-Control', 'private, no-store, max-age=0')
-                ->withHeader('Pragma', 'no-cache')
-                ->withHeader('X-Robots-Tag', 'noindex, noimageindex, noarchive')
-                ->withHeader('ETag', $etag);
+            return $this->withAuthorizedProtectedHeaders($streamed, $etag, $realPath);
         }
 
         return $streamed

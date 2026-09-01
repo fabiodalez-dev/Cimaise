@@ -320,9 +320,11 @@ class PageController extends BaseController
             ? $queryParams['template']
             : null;
 
-        // Cache is only used for public view (no admin, no NSFW consent, no template override)
-        // This ensures cached data matches what anonymous users see
-        $canUseCache = !$isAdmin && !$nsfwConsent && $templateOverride === null;
+        // Cache is only used for public view (no admin, no NSFW consent, no
+        // template override, no unlocked-album session — N1). This ensures cached
+        // data matches what an anonymous, no-access visitor sees.
+        $canUseCache = !$isAdmin && !$nsfwConsent && $templateOverride === null
+            && empty($_SESSION['album_access']);
 
         // Try cache first for public view
         if ($canUseCache) {
@@ -754,7 +756,7 @@ class PageController extends BaseController
 
         // Password protection with session timeout - skip for admins
         if (!empty($album['password_hash']) && !$isAdmin) {
-            $allowed = $this->hasAlbumPasswordAccess((int) $album['id']);
+            $allowed = $this->hasAlbumPasswordAccess((int) $album['id'], (string) $album['password_hash']);
 
             if (!$allowed) {
                 // Categories for header menu
@@ -762,7 +764,7 @@ class PageController extends BaseController
                 $query = $request->getQueryParams();
                 // Pass error type: '1' for wrong password, 'nsfw' for NSFW confirmation required
                 $error = $query['error'] ?? null;
-                return $this->view->render($response, 'frontend/album_password.twig', [
+                $gate = $this->view->render($response, 'frontend/album_password.twig', [
                     'album' => $album,
                     'categories' => $navCategories,
                     'parent_categories' => $this->getNavigationService()->getParentCategoriesForNavigation(),
@@ -770,6 +772,10 @@ class PageController extends BaseController
                     'error' => $error,
                     'csrf' => $_SESSION['csrf'] ?? ''
                 ]);
+                // PW2: never let a shared cache store this lock screen — it embeds
+                // a session-bound CSRF token and is served to first-time visitors
+                // whose session isn't yet flagged session-dependent.
+                return $gate->withHeader('Cache-Control', 'private, no-store, must-revalidate');
             }
         }
 
@@ -781,7 +787,7 @@ class PageController extends BaseController
         if ($isNsfw && !$isAdmin && empty($album['password_hash']) && !$nsfwConfirmed) {
             // Show NSFW gate page - user must confirm they're 18+ to view
             $navCategories = $this->getNavigationService()->getNavigationCategories();
-            return $this->view->render($response, 'frontend/nsfw_gate.twig', [
+            $gate = $this->view->render($response, 'frontend/nsfw_gate.twig', [
                 'album' => $album,
                 'categories' => $navCategories,
                 'parent_categories' => $this->getNavigationService()->getParentCategoriesForNavigation(),
@@ -789,6 +795,9 @@ class PageController extends BaseController
                 'csrf' => $_SESSION['csrf'] ?? '',
                 'robots' => 'noindex,nofollow'
             ]);
+            // PW2: same reasoning as the password gate — session-bound CSRF token,
+            // served to not-yet-flagged first-time visitors. Keep it out of shared caches.
+            return $gate->withHeader('Cache-Control', 'private, no-store, must-revalidate');
         }
 
         // Determine if album is cacheable (public, no password, no NSFW)
@@ -1242,6 +1251,11 @@ class PageController extends BaseController
                 if (!isset($sources[$v['format']])) {
                     continue;
                 }
+                // P3: never let placeholder variants into the srcset.
+                $vType = strtolower((string) ($v['variant'] ?? ''));
+                if ($vType === 'blur' || $vType === 'lqip') {
+                    continue;
+                }
                 if (!empty($v['path']) && !str_starts_with((string) $v['path'], '/storage/')) {
                     // For protected albums, use protected media URLs
                     if ($isProtectedAlbum && !$isAdmin) {
@@ -1259,7 +1273,8 @@ class PageController extends BaseController
             $image['caption_html'] = $captionHtml;
             $image['alt'] = $image['alt_text'] ?: $album['title'];
             $image['sources'] = $sources;
-            $image['fallback_src'] = $lightboxUrl ?: $bestUrl;
+            // P10: grid <img src> fallback = small grid variant, not the lightbox one.
+            $image['fallback_src'] = $bestUrl ?: $lightboxUrl;
         }
 
         // Gallery meta mapped from album for consistency with gallery view
@@ -1529,7 +1544,11 @@ class PageController extends BaseController
         }
 
         $pdo = $this->db->pdo();
-        $stmt = $pdo->prepare('SELECT id, password_hash, is_nsfw FROM albums WHERE slug = :slug');
+        // PW3: only unpublished-safe albums. Granting album_access for an
+        // unpublished album is inert today (every view/media path independently
+        // requires is_published = 1) but it is a latent gap and a minor timing
+        // oracle (only password-protected slugs run the slow Argon2id verify).
+        $stmt = $pdo->prepare('SELECT id, password_hash, is_nsfw FROM albums WHERE slug = :slug AND is_published = 1');
         $stmt->execute([':slug' => $slug]);
         $album = $stmt->fetch();
         if (!$album || empty($album['password_hash'])) {
@@ -1552,7 +1571,7 @@ class PageController extends BaseController
             // SECURITY: Regenerate session ID to prevent session fixation
             session_regenerate_id(true);
 
-            $this->grantAlbumPasswordAccess((int) $album['id']);
+            $this->grantAlbumPasswordAccess((int) $album['id'], (string) $album['password_hash']);
 
             // Store NSFW confirmation in session + cookie for server-side validation
             if ($isNsfw) {
@@ -1585,8 +1604,10 @@ class PageController extends BaseController
     }
 
     /**
-     * Confirm NSFW age verification for albums without password protection.
-     * Stores confirmation in session per-album.
+     * Confirm NSFW age verification for a (published, non-password) NSFW album.
+     * Age verification is treated as a SITE-WIDE assertion: a successful
+     * confirmation grants consent for every NSFW album via grantNsfwConsent()
+     * (session flag + 30-day signed cookie), matching confirmNsfwGlobal().
      */
     public function confirmNsfw(Request $request, Response $response, array $args): Response
     {
@@ -1598,8 +1619,10 @@ class PageController extends BaseController
             return $response->withHeader('Location', $this->redirect('/album/' . $slug))->withStatus(302);
         }
 
-        // Get album
-        $stmt = $pdo->prepare('SELECT id, is_nsfw, password_hash FROM albums WHERE slug = :slug AND is_published = 1');
+        // Get album — must be a published NSFW album. Requiring is_nsfw here (M2)
+        // stops a POST against a normal album's slug from granting site-wide NSFW
+        // consent through this endpoint.
+        $stmt = $pdo->prepare('SELECT id, is_nsfw, password_hash FROM albums WHERE slug = :slug AND is_published = 1 AND is_nsfw = 1');
         $stmt->execute([':slug' => $slug]);
         $album = $stmt->fetch();
 
@@ -1625,7 +1648,7 @@ class PageController extends BaseController
         // Regenerate session ID to prevent session fixation attacks
         session_regenerate_id(true);
 
-        // Store NSFW confirmation in session for server-side validation (per-album)
+        // Store NSFW confirmation (site-wide age assertion — see grantNsfwConsent)
         $this->grantNsfwConsent((int) $album['id']);
 
         return $response->withHeader('Location', $this->redirect('/album/' . $slug))->withStatus(302);
@@ -1869,6 +1892,11 @@ class PageController extends BaseController
                         if (!isset($sources[$fmt])) {
                             continue;
                         }
+                        // P3: keep placeholder variants out of the srcset.
+                        $vType = strtolower((string) ($variant['variant'] ?? ''));
+                        if ($vType === 'blur' || $vType === 'lqip') {
+                            continue;
+                        }
                         $srcPath = $variant['path'] ?? '';
                         if ($srcPath === '') {
                             continue;
@@ -1919,7 +1947,7 @@ class PageController extends BaseController
                 $images[] = [
                     'id' => (int) $img['id'],
                     'url' => $bestUrl,
-                    'lightbox_url' => $lightboxUrl,
+                    'lightbox_url' => $lightboxUrl, // P10: fallback_src below uses $bestUrl
                     'alt' => $img['alt_text'] ?: $album['title'],
                     'alt_text' => $img['alt_text'] ?? '',
                     'width' => (int) ($img['width'] ?? 1200),
@@ -1952,7 +1980,7 @@ class PageController extends BaseController
                     'artist' => $img['artist'] ?? null,
                     'copyright' => $img['copyright'] ?? null,
                     'sources' => $sources,
-                    'fallback_src' => $lightboxUrl ?: $bestUrl,
+                    'fallback_src' => $bestUrl ?: $lightboxUrl,
                     'variants' => []
                 ];
             }
@@ -2036,8 +2064,9 @@ class PageController extends BaseController
             return $response->withStatus(404);
         }
 
-        // Cache is only used for public view (no admin, no NSFW consent)
-        $canUseCache = !$isAdmin && !$nsfwConsent;
+        // Cache is only used for public view (no admin, no NSFW consent, and no
+        // unlocked-album session — see N1 in GalleriesController::index).
+        $canUseCache = !$isAdmin && !$nsfwConsent && empty($_SESSION['album_access']);
         $cacheKey = 'category_' . $slug;
 
         // Try cache first for public view
@@ -2155,8 +2184,9 @@ class PageController extends BaseController
             ]);
         }
 
-        // Cache is only used for public view (no admin, no NSFW consent)
-        $canUseCache = !$isAdmin && !$nsfwConsent;
+        // Cache is only used for public view (no admin, no NSFW consent, and no
+        // unlocked-album session — see N1 in GalleriesController::index).
+        $canUseCache = !$isAdmin && !$nsfwConsent && empty($_SESSION['album_access']);
         $cacheKey = 'tag_' . $slug;
 
         // Try cache first for public view
@@ -2820,7 +2850,7 @@ class PageController extends BaseController
                 if (str_starts_with($path, '/storage/')) {
                     continue;
                 }
-                if ($variantType === 'blur') {
+                if ($variantType === 'blur' || $variantType === 'lqip') {
                     continue;
                 }
                 // Trust database - variant exists means file exists
@@ -2853,7 +2883,7 @@ class PageController extends BaseController
                 if ($w <= 0) {
                     continue;
                 }
-                if ($variantType === 'blur') {
+                if ($variantType === 'blur' || $variantType === 'lqip') {
                     continue;
                 }
                 if ($w < $bestWidth) {

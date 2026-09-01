@@ -176,6 +176,15 @@ class ImageVariantsService
                 continue;
             }
 
+            // P3: 'blur' and 'lqip' are placeholder variants, not real display
+            // sizes. Letting them into the srcset means a small-viewport DPR1
+            // browser can legitimately select the ~400w blur (for an authorized
+            // viewer of a protected album) or the 40px LQIP as the grid image.
+            $variantName = strtolower((string) ($variant['variant'] ?? ''));
+            if ($variantName === 'blur' || $variantName === 'lqip') {
+                continue;
+            }
+
             $format = $variant['format'];
             $width = (int)($variant['width'] ?? 0);
 

@@ -15,6 +15,7 @@
     img_style — extra inline style for the <img> (e.g. object-fit rules)
 #}
 {% macro picture(image, base_path, sizes, idx, eager, img_class, img_style) %}
+  {% set avif_sources = image.sources.avif|default([]) %}
   {% set webp_sources = image.sources.webp|default([]) %}
   {% set jpg_sources = image.sources.jpg|default([]) %}
   {% set img_src = image.fallback_src|default('') %}
@@ -29,6 +30,11 @@
      source[data-srcset] -> srcset on load. #}
   {% set srcset_attr = use_lqip ? 'data-srcset' : 'srcset' %}
   <picture>
+    {# P8: emit AVIF first so the home pays the same ~20-40% byte saving the album
+       pages already get; the browser falls through to webp, then jpg. #}
+    {% if avif_sources|length > 0 %}
+    <source type="image/avif" sizes="{{ sizes }}" {{ srcset_attr }}="{% for src in avif_sources %}{{ base_path }}{{ src }}{% if not loop.last %}, {% endif %}{% endfor %}">
+    {% endif %}
     {% if webp_sources|length > 0 %}
     <source type="image/webp" sizes="{{ sizes }}" {{ srcset_attr }}="{% for src in webp_sources %}{{ base_path }}{{ src }}{% if not loop.last %}, {% endif %}{% endfor %}">
     {% endif %}
@@ -42,7 +48,10 @@
       height="{{ img_height }}"
       class="{{ img_class|default('') }}{% if use_lqip %} lqip-blur{% endif %}"
       {% if img_style %}style="{{ img_style }}"{% endif %}
-      {% if idx < eager_n %}fetchpriority="high"{% else %}loading="lazy" decoding="async"{% endif %}
+      {# P7: only the FIRST image is the LCP candidate and gets fetchpriority=high.
+         The rest of the eager set still loads eagerly (no loading=lazy) but must
+         not compete for high priority with the LCP image and the CSS/fonts. #}
+      {% if idx == 0 %}fetchpriority="high" decoding="async"{% elseif idx < eager_n %}decoding="async"{% else %}loading="lazy" decoding="async"{% endif %}
     >
   </picture>
 {% endmacro %}

@@ -14,7 +14,7 @@
       <button id="nsfw-global-confirm-btn" class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium">
         {{ trans('frontend.nsfw_global.confirm') }}
       </button>
-      <a href="about:blank" id="nsfw-global-decline-link" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium inline-block">
+      <a href="about:blank" id="nsfw-global-decline-link" rel="noopener" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium inline-block">
         {{ trans('frontend.nsfw_global.decline') }}
       </a>
     </div>
@@ -58,14 +58,32 @@ function safeLocalStorageSet(key, value) {
   const gate = document.getElementById('nsfw-global-gate');
   if (!gate) return;
 
-  // Check localStorage for previous consent
-  const localConfirmed = safeLocalStorageGet('nsfw_global_confirmed') === 'true';
-
-  // If not confirmed in localStorage, show gate
-  if (!localConfirmed) {
+  // N3: the SERVER decides whether consent is in force (signed cookie / session).
+  // localStorage is only a cross-tab hint — it can be stale (never expires) or
+  // hand-set, so it must not gate on its own. Show the warning whenever the
+  // server has NOT granted consent; if the server already has, sync localStorage
+  // and stay hidden.
+  const serverConfirmed = {{ nsfw_consent|default(false) ? 'true' : 'false' }};
+  if (serverConfirmed) {
+    safeLocalStorageSet('nsfw_global_confirmed', 'true');
+  } else {
     gate.classList.add('active');
     document.documentElement.classList.add('nsfw-gate-active');
     document.body.classList.add('nsfw-gate-active');
+  }
+
+  // Decline: leave without keeping this page in history (about:blank in history
+  // means Back returns to the already-loaded content). Prefer going back.
+  const declineLink = document.getElementById('nsfw-global-decline-link');
+  if (declineLink) {
+    declineLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.replace('about:blank');
+      }
+    });
   }
 
   // Confirm button

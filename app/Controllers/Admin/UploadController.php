@@ -241,6 +241,18 @@ class UploadController extends BaseController
                             'error' => $variantError->getMessage(),
                         ], 'upload');
                     }
+                    // P15: generate the LQIP blur-up placeholder at upload time too.
+                    // Previously only the CLI command / cache admin produced it, so
+                    // freshly uploaded photos had no blur-up until that ran, and the
+                    // first visitors fell through to the synchronous on-demand path.
+                    try {
+                        $svcForBackground->generateLQIP($imageIdForBackground);
+                    } catch (\Throwable $lqipError) {
+                        Logger::warning('Failed to generate LQIP in background', [
+                            'image_id' => $imageIdForBackground,
+                            'error' => $lqipError->getMessage(),
+                        ], 'upload');
+                    }
                     if ($needsBlurForBackground) {
                         try {
                             $svcForBackground->generateBlurredVariant($imageIdForBackground);

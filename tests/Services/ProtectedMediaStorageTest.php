@@ -78,7 +78,10 @@ final class ProtectedMediaStorageTest extends TestCase
         );
 
         self::assertSame(200, $response->getStatusCode());
-        self::assertStringContainsString('no-store', $response->getHeaderLine('Cache-Control'));
+        // P2: private + revalidate (no-cache) — never public/shared, still noindex.
+        self::assertStringContainsString('private', $response->getHeaderLine('Cache-Control'));
+        self::assertStringContainsString('no-cache', $response->getHeaderLine('Cache-Control'));
+        self::assertStringNotContainsString('public', $response->getHeaderLine('Cache-Control'));
         self::assertStringContainsString('noimageindex', $response->getHeaderLine('X-Robots-Tag'));
         self::assertFileDoesNotExist($publicPath);
         self::assertFileExists($this->privatePath("{$imageId}_sm.jpg"));
@@ -97,8 +100,11 @@ final class ProtectedMediaStorageTest extends TestCase
         );
 
         self::assertSame(200, $response->getStatusCode());
-        self::assertStringContainsString('no-store', $response->getHeaderLine('Cache-Control'));
-        self::assertStringContainsString('no-cache', $response->getHeaderLine('Pragma'));
+        // P2: private + revalidate (no-cache) instead of no-store, so the browser
+        // can 304 while every view still re-checks the unlock grant.
+        self::assertStringContainsString('private', $response->getHeaderLine('Cache-Control'));
+        self::assertStringContainsString('no-cache', $response->getHeaderLine('Cache-Control'));
+        self::assertStringNotContainsString('public', $response->getHeaderLine('Cache-Control'));
     }
 
     public function testPublicVariantRemainsPublicAndCacheable(): void
@@ -145,7 +151,9 @@ final class ProtectedMediaStorageTest extends TestCase
         );
 
         self::assertSame(200, $response->getStatusCode());
-        self::assertStringContainsString('no-store', $response->getHeaderLine('Cache-Control'));
+        // P2: private + revalidate (no-cache), never public/shared-cacheable.
+        self::assertStringContainsString('private', $response->getHeaderLine('Cache-Control'));
+        self::assertStringContainsString('no-cache', $response->getHeaderLine('Cache-Control'));
         self::assertStringNotContainsString('public', $response->getHeaderLine('Cache-Control'));
         self::assertFileDoesNotExist($publicPath);
         self::assertFileExists($this->privatePath("{$imageId}_custom-preview.jpg"));

@@ -21,7 +21,10 @@ use Throwable;
  *   - MySQL / MariaDB    -> MATCH ... AGAINST (natural language)
  *   - SQLite without FTS5 -> LIKE fallback over the source columns
  *
- * Only published, non password-protected albums are ever returned.
+ * Only published, non password-protected albums are ever returned. NSFW albums
+ * are additionally excluded unless the caller passes $includeNsfw = true (admin
+ * or a viewer who has given NSFW consent), matching the sitemap/feed/home which
+ * also hide NSFW albums from non-consenting visitors.
  */
 final readonly class SearchService
 {
@@ -42,7 +45,7 @@ final readonly class SearchService
      *   albums: array<int, array<string, mixed>>
      * } Each album row carries `matched_image_ids` (int[]) and `search_score` (float).
      */
-    public function search(string $rawQuery, int $page = 1, int $perPage = 12): array
+    public function search(string $rawQuery, int $page = 1, int $perPage = 12, bool $includeNsfw = false): array
     {
         $rawQuery = trim($rawQuery);
         $page = max(1, $page);
@@ -57,19 +60,19 @@ final readonly class SearchService
 
         try {
             if ($this->db->isMySQL()) {
-                $albumHits = $this->mysqlAlbumHits($rawQuery);
-                $imageHits = $this->mysqlImageHits($rawQuery);
+                $albumHits = $this->mysqlAlbumHits($rawQuery, $includeNsfw);
+                $imageHits = $this->mysqlImageHits($rawQuery, $includeNsfw);
             } elseif ($this->indexer->ftsAvailable()) {
-                $albumHits = $this->ftsAlbumHits($rawQuery);
-                $imageHits = $this->ftsImageHits($rawQuery);
+                $albumHits = $this->ftsAlbumHits($rawQuery, $includeNsfw);
+                $imageHits = $this->ftsImageHits($rawQuery, $includeNsfw);
             } else {
-                $albumHits = $this->likeAlbumHits($rawQuery);
-                $imageHits = $this->likeImageHits($rawQuery);
+                $albumHits = $this->likeAlbumHits($rawQuery, $includeNsfw);
+                $imageHits = $this->likeImageHits($rawQuery, $includeNsfw);
             }
         } catch (Throwable $e) {
             error_log('[SearchService] query failed, falling back to LIKE: ' . $e->getMessage());
-            $albumHits = $this->likeAlbumHits($rawQuery);
-            $imageHits = $this->likeImageHits($rawQuery);
+            $albumHits = $this->likeAlbumHits($rawQuery, $includeNsfw);
+            $imageHits = $this->likeImageHits($rawQuery, $includeNsfw);
         }
 
         // Aggregate to album level.
@@ -117,8 +120,18 @@ final readonly class SearchService
 
     // --- FTS5 (SQLite) ------------------------------------------------------
 
+    /**
+     * SQL fragment (alias `a`) excluding NSFW albums unless the viewer may see
+     * them. Keeps on-site search consistent with the sitemap, feed, home and
+     * collections, which all hide NSFW albums from non-consenting visitors (B5).
+     */
+    private function nsfwClause(bool $includeNsfw): string
+    {
+        return $includeNsfw ? '' : ' AND a.is_nsfw = 0';
+    }
+
     /** @return array<int, array{album_id:int, score:float}> */
-    private function ftsAlbumHits(string $raw): array
+    private function ftsAlbumHits(string $raw, bool $includeNsfw = false): array
     {
         $match = $this->ftsMatchExpression($raw);
         if ($match === '') {
@@ -129,14 +142,15 @@ final readonly class SearchService
                 JOIN albums a ON a.id = albums_fts.rowid
                 WHERE albums_fts MATCH :q
                   AND a.is_published = 1
-                  AND (a.password_hash IS NULL OR a.password_hash = '')
+                  AND (a.password_hash IS NULL OR a.password_hash = '')"
+                  . $this->nsfwClause($includeNsfw) . "
                 ORDER BY score DESC
                 LIMIT " . self::CANDIDATE_LIMIT;
         return $this->fetchScored($sql, [':q' => $match]);
     }
 
     /** @return array<int, array{album_id:int, image_id:int, score:float}> */
-    private function ftsImageHits(string $raw): array
+    private function ftsImageHits(string $raw, bool $includeNsfw = false): array
     {
         $match = $this->ftsMatchExpression($raw);
         if ($match === '') {
@@ -148,7 +162,8 @@ final readonly class SearchService
                 JOIN albums a ON a.id = i.album_id
                 WHERE images_fts MATCH :q
                   AND a.is_published = 1
-                  AND (a.password_hash IS NULL OR a.password_hash = '')
+                  AND (a.password_hash IS NULL OR a.password_hash = '')"
+                  . $this->nsfwClause($includeNsfw) . "
                 ORDER BY score DESC
                 LIMIT " . self::CANDIDATE_LIMIT;
         return $this->fetchScored($sql, [':q' => $match]);
@@ -172,7 +187,7 @@ final readonly class SearchService
     // --- MySQL FULLTEXT -----------------------------------------------------
 
     /** @return array<int, array{album_id:int, score:float}> */
-    private function mysqlAlbumHits(string $raw): array
+    private function mysqlAlbumHits(string $raw, bool $includeNsfw = false): array
     {
         // Native prepares (EMULATE_PREPARES=false) require one placeholder per
         // occurrence, so the SELECT and WHERE MATCH use distinct names.
@@ -181,14 +196,15 @@ final readonly class SearchService
                 FROM albums a
                 WHERE MATCH(a.title, a.excerpt, a.body) AGAINST(:where_q IN NATURAL LANGUAGE MODE)
                   AND a.is_published = 1
-                  AND (a.password_hash IS NULL OR a.password_hash = '')
+                  AND (a.password_hash IS NULL OR a.password_hash = '')"
+                  . $this->nsfwClause($includeNsfw) . "
                 ORDER BY score DESC
                 LIMIT " . self::CANDIDATE_LIMIT;
         return $this->fetchScored($sql, [':score_q' => $raw, ':where_q' => $raw]);
     }
 
     /** @return array<int, array{album_id:int, image_id:int, score:float}> */
-    private function mysqlImageHits(string $raw): array
+    private function mysqlImageHits(string $raw, bool $includeNsfw = false): array
     {
         $sql = "SELECT i.album_id AS album_id, i.id AS image_id,
                        MATCH(i.caption, i.alt_text, i.custom_camera, i.custom_lens, i.custom_film)
@@ -198,7 +214,8 @@ final readonly class SearchService
                 WHERE MATCH(i.caption, i.alt_text, i.custom_camera, i.custom_lens, i.custom_film)
                         AGAINST(:where_q IN NATURAL LANGUAGE MODE)
                   AND a.is_published = 1
-                  AND (a.password_hash IS NULL OR a.password_hash = '')
+                  AND (a.password_hash IS NULL OR a.password_hash = '')"
+                  . $this->nsfwClause($includeNsfw) . "
                 ORDER BY score DESC
                 LIMIT " . self::CANDIDATE_LIMIT;
         return $this->fetchScored($sql, [':score_q' => $raw, ':where_q' => $raw]);
@@ -207,27 +224,29 @@ final readonly class SearchService
     // --- LIKE fallback ------------------------------------------------------
 
     /** @return array<int, array{album_id:int, score:float}> */
-    private function likeAlbumHits(string $raw): array
+    private function likeAlbumHits(string $raw, bool $includeNsfw = false): array
     {
         $like = '%' . $raw . '%';
         $sql = "SELECT a.id AS album_id, 1.0 AS score
                 FROM albums a
                 WHERE a.is_published = 1
-                  AND (a.password_hash IS NULL OR a.password_hash = '')
+                  AND (a.password_hash IS NULL OR a.password_hash = '')"
+                  . $this->nsfwClause($includeNsfw) . "
                   AND (a.title LIKE :q OR a.excerpt LIKE :q OR a.body LIKE :q)
                 LIMIT " . self::CANDIDATE_LIMIT;
         return $this->fetchScored($sql, [':q' => $like]);
     }
 
     /** @return array<int, array{album_id:int, image_id:int, score:float}> */
-    private function likeImageHits(string $raw): array
+    private function likeImageHits(string $raw, bool $includeNsfw = false): array
     {
         $like = '%' . $raw . '%';
         $sql = "SELECT i.album_id AS album_id, i.id AS image_id, 1.0 AS score
                 FROM images i
                 JOIN albums a ON a.id = i.album_id
                 WHERE a.is_published = 1
-                  AND (a.password_hash IS NULL OR a.password_hash = '')
+                  AND (a.password_hash IS NULL OR a.password_hash = '')"
+                  . $this->nsfwClause($includeNsfw) . "
                   AND (i.caption LIKE :q OR i.alt_text LIKE :q
                        OR i.custom_camera LIKE :q OR i.custom_lens LIKE :q OR i.custom_film LIKE :q)
                 LIMIT " . self::CANDIDATE_LIMIT;
