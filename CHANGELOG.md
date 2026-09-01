@@ -8,6 +8,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The release workflow extracts the `## [VERSION]` section below into the GitHub
 release notes, so keep one section per released tag.
 
+## [1.4.22] - 2026-09-01
+### Security
+- **Album password grants are now bound to the password.** Rotating (or clearing)
+  an album password immediately revokes existing unlock sessions instead of
+  leaving them valid for the rest of the 24h window.
+- **Password / NSFW gate pages and unlocked-session listings are never stored by
+  a shared cache**, closing a cache-poisoning path that could expose an unlocked
+  album's state (and CSRF token) to other visitors.
+- **NSFW content stays hidden from non-consenting visitors everywhere**: on-site
+  search now excludes NSFW albums without consent (consistent with the sitemap/
+  feed/home), the age gate follows the server consent state rather than trusting
+  `localStorage`, `confirmNsfw` only operates on NSFW albums, and unlock requires
+  the album to be published.
+
+### Performance
+- **Photo delivery hardening.** `/media/*` no longer builds the full Twig/
+  translation environment it never uses; authorized protected media is
+  `private, no-cache` (was `no-store`) so the browser can `304` while every view
+  still re-checks access; the LQIP loader unblurs on the real resource;
+  placeholder variants stay out of every `srcset`; a missing variant serves the
+  best existing one instead of the full-resolution original; failed on-demand
+  generation is negative-cached; LQIP is generated at upload and blur falls back
+  to synchronous generation where `exec()` is disabled; the service-worker cache
+  trim moves off the response path; and the album LCP image gets `fetchpriority`.
+
+### Added
+- **Reconnected SEO layer across settings, pages and photos.** Much of the SEO
+  machinery existed but was disconnected; this wires it up end to end.
+  - Per-album `seo_title` / `seo_description` / `og_image_path` / `canonical_url`
+    / `schema_type` are now honoured; `og:image` is always a deterministic JPG
+    variant (never AVIF/WebP/LQIP, which social scrapers can't render).
+  - Per-image `ImageObject` JSON-LD on the real album templates (absolute URLs,
+    real dimensions/format, creator/credit, copyright/license), `smart_alt` so
+    every photo's `alt` differs, and `fetchpriority` on the album LCP image.
+  - Search-engine verification meta tags (`seo.google_verification` /
+    `seo.bing_verification`), an editable `seo.expose_gps` toggle (photo GPS is
+    rounded to ~1 km by default for privacy), and `seo.local_business_price_range`
+    — all editable under **Admin → SEO**.
+  - `CIMAISE_NOINDEX=1` forces `X-Robots-Tag: noindex,nofollow` on every response
+    (pages, feeds, sitemap) for demo/staging copies.
+- **Reverse-proxy-aware canonical URLs.** A trusted-proxy middleware honours
+  `X-Forwarded-Proto/Host/Port` (via `TRUSTED_PROXIES`) so canonical/OpenGraph/
+  feed/sitemap URLs use the public origin behind a TLS-terminating proxy.
+
+### Fixed
+- `/search`, the `/gallery` preview and filtered `/galleries` are now `noindex`,
+  and the password lock-screen no longer indexes; canonical URLs are absolute and
+  no longer double the base path in subdirectory installs.
+- `robots.txt` no longer ships hard-coded `localhost` sitemap URLs; the sitemap
+  auto-regenerates on album publish/unpublish/delete, excludes `robots_index=0`
+  albums, reads the configured galleries slug, and the image-sitemap falls back
+  across variants instead of silently dropping photos.
+- Feeds use the configured site title, canonical base and site language;
+  category/tag meta descriptions are translated instead of hard-coded English.
+- Structured-data toggles now work (a disabled `seo.schema_enabled` really
+  suppresses JSON-LD); the frontend CSP allows GA4 / Google Tag Manager so
+  configured analytics can load.
+
 ## [1.4.21] - 2026-07-09
 ### Changed
 - **Docker installer now explains the MySQL single-container case.** Starting the

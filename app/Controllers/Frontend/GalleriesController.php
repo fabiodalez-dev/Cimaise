@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers\Frontend;
 
 use App\Controllers\BaseController;
+use App\Services\BaseUrlService;
 use App\Support\Database;
 use App\Support\Logger;
 use App\Services\SettingsService;
@@ -73,6 +74,12 @@ class GalleriesController extends BaseController
             !empty($filters['year']) || !empty($filters['search']) ||
             ($filters['sort'] ?? 'published_desc') !== 'published_desc';
 
+        // SEO context (request-accurate, never cached across hosts). A filtered
+        // listing is a duplicate slice of the canonical /galleries, so it is
+        // noindex,follow while the clean page stays indexable; the canonical
+        // always points at the clean /galleries (no query string).
+        $seoCtx = $this->buildGalleriesSeo($request, $hasActiveFilters);
+
         // Admin-selected listing template; the cache key embeds the slug so a
         // template switch can never serve a page cached for another template.
         [$pageTemplateSlug, $pageTemplateFile] = $this->resolvePageTemplate();
@@ -94,7 +101,7 @@ class GalleriesController extends BaseController
 
             if ($cached !== null && isset($cached['data']) && is_array($cached['data'])) {
                 // Fresh cache hit - render with cached data + session-specific vars
-                return $this->view->render($response, $pageTemplateFile, array_merge($cached['data'], [
+                return $this->view->render($response, $pageTemplateFile, array_merge($cached['data'], $seoCtx, [
                     'nsfw_consent' => $nsfwConsent,
                     'is_admin' => $isAdmin,
                     'csrf' => $_SESSION['csrf'] ?? ''
@@ -105,7 +112,7 @@ class GalleriesController extends BaseController
             $staleCached = $cacheService->get($cacheKey, allowStale: true);
             if ($staleCached !== null && isset($staleCached['data']) && is_array($staleCached['data'])) {
                 // Serve stale, schedule background regeneration could be done here
-                return $this->view->render($response, $pageTemplateFile, array_merge($staleCached['data'], [
+                return $this->view->render($response, $pageTemplateFile, array_merge($staleCached['data'], $seoCtx, [
                     'nsfw_consent' => $nsfwConsent,
                     'is_admin' => $isAdmin,
                     'csrf' => $_SESSION['csrf'] ?? ''
@@ -144,12 +151,48 @@ class GalleriesController extends BaseController
             ], [CacheTags::GALLERIES, CacheTags::NAVIGATION]);
         }
 
-        // Add session-specific vars for rendering
+        // Add session-specific + SEO vars for rendering (SEO is request-accurate,
+        // deliberately merged after the cacheable $renderData so it is never cached).
+        $renderData = array_merge($renderData, $seoCtx);
         $renderData['nsfw_consent'] = $nsfwConsent;
         $renderData['is_admin'] = $isAdmin;
         $renderData['csrf'] = $_SESSION['csrf'] ?? '';
 
         return $this->view->render($response, $pageTemplateFile, $renderData);
+    }
+
+    /**
+     * Request-accurate SEO context for the galleries listing.
+     *
+     * @return array{canonical_url:string,current_url:string,canonical_base:string,meta_image:string,robots:string}
+     */
+    private function buildGalleriesSeo(Request $request, bool $hasActiveFilters): array
+    {
+        $svc = new SettingsService($this->db);
+        $canonOverride = (string) ($svc->get('seo.canonical_base_url', '') ?? '');
+        $slug = (string) ($svc->get('galleries.slug', 'galleries') ?? 'galleries');
+        $logo = (string) ($svc->get('site.logo', '') ?? '');
+        $robotsDefault = (string) ($svc->get('seo.robots_default', 'index,follow') ?? 'index,follow');
+
+        $uri = $request->getUri();
+        $roots = BaseUrlService::canonicalRoots($request, $this->basePath, $canonOverride);
+        $canonicalBase = $roots['base'];
+
+        $metaImage = '';
+        if ($logo !== '') {
+            $metaImage = str_starts_with($logo, 'http')
+                ? $logo
+                : ($canonicalBase . '/' . ltrim($logo, '/'));
+        }
+
+        return [
+            // Canonical always the clean listing (no query string).
+            'canonical_url' => $canonicalBase . '/' . $slug,
+            'current_url' => (string) $uri,
+            'canonical_base' => $canonicalBase,
+            'meta_image' => $metaImage,
+            'robots' => $hasActiveFilters ? 'noindex,follow' : $robotsDefault,
+        ];
     }
 
     /**
@@ -498,6 +541,13 @@ class GalleriesController extends BaseController
         $isAdmin ??= $this->isAdmin();
         $nsfwConsent ??= $this->hasNsfwConsent();
 
+        // Keep the hashes request-local for revocation checks. enrichAlbumsBatch
+        // deliberately removes them before data reaches Twig/page cache.
+        $passwordHashes = [];
+        foreach ($albums as $album) {
+            $passwordHashes[(int) $album['id']] = (string) ($album['password_hash'] ?? '');
+        }
+
         // Batch enrich albums (eliminates N+1 query problem)
         $albums = $this->enrichAlbumsBatch($albums);
 
@@ -505,7 +555,10 @@ class GalleriesController extends BaseController
         $visibleAlbums = [];
         foreach ($albums as $album) {
             // Mark password-protected albums as locked (but still show them in listings)
-            $album['is_locked'] = !$isAdmin && !empty($album['is_password_protected']) && !$this->hasAlbumPasswordAccess((int)$album['id']);
+            $passwordHash = $passwordHashes[(int) $album['id']] ?? '';
+            $album['is_locked'] = !$isAdmin
+                && !empty($album['is_password_protected'])
+                && !$this->hasAlbumPasswordAccess((int)$album['id'], $passwordHash);
             $album = $this->sanitizeAlbumCoverForNsfw($album, $isAdmin, $nsfwConsent);
             $album = $this->ensureAlbumCoverImage($album);
             $visibleAlbums[] = $album;

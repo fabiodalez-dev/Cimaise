@@ -6,7 +6,9 @@ namespace App\Controllers\Frontend;
 
 use App\Controllers\BaseController;
 use App\Services\AlbumEnrichmentService;
+use App\Services\BaseUrlService;
 use App\Services\SearchService;
+use App\Services\SettingsService;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -67,6 +69,11 @@ final class SearchController extends BaseController
         $total = (int) $result['total'];
         $totalPages = max(1, (int) ceil($total / $perPage));
 
+        // SEO: search results are thin/duplicate — keep them out of the index but
+        // let crawlers follow through to the real albums (noindex,follow). Canonical
+        // points at the clean /search path (no query string).
+        $seo = $this->buildSearchSeo($request, $query);
+
         return $this->view->render($response, 'frontend/search.twig', [
             'query' => $result['query'],
             'albums' => $visible,
@@ -77,7 +84,43 @@ final class SearchController extends BaseController
             'has_query' => $query !== '',
             'is_admin' => $isAdmin,
             'nsfw_consent' => $nsfwConsent,
+            'page_title' => $seo['page_title'],
+            'meta_description' => $seo['meta_description'],
+            'canonical_url' => $seo['canonical_url'],
+            'current_url' => $seo['current_url'],
+            'canonical_base' => $seo['canonical_base'],
+            'robots' => 'noindex,follow',
         ]);
+    }
+
+    /**
+     * Minimal SEO context for the search page.
+     *
+     * @return array{page_title:string,meta_description:string,canonical_url:string,current_url:string,canonical_base:string}
+     */
+    private function buildSearchSeo(Request $request, string $query): array
+    {
+        $svc = new SettingsService($this->db);
+        $siteName = (string) ($svc->get('seo.site_title', 'Portfolio') ?? 'Portfolio');
+        $canonOverride = (string) ($svc->get('seo.canonical_base_url', '') ?? '');
+
+        $uri = $request->getUri();
+        $roots = BaseUrlService::canonicalRoots($request, $this->basePath, $canonOverride);
+        $root = $roots['root'];
+        $canonicalBase = $roots['base'];
+
+        $label = $query !== ''
+            ? trans('search.results_for', ['query' => $query], 'Results for "{query}"')
+            : trans('search.title', [], 'Search');
+
+        return [
+            'page_title' => $label . ' — ' . $siteName,
+            'meta_description' => trans('search.meta_description', [], 'Search the photography archive.'),
+            // Clean canonical: drop the query string.
+            'canonical_url' => $root . $uri->getPath(),
+            'current_url' => (string) $uri,
+            'canonical_base' => $canonicalBase,
+        ];
     }
 
     /**

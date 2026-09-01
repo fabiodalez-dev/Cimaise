@@ -168,6 +168,7 @@ The image runs in production mode by default. Useful variables:
 | `APP_DEBUG`       | `false`      | Keep `false` in production (debug output corrupts media bytes).|
 | `APP_TIMEZONE`    | `UTC`        | Default timezone.                                              |
 | `TRUSTED_PROXIES` | *(empty)*    | Comma-separated proxy CIDRs to honour `X-Forwarded-*` headers. |
+| `CIMAISE_NOINDEX` | *(empty)*    | Set to `1` on a demo/staging copy: forces `X-Robots-Tag: noindex, nofollow` on **every** response (pages, feeds, sitemap) so the staging site never gets indexed. Leave empty in production. |
 
 > Database credentials, site URL and secrets are written to `.env` by the
 > installer — you don't pass them as environment variables.
@@ -194,7 +195,27 @@ services:
 ```
 
 During installation, set the **Application URL** to your public `https://`
-address so generated links, sitemaps and the PWA manifest are correct.
+address so generated links, sitemaps and the PWA manifest are correct. This is
+also what makes canonical URLs, OpenGraph tags and the JSON-LD structured data
+resolve to the public origin rather than the container's internal `http://`
+host — set it (or `TRUSTED_PROXIES`) whenever the site runs behind a proxy.
+
+### Staging / demo copies
+
+A non-production copy (a demo clone, a pre-launch staging host) should never be
+indexed by search engines. Set `CIMAISE_NOINDEX=1` on that deployment:
+
+```yaml
+services:
+  cimaise:
+    image: fabiodalez/cimaise:latest
+    environment:
+      CIMAISE_NOINDEX: "1"   # every response returns X-Robots-Tag: noindex, nofollow
+```
+
+The header is applied to pages, feeds and the sitemap alike and cannot be
+overridden by per-page meta tags, so the whole staging site stays out of the
+index. Leave it unset (empty) in production.
 
 ---
 

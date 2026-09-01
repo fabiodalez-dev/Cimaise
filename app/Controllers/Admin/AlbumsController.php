@@ -6,11 +6,13 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Support\Database;
+use App\Services\BaseUrlService;
 use App\Services\CacheTags;
 use App\Services\CacheWarmService;
 use App\Services\CustomFieldService;
 use App\Services\PageCacheService;
 use App\Services\SettingsService;
+use App\Services\SitemapService;
 use App\Support\Hooks;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -126,6 +128,31 @@ class AlbumsController extends BaseController
         $stmt = $this->db->pdo()->prepare('SELECT slug FROM albums WHERE id = ?');
         $stmt->execute([$albumId]);
         return $stmt->fetchColumn() ?: null;
+    }
+
+    /**
+     * Regenerate the XML sitemap after a change that alters what is publicly
+     * listed (album publish/unpublish/delete, image add/remove) so it never
+     * goes stale between manual "Generate sitemap" runs.
+     *
+     * Best-effort and fully isolated: any failure is swallowed so it can never
+     * block or break the admin action that triggered it.
+     */
+    private function regenerateSitemap(): void
+    {
+        try {
+            $settings = new SettingsService($this->db);
+            if (!SettingsService::boolean($settings->get('seo.sitemap_enabled', true), true)) {
+                return;
+            }
+            $canonical = trim((string) ($settings->get('seo.canonical_base_url', '') ?? ''));
+            $baseUrl = $canonical !== '' ? rtrim($canonical, '/') : BaseUrlService::getCurrentBaseUrl();
+            $publicPath = dirname(__DIR__, 3) . '/public';
+
+            (new SitemapService($this->db, $baseUrl, $publicPath))->generate();
+        } catch (\Throwable) {
+            // Never block the admin action on sitemap regeneration.
+        }
     }
 
     public function index(Request $request, Response $response): Response
@@ -445,6 +472,10 @@ class AlbumsController extends BaseController
 
             // Invalidate page caches
             $this->invalidatePageCaches($slug, null, $albumId);
+
+            // A new album (possibly created already-published) may change what
+            // the sitemap lists — refresh it.
+            $this->regenerateSitemap();
 
             // Let plugins observe album creation (e.g. analytics-pro).
             \App\Support\Hooks::doAction('album_created', (int)$albumId, [
@@ -1006,6 +1037,9 @@ class AlbumsController extends BaseController
             // Invalidate page caches (pass old slug if renamed to prevent orphaned cache)
             $this->invalidatePageCaches($slug, $oldAlbumSlug, $id);
 
+            // Publish state / slug / content may have changed — refresh the sitemap.
+            $this->regenerateSitemap();
+
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_updated')];
         } catch (\Throwable $e) {
             if ($pdo->inTransaction()) {
@@ -1063,6 +1097,9 @@ class AlbumsController extends BaseController
             $this->invalidatePageCaches($albumSlug, null, $id, false);
 
             $stmt->execute([':id' => $id]);
+
+            // Album gone — refresh the sitemap so its URLs disappear.
+            $this->regenerateSitemap();
 
             // Clean up files (best-effort, after successful DB deletion).
             // Aggregate failures so orphaned files remain discoverable: the DB rows
@@ -1128,6 +1165,9 @@ class AlbumsController extends BaseController
         // Invalidate page caches
         $this->invalidatePageCaches($albumSlug, null, $id);
 
+        // The album just became publicly listable — refresh the sitemap.
+        $this->regenerateSitemap();
+
         $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_published')];
         return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
     }
@@ -1155,6 +1195,9 @@ class AlbumsController extends BaseController
 
         // Invalidate page caches (no warm — album is unpublished)
         $this->invalidatePageCaches($albumSlug, null, $id, false);
+
+        // The album is no longer public — drop it from the sitemap.
+        $this->regenerateSitemap();
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_unpublished')];
         return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
@@ -1351,6 +1394,8 @@ class AlbumsController extends BaseController
             return $response->withStatus(500);
         }
         $this->invalidatePageCaches($this->getAlbumSlug($albumId), null, $albumId);
+        // Image set changed — refresh the image sitemap.
+        $this->regenerateSitemap();
         // try unlink files (best-effort). Originals can be shared (sha1 dedup /
         // attach): only unlink when no other images row references the file.
         \App\Services\UploadService::deleteOriginalIfUnreferenced($this->db, (string)$row['original_path']);
@@ -1408,6 +1453,8 @@ class AlbumsController extends BaseController
             return $response->withStatus(500);
         }
         $this->invalidatePageCaches($this->getAlbumSlug($albumId), null, $albumId);
+        // Image set changed — refresh the image sitemap.
+        $this->regenerateSitemap();
         $protectedStorage = new \App\Services\ProtectedMediaStorage($this->db);
         foreach ($files as $p) {
             if (str_starts_with((string)$p, '/media/')) {
@@ -1534,6 +1581,8 @@ class AlbumsController extends BaseController
 
         // Invalidate page caches — new image added to album
         $this->invalidatePageCaches($this->getAlbumSlug($albumId), null, $albumId);
+        // Image set changed — refresh the image sitemap.
+        $this->regenerateSitemap();
 
         $response->getBody()->write(json_encode(['ok' => true,'id' => $newId]));
         return $response->withHeader('Content-Type', 'application/json');

@@ -1008,6 +1008,7 @@ INSERT INTO settings (key, value, type) VALUES
 ('seo.local_business_geo_lat', '', 'string'),
 ('seo.local_business_geo_lng', '', 'string'),
 ('seo.local_business_opening_hours', '', 'string'),
+('seo.local_business_price_range', '$$', 'string'),
 ('seo.photographer_job_title', 'Professional Photographer', 'string'),
 ('seo.photographer_services', 'Professional Photography Services', 'string'),
 ('seo.photographer_area_served', '', 'string'),
@@ -1017,10 +1018,15 @@ INSERT INTO settings (key, value, type) VALUES
 ('seo.sitemap_enabled', 'true', 'boolean'),
 ('seo.analytics_gtag', '', 'string'),
 ('seo.analytics_gtm', '', 'string'),
+('seo.google_verification', '', 'string'),
+('seo.bing_verification', '', 'string'),
 ('seo.image_alt_auto', 'true', 'boolean'),
 ('seo.image_copyright_notice', '', 'string'),
 ('seo.image_license_url', '', 'string'),
 ('seo.image_acquire_license_page', '', 'string'),
+-- GPS privacy: when false (default), photo GPS is rounded to ~1km before it
+-- reaches templates so exact shooting locations are never published.
+('seo.expose_gps', 'false', 'boolean'),
 ('seo.preload_critical_images', 'true', 'boolean'),
 ('seo.lazy_load_images', 'true', 'boolean'),
 ('seo.structured_data_format', 'json-ld', 'string'),

@@ -291,6 +291,12 @@
                 <textarea name="local_business_opening_hours" rows="3" class="form-input" placeholder="Mo-Fr 09:00-18:00&#10;Sa 10:00-16:00">{{ settings.local_business_opening_hours }}</textarea>
                 <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.opening_hours_hint') }}</p>
               </div>
+
+              <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.price_range', {}, 'Price range') }}</label>
+                <input type="text" name="local_business_price_range" class="form-input" value="{{ settings.local_business_price_range }}" placeholder="$$">
+                <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.price_range_hint', {}, 'schema.org priceRange for the LocalBusiness JSON-LD (e.g. $, $$, $$$).') }}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -342,6 +348,16 @@
               <input type="text" name="analytics_gtm" class="form-input" value="{{ settings.analytics_gtm }}" placeholder="GTM-XXXXXXX">
               <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.google_tag_manager_hint') }}</p>
             </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.google_verification', {}, 'Google site verification') }}</label>
+              <input type="text" name="google_verification" class="form-input" value="{{ settings.google_verification }}" placeholder="google-site-verification token">
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.google_verification_hint', {}, 'The content value of the google-site-verification meta tag (Search Console).') }}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.bing_verification', {}, 'Bing site verification') }}</label>
+              <input type="text" name="bing_verification" class="form-input" value="{{ settings.bing_verification }}" placeholder="msvalidate.01 token">
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.bing_verification_hint', {}, 'The content value of the msvalidate.01 meta tag (Bing Webmaster Tools).') }}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -374,7 +390,14 @@
               <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-600"></div>
               <span class="ml-3 text-sm font-medium text-gray-900">{{ trans('admin.seo.lazy_loading') }}</span>
             </label>
+
+            <label class="flex items-center cursor-pointer">
+              <input type="checkbox" name="expose_gps" value="1" class="sr-only peer" {{ settings.expose_gps ? 'checked' : '' }}>
+              <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-600"></div>
+              <span class="ml-3 text-sm font-medium text-gray-900">{{ trans('admin.seo.expose_gps', {}, 'Expose photo GPS coordinates') }}</span>
+            </label>
           </div>
+          <p class="text-xs text-gray-500 -mt-2">{{ trans('admin.seo.expose_gps_hint', {}, 'Off by default: photo GPS is rounded to ~1km in public HTML to protect location privacy. Enable only if precise coordinates should be public.') }}</p>
           
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.copyright_notice') }}</label>

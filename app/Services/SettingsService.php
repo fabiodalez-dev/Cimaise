@@ -95,6 +95,23 @@ class SettingsService
         return self::$cache[$key] ?? $default;
     }
 
+    /**
+     * Normalize settings-backed flags regardless of whether they came from a
+     * schema seed (JSON boolean) or an admin form save (string "true"/"false").
+     */
+    public static function boolean(mixed $value, bool $default = false): bool
+    {
+        if ($value === null) {
+            return $default;
+        }
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        $parsed = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        return $parsed ?? $default;
+    }
+
     public function set(string $key, mixed $value): void
     {
         // Invalidate all caches before writing

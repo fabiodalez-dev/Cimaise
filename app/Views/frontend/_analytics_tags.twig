@@ -1,0 +1,61 @@
+{# Shared GA4 / Google Tag Manager loader. Analytics consent is mandatory when
+   the cookie banner is enabled; otherwise tags load asynchronously at once. #}
+{% if analytics_gtag|default('') or analytics_gtm|default('') %}
+<script nonce="{{ csp_nonce() }}">
+(function() {
+  'use strict';
+  var GTAG_ID = {{ analytics_gtag|default('')|json_encode|raw }};
+  var GTM_ID  = {{ analytics_gtm|default('')|json_encode|raw }};
+  var cspNonce = {{ csp_nonce()|json_encode|raw }};
+  var consentRequired = {{ cookie_banner_enabled|default(true) ? 'true' : 'false' }};
+  var loaded = false;
+
+  function loadGtag(id) {
+    if (document.getElementById('ga4-src')) return;
+    var s = document.createElement('script');
+    s.id = 'ga4-src'; s.async = true;
+    s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(id);
+    document.head.appendChild(s);
+    var init = document.createElement('script');
+    init.id = 'ga4-init'; init.nonce = cspNonce;
+    init.textContent = "window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config'," + JSON.stringify(id) + ");";
+    document.head.appendChild(init);
+  }
+
+  function loadGtm(id) {
+    if (document.getElementById('gtm-src')) return;
+    var s = document.createElement('script');
+    s.id = 'gtm-src'; s.nonce = cspNonce;
+    s.textContent = "(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer'," + JSON.stringify(id) + ");";
+    document.head.appendChild(s);
+  }
+
+  function loadAll() {
+    if (loaded) return;
+    loaded = true;
+    if (GTM_ID) loadGtm(GTM_ID);
+    if (GTAG_ID) loadGtag(GTAG_ID);
+  }
+
+  function tryConsent() {
+    if (loaded) return;
+    if (!window.CookieControl || !window.CookieControl.getCategoryConsent) return;
+    if (window.CookieControl.getCategoryConsent('analytics')) loadAll();
+  }
+
+  if (!consentRequired) { loadAll(); return; }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { setTimeout(tryConsent, 200); });
+  } else {
+    setTimeout(tryConsent, 200);
+  }
+  window.addEventListener('silktideConsentChanged', function() { setTimeout(tryConsent, 100); });
+  var attempts = 0;
+  var iv = setInterval(function() {
+    attempts++;
+    tryConsent();
+    if (loaded || attempts >= 8) clearInterval(iv);
+  }, 500);
+})();
+</script>
+{% endif %}

@@ -1,4 +1,8 @@
 {
+  "seo": {
+    "seo.category_description": "Photography albums in the {name} category",
+    "seo.tag_description": "Photography albums tagged {name}"
+  },
   "_meta": {
     "code": "en",
     "language": "English",

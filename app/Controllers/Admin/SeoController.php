@@ -58,6 +58,7 @@ class SeoController extends BaseController
             'local_business_geo_lat' => $svc->get('seo.local_business_geo_lat', ''),
             'local_business_geo_lng' => $svc->get('seo.local_business_geo_lng', ''),
             'local_business_opening_hours' => $svc->get('seo.local_business_opening_hours', ''),
+            'local_business_price_range' => $svc->get('seo.local_business_price_range', '$$'),
 
             // Professional Photographer Schema
             'photographer_job_title' => $svc->get('seo.photographer_job_title', 'Professional Photographer'),
@@ -71,12 +72,15 @@ class SeoController extends BaseController
             'sitemap_enabled' => $svc->get('seo.sitemap_enabled', 'true') === 'true',
             'analytics_gtag' => $svc->get('seo.analytics_gtag', ''),
             'analytics_gtm' => $svc->get('seo.analytics_gtm', ''),
+            'google_verification' => $svc->get('seo.google_verification', ''),
+            'bing_verification' => $svc->get('seo.bing_verification', ''),
 
             // Image SEO
             'image_alt_auto' => $svc->get('seo.image_alt_auto', 'true') === 'true',
             'image_copyright_notice' => $svc->get('seo.image_copyright_notice', ''),
             'image_license_url' => $svc->get('seo.image_license_url', ''),
             'image_acquire_license_page' => $svc->get('seo.image_acquire_license_page', ''),
+            'expose_gps' => $svc->get('seo.expose_gps', 'false') === 'true',
 
             // Performance & Crawling
             'preload_critical_images' => $svc->get('seo.preload_critical_images', 'true') === 'true',
@@ -136,6 +140,7 @@ class SeoController extends BaseController
                 $svc->set('seo.local_business_geo_lat', trim((string)($data['local_business_geo_lat'] ?? '')));
                 $svc->set('seo.local_business_geo_lng', trim((string)($data['local_business_geo_lng'] ?? '')));
                 $svc->set('seo.local_business_opening_hours', trim((string)($data['local_business_opening_hours'] ?? '')));
+                $svc->set('seo.local_business_price_range', trim((string)($data['local_business_price_range'] ?? '$$')));
             }
 
             // Professional Photographer Schema
@@ -150,12 +155,15 @@ class SeoController extends BaseController
             $svc->set('seo.sitemap_enabled', isset($data['sitemap_enabled']) ? 'true' : 'false');
             $svc->set('seo.analytics_gtag', trim((string)($data['analytics_gtag'] ?? '')));
             $svc->set('seo.analytics_gtm', trim((string)($data['analytics_gtm'] ?? '')));
+            $svc->set('seo.google_verification', trim((string)($data['google_verification'] ?? '')));
+            $svc->set('seo.bing_verification', trim((string)($data['bing_verification'] ?? '')));
 
             // Image SEO
             $svc->set('seo.image_alt_auto', isset($data['image_alt_auto']) ? 'true' : 'false');
             $svc->set('seo.image_copyright_notice', trim((string)($data['image_copyright_notice'] ?? '')));
             $svc->set('seo.image_license_url', trim((string)($data['image_license_url'] ?? '')));
             $svc->set('seo.image_acquire_license_page', trim((string)($data['image_acquire_license_page'] ?? '')));
+            $svc->set('seo.expose_gps', isset($data['expose_gps']) ? 'true' : 'false');
 
             // Performance & Crawling
             $svc->set('seo.preload_critical_images', isset($data['preload_critical_images']) ? 'true' : 'false');

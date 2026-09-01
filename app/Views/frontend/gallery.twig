@@ -6,6 +6,7 @@
 
 {% import 'frontend/_seo_macros.twig' as Seo %}
 {% import 'frontend/_caption.twig' as Caption %}
+{% import 'frontend/_image_macros.twig' as Img %}
 
 {% block content %}
 <style nonce="{{ csp_nonce() }}">
@@ -314,6 +315,7 @@
           <div class="dense-grid-item" data-image-id="{{ image.id }}" data-width="{{ image.width|default(0) }}" data-height="{{ image.height|default(0) }}">
               {% set lightbox_href = image.lightbox_url|default(image.url|default('')) %}
               {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+              {% set img_alt = Img.smart_alt(image, album, site_title)|trim %}
               <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
                  class="pswp-link dense-grid-link"
                  title="{{ seo_title|e('html_attr') }}"
@@ -372,10 +374,12 @@
                       {% endif %}
 
                       <img src="{{ best_jpg_path }}"
-                           alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                           alt="{{ img_alt|e }}"
                            title="{{ seo_title|e('html_attr') }}"
+                           width="{{ image.width }}"
+                           height="{{ image.height }}"
                            class="dense-grid-img"
-                           loading="lazy"
+                           {% if loop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
                            decoding="async"
                            data-fallback="hide">
                   </picture>
@@ -470,6 +474,7 @@
                   <div class="frame-content group {{ rounded_class }} {{ shadow_class }}">
                       {% set lightbox_href = image.lightbox_url|default(image.url|default('')) %}
                       {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+                      {% set img_alt = Img.smart_alt(image, album, site_title)|trim %}
                       <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
                          class="pswp-link gallery-link block w-full h-full overflow-hidden bg-neutral-100 cursor-pointer {{ rounded_class }}"
                          title="{{ seo_title|e('html_attr') }}"
@@ -528,9 +533,11 @@
                               {% endif %}
 
                               <img src="{{ best_jpg_path }}"
-                                   alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                                   alt="{{ img_alt|e }}"
                                    title="{{ seo_title|e('html_attr') }}"
-                                   loading="lazy"
+                                   width="{{ imgW }}"
+                                   height="{{ imgH }}"
+                                   {% if loop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
                                    decoding="async"
                                    data-fallback="hide">
                           </picture>
@@ -586,6 +593,7 @@
               <div class="gallery-item">
                   {% set lightbox_href = image.lightbox_url|default(image.url|default('')) %}
                   {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+                  {% set img_alt = Img.smart_alt(image, album, site_title)|trim %}
                   <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
                      class="pswp-link gallery-link group block overflow-hidden bg-neutral-100 cursor-pointer {{ aspect_class }} {{ rounded_class }} {{ shadow_class }}"
                      title="{{ seo_title|e('html_attr') }}"
@@ -644,11 +652,11 @@
                           {% endif %}
 
                           <img src="{{ best_jpg_path }}"
-                               alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                               alt="{{ img_alt|e }}"
                                title="{{ seo_title|e('html_attr') }}"
                                width="{{ image.width }}"
                                height="{{ image.height }}"
-                               loading="lazy"
+                               {% if loop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
                                decoding="async"
                                data-fallback="hide"
                                class="w-full h-full object-cover transition-transform duration-300 {{ hover_class }}">
@@ -679,6 +687,9 @@
       <p class="text-neutral-500">{{ trans('album.empty_message') }}</p>
   </div>
   {% endif %}
+
+  {# Image structured data (ImageGallery + per-image ImageObject) #}
+  {% include 'frontend/_image_schema.twig' %}
 
 </div>
 {% endblock %}

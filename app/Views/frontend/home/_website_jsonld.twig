@@ -1,5 +1,10 @@
-{# WebSite JSON-LD + SearchAction — shared by home templates (matches home_masonry.twig). #}
-{% set search_url_template = base_path ~ '/' ~ (galleries_slug|default('galleries')) ~ '?q={search_term_string}' %}
+{# WebSite JSON-LD + SearchAction — shared by all home templates.
+   The SearchAction target is ABSOLUTE (via canonical_base) and uses the real
+   ?search= query parameter the search endpoint reads. #}
+{% set _cb = canonical_base|default('') %}
+{% set search_url_template = _cb
+    ? (_cb ~ '/search?search={search_term_string}')
+    : (base_path ~ '/search?search={search_term_string}') %}
 <script type="application/ld+json" nonce="{{ csp_nonce() }}">
 {
   "@context": "https://schema.org",

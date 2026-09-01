@@ -3,6 +3,6 @@ Allow: /
 Disallow: /admin/
 Disallow: /api/
 
-# Sitemaps
-Sitemap: http://localhost:8000/sitemap.xml
-Sitemap: http://localhost:8000/sitemap_index.xml
+# Sitemap URLs are written here automatically when the sitemap is generated
+# (Admin -> SEO -> Generate sitemap, or the "sitemap:build" command), using the
+# site's configured absolute base URL.

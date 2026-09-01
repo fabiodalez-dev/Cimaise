@@ -6,6 +6,7 @@ namespace App\Tasks;
 
 use App\Services\BaseUrlService;
 use App\Services\SettingsService;
+use App\Services\SitemapService;
 use App\Support\Database;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -23,7 +24,7 @@ class SitemapCommand extends Command
 
     protected function configure(): void
     {
-        $this->setDescription('Generate sitemap.xml and robots.txt files')
+        $this->setDescription('Generate sitemap.xml, sitemap-images.xml and update robots.txt')
              ->addOption('base-url', 'u', InputOption::VALUE_OPTIONAL, 'Base URL for the site (uses SEO settings or APP_URL if not provided)');
     }
 
@@ -43,152 +44,16 @@ class SitemapCommand extends Command
 
         $output->writeln('Building sitemap...');
 
-        try {
-            $this->generateSitemap($baseUrl, $publicDir);
-            $this->generateRobotsTxt($baseUrl, $publicDir);
+        // Delegate to SitemapService so the CLI and the admin UI emit exactly the
+        // same URLs, filters and robots.txt handling (single source of truth).
+        $result = (new SitemapService($this->db, $baseUrl, $publicDir))->generate();
 
-            $output->writeln('<info>✓ Sitemap generated successfully</info>');
+        if (!empty($result['success'])) {
+            $output->writeln('<info>' . ($result['message'] ?? 'Sitemap generated successfully') . '</info>');
             return Command::SUCCESS;
-        } catch (\Throwable $e) {
-            $output->writeln('<error>Failed to generate sitemap: ' . $e->getMessage() . '</error>');
-            return Command::FAILURE;
-        }
-    }
-
-    private function generateSitemap(string $baseUrl, string $publicDir): void
-    {
-        $pdo = $this->db->pdo();
-        $urls = [];
-
-        // Homepage
-        $urls[] = [
-            'loc' => $baseUrl,
-            'lastmod' => date('Y-m-d'),
-            'changefreq' => 'daily',
-            'priority' => '1.0'
-        ];
-
-        // Categories
-        $stmt = $pdo->prepare('
-            SELECT c.*, MAX(a.updated_at) as last_updated
-            FROM categories c
-            LEFT JOIN albums a ON a.category_id = c.id AND a.is_published = 1
-            GROUP BY c.id
-            ORDER BY c.name
-        ');
-        $stmt->execute();
-        $categories = $stmt->fetchAll();
-
-        foreach ($categories as $category) {
-            $urls[] = [
-                'loc' => $baseUrl . '/category/' . $category['slug'],
-                'lastmod' => $category['last_updated'] ? date('Y-m-d', strtotime((string) $category['last_updated'])) : date('Y-m-d'),
-                'changefreq' => 'weekly',
-                'priority' => '0.8'
-            ];
         }
 
-        // Tags
-        $stmt = $pdo->prepare('
-            SELECT t.*, MAX(a.updated_at) as last_updated
-            FROM tags t
-            JOIN album_tag at ON at.tag_id = t.id
-            JOIN albums a ON a.id = at.album_id AND a.is_published = 1
-            GROUP BY t.id
-            ORDER BY t.name
-        ');
-        $stmt->execute();
-        $tags = $stmt->fetchAll();
-
-        foreach ($tags as $tag) {
-            $urls[] = [
-                'loc' => $baseUrl . '/tag/' . $tag['slug'],
-                'lastmod' => $tag['last_updated'] ? date('Y-m-d', strtotime((string) $tag['last_updated'])) : date('Y-m-d'),
-                'changefreq' => 'weekly',
-                'priority' => '0.6'
-            ];
-        }
-
-        // Albums
-        // Exclude password-protected and NSFW albums: their slugs are access-controlled
-        // and must not be advertised to search engines / visitors via the sitemap.
-        $stmt = $pdo->prepare('
-            SELECT slug, updated_at, published_at
-            FROM albums
-            WHERE is_published = 1
-              AND (password_hash IS NULL OR LENGTH(password_hash) = 0)
-              AND (is_nsfw = 0 OR is_nsfw IS NULL)
-            ORDER BY published_at DESC
-        ');
-        $stmt->execute();
-        $albums = $stmt->fetchAll();
-
-        foreach ($albums as $album) {
-            $lastmod = $album['updated_at'] ?: $album['published_at'];
-            $urls[] = [
-                'loc' => $baseUrl . '/album/' . $album['slug'],
-                'lastmod' => date('Y-m-d', strtotime((string) $lastmod)),
-                'changefreq' => 'monthly',
-                'priority' => '0.9'
-            ];
-        }
-
-        // Generate XML
-        $xml = $this->generateSitemapXml($urls);
-
-        // Write to file
-        $sitemapPath = $publicDir . '/sitemap.xml';
-        if (file_put_contents($sitemapPath, $xml) === false) {
-            throw new \RuntimeException('Failed to write sitemap.xml');
-        }
-
-        // Generate sitemap index if needed (for future use with multiple sitemaps)
-        $indexXml = $this->generateSitemapIndex($baseUrl);
-        $indexPath = $publicDir . '/sitemap_index.xml';
-        file_put_contents($indexPath, $indexXml);
-    }
-
-    private function generateSitemapXml(array $urls): string
-    {
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
-
-        foreach ($urls as $url) {
-            $xml .= '  <url>' . "\n";
-            $xml .= '    <loc>' . htmlspecialchars((string) $url['loc']) . '</loc>' . "\n";
-            $xml .= '    <lastmod>' . $url['lastmod'] . '</lastmod>' . "\n";
-            $xml .= '    <changefreq>' . $url['changefreq'] . '</changefreq>' . "\n";
-            $xml .= '    <priority>' . $url['priority'] . '</priority>' . "\n";
-            $xml .= '  </url>' . "\n";
-        }
-        return $xml . ('</urlset>' . "\n");
-    }
-
-    private function generateSitemapIndex(string $baseUrl): string
-    {
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-        $xml .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
-        $xml .= '  <sitemap>' . "\n";
-        $xml .= '    <loc>' . $baseUrl . '/sitemap.xml</loc>' . "\n";
-        $xml .= '    <lastmod>' . date('Y-m-d') . '</lastmod>' . "\n";
-        $xml .= '  </sitemap>' . "\n";
-        return $xml . ('</sitemapindex>' . "\n");
-    }
-
-    private function generateRobotsTxt(string $baseUrl, string $publicDir): void
-    {
-        $robots = "User-agent: *\n";
-        $robots .= "Allow: /\n";
-        $robots .= "Disallow: /admin/\n";
-        $robots .= "Disallow: /api/\n";
-        $robots .= "\n";
-        $robots .= "# Sitemaps\n";
-        $robots .= "Sitemap: {$baseUrl}/sitemap.xml\n";
-        $robots .= "Sitemap: {$baseUrl}/sitemap_index.xml\n";
-
-        $robotsPath = $publicDir . '/robots.txt';
-        if (file_put_contents($robotsPath, $robots) === false) {
-            throw new \RuntimeException('Failed to write robots.txt');
-        }
+        $output->writeln('<error>' . ($result['error'] ?? 'Failed to generate sitemap') . '</error>');
+        return Command::FAILURE;
     }
 }

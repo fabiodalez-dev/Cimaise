@@ -82,6 +82,14 @@ tests/
 !/tests/Services/
 /tests/Services/*
 !/tests/Services/ProtectedMediaStorageTest.php
+!/tests/Services/BaseUrlServiceTest.php
+!/tests/Services/SettingsServiceBooleanTest.php
+!/tests/Middlewares/
+/tests/Middlewares/*
+!/tests/Middlewares/TrustedProxyMiddlewareTest.php
+!/tests/Controllers/
+/tests/Controllers/*
+!/tests/Controllers/AlbumPasswordAccessTest.php
 
 # Cache
 .cache/

@@ -2653,12 +2653,6 @@ parameters:
 			path: app/Tasks/InstallCommand.php
 
 		-
-			message: '#^Method App\\Tasks\\SitemapCommand\:\:generateSitemapXml\(\) has parameter \$urls with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Tasks/SitemapCommand.php
-
-		-
 			message: '#^Function trans\(\) has parameter \$params with no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
