@@ -9,6 +9,30 @@ The release workflow extracts the `## [VERSION]` section below into the GitHub
 release notes, so keep one section per released tag.
 
 ## [1.4.22] - 2026-09-01
+### Security
+- **Album password grants are now bound to the password.** Rotating (or clearing)
+  an album password immediately revokes existing unlock sessions instead of
+  leaving them valid for the rest of the 24h window.
+- **Password / NSFW gate pages and unlocked-session listings are never stored by
+  a shared cache**, closing a cache-poisoning path that could expose an unlocked
+  album's state (and CSRF token) to other visitors.
+- **NSFW content stays hidden from non-consenting visitors everywhere**: on-site
+  search now excludes NSFW albums without consent (consistent with the sitemap/
+  feed/home), the age gate follows the server consent state rather than trusting
+  `localStorage`, `confirmNsfw` only operates on NSFW albums, and unlock requires
+  the album to be published.
+
+### Performance
+- **Photo delivery hardening.** `/media/*` no longer builds the full Twig/
+  translation environment it never uses; authorized protected media is
+  `private, no-cache` (was `no-store`) so the browser can `304` while every view
+  still re-checks access; the LQIP loader unblurs on the real resource;
+  placeholder variants stay out of every `srcset`; a missing variant serves the
+  best existing one instead of the full-resolution original; failed on-demand
+  generation is negative-cached; LQIP is generated at upload and blur falls back
+  to synchronous generation where `exec()` is disabled; the service-worker cache
+  trim moves off the response path; and the album LCP image gets `fetchpriority`.
+
 ### Added
 - **Reconnected SEO layer across settings, pages and photos.** Much of the SEO
   machinery existed but was disconnected; this wires it up end to end.
