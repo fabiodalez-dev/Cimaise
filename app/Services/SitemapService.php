@@ -87,7 +87,7 @@ class SitemapService
                 WHERE c.slug IS NOT NULL
                   AND a.is_published = 1
                   AND (a.is_nsfw = 0 OR a.is_nsfw IS NULL)
-                  AND (a.password_hash IS NULL OR a.password_hash = "")
+                  AND (a.password_hash IS NULL OR a.password_hash = \'\')
                   AND (a.robots_index = 1 OR a.robots_index IS NULL)
                 GROUP BY c.id, c.slug
                 ORDER BY c.slug
@@ -110,7 +110,7 @@ class SitemapService
                 WHERE t.slug IS NOT NULL
                   AND a.is_published = 1
                   AND (a.is_nsfw = 0 OR a.is_nsfw IS NULL)
-                  AND (a.password_hash IS NULL OR a.password_hash = "")
+                  AND (a.password_hash IS NULL OR a.password_hash = \'\')
                   AND (a.robots_index = 1 OR a.robots_index IS NULL)
                 GROUP BY t.id, t.slug
                 ORDER BY t.slug
@@ -150,7 +150,7 @@ class SitemapService
                 WHERE is_published = 1
                   AND slug IS NOT NULL
                   AND (is_nsfw = 0 OR is_nsfw IS NULL)
-                  AND (password_hash IS NULL OR password_hash = "")
+                  AND (password_hash IS NULL OR password_hash = \'\')
                   AND (robots_index = 1 OR robots_index IS NULL)
                 ORDER BY published_at DESC
             ');
@@ -202,15 +202,11 @@ class SitemapService
             WHERE a.is_published = 1
               AND a.slug IS NOT NULL
               AND (a.is_nsfw = 0 OR a.is_nsfw IS NULL)
-              AND (a.password_hash IS NULL OR a.password_hash = "")
+              AND (a.password_hash IS NULL OR a.password_hash = \'\')
               AND (a.robots_index = 1 OR a.robots_index IS NULL)
             ORDER BY a.published_at DESC
         ');
         $albums = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-
-        if (empty($albums)) {
-            return;
-        }
 
         // Collect album IDs for batch image query
         $albumIds = array_column($albums, 'id');
@@ -222,34 +218,35 @@ class SitemapService
         // Batch fetch image rows (metadata only). Variants are resolved
         // separately below so that a missing 'jpg/xl' variant — or a site with
         // jpg output disabled entirely — no longer silently drops the image.
-        $placeholders = implode(',', array_fill(0, count($albumIds), '?'));
-        $stmt = $this->db->query("
-            SELECT
-                i.id, i.album_id, i.alt_text, i.caption, i.width, i.height,
-                i.camera_id, i.lens_id, i.film_id, i.location_id,
-                i.custom_camera, i.custom_lens, i.custom_film
-            FROM images i
-            WHERE i.album_id IN ($placeholders)
-            ORDER BY i.album_id, i.sort_order, i.id
-        ", $albumIds);
-        $imagesRaw = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-
-        if ($imagesRaw === []) {
-            return;
+        $imagesRaw = [];
+        if ($albumIds !== []) {
+            $placeholders = implode(',', array_fill(0, count($albumIds), '?'));
+            $stmt = $this->db->query("
+                SELECT
+                    i.id, i.album_id, i.alt_text, i.caption, i.width, i.height,
+                    i.camera_id, i.lens_id, i.film_id, i.location_id,
+                    i.custom_camera, i.custom_lens, i.custom_film
+                FROM images i
+                WHERE i.album_id IN ($placeholders)
+                ORDER BY i.album_id, i.sort_order, i.id
+            ", $albumIds);
+            $imagesRaw = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         }
 
         // Resolve the best variant per image: prefer JPEG (xl -> lg -> md) for
         // crawler compatibility, otherwise fall back to the widest available
         // variant in whatever format exists.
-        $variantsByImage = $this->loadVariantsByImage(array_column($imagesRaw, 'id'));
-        foreach ($imagesRaw as &$imgRow) {
-            $best = $this->pickBestVariant($variantsByImage[(int) $imgRow['id']] ?? []);
-            $imgRow['variant_path'] = $best['path'] ?? null;
-        }
-        unset($imgRow);
+        if ($imagesRaw !== []) {
+            $variantsByImage = $this->loadVariantsByImage(array_column($imagesRaw, 'id'));
+            foreach ($imagesRaw as &$imgRow) {
+                $best = $this->pickBestVariant($variantsByImage[(int) $imgRow['id']] ?? []);
+                $imgRow['variant_path'] = $best['path'] ?? null;
+            }
+            unset($imgRow);
 
-        // Enrich images with metadata names
-        ImagesService::enrichWithMetadata($this->db->pdo(), $imagesRaw, 'sitemap');
+            // Enrich images with metadata names
+            ImagesService::enrichWithMetadata($this->db->pdo(), $imagesRaw, 'sitemap');
+        }
 
         // Group images by album
         $imagesByAlbum = [];
@@ -321,9 +318,11 @@ class SitemapService
         $xml->endElement(); // urlset
         $xml->endDocument();
 
-        // Write to file
+        // Always replace the previous image sitemap, including with an empty
+        // valid urlset when no public albums/images remain. This prevents stale
+        // private URLs surviving an unpublish/delete operation.
         $content = $xml->outputMemory();
-        file_put_contents($this->publicPath . '/sitemap-images.xml', $content);
+        $this->writeAtomically($this->publicPath . '/sitemap-images.xml', $content);
     }
 
     /**
@@ -440,8 +439,33 @@ class SitemapService
         $content .= "\n\nSitemap: " . $this->baseUrl . "/sitemap.xml";
         $content .= "\nSitemap: " . $this->baseUrl . "/sitemap-images.xml\n";
 
-        // Try to write (might fail if not writable, which is OK).
-        @file_put_contents($robotsPath, ltrim($content, "\n"));
+        // Try to write atomically (failure is intentionally non-fatal).
+        $this->writeAtomically($robotsPath, ltrim($content, "\n"));
+    }
+
+    /** Replace a generated text file without exposing a partially written one. */
+    private function writeAtomically(string $path, string $content): bool
+    {
+        $directory = dirname($path);
+        if (!is_dir($directory) || !is_writable($directory)) {
+            return false;
+        }
+
+        $temporary = tempnam($directory, '.' . basename($path) . '.');
+        if ($temporary === false) {
+            return false;
+        }
+
+        try {
+            if (file_put_contents($temporary, $content, LOCK_EX) === false) {
+                return false;
+            }
+            return @rename($temporary, $path);
+        } finally {
+            if (file_exists($temporary)) {
+                @unlink($temporary);
+            }
+        }
     }
 
     /**

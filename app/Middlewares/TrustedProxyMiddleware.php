@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Middlewares;
 
+use App\Services\BaseUrlService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Slim\Views\Twig;
 
 /**
  * Reverse-proxy awareness for canonical URLs.
@@ -30,10 +32,17 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 final class TrustedProxyMiddleware implements MiddlewareInterface
 {
+    public function __construct(
+        private readonly ?Twig $twig = null,
+        private readonly string $basePath = '',
+        private readonly string $canonicalOverride = ''
+    ) {
+    }
+
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         if (!$this->remoteIsTrustedProxy($request)) {
-            return $handler->handle($request);
+            return $handler->handle($this->updateCanonicalGlobal($request));
         }
 
         $uri = $request->getUri();
@@ -92,7 +101,22 @@ final class TrustedProxyMiddleware implements MiddlewareInterface
             }
         }
 
-        return $handler->handle($request->withUri($uri));
+        return $handler->handle($this->updateCanonicalGlobal($request->withUri($uri)));
+    }
+
+    /** Keep Twig's fallback canonical base aligned with the corrected request. */
+    private function updateCanonicalGlobal(ServerRequestInterface $request): ServerRequestInterface
+    {
+        if ($this->twig !== null) {
+            $roots = BaseUrlService::canonicalRoots(
+                $request,
+                $this->basePath,
+                $this->canonicalOverride
+            );
+            $this->twig->getEnvironment()->addGlobal('canonical_base', $roots['base']);
+        }
+
+        return $request;
     }
 
     /**

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ lang|default('it')|e('html_attr') }}" class="no-js{% if dark_mode|default(false) %} dark{% endif %}">
+<html lang="{{ site_language|default(lang|default('en'))|e('html_attr') }}" class="no-js{% if dark_mode|default(false) %} dark{% endif %}">
 <head>
     <!-- Flag JS availability + apply the visitor's saved theme before paint (overrides admin default; avoids FOUC).
          When the admin disables the visitor toggle, any stored choice is ignored (not deleted) and the SSR default stands. -->
@@ -56,6 +56,10 @@
     {% if canonical_url %}<link rel="canonical" href="{{ canonical_url|e('html_attr') }}">{% endif %}
     <meta name="robots" content="{{ robots|default('index,follow')|e('html_attr') }}">
 
+    {# Search engine site verification (optional) #}
+    {% if google_verification|default('') %}<meta name="google-site-verification" content="{{ google_verification|e('html_attr') }}">{% endif %}
+    {% if bing_verification|default('') %}<meta name="msvalidate.01" content="{{ bing_verification|e('html_attr') }}">{% endif %}
+
     {# Organization/Person JSON-LD from SEO settings (if provided) #}
     {% if schema is defined and (schema.author_name or schema.organization_name) %}
     <script type="application/ld+json" nonce="{{ csp_nonce() }}">
@@ -104,7 +108,7 @@
       "@type": "BreadcrumbList",
       "itemListElement": [
         {% for crumb in breadcrumbs %}
-        {% set crumbUrl = crumb.url starts with '/' ? base_path ~ crumb.url : crumb.url %}
+        {% set crumbUrl = crumb.url starts with '/' ? canonical_base ~ crumb.url : crumb.url %}
         {
           "@type": "ListItem",
           "position": {{ loop.index }},
@@ -337,6 +341,7 @@
     {% endif %}
 
     {# Cookie Banner with conditional script loader #}
+    {% include 'frontend/_analytics_tags.twig' %}
     {% include 'partials/cookie-banner.twig' %}
 
     {# PWA runtime: SW registration + broken-image self-heal (shared with classic layout) #}

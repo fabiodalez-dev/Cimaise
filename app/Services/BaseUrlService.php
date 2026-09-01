@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use Psr\Http\Message\ServerRequestInterface;
+
 class BaseUrlService
 {
     /**
@@ -37,7 +39,8 @@ class BaseUrlService
         $isDefaultPort = $port === 0
             || ($isHttps && $port === 443)
             || (!$isHttps && $port === 80);
-        if (!$isDefaultPort && !str_contains((string) $host, ':')) {
+        $hostHasPort = preg_match('/:\d+$/', (string) $host) === 1;
+        if (!$isDefaultPort && !$hostHasPort) {
             $host .= ':' . $port;
         }
 
@@ -66,6 +69,53 @@ class BaseUrlService
         }
 
         return self::getCurrentBaseUrl();
+    }
+
+    /**
+     * Return the canonical origin and application base for an HTTP request.
+     *
+     * The configured URL is deliberately reduced to its origin: request paths
+     * and generated media paths already contain the installation subdirectory.
+     * Keeping a configured path here would therefore duplicate it.
+     *
+     * @return array{root:string,base:string}
+     */
+    public static function canonicalRoots(
+        ServerRequestInterface $request,
+        string $basePath = '',
+        string $configuredUrl = ''
+    ): array {
+        $uri = $request->getUri();
+        $authority = $uri->getAuthority() !== '' ? $uri->getAuthority() : $uri->getHost();
+        $requestRoot = rtrim($uri->getScheme() . '://' . $authority, '/');
+        $configuredRoot = self::origin($configuredUrl);
+        $root = $configuredRoot !== '' ? $configuredRoot : $requestRoot;
+
+        return [
+            'root' => $root,
+            'base' => rtrim($root . ($basePath !== '' ? '/' . ltrim($basePath, '/') : ''), '/'),
+        ];
+    }
+
+    /** Reduce an absolute URL to scheme://authority, preserving a custom port. */
+    public static function origin(string $url): string
+    {
+        if (trim($url) === '') {
+            return '';
+        }
+
+        $parts = parse_url(trim($url));
+        if (!is_array($parts) || empty($parts['scheme']) || empty($parts['host'])) {
+            return '';
+        }
+
+        $host = (string) $parts['host'];
+        if (str_contains($host, ':') && !str_starts_with($host, '[')) {
+            $host = '[' . $host . ']';
+        }
+
+        return strtolower((string) $parts['scheme']) . '://' . $host
+            . (isset($parts['port']) ? ':' . (int) $parts['port'] : '');
     }
 
     /**

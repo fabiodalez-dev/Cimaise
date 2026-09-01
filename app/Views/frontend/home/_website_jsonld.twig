@@ -2,10 +2,9 @@
    The SearchAction target is ABSOLUTE (via canonical_base) and uses the real
    ?search= query parameter the search endpoint reads. #}
 {% set _cb = canonical_base|default('') %}
-{% set _gslug = galleries_slug|default('galleries') %}
 {% set search_url_template = _cb
-    ? (_cb ~ '/' ~ _gslug ~ '?search={search_term_string}')
-    : (base_path ~ '/' ~ _gslug ~ '?search={search_term_string}') %}
+    ? (_cb ~ '/search?search={search_term_string}')
+    : (base_path ~ '/search?search={search_term_string}') %}
 <script type="application/ld+json" nonce="{{ csp_nonce() }}">
 {
   "@context": "https://schema.org",

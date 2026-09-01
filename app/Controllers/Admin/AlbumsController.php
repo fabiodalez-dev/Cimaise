@@ -142,6 +142,9 @@ class AlbumsController extends BaseController
     {
         try {
             $settings = new SettingsService($this->db);
+            if (!SettingsService::boolean($settings->get('seo.sitemap_enabled', true), true)) {
+                return;
+            }
             $canonical = trim((string) ($settings->get('seo.canonical_base_url', '') ?? ''));
             $baseUrl = $canonical !== '' ? rtrim($canonical, '/') : BaseUrlService::getCurrentBaseUrl();
             $publicPath = dirname(__DIR__, 3) . '/public';

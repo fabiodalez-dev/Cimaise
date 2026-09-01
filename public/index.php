@@ -412,12 +412,6 @@ Hooks::doAction('twig_environment', $twig);
 
 $app->add(TwigMiddleware::create($app, $twig));
 
-// Reverse-proxy correction (canonical URLs). Added last so it is the OUTERMOST
-// middleware: it rewrites the request scheme/host/port from X-Forwarded-* before
-// routing, Twig globals and controllers read the URI — but only behind a peer
-// listed in TRUSTED_PROXIES, so forged headers are ignored.
-$app->add(new \App\Middlewares\TrustedProxyMiddleware());
-
 // Auto-detect app URL if not set in environment
 $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
@@ -434,7 +428,7 @@ $twig->getEnvironment()->addGlobal('base_path', $basePath);
 // controllers pass a request-accurate `canonical_base` in the render context
 // (which shadows this); this global is the safety-net fallback for any page
 // that doesn't. seo.canonical_base_url wins when configured.
-$twig->getEnvironment()->addGlobal('canonical_base', rtrim($_ENV['APP_URL'] ?? $autoDetectedUrl, '/'));
+$twig->getEnvironment()->addGlobal('canonical_base', rtrim((string) ($_ENV['APP_URL'] ?? ''), '/'));
 
 // Load app version from version.json
 $versionFile = __DIR__ . '/../version.json';
@@ -733,5 +727,16 @@ register_shutdown_function(function () {
         $memoryMb
     );
 });
+
+// Added last, therefore outermost in Slim's LIFO middleware stack. This must
+// run before error handling, routing and Twig rendering so forwarded public
+// scheme/host/port are reflected consistently in every canonical fallback.
+$twigGlobals = $twig->getEnvironment()->getGlobals();
+$schemaGlobals = is_array($twigGlobals['schema'] ?? null) ? $twigGlobals['schema'] : [];
+$canonicalOverride = trim((string) ($schemaGlobals['canonical_base'] ?? ''));
+if ($canonicalOverride === '') {
+    $canonicalOverride = (string) ($_ENV['APP_URL'] ?? '');
+}
+$app->add(new \App\Middlewares\TrustedProxyMiddleware($twig, $basePath, $canonicalOverride));
 
 $app->run();

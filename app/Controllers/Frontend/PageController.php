@@ -6,6 +6,7 @@ namespace App\Controllers\Frontend;
 
 use App\Controllers\BaseController;
 use App\Services\AnalyticsService;
+use App\Services\BaseUrlService;
 use App\Services\CacheTags;
 use App\Services\ImagesService;
 use App\Services\NavigationService;
@@ -219,28 +220,12 @@ class PageController extends BaseController
         // port for non-standard-port installs.
         $uri = $request->getUri();
         $path = $uri->getPath();
-        $authority = $uri->getAuthority();
-        if ($authority === '') {
-            $authority = $uri->getHost();
-        }
-        $autoRoot = $uri->getScheme() . '://' . $authority;
-        // Origin root (scheme://authority), no path. seo.canonical_base_url wins,
-        // but is normalised to its ORIGIN only: getPath() (and the media URLs)
-        // already carry the app base path, so keeping a subdirectory in the
-        // configured value too would double it (https://host/foo/foo/album/x).
-        $configuredRoot = '';
-        if ($canonicalBaseSetting !== '') {
-            $parts = parse_url($canonicalBaseSetting);
-            if (!empty($parts['scheme']) && !empty($parts['host'])) {
-                $configuredRoot = $parts['scheme'] . '://' . $parts['host']
-                    . (isset($parts['port']) ? ':' . $parts['port'] : '');
-            }
-        }
-        $root = rtrim($configuredRoot !== '' ? $configuredRoot : $autoRoot, '/');
+        $roots = BaseUrlService::canonicalRoots($request, $this->basePath, $canonicalBaseSetting);
+        $root = $roots['root'];
         $canonicalUrl = $root . $path;
         // Absolute site base INCLUDING the subdirectory, for JSON-LD/breadcrumbs
         // that build full URLs from root-relative paths (e.g. /album/{slug}).
-        $canonicalBase = rtrim($root . ($this->basePath ?: ''), '/');
+        $canonicalBase = $roots['base'];
         $schema['canonical_base'] = $canonicalBase;
 
         // A caller can supply the final <title> verbatim (no site-name suffix) —
@@ -272,6 +257,96 @@ class PageController extends BaseController
             'current_url' => $uri->__toString(),
             'schema' => $schema,
         ];
+    }
+
+    /**
+     * Rebuild request-derived album SEO on every cache hit. Cached presentation
+     * data is portable; scheme, authority, canonical base and schema are not.
+     *
+     * @param array<string, mixed> $album
+     * @param array<string, mixed> $cachedData
+     * @return array<string, mixed>
+     */
+    private function albumRequestSeo(Request $request, array $album, array $cachedData): array
+    {
+        $title = trim((string) ($album['seo_title'] ?? '')) ?: (string) ($album['title'] ?? '');
+        $description = trim((string) ($album['seo_description'] ?? ''))
+            ?: (string) ($album['excerpt'] ?? '');
+
+        $image = trim((string) ($album['og_image_path'] ?? ''));
+        if ($image === '') {
+            $image = trim((string) ($cachedData['seo_image_path'] ?? ''));
+        }
+        if ($image === '') {
+            $cachedImage = (string) ($cachedData['meta_image'] ?? '');
+            if ($cachedImage !== '') {
+                $parsedPath = parse_url($cachedImage, PHP_URL_PATH);
+                if (is_string($parsedPath) && $parsedPath !== '') {
+                    $image = $parsedPath;
+                    if ($this->basePath !== '' && str_starts_with($image, $this->basePath . '/')) {
+                        $image = substr($image, strlen($this->basePath));
+                    }
+                }
+            }
+        }
+
+        $seo = $this->buildSeo($request, $title, $description, $image !== '' ? $image : null);
+        $canonicalOverride = trim((string) ($album['canonical_url'] ?? ''));
+        if ($canonicalOverride !== '') {
+            $seo['canonical_url'] = $canonicalOverride;
+        }
+
+        $isNsfw = !empty($album['is_nsfw']);
+        $seo['robots'] = ($isNsfw ? 'noindex' : (($album['robots_index'] ?? 1) ? 'index' : 'noindex'))
+            . ','
+            . ($isNsfw ? 'nofollow' : (($album['robots_follow'] ?? 1) ? 'follow' : 'nofollow'));
+
+        $schemaType = trim((string) ($album['schema_type'] ?? ''));
+        if ($schemaType !== '') {
+            $seo['og_type'] = $schemaType;
+        } else {
+            // Do not retain a now-removed per-album override from an older cache.
+            $seo['og_type'] = null;
+        }
+
+        return $seo;
+    }
+
+    /**
+     * Request-derived SEO for cached category/tag listings.
+     *
+     * @param array<string, mixed> $entity
+     * @return array<string, mixed>
+     */
+    private function taxonomyRequestSeo(Request $request, array $entity, string $type): array
+    {
+        $name = (string) ($entity['name'] ?? '');
+        $slug = (string) ($entity['slug'] ?? '');
+        if ($type === 'tag') {
+            $description = trans(
+                'seo.tag_description',
+                ['name' => $name],
+                'Photography albums tagged with: ' . $name
+            );
+            $title = '#' . $name;
+            $url = '/tag/' . $slug;
+        } else {
+            $description = trans(
+                'seo.category_description',
+                ['name' => $name],
+                'Photography albums in category: ' . $name
+            );
+            $title = $name;
+            $url = '/category/' . $slug;
+        }
+
+        $seo = $this->buildSeo($request, $title, $description);
+        $seo['breadcrumbs'] = [
+            ['name' => trans('nav.home', [], 'Home'), 'url' => '/'],
+            ['name' => $title, 'url' => $url],
+        ];
+
+        return $seo;
     }
 
     /**
@@ -346,7 +421,7 @@ class PageController extends BaseController
         static $flag = null;
         if ($flag === null) {
             $svc = new \App\Services\SettingsService($this->db);
-            $flag = (bool) $svc->get('seo.expose_gps', false);
+            $flag = \App\Services\SettingsService::boolean($svc->get('seo.expose_gps', false));
         }
         return $flag;
     }
@@ -954,21 +1029,29 @@ class PageController extends BaseController
 
             if ($cached !== null && isset($cached['template_file'], $cached['data']) && is_array($cached['data'])) {
                 // Fresh cache hit - render with cached data + session-specific vars
-                return $this->view->render($response, $cached['template_file'], array_merge($cached['data'], [
+                return $this->view->render($response, $cached['template_file'], array_merge(
+                    $cached['data'],
+                    $this->albumRequestSeo($request, (array) $album, $cached['data']),
+                    [
                     'is_admin' => $isAdmin,
                     'nsfw_consent' => $nsfwConsent,
                     'csrf' => $_SESSION['csrf'] ?? ''
-                ]));
+                    ]
+                ));
             }
 
             // Lazy regeneration: try stale cache
             $staleCached = $cacheService->get($cacheKey, allowStale: true);
             if ($staleCached !== null && isset($staleCached['template_file'], $staleCached['data']) && is_array($staleCached['data'])) {
-                return $this->view->render($response, $staleCached['template_file'], array_merge($staleCached['data'], [
+                return $this->view->render($response, $staleCached['template_file'], array_merge(
+                    $staleCached['data'],
+                    $this->albumRequestSeo($request, (array) $album, $staleCached['data']),
+                    [
                     'is_admin' => $isAdmin,
                     'nsfw_consent' => $nsfwConsent,
                     'csrf' => $_SESSION['csrf'] ?? ''
-                ]));
+                    ]
+                ));
             }
         }
 
@@ -1645,6 +1728,9 @@ class PageController extends BaseController
             'page_title' => $seoMeta['page_title'],
             'meta_description' => $seoMeta['meta_description'],
             'meta_image' => $seoMeta['meta_image'],
+            // Portable source path used to rebuild the absolute OG URL on cache
+            // hits without retaining the host that originally primed the cache.
+            'seo_image_path' => $seoImage,
             'current_url' => $seoMeta['current_url'],
             'canonical_url' => $seoMeta['canonical_url'],
             'og_site_name' => $seoMeta['og_site_name'],
@@ -1867,7 +1953,7 @@ class PageController extends BaseController
             $isAdmin = $this->isAdmin();
 
             if (!empty($album['password_hash']) && !$isAdmin) {
-                $allowed = $this->hasAlbumPasswordAccess((int) $album['id']);
+                $allowed = $this->hasAlbumPasswordAccess((int) $album['id'], (string) $album['password_hash']);
                 if (!$allowed) {
                     $response->getBody()->write('Album locked');
                     return $response->withStatus(403);
@@ -2235,22 +2321,30 @@ class PageController extends BaseController
 
             if ($cached !== null && isset($cached['data']) && is_array($cached['data'])) {
                 // Fresh cache hit - render with cached data + session-specific vars
-                return $this->view->render($response, 'frontend/category.twig', array_merge($cached['data'], [
+                return $this->view->render($response, 'frontend/category.twig', array_merge(
+                    $cached['data'],
+                    $this->taxonomyRequestSeo($request, (array) $category, 'category'),
+                    [
                     'nsfw_consent' => $nsfwConsent,
                     'is_admin' => $isAdmin,
                     'csrf' => $_SESSION['csrf'] ?? ''
-                ]));
+                    ]
+                ));
             }
 
             // Stale-while-revalidate: try expired cache if fresh not available
             $staleCached = $cacheService->get($cacheKey, allowStale: true);
             if ($staleCached !== null && isset($staleCached['data']) && is_array($staleCached['data'])) {
                 // Serve stale cache (background regeneration not implemented)
-                return $this->view->render($response, 'frontend/category.twig', array_merge($staleCached['data'], [
+                return $this->view->render($response, 'frontend/category.twig', array_merge(
+                    $staleCached['data'],
+                    $this->taxonomyRequestSeo($request, (array) $category, 'category'),
+                    [
                     'nsfw_consent' => $nsfwConsent,
                     'is_admin' => $isAdmin,
                     'csrf' => $_SESSION['csrf'] ?? ''
-                ]));
+                    ]
+                ));
             }
         }
 
@@ -2369,22 +2463,30 @@ class PageController extends BaseController
 
             if ($cached !== null && isset($cached['data']) && is_array($cached['data'])) {
                 // Fresh cache hit - render with cached data + session-specific vars
-                return $this->view->render($response, 'frontend/tag.twig', array_merge($cached['data'], [
+                return $this->view->render($response, 'frontend/tag.twig', array_merge(
+                    $cached['data'],
+                    $this->taxonomyRequestSeo($request, (array) $tag, 'tag'),
+                    [
                     'nsfw_consent' => $nsfwConsent,
                     'is_admin' => $isAdmin,
                     'csrf' => $_SESSION['csrf'] ?? ''
-                ]));
+                    ]
+                ));
             }
 
             // Stale-while-revalidate: try expired cache if fresh not available
             $staleCached = $cacheService->get($cacheKey, allowStale: true);
             if ($staleCached !== null && isset($staleCached['data']) && is_array($staleCached['data'])) {
                 // Serve stale cache (background regeneration not implemented)
-                return $this->view->render($response, 'frontend/tag.twig', array_merge($staleCached['data'], [
+                return $this->view->render($response, 'frontend/tag.twig', array_merge(
+                    $staleCached['data'],
+                    $this->taxonomyRequestSeo($request, (array) $tag, 'tag'),
+                    [
                     'nsfw_consent' => $nsfwConsent,
                     'is_admin' => $isAdmin,
                     'csrf' => $_SESSION['csrf'] ?? ''
-                ]));
+                    ]
+                ));
             }
         }
 
@@ -2803,11 +2905,14 @@ class PageController extends BaseController
 
         $visibleAlbums = [];
         foreach ($albums as $album) {
-            $album['is_password_protected'] = !empty($album['password_hash']);
+            $passwordHash = (string) ($album['password_hash'] ?? '');
+            $album['is_password_protected'] = $passwordHash !== '';
             unset($album['password_hash']);
 
             // Mark password-protected albums as locked (still show in listings with lock icon)
-            $album['is_locked'] = !$isAdmin && !empty($album['is_password_protected']) && !$this->hasAlbumPasswordAccess((int)$album['id']);
+            $album['is_locked'] = !$isAdmin
+                && !empty($album['is_password_protected'])
+                && !$this->hasAlbumPasswordAccess((int)$album['id'], $passwordHash);
 
             // NSFW albums are shown with blurred cover + overlay (not hidden)
             // The template handles blur via should_blur_cover and nsfw-overlay

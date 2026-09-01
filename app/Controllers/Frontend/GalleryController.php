@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers\Frontend;
 
 use App\Controllers\BaseController;
+use App\Services\BaseUrlService;
 use App\Services\NavigationService;
 use App\Services\SettingsService;
 use App\Support\Database;
@@ -28,7 +29,9 @@ class GalleryController extends BaseController
     {
         static $flag = null;
         if ($flag === null) {
-            $flag = (bool) (new SettingsService($this->db))->get('seo.expose_gps', false);
+            $flag = SettingsService::boolean(
+                (new SettingsService($this->db))->get('seo.expose_gps', false)
+            );
         }
         return $flag;
     }
@@ -141,7 +144,7 @@ class GalleryController extends BaseController
 
         // Password protection with session timeout (24h) - skip for admins
         if (!empty($album['password_hash']) && !$isAdmin) {
-            $allowed = $this->hasAlbumPasswordAccess((int)$album['id']);
+            $allowed = $this->hasAlbumPasswordAccess((int)$album['id'], (string)$album['password_hash']);
             if (!$allowed) {
                 $navService = new NavigationService($this->db);
                 $query = $request->getQueryParams();
@@ -652,10 +655,8 @@ class GalleryController extends BaseController
         // template name — that produced duplicate, template-suffixed titles.
         $canonicalSlug = (string) ($album['slug'] ?? $albumRef);
         $canonOverride = (string) ((new SettingsService($this->db))->get('seo.canonical_base_url', '') ?? '');
-        $uriG = $request->getUri();
-        $authorityG = $uriG->getAuthority() !== '' ? $uriG->getAuthority() : $uriG->getHost();
-        $rootG = rtrim($canonOverride !== '' ? $canonOverride : ($uriG->getScheme() . '://' . $authorityG), '/');
-        $galleryCanonicalBase = rtrim($rootG . ($this->basePath ?: ''), '/');
+        $roots = BaseUrlService::canonicalRoots($request, $this->basePath, $canonOverride);
+        $galleryCanonicalBase = $roots['base'];
         $galleryCanonical = $galleryCanonicalBase . '/album/' . $canonicalSlug;
 
         return $this->view->render($response, 'frontend/gallery.twig', [
@@ -730,7 +731,7 @@ class GalleryController extends BaseController
 
             // Password protection with session timeout (24h) - skip for admins
             if (!empty($album['password_hash']) && !$isAdmin) {
-                $allowed = $this->hasAlbumPasswordAccess((int)$album['id']);
+                $allowed = $this->hasAlbumPasswordAccess((int)$album['id'], (string)$album['password_hash']);
                 if (!$allowed) {
                     $response->getBody()->write('Album locked');
                     return $response->withStatus(403);

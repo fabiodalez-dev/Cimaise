@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers\Frontend;
 
 use App\Controllers\BaseController;
+use App\Services\BaseUrlService;
 use App\Support\Database;
 use App\Support\Logger;
 use App\Services\SettingsService;
@@ -174,9 +175,8 @@ class GalleriesController extends BaseController
         $robotsDefault = (string) ($svc->get('seo.robots_default', 'index,follow') ?? 'index,follow');
 
         $uri = $request->getUri();
-        $authority = $uri->getAuthority() !== '' ? $uri->getAuthority() : $uri->getHost();
-        $root = rtrim($canonOverride !== '' ? $canonOverride : ($uri->getScheme() . '://' . $authority), '/');
-        $canonicalBase = rtrim($root . ($this->basePath ?: ''), '/');
+        $roots = BaseUrlService::canonicalRoots($request, $this->basePath, $canonOverride);
+        $canonicalBase = $roots['base'];
 
         $metaImage = '';
         if ($logo !== '') {
@@ -541,6 +541,13 @@ class GalleriesController extends BaseController
         $isAdmin ??= $this->isAdmin();
         $nsfwConsent ??= $this->hasNsfwConsent();
 
+        // Keep the hashes request-local for revocation checks. enrichAlbumsBatch
+        // deliberately removes them before data reaches Twig/page cache.
+        $passwordHashes = [];
+        foreach ($albums as $album) {
+            $passwordHashes[(int) $album['id']] = (string) ($album['password_hash'] ?? '');
+        }
+
         // Batch enrich albums (eliminates N+1 query problem)
         $albums = $this->enrichAlbumsBatch($albums);
 
@@ -548,7 +555,10 @@ class GalleriesController extends BaseController
         $visibleAlbums = [];
         foreach ($albums as $album) {
             // Mark password-protected albums as locked (but still show them in listings)
-            $album['is_locked'] = !$isAdmin && !empty($album['is_password_protected']) && !$this->hasAlbumPasswordAccess((int)$album['id']);
+            $passwordHash = $passwordHashes[(int) $album['id']] ?? '';
+            $album['is_locked'] = !$isAdmin
+                && !empty($album['is_password_protected'])
+                && !$this->hasAlbumPasswordAccess((int)$album['id'], $passwordHash);
             $album = $this->sanitizeAlbumCoverForNsfw($album, $isAdmin, $nsfwConsent);
             $album = $this->ensureAlbumCoverImage($album);
             $visibleAlbums[] = $album;

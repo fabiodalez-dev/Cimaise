@@ -6,6 +6,7 @@ namespace App\Controllers\Frontend;
 
 use App\Controllers\BaseController;
 use App\Services\AlbumEnrichmentService;
+use App\Services\BaseUrlService;
 use App\Services\SearchService;
 use App\Services\SettingsService;
 use App\Support\Database;
@@ -104,9 +105,9 @@ final class SearchController extends BaseController
         $canonOverride = (string) ($svc->get('seo.canonical_base_url', '') ?? '');
 
         $uri = $request->getUri();
-        $authority = $uri->getAuthority() !== '' ? $uri->getAuthority() : $uri->getHost();
-        $root = rtrim($canonOverride !== '' ? $canonOverride : ($uri->getScheme() . '://' . $authority), '/');
-        $canonicalBase = rtrim($root . ($this->basePath ?: ''), '/');
+        $roots = BaseUrlService::canonicalRoots($request, $this->basePath, $canonOverride);
+        $root = $roots['root'];
+        $canonicalBase = $roots['base'];
 
         $label = $query !== ''
             ? trans('search.results_for', ['query' => $query], 'Results for "{query}"')
