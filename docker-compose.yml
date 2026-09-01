@@ -32,8 +32,12 @@ services:
       CIMAISE_DB_DATABASE: ${CIMAISE_MYSQL_DATABASE:-cimaise}
       CIMAISE_DB_USER: ${CIMAISE_MYSQL_USER:-cimaise}
       CIMAISE_DB_PASSWORD: ${CIMAISE_MYSQL_PASSWORD:-cimaise}
-      # When behind a reverse proxy (Traefik/nginx), set the trusted proxy CIDRs:
+      # When behind a reverse proxy (Traefik/nginx), set the trusted proxy CIDRs
+      # so canonical URLs / OpenGraph / sitemap use the public https origin:
       # TRUSTED_PROXIES: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+      # On a demo/staging copy, keep it out of search engines (X-Robots-Tag:
+      # noindex,nofollow on every response — pages, feeds and sitemap):
+      # CIMAISE_NOINDEX: "1"
     volumes:
       - cimaise_storage:/var/www/html/storage
       - cimaise_database:/var/www/html/database
