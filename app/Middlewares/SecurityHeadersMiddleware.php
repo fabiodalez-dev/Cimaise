@@ -57,12 +57,22 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
             // SECURITY: Allow 'unsafe-inline' for styles because JavaScript libraries (PhotoSwipe, GSAP, Lenis)
             // dynamically set inline styles via element.style.property = value, which cannot use nonces.
             // This is standard practice - script-src remains strict with nonce-based protection.
+            // GA4 / Google Tag Manager: the analytics snippet (rendered only when
+            // seo.analytics_gtag/gtm is configured) injects scripts from
+            // googletagmanager.com and beacons to the analytics collection hosts.
+            // Allowlisted here the same way reCAPTCHA is — always present so the
+            // opt-in tags are never CSP-blocked; the tags themselves stay gated by
+            // the setting. Host-source + nonce coexist (no 'strict-dynamic').
+            $gaScript = 'https://www.googletagmanager.com https://www.google-analytics.com';
+            $gaConnect = 'https://www.google-analytics.com https://*.google-analytics.com '
+                . 'https://*.analytics.google.com https://www.googletagmanager.com';
+
             $csp = "upgrade-insecure-requests; default-src 'self'; "
                  . "img-src 'self' data: blob: https:; "
-                 . "script-src 'self' 'nonce-{$nonce}' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; "
+                 . "script-src 'self' 'nonce-{$nonce}' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ {$gaScript}; "
                  . "style-src 'self' 'unsafe-inline'; "
                  . "font-src 'self' data:; "
-                 . "connect-src 'self'; "
+                 . "connect-src 'self' {$gaConnect}; "
                  . "frame-src https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/; "
                  . "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
         }

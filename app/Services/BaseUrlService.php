@@ -27,6 +27,20 @@ class BaseUrlService
             || ((int) ($_SERVER['SERVER_PORT'] ?? 0) === 443);
         $protocol = $isHttps ? 'https' : 'http';
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+
+        // Keep a non-default public port. A trusted proxy may set SERVER_PORT
+        // (from X-Forwarded-Port) without the port appearing in HTTP_HOST; without
+        // this, sitemap/feed URLs would point at a different authority than the
+        // request-derived canonical. Skip when the host already carries a port
+        // (host:port, or an IPv6 literal which legitimately contains colons).
+        $port = (int) ($_SERVER['SERVER_PORT'] ?? 0);
+        $isDefaultPort = $port === 0
+            || ($isHttps && $port === 443)
+            || (!$isHttps && $port === 80);
+        if (!$isDefaultPort && !str_contains((string) $host, ':')) {
+            $host .= ':' . $port;
+        }
+
         $scriptPath = $_SERVER['SCRIPT_NAME'] ?? '';
         $basePath = dirname((string) $scriptPath);
 

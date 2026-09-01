@@ -20,6 +20,8 @@ final class TrustedProxyMiddlewareTest extends TestCase
 {
     private ?string $prevTrusted = null;
     private ?string $prevEnv = null;
+    /** @var array<string, mixed> */
+    private array $serverSnapshot = [];
 
     protected function setUp(): void
     {
@@ -27,12 +29,25 @@ final class TrustedProxyMiddlewareTest extends TestCase
         $this->prevEnv = getenv('APP_ENV') ?: null;
         putenv('TRUSTED_PROXIES');
         putenv('APP_ENV');
+        // process() mutates these $_SERVER keys in the trusted-proxy branch and
+        // phpunit.xml does not isolate processes, so snapshot + restore to keep a
+        // rewritten origin from leaking into later tests.
+        foreach (['HTTPS', 'REQUEST_SCHEME', 'HTTP_HOST', 'SERVER_NAME', 'SERVER_PORT'] as $k) {
+            $this->serverSnapshot[$k] = $_SERVER[$k] ?? null;
+        }
     }
 
     protected function tearDown(): void
     {
         $this->prevTrusted === null ? putenv('TRUSTED_PROXIES') : putenv('TRUSTED_PROXIES=' . $this->prevTrusted);
         $this->prevEnv === null ? putenv('APP_ENV') : putenv('APP_ENV=' . $this->prevEnv);
+        foreach ($this->serverSnapshot as $k => $v) {
+            if ($v === null) {
+                unset($_SERVER[$k]);
+            } else {
+                $_SERVER[$k] = $v;
+            }
+        }
     }
 
     /** Runs the middleware and returns the URI the downstream handler received. */

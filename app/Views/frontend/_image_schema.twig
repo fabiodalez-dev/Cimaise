@@ -77,7 +77,7 @@
       '@type': 'ImageGallery',
       'name': album.title|default(site_title|default('')),
       'url': canonical_url|default(current_url|default('')),
-      'numberOfItems': images|length,
+      'numberOfItems': _items|length,
       'image': _items
     } %}
     {% if album.excerpt is defined and album.excerpt %}

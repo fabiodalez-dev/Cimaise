@@ -120,7 +120,10 @@
           {% if _logo_raw starts with 'http' %}
             {% set _logo_abs = _logo_raw %}
           {% else %}
-            {% set _logo_abs = _cbase ~ (base_path|default('')) ~ (_logo_raw starts with '/' ? _logo_raw : '/' ~ _logo_raw) %}
+            {# _cbase (schema.canonical_base) already includes base_path; the logo
+               path is app-root-relative, so DON'T re-add base_path (that doubled
+               the subdirectory in subfolder installs). #}
+            {% set _logo_abs = _cbase ~ (_logo_raw starts with '/' ? _logo_raw : '/' ~ _logo_raw) %}
           {% endif %}
           {% set _entity = _entity|merge({ 'logo': _logo_abs }) %}
         {% endif %}

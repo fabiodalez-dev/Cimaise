@@ -532,8 +532,12 @@ class SitemapService
             if ($variant['path'] === '') {
                 continue;
             }
+            // Variants whose label is outside $sizeRank (original/thumb/full/…)
+            // rank at PHP_INT_MAX; `$best === null` ensures such a variant is
+            // still returned when it is the only thing available, rather than
+            // dropping the image from the sitemap entirely.
             $rank = $sizeRank[$variant['variant']] ?? PHP_INT_MAX;
-            if ($rank < $bestRank) {
+            if ($best === null || $rank < $bestRank) {
                 $bestRank = $rank;
                 $best = $variant;
             }

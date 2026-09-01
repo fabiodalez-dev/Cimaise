@@ -167,6 +167,21 @@ class TwigGlobalsCache
     }
 
     /**
+     * Interpret a settings flag as a boolean. SettingsService stores toggles as
+     * the STRINGS 'true'/'false' (SeoController::save), and `(bool) 'false'` is
+     * true in PHP — so a plain cast would leave every disabled toggle on. Treat
+     * the usual falsy spellings as false and everything else (incl. bool true /
+     * the '1' the form posts) as true.
+     */
+    private static function truthy(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+        return !in_array(strtolower(trim((string) $value)), ['', '0', 'false', 'off', 'no'], true);
+    }
+
+    /**
      * Build the COMPLETE structured-data (`schema`) array from SEO settings.
      *
      * This is the single source of truth for the shape templates rely on
@@ -188,7 +203,7 @@ class TwigGlobalsCache
      */
     public static function buildSchemaArray(SettingsService $settings): array
     {
-        $enabled = (bool) $settings->get('seo.schema_enabled', true);
+        $enabled = self::truthy($settings->get('seo.schema_enabled', true));
 
         if (!$enabled) {
             // Gate: neutralised shape — every gate condition evaluates false.
@@ -224,7 +239,7 @@ class TwigGlobalsCache
         return [
             'enabled' => true,
             'schema_enabled' => true,
-            'breadcrumbs_enabled' => (bool) $settings->get('seo.breadcrumbs_enabled', true),
+            'breadcrumbs_enabled' => self::truthy($settings->get('seo.breadcrumbs_enabled', true)),
             'author_name' => (string) ($settings->get('seo.author_name', '') ?? ''),
             'author_url' => (string) ($settings->get('seo.author_url', '') ?? ''),
             'organization_name' => (string) ($settings->get('seo.organization_name', '') ?? ''),
@@ -235,7 +250,7 @@ class TwigGlobalsCache
             'image_copyright_notice' => (string) ($settings->get('seo.image_copyright_notice', '') ?? ''),
             'image_license_url' => (string) ($settings->get('seo.image_license_url', '') ?? ''),
             'image_acquire_license_page' => (string) ($settings->get('seo.image_acquire_license_page', '') ?? ''),
-            'local_business_enabled' => (bool) $settings->get('seo.local_business_enabled', false),
+            'local_business_enabled' => self::truthy($settings->get('seo.local_business_enabled', false)),
             'local_business_type' => (string) ($settings->get('seo.local_business_type', 'ProfessionalService') ?? 'ProfessionalService'),
             'local_business_name' => (string) ($settings->get('seo.local_business_name', '') ?? ''),
             'local_business_address' => (string) ($settings->get('seo.local_business_address', '') ?? ''),
@@ -334,6 +349,8 @@ class TwigGlobalsCache
             ],
             'analytics_gtag' => '',
             'analytics_gtm' => '',
+            'google_verification' => '',
+            'bing_verification' => '',
         ];
     }
 }

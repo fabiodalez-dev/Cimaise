@@ -224,8 +224,19 @@ class PageController extends BaseController
             $authority = $uri->getHost();
         }
         $autoRoot = $uri->getScheme() . '://' . $authority;
-        // Origin root (scheme://authority), no path. seo.canonical_base_url wins.
-        $root = rtrim($canonicalBaseSetting !== '' ? $canonicalBaseSetting : $autoRoot, '/');
+        // Origin root (scheme://authority), no path. seo.canonical_base_url wins,
+        // but is normalised to its ORIGIN only: getPath() (and the media URLs)
+        // already carry the app base path, so keeping a subdirectory in the
+        // configured value too would double it (https://host/foo/foo/album/x).
+        $configuredRoot = '';
+        if ($canonicalBaseSetting !== '') {
+            $parts = parse_url($canonicalBaseSetting);
+            if (!empty($parts['scheme']) && !empty($parts['host'])) {
+                $configuredRoot = $parts['scheme'] . '://' . $parts['host']
+                    . (isset($parts['port']) ? ':' . $parts['port'] : '');
+            }
+        }
+        $root = rtrim($configuredRoot !== '' ? $configuredRoot : $autoRoot, '/');
         $canonicalUrl = $root . $path;
         // Absolute site base INCLUDING the subdirectory, for JSON-LD/breadcrumbs
         // that build full URLs from root-relative paths (e.g. /album/{slug}).
