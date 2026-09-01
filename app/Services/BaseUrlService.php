@@ -16,8 +16,16 @@ class BaseUrlService
             return rtrim((string) $_ENV['APP_URL'], '/');
         }
 
-        // Fallback to automatic detection
-        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+        // Fallback to automatic detection. TrustedProxyMiddleware has already
+        // normalised $_SERVER (HTTPS / SERVER_PORT / REQUEST_SCHEME) from the
+        // X-Forwarded-* headers when the request came through a trusted proxy, so
+        // reading $_SERVER here yields the PUBLIC scheme + host. We deliberately
+        // do NOT read X-Forwarded-* directly (that would trust forged headers).
+        $https = (string) ($_SERVER['HTTPS'] ?? '');
+        $isHttps = ($https !== '' && strtolower($https) !== 'off')
+            || (strtolower((string) ($_SERVER['REQUEST_SCHEME'] ?? '')) === 'https')
+            || ((int) ($_SERVER['SERVER_PORT'] ?? 0) === 443);
+        $protocol = $isHttps ? 'https' : 'http';
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
         $scriptPath = $_SERVER['SCRIPT_NAME'] ?? '';
         $basePath = dirname((string) $scriptPath);

@@ -344,7 +344,7 @@
             {% if logo_type == 'image' and site_logo %}
                 <img src="{% if site_logo starts with '/' %}{{ base_path }}{{ site_logo }}{% else %}{{ site_logo }}{% endif %}" alt="{{ site_title|e('html_attr') }}" class="head-logo_img">
             {% else %}
-                <h1 class="head-logo_text">{{ site_title|e }}</h1>
+                <span class="head-logo_text">{{ site_title|e }}</span>
             {% endif %}
         </a>
         <div class="global-head_actions modern-desktop-only flex items-center">

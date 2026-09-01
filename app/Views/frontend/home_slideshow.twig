@@ -33,6 +33,8 @@
 {{ do_action('frontend_home_before', {base_path: base_path}) }}
 {% include 'frontend/home/_website_jsonld.twig' %}
 
+<h1 class="sr-only">{{ home_settings.hero_title|default(site_title|default('Portfolio'))|e }}</h1>
+
 {% if all_images|length > 0 %}
 {% set slides = all_images|slice(0, 15) %}
 <section class="show" id="slideshow" aria-roledescription="carousel" aria-label="{{ home_settings.hero_title|default(site_title)|e('html_attr') }}">

@@ -7,6 +7,7 @@ namespace App\Controllers\Frontend;
 use App\Controllers\BaseController;
 use App\Services\CollectionService;
 use App\Services\ImageVariantsService;
+use App\Services\SettingsService;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -35,9 +36,26 @@ final class CollectionController extends BaseController
     {
         $collections = $this->attachCovers($this->service->publishedCollections());
 
+        [$siteName, $canonicalBase, $root] = $this->seoBase($request);
+        $title = trans('collection.index_title', [], 'Collections');
+        // First collection cover as a representative OG image, if any. cover_url
+        // already carries the base path, so it is made absolute against the ORIGIN.
+        $metaImage = '';
+        foreach ($collections as $c) {
+            if (!empty($c['cover_url'])) {
+                $metaImage = $this->absoluteUrl((string) $c['cover_url'], $root);
+                break;
+            }
+        }
+
         return $this->view->render($response, 'frontend/collection_index.twig', [
             'collections' => $collections,
-            'page_title' => trans('collection.index_title', [], 'Collections'),
+            'page_title' => $title . ' — ' . $siteName,
+            'meta_description' => trans('collection.index_description', [], 'Curated photo collections.'),
+            'meta_image' => $metaImage,
+            'canonical_url' => $canonicalBase . '/collections',
+            'current_url' => (string) $request->getUri(),
+            'canonical_base' => $canonicalBase,
         ]);
     }
 
@@ -55,11 +73,57 @@ final class CollectionController extends BaseController
 
         $images = $this->collectionGalleryImages((int) $collection['id']);
 
+        [$siteName, $canonicalBase, $root] = $this->seoBase($request);
+        $description = trim(strip_tags((string) ($collection['description'] ?? $collection['excerpt'] ?? '')));
+        // OG image: the first visible photo of the collection. lightbox_url
+        // already carries the base path, so it is made absolute against the ORIGIN.
+        $metaImage = '';
+        if ($images !== [] && !empty($images[0]['lightbox_url'])) {
+            $metaImage = $this->absoluteUrl((string) $images[0]['lightbox_url'], $root);
+        }
+
         return $this->view->render($response, 'frontend/collection.twig', [
             'collection' => $collection,
             'images' => $images,
-            'page_title' => $collection['title'],
+            'page_title' => $collection['title'] . ' — ' . $siteName,
+            'meta_description' => $description,
+            'meta_image' => $metaImage,
+            'canonical_url' => $canonicalBase . '/collection/' . ($collection['slug'] ?? $slug),
+            'current_url' => (string) $request->getUri(),
+            'canonical_base' => $canonicalBase,
         ]);
+    }
+
+    /**
+     * Site name + request-accurate absolute site base (incl. subdirectory).
+     * seo.canonical_base_url wins over the detected origin.
+     *
+     * @return array{0:string,1:string,2:string} [siteName, canonicalBase, root]
+     */
+    private function seoBase(Request $request): array
+    {
+        $svc = new SettingsService($this->db);
+        $siteName = (string) ($svc->get('seo.site_title', 'Portfolio') ?? 'Portfolio');
+        $canonOverride = (string) ($svc->get('seo.canonical_base_url', '') ?? '');
+
+        $uri = $request->getUri();
+        $authority = $uri->getAuthority() !== '' ? $uri->getAuthority() : $uri->getHost();
+        $root = rtrim($canonOverride !== '' ? $canonOverride : ($uri->getScheme() . '://' . $authority), '/');
+        $canonicalBase = rtrim($root . ($this->basePath ?: ''), '/');
+
+        return [$siteName, $canonicalBase, $root];
+    }
+
+    /**
+     * Make an already-base-path-prefixed media URL absolute for OG tags by
+     * prepending the ORIGIN (scheme://authority), so the base path is not doubled.
+     */
+    private function absoluteUrl(string $url, string $root): string
+    {
+        if ($url === '' || str_starts_with($url, 'http')) {
+            return $url;
+        }
+        return $root . '/' . ltrim($url, '/');
     }
 
     /**

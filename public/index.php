@@ -412,6 +412,12 @@ Hooks::doAction('twig_environment', $twig);
 
 $app->add(TwigMiddleware::create($app, $twig));
 
+// Reverse-proxy correction (canonical URLs). Added last so it is the OUTERMOST
+// middleware: it rewrites the request scheme/host/port from X-Forwarded-* before
+// routing, Twig globals and controllers read the URI — but only behind a peer
+// listed in TRUSTED_PROXIES, so forged headers are ignored.
+$app->add(new \App\Middlewares\TrustedProxyMiddleware());
+
 // Auto-detect app URL if not set in environment
 $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
@@ -424,6 +430,11 @@ $autoDetectedUrl = $protocol . '://' . $host . $autoBasePath;
 // Share globals
 $twig->getEnvironment()->addGlobal('app_url', $_ENV['APP_URL'] ?? $autoDetectedUrl);
 $twig->getEnvironment()->addGlobal('base_path', $basePath);
+// Absolute site base for JSON-LD / breadcrumbs that need full URLs. Frontend
+// controllers pass a request-accurate `canonical_base` in the render context
+// (which shadows this); this global is the safety-net fallback for any page
+// that doesn't. seo.canonical_base_url wins when configured.
+$twig->getEnvironment()->addGlobal('canonical_base', rtrim($_ENV['APP_URL'] ?? $autoDetectedUrl, '/'));
 
 // Load app version from version.json
 $versionFile = __DIR__ . '/../version.json';

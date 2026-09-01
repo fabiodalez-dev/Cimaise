@@ -7,6 +7,7 @@ namespace App\Controllers\Frontend;
 use App\Controllers\BaseController;
 use App\Services\AlbumEnrichmentService;
 use App\Services\FeedService;
+use App\Services\SettingsService;
 use App\Support\Database;
 use DOMDocument;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -35,7 +36,7 @@ final class FeedController extends BaseController
 
     public function rss(Request $request, Response $response): Response
     {
-        [$siteTitle, $absBase, $items] = $this->build($request);
+        [$siteTitle, $absBase, $items, $language] = $this->build($request);
 
         $doc = new DOMDocument('1.0', 'UTF-8');
         $doc->formatOutput = true;
@@ -51,7 +52,7 @@ final class FeedController extends BaseController
         $channel->appendChild($this->el($doc, 'title', $siteTitle));
         $channel->appendChild($this->el($doc, 'description', $siteTitle . ' — recent albums'));
         $channel->appendChild($this->el($doc, 'link', $absBase . '/'));
-        $channel->appendChild($this->el($doc, 'language', 'en'));
+        $channel->appendChild($this->el($doc, 'language', $language));
 
         $self = $doc->createElement('atom:link');
         $self->setAttribute('href', $absBase . '/feed.xml');
@@ -117,6 +118,11 @@ final class FeedController extends BaseController
         $feed->appendChild($this->el($doc, 'title', $siteTitle));
         $feed->appendChild($this->el($doc, 'id', $absBase . '/'));
 
+        // Feed-level author (Atom recommends one; entries inherit it).
+        $author = $doc->createElement('author');
+        $author->appendChild($this->el($doc, 'name', $siteTitle));
+        $feed->appendChild($author);
+
         $self = $doc->createElement('link');
         $self->setAttribute('href', $absBase . '/feed/atom');
         $self->setAttribute('rel', 'self');
@@ -154,12 +160,23 @@ final class FeedController extends BaseController
     // --- shared -------------------------------------------------------------
 
     /**
-     * @return array{0:string,1:string,2:array<int,array{title:string,url:string,excerpt:string,cover:string,date:?string}>}
+     * @return array{0:string,1:string,2:array<int,array{title:string,url:string,excerpt:string,cover:string,date:?string}>,3:string}
      */
     private function build(Request $request): array
     {
-        $uri = $request->getUri();
-        $absBase = $uri->getScheme() . '://' . $uri->getAuthority() . $this->basePath;
+        $settings = new SettingsService($this->db);
+
+        // Build every absolute URL (self-links, GUIDs, item links, covers) from
+        // the same canonical base the rest of the app uses, so feed identifiers
+        // stay stable regardless of the host the request happened to arrive on.
+        // Fall back to the request host only when no canonical base is set.
+        $canonical = trim((string) ($settings->get('seo.canonical_base_url', '') ?? ''));
+        if ($canonical !== '') {
+            $absBase = rtrim($canonical, '/');
+        } else {
+            $uri = $request->getUri();
+            $absBase = $uri->getScheme() . '://' . $uri->getAuthority() . $this->basePath;
+        }
 
         $albums = $this->feed->recentPublishedAlbums(self::FEED_ITEMS);
         $covers = $this->coverPaths($albums);
@@ -176,8 +193,16 @@ final class FeedController extends BaseController
             ];
         }
 
-        $siteTitle = $this->siteTitle();
-        return [$siteTitle, $absBase, $items];
+        $siteTitle = trim((string) ($settings->get('site.title', 'Cimaise') ?? 'Cimaise'));
+        if ($siteTitle === '') {
+            $siteTitle = 'Cimaise';
+        }
+        $language = trim((string) ($settings->get('site.language', 'en') ?? 'en'));
+        if ($language === '') {
+            $language = 'en';
+        }
+
+        return [$siteTitle, $absBase, $items, $language];
     }
 
     /**
@@ -210,21 +235,6 @@ final class FeedController extends BaseController
             }
         }
         return $out;
-    }
-
-    private function siteTitle(): string
-    {
-        try {
-            $stmt = $this->db->pdo()->prepare("SELECT value FROM settings WHERE key = 'site_title' LIMIT 1");
-            $stmt->execute();
-            $val = $stmt->fetchColumn();
-            if ($val !== false && trim((string) $val) !== '') {
-                return (string) $val;
-            }
-        } catch (\Throwable) {
-            // fall through
-        }
-        return 'Cimaise';
     }
 
     private function el(DOMDocument $doc, string $name, string $text): \DOMElement

@@ -4,10 +4,12 @@
 #}
 {% import 'frontend/_seo_macros.twig' as Seo %}
 {% import 'frontend/_caption.twig' as Caption %}
+{% import 'frontend/_image_macros.twig' as Img %}
 
 {# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
 {% set lightbox_href = image.lightbox_url|default(image.url|default('')) %}
 {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+{% set img_alt = Img.smart_alt(image, album, site_title)|trim %}
 {% set item_layout = layout|default('grid') %}
 {% set item_aspect = aspect_ratio|default('1:1') %}
 {% set item_style = style|default({rounded: false, shadow: false, hover_scale: true}) %}
@@ -104,7 +106,7 @@
       {% endif %}
 
       <img src="{{ best_jpg_path }}"
-           alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+           alt="{{ img_alt|e }}"
            title="{{ seo_title|e('html_attr') }}"
            width="{{ image.width }}"
            height="{{ image.height }}"

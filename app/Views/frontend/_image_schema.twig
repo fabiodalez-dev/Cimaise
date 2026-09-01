@@ -1,0 +1,88 @@
+{#
+  Image structured data (JSON-LD) for album pages.
+
+  Emits a single ImageGallery whose `image` array carries one ImageObject per
+  photo, with absolute contentUrls (via canonical_base), real width/height,
+  an encodingFormat derived from the actual file extension, per-photo
+  creator/creditText (image.artist) and dateCreated (image.date_original),
+  and site-wide copyright/license fields from the `schema` globals.
+
+  Requires in context: images, album, canonical_base, base_path, site_title,
+  schema, and canonical_url|current_url. Shared by gallery.twig,
+  gallery_hero.twig and gallery_magazine.twig (the real album templates).
+#}
+{% import 'frontend/_image_macros.twig' as ImgSchemaMacros %}
+
+{% if (schema is not defined or schema.schema_enabled|default(true)) and images is defined and images|length > 0 %}
+  {% set _cb = canonical_base|default('') %}
+  {% set _bp = base_path|default('') %}
+  {% set _items = [] %}
+  {% for image in images|slice(0, 50) %}
+    {% set _src = image.fallback_src|default(image.url|default('')) %}
+    {% if _src %}
+      {# Build an absolute contentUrl. hero bakes base_path into fallback_src,
+         the default album pipeline does not — only add base_path when it is
+         not already present, so both shapes resolve correctly (and it is a
+         no-op for root installs where base_path is empty). #}
+      {% if _src starts with 'http' %}
+        {% set _abs = _src %}
+      {% else %}
+        {% set _prefix = (_bp and not (_src starts with _bp)) ? _bp : '' %}
+        {% set _path = _src starts with '/' ? _src : '/' ~ _src %}
+        {% set _abs = _cb ~ _prefix ~ _path %}
+      {% endif %}
+
+      {# encodingFormat from the real extension of the chosen file. #}
+      {% set _low = _src|lower %}
+      {% set _mime = 'image/jpeg' %}
+      {% if _low ends with '.webp' %}{% set _mime = 'image/webp' %}
+      {% elseif _low ends with '.avif' %}{% set _mime = 'image/avif' %}
+      {% elseif _low ends with '.jxl' %}{% set _mime = 'image/jxl' %}
+      {% elseif _low ends with '.png' %}{% set _mime = 'image/png' %}
+      {% endif %}
+
+      {% set _name = (image.caption is defined and image.caption)
+          ? image.caption|striptags|trim
+          : ImgSchemaMacros.smart_alt(image, album, site_title)|trim %}
+
+      {% set _obj = { '@type': 'ImageObject', 'contentUrl': _abs, 'encodingFormat': _mime } %}
+      {% if _name %}{% set _obj = _obj|merge({ 'name': _name }) %}{% endif %}
+      {% if image.caption is defined and image.caption %}
+        {% set _cap = image.caption|striptags|trim %}
+        {% set _obj = _obj|merge({ 'caption': _cap, 'description': _cap }) %}
+      {% endif %}
+      {% set _w = image.width|default(0) %}
+      {% set _h = image.height|default(0) %}
+      {% if _w > 0 %}{% set _obj = _obj|merge({ 'width': _w }) %}{% endif %}
+      {% if _h > 0 %}{% set _obj = _obj|merge({ 'height': _h }) %}{% endif %}
+      {% if image.artist is defined and image.artist %}
+        {% set _obj = _obj|merge({ 'creator': { '@type': 'Person', 'name': image.artist }, 'creditText': image.artist }) %}
+      {% endif %}
+      {% if image.date_original is defined and image.date_original %}
+        {% set _obj = _obj|merge({ 'dateCreated': image.date_original }) %}
+      {% endif %}
+      {% if schema is defined %}
+        {% if schema.image_copyright_notice %}{% set _obj = _obj|merge({ 'copyrightNotice': schema.image_copyright_notice }) %}{% endif %}
+        {% if schema.image_license_url %}{% set _obj = _obj|merge({ 'license': schema.image_license_url }) %}{% endif %}
+        {% if schema.image_acquire_license_page %}{% set _obj = _obj|merge({ 'acquireLicensePage': schema.image_acquire_license_page }) %}{% endif %}
+      {% endif %}
+
+      {% set _items = _items|merge([_obj]) %}
+    {% endif %}
+  {% endfor %}
+
+  {% if _items|length > 0 %}
+    {% set _gallery = {
+      '@context': 'https://schema.org',
+      '@type': 'ImageGallery',
+      'name': album.title|default(site_title|default('')),
+      'url': canonical_url|default(current_url|default('')),
+      'numberOfItems': images|length,
+      'image': _items
+    } %}
+    {% if album.excerpt is defined and album.excerpt %}
+      {% set _gallery = _gallery|merge({ 'about': album.excerpt|striptags|trim }) %}
+    {% endif %}
+<script type="application/ld+json" nonce="{{ csp_nonce() }}">{{ _gallery|json_encode|raw }}</script>
+  {% endif %}
+{% endif %}

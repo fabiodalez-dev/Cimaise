@@ -1359,40 +1359,10 @@
       });
   });
   </script>
-  {# JSON-LD: ImageGallery + Breadcrumbs #}
-  <script type="application/ld+json" nonce="{{ csp_nonce() }}">
-  {
-    "@context": "https://schema.org",
-    "@type": "ImageGallery",
-    "name": {{ album.title|json_encode|raw }},
-    {% if album.excerpt %}"about": {{ album.excerpt|striptags|json_encode|raw }},{% endif %}
-    "url": {{ (canonical_url|default(current_url))|json_encode|raw }},
-    "image": [
-      {% for image in images|slice(0,10) %}
-        {% set src = image.fallback_src|default(image.url) %}
-        {% if src starts with 'http' %}
-          {{ src|json_encode|raw }}
-        {% else %}
-          {{ ((canonical_base|default('')) ~ (src starts with '/' ? src : '/' ~ src))|json_encode|raw }}
-        {% endif %}{% if not loop.last %},{% endif %}
-      {% endfor %}
-    ]
-  }
-  </script>
-  <script type="application/ld+json" nonce="{{ csp_nonce() }}">
-  {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    "itemListElement": [
-      {"@type":"ListItem","position":1,"name":"Home","item": {{ (canonical_base|default('') ~ '/')|json_encode|raw }} }{% if album.category is defined and album.category.slug is defined %},
-      {"@type":"ListItem","position":2,"name": {{ album.category.name|json_encode|raw }}, "item": {{ (canonical_base|default('') ~ '/category/' ~ album.category.slug)|json_encode|raw }} },
-      {"@type":"ListItem","position":3,"name": {{ album.title|json_encode|raw }}, "item": {{ (canonical_url|default(current_url))|json_encode|raw }} }
-      {% else %},
-      {"@type":"ListItem","position":2,"name": {{ album.title|json_encode|raw }}, "item": {{ (canonical_url|default(current_url))|json_encode|raw }} }
-      {% endif %}
-    ]
-  }
-  </script>
+  {# JSON-LD: ImageGallery + per-image ImageObject (shared partial). The
+     BreadcrumbList is emitted once by _breadcrumbs.twig (included above) — no
+     duplicate here. #}
+  {% include 'frontend/_image_schema.twig' %}
 {% endblock %}
 
 {% block styles %}

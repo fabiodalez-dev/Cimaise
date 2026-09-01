@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ lang|default('it')|e('html_attr') }}" class="no-js{% if dark_mode|default(false) %} dark{% endif %}">
+<html lang="{{ site_language|default(lang|default('en'))|e('html_attr') }}" class="no-js{% if dark_mode|default(false) %} dark{% endif %}">
 <head>
     <!-- JS flag class on <html> for no-JS fallbacks + visitor theme (runs before paint to avoid FOUC) -->
     <script nonce="{{ csp_nonce() }}">(function(){ var d=document.documentElement; d.classList.remove('no-js'); d.classList.add('js'); window.basePath = '{{ base_path|e("js") }}'; window.__showExifInLightbox = {{ lightbox_show_exif ? 'true' : 'false' }}; var allow={{ (allow_theme_toggle ?? true) ? 'true' : 'false' }}; if(allow){ try{ var t=localStorage.getItem('cimaise-theme'); if(t==='dark'){d.classList.add('dark');} else if(t==='light'){d.classList.remove('dark');} }catch(e){} } })();</script>
@@ -58,9 +58,11 @@
     {% endif %}
     {% if meta_image %}
     <meta property="og:image" content="{{ meta_image|e('html_attr') }}">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="{{ page_title|e('html_attr') }}">
+    {% if meta_image_width is defined and meta_image_width and meta_image_height is defined and meta_image_height %}
+    <meta property="og:image:width" content="{{ meta_image_width|e('html_attr') }}">
+    <meta property="og:image:height" content="{{ meta_image_height|e('html_attr') }}">
+    {% endif %}
+    <meta property="og:image:alt" content="{{ meta_image_alt|default(album.title|default(page_title))|e('html_attr') }}">
     {% endif %}
     <meta property="og:type" content="{{ og_type|default('website')|e('html_attr') }}">
     <meta property="og:url" content="{{ canonical_url|default(current_url)|e('html_attr') }}">
@@ -80,46 +82,48 @@
 
     <!-- Canonical & Robots -->
     {% if canonical_url %}<link rel="canonical" href="{{ canonical_url|e('html_attr') }}">{% endif %}
-    <meta name="robots" content="{{ robots|default('index,follow')|e('html_attr') }}">
+    <meta name="robots" content="{{ robots|default('index,follow,max-image-preview:large')|e('html_attr') }}">
 
-    {# Organization/Person JSON-LD from SEO settings (if provided) #}
+    {# Search engine site verification (optional) #}
+    {% if google_verification|default('') %}<meta name="google-site-verification" content="{{ google_verification|e('html_attr') }}">{% endif %}
+    {% if bing_verification|default('') %}<meta name="msvalidate.01" content="{{ bing_verification|e('html_attr') }}">{% endif %}
+
+    {# Organization/Person JSON-LD from SEO settings (if provided).
+       Built as a Twig map + json_encode so the @id is a STABLE site identity
+       (canonical_base ~ '/#person' | '/#organization') rather than the current
+       page URL — the same node is referenced from every page. #}
     {% if schema is defined and (schema.author_name or schema.organization_name) %}
-    <script type="application/ld+json" nonce="{{ csp_nonce() }}">
-    {
-      "@context": "https://schema.org",
+      {% set _cbase = schema.canonical_base|default(canonical_base|default('')) %}
       {% if schema.author_name %}
-      "@type": "Person",
-      "name": {{ schema.author_name|json_encode|raw }},
-      {% if schema.author_url %}"url": {{ schema.author_url|json_encode|raw }},{% endif %}
-      {% if meta_image %}"image": {{ meta_image|json_encode|raw }},{% endif %}
-      "jobTitle": {{ (schema.photographer_job_title|default('Photographer'))|json_encode|raw }},
-      "description": {{ (meta_description|default(''))|json_encode|raw }},
-      {% set same_as_raw = schema.photographer_same_as|default('') %}
-      {% set same_as_list = [] %}
-      {% if same_as_raw %}
-        {% for u in same_as_raw|split(',') %}
-          {% set t = u|trim %}
-          {% if t %}
-            {% set same_as_list = same_as_list|merge([t]) %}
-          {% endif %}
-        {% endfor %}
-        {% if same_as_list %}
-        "sameAs": [
-          {% for url in same_as_list %}
-            {{ url|json_encode|raw }}{% if not loop.last %}, {% endif %}
+        {% set _entity = { '@context': 'https://schema.org', '@type': 'Person', '@id': _cbase ~ '/#person', 'name': schema.author_name } %}
+        {% if schema.author_url %}{% set _entity = _entity|merge({ 'url': schema.author_url }) %}{% endif %}
+        {% if meta_image %}{% set _entity = _entity|merge({ 'image': meta_image }) %}{% endif %}
+        {% set _entity = _entity|merge({ 'jobTitle': schema.photographer_job_title|default('Photographer') }) %}
+        {% set _bio = photographer_bio|default('') %}
+        {% if _bio %}{% set _entity = _entity|merge({ 'description': _bio }) %}{% endif %}
+        {% set same_as_raw = schema.photographer_same_as|default('') %}
+        {% set same_as_list = [] %}
+        {% if same_as_raw %}
+          {% for u in same_as_raw|split(',') %}
+            {% set t = u|trim %}
+            {% if t %}{% set same_as_list = same_as_list|merge([t]) %}{% endif %}
           {% endfor %}
-        ],
+        {% endif %}
+        {% if same_as_list %}{% set _entity = _entity|merge({ 'sameAs': same_as_list }) %}{% endif %}
+      {% else %}
+        {% set _entity = { '@context': 'https://schema.org', '@type': 'Organization', '@id': _cbase ~ '/#organization', 'name': schema.organization_name } %}
+        {% if schema.organization_url %}{% set _entity = _entity|merge({ 'url': schema.organization_url }) %}{% endif %}
+        {% set _logo_raw = site_logo|default('') %}
+        {% if _logo_raw %}
+          {% if _logo_raw starts with 'http' %}
+            {% set _logo_abs = _logo_raw %}
+          {% else %}
+            {% set _logo_abs = _cbase ~ (base_path|default('')) ~ (_logo_raw starts with '/' ? _logo_raw : '/' ~ _logo_raw) %}
+          {% endif %}
+          {% set _entity = _entity|merge({ 'logo': _logo_abs }) %}
         {% endif %}
       {% endif %}
-      {% else %}
-      "@type": "Organization",
-      "name": {{ schema.organization_name|json_encode|raw }},
-      {% if schema.organization_url %}"url": {{ schema.organization_url|json_encode|raw }},{% endif %}
-      {% if meta_image %}"logo": {{ meta_image|json_encode|raw }},{% endif %}
-      {% endif %}
-      "@id": {{ (canonical_url|default(current_url))|json_encode|raw }}
-    }
-    </script>
+    <script type="application/ld+json" nonce="{{ csp_nonce() }}">{{ _entity|json_encode|raw }}</script>
     {% endif %}
 
     {# BreadcrumbList Schema #}
@@ -2902,6 +2906,71 @@
     </script>
     {% endif %}
 
+
+    {# GA4 / Google Tag Manager — from seo.analytics_gtag / seo.analytics_gtm.
+       When the cookie banner is enabled the tags load only once the visitor
+       grants "analytics" consent (mirrors the custom-js-loader gate); otherwise
+       they load as a standard async gtag/GTM. #}
+    {% if analytics_gtag|default('') or analytics_gtm|default('') %}
+    <script nonce="{{ csp_nonce() }}">
+    (function() {
+      'use strict';
+      var GTAG_ID = {{ analytics_gtag|default('')|json_encode|raw }};
+      var GTM_ID  = {{ analytics_gtm|default('')|json_encode|raw }};
+      var cspNonce = {{ csp_nonce()|json_encode|raw }};
+      var consentRequired = {{ cookie_banner_enabled|default(true) ? 'true' : 'false' }};
+      var loaded = false;
+
+      function loadGtag(id) {
+        if (document.getElementById('ga4-src')) return;
+        var s = document.createElement('script');
+        s.id = 'ga4-src'; s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(id);
+        document.head.appendChild(s);
+        var init = document.createElement('script');
+        init.id = 'ga4-init'; init.nonce = cspNonce;
+        init.textContent = "window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config'," + JSON.stringify(id) + ");";
+        document.head.appendChild(init);
+      }
+
+      function loadGtm(id) {
+        if (document.getElementById('gtm-src')) return;
+        var s = document.createElement('script');
+        s.id = 'gtm-src'; s.nonce = cspNonce;
+        s.textContent = "(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer'," + JSON.stringify(id) + ");";
+        document.head.appendChild(s);
+      }
+
+      function loadAll() {
+        if (loaded) return;
+        loaded = true;
+        if (GTM_ID) loadGtm(GTM_ID);
+        if (GTAG_ID) loadGtag(GTAG_ID);
+      }
+
+      function tryConsent() {
+        if (loaded) return;
+        if (!window.CookieControl || !window.CookieControl.getCategoryConsent) return;
+        if (window.CookieControl.getCategoryConsent('analytics')) loadAll();
+      }
+
+      if (!consentRequired) { loadAll(); return; }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() { setTimeout(tryConsent, 200); });
+      } else {
+        setTimeout(tryConsent, 200);
+      }
+      window.addEventListener('silktideConsentChanged', function() { setTimeout(tryConsent, 100); });
+      var attempts = 0;
+      var iv = setInterval(function() {
+        attempts++;
+        tryConsent();
+        if (loaded || attempts >= 8) clearInterval(iv);
+      }, 500);
+    })();
+    </script>
+    {% endif %}
 
     {# Cookie Banner with conditional script loader #}
     {% include 'partials/cookie-banner.twig' %}

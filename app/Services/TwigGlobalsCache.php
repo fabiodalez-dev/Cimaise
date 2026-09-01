@@ -23,7 +23,7 @@ class TwigGlobalsCache
      * globals changes (new/renamed keys), so deployed caches with the old shape
      * are never served to templates expecting the new key.
      */
-    private const CACHE_KEY_PREFIX = 'twig_globals:v2:';
+    private const CACHE_KEY_PREFIX = 'twig_globals:v3:';
     private const TTL = 300; // 5 minutes
 
     /**
@@ -135,16 +135,14 @@ class TwigGlobalsCache
                 $globals['twitter_creator'] = $settings->get('seo.twitter_creator', '');
                 $globals['robots'] = $settings->get('seo.robots_default', 'index,follow');
 
-                // Schema/structured data settings
-                $globals['schema'] = [
-                    'enabled' => (bool) $settings->get('seo.schema_enabled', true),
-                    'author_name' => $settings->get('seo.author_name', ''),
-                    'author_url' => $settings->get('seo.author_url', ''),
-                    'organization_name' => $settings->get('seo.organization_name', ''),
-                    'organization_url' => $settings->get('seo.organization_url', ''),
-                    'image_copyright_notice' => $settings->get('seo.image_copyright_notice', ''),
-                    'image_license_url' => $settings->get('seo.image_license_url', ''),
-                ];
+                // Schema/structured data settings — the COMPLETE shape every
+                // template reads (see buildSchemaArray). A per-page `schema` in a
+                // controller render context shadows this global; both must carry
+                // the same keys so JSON-LD never references undefined values.
+                $schema = self::buildSchemaArray($settings);
+                $canonicalBase = (string) ($settings->get('seo.canonical_base_url', '') ?? '');
+                $schema['canonical_base'] = rtrim($canonicalBase, '/');
+                $globals['schema'] = $schema;
 
                 $globals['analytics_gtag'] = $settings->get('seo.analytics_gtag', '');
                 $globals['analytics_gtm'] = $settings->get('seo.analytics_gtm', '');
@@ -160,6 +158,90 @@ class TwigGlobalsCache
             // Return safe defaults on error
             return self::getDefaults($basePath);
         }
+    }
+
+    /**
+     * Build the COMPLETE structured-data (`schema`) array from SEO settings.
+     *
+     * This is the single source of truth for the shape templates rely on
+     * (_layout.twig, _breadcrumbs.twig, home JSON-LD): every key the templates
+     * read is always present so JSON-LD never references an undefined value.
+     * Shared by {@see buildGlobals} (the Twig global) and
+     * PageController::buildSeo (the per-page render context), so the two never
+     * drift apart.
+     *
+     * When `seo.schema_enabled` is false the array is returned fully neutralised
+     * (all names blank, all *_enabled false) so no JSON-LD block renders,
+     * regardless of how a template gates output.
+     *
+     * NOTE: `canonical_base` is intentionally NOT set here — the caller supplies
+     * the request-accurate absolute base (buildSeo) or the settings fallback
+     * (buildGlobals).
+     *
+     * @return array<string, mixed>
+     */
+    public static function buildSchemaArray(SettingsService $settings): array
+    {
+        $enabled = (bool) $settings->get('seo.schema_enabled', true);
+
+        if (!$enabled) {
+            // Gate: neutralised shape — every gate condition evaluates false.
+            return [
+                'enabled' => false,
+                'schema_enabled' => false,
+                'breadcrumbs_enabled' => false,
+                'author_name' => '',
+                'author_url' => '',
+                'organization_name' => '',
+                'organization_url' => '',
+                'photographer_job_title' => '',
+                'photographer_services' => '',
+                'photographer_same_as' => '',
+                'image_copyright_notice' => '',
+                'image_license_url' => '',
+                'image_acquire_license_page' => '',
+                'local_business_enabled' => false,
+                'local_business_type' => '',
+                'local_business_name' => '',
+                'local_business_address' => '',
+                'local_business_city' => '',
+                'local_business_country' => '',
+                'local_business_postal_code' => '',
+                'local_business_phone' => '',
+                'local_business_price_range' => '',
+                'local_business_opening_hours' => '',
+                'local_business_geo_lat' => '',
+                'local_business_geo_lng' => '',
+            ];
+        }
+
+        return [
+            'enabled' => true,
+            'schema_enabled' => true,
+            'breadcrumbs_enabled' => (bool) $settings->get('seo.breadcrumbs_enabled', true),
+            'author_name' => (string) ($settings->get('seo.author_name', '') ?? ''),
+            'author_url' => (string) ($settings->get('seo.author_url', '') ?? ''),
+            'organization_name' => (string) ($settings->get('seo.organization_name', '') ?? ''),
+            'organization_url' => (string) ($settings->get('seo.organization_url', '') ?? ''),
+            'photographer_job_title' => (string) ($settings->get('seo.photographer_job_title', 'Professional Photographer') ?? 'Professional Photographer'),
+            'photographer_services' => (string) ($settings->get('seo.photographer_services', 'Professional Photography Services') ?? 'Professional Photography Services'),
+            'photographer_same_as' => (string) ($settings->get('seo.photographer_same_as', '') ?? ''),
+            'image_copyright_notice' => (string) ($settings->get('seo.image_copyright_notice', '') ?? ''),
+            'image_license_url' => (string) ($settings->get('seo.image_license_url', '') ?? ''),
+            'image_acquire_license_page' => (string) ($settings->get('seo.image_acquire_license_page', '') ?? ''),
+            'local_business_enabled' => (bool) $settings->get('seo.local_business_enabled', false),
+            'local_business_type' => (string) ($settings->get('seo.local_business_type', 'ProfessionalService') ?? 'ProfessionalService'),
+            'local_business_name' => (string) ($settings->get('seo.local_business_name', '') ?? ''),
+            'local_business_address' => (string) ($settings->get('seo.local_business_address', '') ?? ''),
+            'local_business_city' => (string) ($settings->get('seo.local_business_city', '') ?? ''),
+            'local_business_country' => (string) ($settings->get('seo.local_business_country', '') ?? ''),
+            'local_business_postal_code' => (string) ($settings->get('seo.local_business_postal_code', '') ?? ''),
+            'local_business_phone' => (string) ($settings->get('seo.local_business_phone', '') ?? ''),
+            'local_business_price_range' => (string) ($settings->get('seo.local_business_price_range', '$$') ?? '$$'),
+            'local_business_opening_hours' => (string) ($settings->get('seo.local_business_opening_hours', '') ?? ''),
+            'local_business_geo_lat' => (string) ($settings->get('seo.local_business_geo_lat', '') ?? ''),
+            'local_business_geo_lng' => (string) ($settings->get('seo.local_business_geo_lng', '') ?? ''),
+        ];
     }
 
     /**
@@ -218,12 +300,31 @@ class TwigGlobalsCache
             'robots' => 'index,follow',
             'schema' => [
                 'enabled' => true,
+                'schema_enabled' => true,
+                'breadcrumbs_enabled' => true,
                 'author_name' => '',
                 'author_url' => '',
                 'organization_name' => '',
                 'organization_url' => '',
+                'photographer_job_title' => 'Professional Photographer',
+                'photographer_services' => 'Professional Photography Services',
+                'photographer_same_as' => '',
                 'image_copyright_notice' => '',
                 'image_license_url' => '',
+                'image_acquire_license_page' => '',
+                'local_business_enabled' => false,
+                'local_business_type' => 'ProfessionalService',
+                'local_business_name' => '',
+                'local_business_address' => '',
+                'local_business_city' => '',
+                'local_business_country' => '',
+                'local_business_postal_code' => '',
+                'local_business_phone' => '',
+                'local_business_price_range' => '$$',
+                'local_business_opening_hours' => '',
+                'local_business_geo_lat' => '',
+                'local_business_geo_lng' => '',
+                'canonical_base' => '',
             ],
             'analytics_gtag' => '',
             'analytics_gtm' => '',

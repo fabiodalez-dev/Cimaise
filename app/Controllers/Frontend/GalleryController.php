@@ -21,6 +21,32 @@ class GalleryController extends BaseController
     }
 
     /**
+     * Whether full-precision GPS may be emitted to templates (settings-gated).
+     * Cached per request.
+     */
+    private function exposeGps(): bool
+    {
+        static $flag = null;
+        if ($flag === null) {
+            $flag = (bool) (new SettingsService($this->db))->get('seo.expose_gps', false);
+        }
+        return $flag;
+    }
+
+    /**
+     * Coordinate value to expose to templates: full precision only when
+     * seo.expose_gps is on, otherwise rounded to 2 decimals (~1 km) so exact
+     * shooting locations are not leaked. Non-numeric/empty becomes null.
+     */
+    private function maskGpsCoord(mixed $value): ?float
+    {
+        if ($value === null || $value === '' || !is_numeric($value)) {
+            return null;
+        }
+        return $this->exposeGps() ? (float) $value : round((float) $value, 2);
+    }
+
+    /**
      * Format shutter speed for display, handling raw EXIF fractions.
      */
     private function formatShutterSpeed(?string $value): ?string
@@ -456,8 +482,9 @@ class GalleryController extends BaseController
                 'exif_make' => $img['exif_make'] ?? null,
                 'exif_model' => $img['exif_model'] ?? null,
                 'exif_lens_model' => $img['exif_lens_model'] ?? null,
-                'gps_lat' => $img['gps_lat'] ?? null,
-                'gps_lng' => $img['gps_lng'] ?? null,
+                // GPS privacy: full precision only when seo.expose_gps is on.
+                'gps_lat' => $this->maskGpsCoord($img['gps_lat'] ?? null),
+                'gps_lng' => $this->maskGpsCoord($img['gps_lng'] ?? null),
                 'date_original' => $img['date_original'] ?? null,
                 'artist' => $img['artist'] ?? null,
                 'copyright' => $img['copyright'] ?? null,
@@ -618,6 +645,19 @@ class GalleryController extends BaseController
             }
         }
 
+        // This /gallery route is a query-string template PREVIEW of an album that
+        // has its real, indexable home at /album/{slug}. Point the canonical
+        // there (proxy-corrected absolute base; seo.canonical_base_url wins) and
+        // keep the preview itself out of the index. The <title> must not leak the
+        // template name — that produced duplicate, template-suffixed titles.
+        $canonicalSlug = (string) ($album['slug'] ?? $albumRef);
+        $canonOverride = (string) ((new SettingsService($this->db))->get('seo.canonical_base_url', '') ?? '');
+        $uriG = $request->getUri();
+        $authorityG = $uriG->getAuthority() !== '' ? $uriG->getAuthority() : $uriG->getHost();
+        $rootG = rtrim($canonOverride !== '' ? $canonOverride : ($uriG->getScheme() . '://' . $authorityG), '/');
+        $galleryCanonicalBase = rtrim($rootG . ($this->basePath ?: ''), '/');
+        $galleryCanonical = $galleryCanonicalBase . '/album/' . $canonicalSlug;
+
         return $this->view->render($response, 'frontend/gallery.twig', [
             'album' => $galleryMeta,
             'images' => $images,
@@ -628,11 +668,13 @@ class GalleryController extends BaseController
             'current_template_id' => $templateId,
             'album_ref' => $albumRef,
             'categories' => $navCats,
-            'page_title' => $galleryMeta['title'] . ' - ' . $template['name'],
+            'page_title' => $galleryMeta['title'],
             'meta_description' => $galleryMeta['excerpt'],
             'meta_image' => $metaImage,
-            'canonical_url' => $request->getUri()->__toString(),
+            'canonical_url' => $galleryCanonical,
+            'canonical_base' => $galleryCanonicalBase,
             'current_url' => $request->getUri()->__toString(),
+            'robots' => 'noindex,nofollow',
             'enabled_socials' => $orderedSocials,
             'available_socials' => $availableSocials,
             'is_admin' => $isAdmin,
@@ -942,8 +984,9 @@ class GalleryController extends BaseController
                     'exif_make' => $img['exif_make'] ?? null,
                     'exif_model' => $img['exif_model'] ?? null,
                     'exif_lens_model' => $img['exif_lens_model'] ?? null,
-                    'gps_lat' => $img['gps_lat'] ?? null,
-                    'gps_lng' => $img['gps_lng'] ?? null,
+                    // GPS privacy: full precision only when seo.expose_gps is on.
+                    'gps_lat' => $this->maskGpsCoord($img['gps_lat'] ?? null),
+                    'gps_lng' => $this->maskGpsCoord($img['gps_lng'] ?? null),
                     'date_original' => $img['date_original'] ?? null,
                     'artist' => $img['artist'] ?? null,
                     'copyright' => $img['copyright'] ?? null,
