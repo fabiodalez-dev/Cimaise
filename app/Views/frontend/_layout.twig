@@ -12,7 +12,9 @@
     {% endif %}
 
     <!-- Favicon & App Icons -->
-    <link rel="icon" type="image/x-icon" href="{{ base_path }}/favicon.ico">
+    {# FaviconService writes /favicon.ico as a PNG (GD imagepng, .ico extension for
+       legacy compatibility), so declare the accurate MIME to satisfy validators. #}
+    <link rel="icon" type="image/png" href="{{ base_path }}/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ base_path }}/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ base_path }}/favicon-16x16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ base_path }}/apple-touch-icon.png">
