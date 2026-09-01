@@ -126,26 +126,11 @@
     <script type="application/ld+json" nonce="{{ csp_nonce() }}">{{ _entity|json_encode|raw }}</script>
     {% endif %}
 
-    {# BreadcrumbList Schema #}
-    {% if breadcrumbs is defined and breadcrumbs|length > 0 and schema is defined and schema.breadcrumbs_enabled %}
-    <script type="application/ld+json" nonce="{{ csp_nonce() }}">
-    {
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        {% for crumb in breadcrumbs %}
-        {% set crumbUrl = crumb.url starts with '/' ? base_path ~ crumb.url : crumb.url %}
-        {
-          "@type": "ListItem",
-          "position": {{ loop.index }},
-          "name": {{ crumb.name|json_encode|raw }},
-          "item": {{ crumbUrl|json_encode|raw }}
-        }{% if not loop.last %},{% endif %}
-        {% endfor %}
-      ]
-    }
-    </script>
-    {% endif %}
+    {# BreadcrumbList JSON-LD is emitted once by frontend/_breadcrumbs.twig (which
+       every breadcrumb-bearing page includes and which builds ABSOLUTE item URLs
+       from canonical_base). The old array-driven block here duplicated it AND
+       built RELATIVE item URLs (base_path, empty on root installs), so it was
+       removed to avoid two BreadcrumbList blocks per page. #}
 
     {# LocalBusiness Schema (if enabled) #}
     {% if schema is defined and schema.local_business_enabled %}

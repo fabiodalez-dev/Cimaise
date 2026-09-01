@@ -82,6 +82,9 @@ tests/
 !/tests/Services/
 /tests/Services/*
 !/tests/Services/ProtectedMediaStorageTest.php
+!/tests/Middlewares/
+/tests/Middlewares/*
+!/tests/Middlewares/TrustedProxyMiddlewareTest.php
 
 # Cache
 .cache/

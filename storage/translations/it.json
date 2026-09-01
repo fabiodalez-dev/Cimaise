@@ -1,4 +1,8 @@
 {
+  "seo": {
+    "seo.category_description": "Album fotografici nella categoria {name}",
+    "seo.tag_description": "Album fotografici con il tag {name}"
+  },
   "_meta": {
     "code": "it",
     "language": "Italiano",

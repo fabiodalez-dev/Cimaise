@@ -79,6 +79,15 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
             ->withHeader('Cross-Origin-Opener-Policy', 'same-origin')
             ->withHeader('X-Permitted-Cross-Domain-Policies', 'none');
 
+        // Staging/demo guard: when CIMAISE_NOINDEX is set, force every response to
+        // noindex via an authoritative X-Robots-Tag header. Unlike a <meta robots>,
+        // this covers non-HTML responses (feeds, sitemap) and cannot be undone by a
+        // per-page meta override, keeping a staging copy out of the index entirely.
+        $noindex = (string) ($_ENV['CIMAISE_NOINDEX'] ?? (getenv('CIMAISE_NOINDEX') ?: ''));
+        if (!in_array(strtolower($noindex), ['', '0', 'false', 'off', 'no'], true)) {
+            $response = $response->withHeader('X-Robots-Tag', 'noindex, nofollow');
+        }
+
         // Skip CSP on 304 responses: the browser keeps the cached body (with the original nonce)
         // but would update headers. A new CSP nonce would mismatch the cached body's nonce.
         if ($response->getStatusCode() === 304) {
