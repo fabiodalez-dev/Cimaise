@@ -581,10 +581,10 @@ class Installer
     {
         // Validate and sanitize language and date format
         $rawLanguage = (string)($data['site_language'] ?? 'en');
-        $language = in_array($rawLanguage, ['en', 'it'], true) ? $rawLanguage : 'en';
+        $language = in_array($rawLanguage, ['en', 'fr', 'it'], true) ? $rawLanguage : 'en';
 
         $rawAdminLanguage = (string)($data['admin_language'] ?? 'en');
-        $adminLanguage = \in_array($rawAdminLanguage, ['en', 'it'], true) ? $rawAdminLanguage : 'en';
+        $adminLanguage = \in_array($rawAdminLanguage, ['en', 'fr', 'it'], true) ? $rawAdminLanguage : 'en';
 
         $rawDateFormat = (string)($data['date_format'] ?? 'Y-m-d');
         $dateFormat = in_array($rawDateFormat, ['Y-m-d', 'd-m-Y'], true) ? $rawDateFormat : 'Y-m-d';
@@ -689,6 +689,28 @@ class Installer
                 'galleries.no_results_title' => 'Nessuna galleria trovata',
                 'galleries.no_results_text' => 'Non abbiamo trovato gallerie che corrispondono ai filtri selezionati. Prova a modificare i criteri di ricerca o a cancellare tutti i filtri.',
                 'galleries.view_button_text' => 'Vedi',
+            ],
+            'fr' => [
+                // Page d'accueil
+                'home.hero_title' => 'Portfolio',
+                'home.hero_subtitle' => 'Une collection de photographies argentiques et numériques explorant la lumière, les formes et la beauté du quotidien.',
+                'home.albums_title' => 'Derniers albums',
+                'home.albums_subtitle' => 'Découvrez mes travaux photographiques récents, des expérimentations argentiques aux explorations numériques.',
+                'home.empty_title' => 'Aucun album pour le moment',
+                'home.empty_text' => 'Revenez bientôt pour découvrir de nouveaux travaux.',
+                // Page À propos
+                'about.title' => 'À propos',
+                'about.contact_title' => 'Contact',
+                'about.contact_subject' => 'Portfolio',
+                // Page Galeries
+                'galleries.title' => 'Toutes les galeries',
+                'galleries.subtitle' => 'Explorez notre collection complète de galeries photographiques',
+                'galleries.filter_button_text' => 'Filtres',
+                'galleries.clear_filters_text' => 'Effacer les filtres',
+                'galleries.results_text' => 'galeries',
+                'galleries.no_results_title' => 'Aucune galerie trouvée',
+                'galleries.no_results_text' => 'Aucune galerie ne correspond aux filtres sélectionnés. Modifiez vos critères de recherche ou effacez tous les filtres.',
+                'galleries.view_button_text' => 'Voir',
             ],
         ];
 
