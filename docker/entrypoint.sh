@@ -43,6 +43,15 @@ for d in $WRITABLE_DIRS; do
   chown -R "$WEB_USER":"$WEB_USER" "$APP_DIR/$d" 2>/dev/null || true
 done
 
+# Twig does not revalidate compiled templates in production. The storage
+# volume survives image upgrades, so discard compiled templates before Apache
+# starts to ensure they are rebuilt from the current image's views.
+TWIG_CACHE_DIR="$APP_DIR/storage/cache/twig"
+if [ -d "$TWIG_CACHE_DIR" ]; then
+  echo "[cimaise] clearing compiled Twig templates…"
+  find "$TWIG_CACHE_DIR" -type f -name '*.php' -delete
+fi
+
 # ── base translation packs ──────────────────────────────────────────────────
 # The base language packs (en/it *.json) are application code, but the storage
 # volume mounts OVER the image copy of storage/, hiding them — without this
