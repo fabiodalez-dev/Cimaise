@@ -52,6 +52,8 @@ storage/rate_limits/*
 !storage/rate_limits/.gitkeep
 storage/translations/*
 !storage/translations/.gitkeep
+!storage/translations/fr.json
+!storage/translations/fr_admin.json
 
 # Logs
 *.log
