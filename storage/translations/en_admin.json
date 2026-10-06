@@ -2588,6 +2588,8 @@
     "admin.pages.galleries.tpl_polaroid_desc": "Scattered prints with handwritten-style captions.",
     "admin.pages.galleries.tpl_index_minimal": "Minimal Index",
     "admin.pages.galleries.tpl_index_minimal_desc": "Text-only list with counts; previews appear on hover.",
-    "admin.login.toggle_password": "Show/hide password"
+    "admin.login.toggle_password": "Show/hide password",
+    "admin.pages.home.hero_enabled": "Show hero section",
+    "admin.pages.home.hero_enabled_hint": "Classic homepage only. Turn this off to start directly with the gallery."
   }
 }

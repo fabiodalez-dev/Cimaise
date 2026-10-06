@@ -6,13 +6,15 @@
 {{ do_action('frontend_home_before', {base_path: base_path}) }}
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-  {# Hook: frontend_home_hero_before - Before hero section #}
-  {{ do_action('frontend_home_hero_before', {base_path: base_path}) }}
+  {% if home_settings.hero_enabled is not defined or home_settings.hero_enabled %}
+    {# Hook: frontend_home_hero_before - Before hero section #}
+    {{ do_action('frontend_home_hero_before', {base_path: base_path}) }}
 
-  {% include 'frontend/home/_hero.twig' %}
+    {% include 'frontend/home/_hero.twig' %}
 
-  {# Hook: frontend_home_hero_after - After hero section #}
-  {{ do_action('frontend_home_hero_after', {base_path: base_path}) }}
+    {# Hook: frontend_home_hero_after - After hero section #}
+    {{ do_action('frontend_home_hero_after', {base_path: base_path}) }}
+  {% endif %}
 
   {# Hook: frontend_home_gallery_before - Before infinite gallery #}
   {{ do_action('frontend_home_gallery_before', {base_path: base_path}) }}

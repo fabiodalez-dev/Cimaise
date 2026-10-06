@@ -2602,6 +2602,8 @@
     "admin.pages.galleries.tpl_polaroid_desc": "Stampe sparse con didascalie in stile scritto a mano.",
     "admin.pages.galleries.tpl_index_minimal": "Indice Minimale",
     "admin.pages.galleries.tpl_index_minimal_desc": "Elenco solo testo con conteggi; anteprime al passaggio.",
-    "admin.login.toggle_password": "Mostra/nascondi password"
+    "admin.login.toggle_password": "Mostra/nascondi password",
+    "admin.pages.home.hero_enabled": "Mostra sezione Hero",
+    "admin.pages.home.hero_enabled_hint": "Solo homepage Classica. Disattiva per iniziare direttamente dalla galleria."
   }
 }

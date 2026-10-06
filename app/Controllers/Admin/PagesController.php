@@ -102,6 +102,7 @@ class PagesController extends BaseController
         $svc = new SettingsService($this->db);
         $settings = [
             'home.template' => (string)($svc->get('home.template', 'classic') ?? 'classic'),
+            'home.hero_enabled' => SettingsService::boolean($svc->get('home.hero_enabled', true), true),
             'home.hero_title' => (string)($svc->get('home.hero_title', 'Portfolio') ?? 'Portfolio'),
             'home.hero_subtitle' => (string)($svc->get('home.hero_subtitle', 'A collection of analog and digital photography exploring light, form, and the beauty of everyday moments.') ?? 'A collection of analog and digital photography exploring light, form, and the beauty of everyday moments.'),
             'home.albums_title' => (string)($svc->get('home.albums_title', 'Latest Albums') ?? 'Latest Albums'),
@@ -176,7 +177,8 @@ class PagesController extends BaseController
         $masonryMaxImages = max(0, min(5000, $masonryMaxImages));
         $svc->set('home.masonry_max_images', $masonryMaxImages);
 
-        // Hero section
+        // Hero section (visibility toggle currently applies to the Classic homepage)
+        $svc->set('home.hero_enabled', isset($data['hero_enabled']));
         $svc->set('home.hero_title', trim((string)($data['hero_title'] ?? 'Portfolio')) ?: 'Portfolio');
         $svc->set('home.hero_subtitle', trim((string)($data['hero_subtitle'] ?? '')));
 

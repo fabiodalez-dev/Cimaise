@@ -275,6 +275,15 @@
                 {{ trans('admin.pages.home.hero_section') }}
               </h3>
               <div class="space-y-4">
+                <label class="flex items-start gap-3 cursor-pointer">
+                  <input type="checkbox" name="hero_enabled" value="1"
+                         {% if settings['home.hero_enabled'] is not defined or settings['home.hero_enabled'] %}checked{% endif %}
+                         class="mt-1 w-4 h-4 text-black border-gray-300 rounded focus:ring-black">
+                  <span>
+                    <span class="block text-sm font-medium text-gray-900">{{ trans('admin.pages.home.hero_enabled') }}</span>
+                    <span class="block text-xs text-gray-500 mt-1">{{ trans('admin.pages.home.hero_enabled_hint') }}</span>
+                  </span>
+                </label>
                 <div>
                   <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.title') }}</label>
                   <input type="text" name="hero_title" class="form-input" placeholder="{{ trans('admin.pages.home.hero_title_placeholder')|e('html_attr') }}" value="{{ settings['home.hero_title']|default(trans('admin.pages.home.hero_title_default'))|e('html_attr') }}">
