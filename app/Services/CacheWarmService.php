@@ -479,6 +479,11 @@ class CacheWarmService
             return false;
         }
 
+        $album['show_equipment'] = SettingsService::boolean(
+            $this->settings->get('album.' . (int)$album['id'] . '.show_equipment', true),
+            true
+        );
+
         // Get album images (fetch raw columns, concatenate in PHP for MySQL/SQLite compatibility)
         $imgStmt = $pdo->prepare("
             SELECT i.*,

@@ -86,55 +86,55 @@
     {% endfor %}
   {% endif %}
 
-  {% if album.equipment.cameras|length > 0 or album.equipment.lenses|length > 0 or album.equipment.film|length > 0 or album.equipment.developers|length > 0 or album.equipment.labs|length > 0 or custom_fields_for_gallery|length > 0 %}
-  <div class="max-w-5xl mx-auto mb-8 p-6 bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-transparent dark:border-neutral-700" data-gsap="equipment">
-    <h3 class="text-sm font-medium mb-3 text-left">{{ trans('album.equipment') }}</h3>
-    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2 text-xs text-neutral-600">
+  {% if (album.show_equipment is not defined or album.show_equipment) and (album.equipment.cameras|length > 0 or album.equipment.lenses|length > 0 or album.equipment.film|length > 0 or album.equipment.developers|length > 0 or album.equipment.labs|length > 0 or custom_fields_for_gallery|length > 0) %}
+  <div class="max-w-5xl mx-auto mb-8 p-5 md:p-6 bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-neutral-100 dark:border-neutral-700" data-gsap="equipment">
+    <h3 class="text-sm font-medium mb-4 text-left">{{ trans('album.equipment') }}</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-neutral-700 dark:text-neutral-200">
       {% if album.equipment.cameras is defined and album.equipment.cameras|length > 0 %}
-      <div class="flex flex-row md:flex-col items-center md:items-start gap-2 md:gap-0 text-left">
-        <i class="fas fa-camera md:mb-1 text-neutral-500"></i>
-        <div class="space-y-1">
+      <div class="flex items-start gap-3 min-w-0 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-3 text-left">
+        <i class="fas fa-camera mt-0.5 text-neutral-500 shrink-0"></i>
+        <div class="space-y-1 min-w-0 break-words">
           {% for camera in album.equipment.cameras %}<div>{{ camera }}</div>{% endfor %}
         </div>
       </div>
       {% endif %}
       {% if album.equipment.lenses is defined and album.equipment.lenses|length > 0 %}
-      <div class="flex flex-row md:flex-col items-center md:items-start gap-2 md:gap-0 text-left">
-        <i class="fas fa-dot-circle md:mb-1 text-neutral-500"></i>
-        <div class="space-y-1">
+      <div class="flex items-start gap-3 min-w-0 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-3 text-left">
+        <i class="fas fa-dot-circle mt-0.5 text-neutral-500 shrink-0"></i>
+        <div class="space-y-1 min-w-0 break-words">
           {% for lens in album.equipment.lenses %}<div>{{ lens }}</div>{% endfor %}
         </div>
       </div>
       {% endif %}
       {% if album.equipment.film is defined and album.equipment.film|length > 0 %}
-      <div class="flex flex-row md:flex-col items-center md:items-start gap-2 md:gap-0 text-left">
-        <i class="fas fa-film md:mb-1 text-neutral-500"></i>
-        <div class="space-y-1">
+      <div class="flex items-start gap-3 min-w-0 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-3 text-left">
+        <i class="fas fa-film mt-0.5 text-neutral-500 shrink-0"></i>
+        <div class="space-y-1 min-w-0 break-words">
           {% for film in album.equipment.film %}<div>{% if film.name is defined %}{{ film.name }}{% if film.iso or film.format %} ({% if film.iso %}ISO {{ film.iso }}{% endif %}{% if film.iso and film.format %} - {% endif %}{% if film.format %}{{ film.format }}{% endif %}){% endif %}{% else %}{{ film }}{% endif %}</div>{% endfor %}
         </div>
       </div>
       {% endif %}
       {% if album.equipment.developers is defined and album.equipment.developers|length > 0 %}
-      <div class="flex flex-row md:flex-col items-center md:items-start gap-2 md:gap-0 text-left">
-        <i class="fas fa-flask md:mb-1 text-neutral-500"></i>
-        <div class="space-y-1">
+      <div class="flex items-start gap-3 min-w-0 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-3 text-left">
+        <i class="fas fa-flask mt-0.5 text-neutral-500 shrink-0"></i>
+        <div class="space-y-1 min-w-0 break-words">
           {% for dev in album.equipment.developers %}<div>{{ dev }}</div>{% endfor %}
         </div>
       </div>
       {% endif %}
       {% if album.equipment.labs is defined and album.equipment.labs|length > 0 %}
-      <div class="flex flex-row md:flex-col items-center md:items-start gap-2 md:gap-0 text-left">
-        <i class="fas fa-industry md:mb-1 text-neutral-500"></i>
-        <div class="space-y-1">
+      <div class="flex items-start gap-3 min-w-0 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-3 text-left">
+        <i class="fas fa-industry mt-0.5 text-neutral-500 shrink-0"></i>
+        <div class="space-y-1 min-w-0 break-words">
           {% for lab in album.equipment.labs %}<div>{{ lab }}</div>{% endfor %}
         </div>
       </div>
       {% endif %}
       {# Custom fields #}
       {% for field in custom_fields_for_gallery %}
-      <div class="flex flex-row md:flex-col items-center md:items-start gap-2 md:gap-0 text-left">
-        <i class="fas {{ field.icon|default('fa-tag') }} md:mb-1 text-neutral-500"></i>
-        <div class="space-y-1">
+      <div class="flex items-start gap-3 min-w-0 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-3 text-left">
+        <i class="fas {{ field.icon|default('fa-tag') }} mt-0.5 text-neutral-500 shrink-0"></i>
+        <div class="space-y-1 min-w-0 break-words">
           {% for valueData in field.values %}<div>{{ valueData.value|e }}</div>{% endfor %}
         </div>
       </div>

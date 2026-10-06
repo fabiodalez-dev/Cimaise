@@ -137,7 +137,7 @@
         {% endfor %}
       {% endif %}
 
-      {% if album.equipment.cameras|length > 0 or album.equipment.lenses|length > 0 or album.equipment.film|length > 0 or album.equipment.developers|length > 0 or album.equipment.labs|length > 0 or custom_fields_for_gallery|length > 0 %}
+      {% if (album.show_equipment is not defined or album.show_equipment) and (album.equipment.cameras|length > 0 or album.equipment.lenses|length > 0 or album.equipment.film|length > 0 or album.equipment.developers|length > 0 or album.equipment.labs|length > 0 or custom_fields_for_gallery|length > 0) %}
       {% set equipment_items = [] %}
       {% if album.equipment.cameras is defined and album.equipment.cameras|length > 0 %}
         {% set equipment_items = equipment_items|merge([1]) %}
@@ -160,43 +160,39 @@
       
       {% set equipment_count = equipment_items|length %}
       
-      <div class="mt-auto pt-3 pb-2 flex flex-wrap justify-center gap-3 md:gap-x-8 md:gap-y-2 text-[11px] md:text-xs text-neutral-800">
-        {% if album.equipment.cameras|length > 0 %}
-        <div class="flex items-center gap-2 min-w-[80px]">
-          <i class="fas fa-camera fa-xs text-neutral-700"></i>
-          <span>{% for camera in album.equipment.cameras %}{{ camera }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
-        </div>
-        {% endif %}
-        {% if album.equipment.lenses|length > 0 %}
-        <div class="flex items-center gap-2 min-w-[80px]">
-          <i class="fas fa-dot-circle fa-xs text-neutral-700"></i>
-          <span>{% for lens in album.equipment.lenses %}{{ lens }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
-        </div>
-        {% endif %}
-        {% if album.equipment.film|length > 0 %}
-        <div class="flex items-center gap-2 min-w-[80px]">
-          <i class="fas fa-film fa-xs text-neutral-700"></i>
-          <span>{% for film in album.equipment.film %}{% if film.name is defined %}{{ film.name }}{% if film.iso or film.format %} ({% if film.iso %}ISO {{ film.iso }}{% endif %}{% if film.iso and film.format %} - {% endif %}{% if film.format %}{{ film.format }}{% endif %}){% endif %}{% else %}{{ film }}{% endif %}{% if not loop.last %} • {% endif %}{% endfor %}</span>
-        </div>
-        {% endif %}
-        {% if album.equipment.developers|length > 0 %}
-        <div class="flex items-center gap-2 min-w-[80px]">
-          <i class="fas fa-flask fa-xs text-neutral-700"></i>
-          <span>{% for dev in album.equipment.developers %}{{ dev }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
-        </div>
-        {% endif %}
-        {% if album.equipment.labs|length > 0 %}
-        <div class="flex items-center gap-2 min-w-[80px]">
-          <i class="fas fa-industry fa-xs text-neutral-700"></i>
-          <span>{% for lab in album.equipment.labs %}{{ lab }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
-        </div>
-        {% endif %}
-        {# Custom fields #}
+      <div class="mt-auto pt-3 pb-2 flex flex-wrap justify-center gap-2 text-[11px] md:text-xs text-neutral-800">
+        {% for camera in album.equipment.cameras|default([]) %}
+        <span class="inline-flex max-w-full items-center gap-2 rounded-full border border-white/60 bg-white/75 px-3 py-1.5">
+          <i class="fas fa-camera fa-xs text-neutral-700 shrink-0"></i><span class="break-words">{{ camera }}</span>
+        </span>
+        {% endfor %}
+        {% for lens in album.equipment.lenses|default([]) %}
+        <span class="inline-flex max-w-full items-center gap-2 rounded-full border border-white/60 bg-white/75 px-3 py-1.5">
+          <i class="fas fa-dot-circle fa-xs text-neutral-700 shrink-0"></i><span class="break-words">{{ lens }}</span>
+        </span>
+        {% endfor %}
+        {% for film in album.equipment.film|default([]) %}
+        <span class="inline-flex max-w-full items-center gap-2 rounded-full border border-white/60 bg-white/75 px-3 py-1.5">
+          <i class="fas fa-film fa-xs text-neutral-700 shrink-0"></i>
+          <span class="break-words">{% if film.name is defined %}{{ film.name }}{% if film.iso or film.format %} ({% if film.iso %}ISO {{ film.iso }}{% endif %}{% if film.iso and film.format %} - {% endif %}{% if film.format %}{{ film.format }}{% endif %}){% endif %}{% else %}{{ film }}{% endif %}</span>
+        </span>
+        {% endfor %}
+        {% for dev in album.equipment.developers|default([]) %}
+        <span class="inline-flex max-w-full items-center gap-2 rounded-full border border-white/60 bg-white/75 px-3 py-1.5">
+          <i class="fas fa-flask fa-xs text-neutral-700 shrink-0"></i><span class="break-words">{{ dev }}</span>
+        </span>
+        {% endfor %}
+        {% for lab in album.equipment.labs|default([]) %}
+        <span class="inline-flex max-w-full items-center gap-2 rounded-full border border-white/60 bg-white/75 px-3 py-1.5">
+          <i class="fas fa-industry fa-xs text-neutral-700 shrink-0"></i><span class="break-words">{{ lab }}</span>
+        </span>
+        {% endfor %}
         {% for field in custom_fields_for_gallery %}
-        <div class="flex items-center gap-2 min-w-[80px]">
-          <i class="fas {{ field.icon|default('fa-tag')|e('html_attr') }} fa-xs text-neutral-700"></i>
-          <span>{% for valueData in field.values %}{{ valueData.value|e }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
-        </div>
+          {% for valueData in field.values %}
+          <span class="inline-flex max-w-full items-center gap-2 rounded-full border border-white/60 bg-white/75 px-3 py-1.5">
+            <i class="fas {{ field.icon|default('fa-tag')|e('html_attr') }} fa-xs text-neutral-700 shrink-0"></i><span class="break-words">{{ valueData.value|e }}</span>
+          </span>
+          {% endfor %}
         {% endfor %}
       </div>
       {% endif %}

@@ -306,6 +306,7 @@ class AlbumsController extends BaseController
         $allow_downloads = isset($d['allow_downloads']) ? 1 : 0;
         $is_nsfw = isset($d['is_nsfw']) ? 1 : 0;
         $allow_template_switch = isset($d['allow_template_switch']) ? 1 : 0;
+        $show_equipment = isset($d['show_equipment']);
         $passwordRaw = (string)($d['password'] ?? '');
         $password_hash = $passwordRaw !== '' ? password_hash($passwordRaw, PASSWORD_ARGON2ID) : null;
         $cameraIds = array_map(intval(...), (array)($d['cameras'] ?? []));
@@ -383,6 +384,11 @@ class AlbumsController extends BaseController
         }
         try {
             $albumId = (int)$pdo->lastInsertId();
+
+            // Per-album presentation preference. Keep equipment metadata intact;
+            // this setting controls only whether the public equipment block renders.
+            (new SettingsService($this->db))->set('album.' . $albumId . '.show_equipment', $show_equipment);
+
             $cats = array_unique(array_filter(array_map(intval(...), array_merge([$category_id], $categoryIds))));
             if ($cats) {
                 $sql = $this->db->insertIgnoreKeyword() . ' INTO album_category(album_id, category_id) VALUES(:a,:c)';
@@ -536,6 +542,10 @@ class AlbumsController extends BaseController
         }
 
         $settingsService = new SettingsService($this->db);
+        $item['show_equipment'] = SettingsService::boolean(
+            $settingsService->get('album.' . $id . '.show_equipment', true),
+            true
+        );
         $defaultAlbumPageTemplate = (string)($settingsService->get('gallery.page_template', 'classic') ?? 'classic');
         $albumPageTemplates = $this->getAlbumPageTemplates();
 
@@ -767,6 +777,7 @@ class AlbumsController extends BaseController
         $allow_downloads = isset($d['allow_downloads']) ? 1 : 0;
         $is_nsfw = isset($d['is_nsfw']) ? 1 : 0;
         $allow_template_switch = isset($d['allow_template_switch']) ? 1 : 0;
+        $show_equipment = isset($d['show_equipment']);
         $passwordRaw = (string)($d['password'] ?? '');
         $clearPassword = !empty($d['password_clear']);
         $tagIds = array_map(intval(...), (array)($d['tags'] ?? []));
@@ -1004,6 +1015,8 @@ class AlbumsController extends BaseController
                 }
             }
 
+            (new SettingsService($this->db))->set('album.' . $id . '.show_equipment', $show_equipment);
+
             $pdo->commit();
 
             // Handle blur variant generation when protection status changes (NSFW or password)
@@ -1097,6 +1110,15 @@ class AlbumsController extends BaseController
             $this->invalidatePageCaches($albumSlug, null, $id, false);
 
             $stmt->execute([':id' => $id]);
+
+            // Remove the per-album presentation preference as well.
+            try {
+                $pdo->prepare('DELETE FROM settings WHERE `key` = :key')
+                    ->execute([':key' => 'album.' . $id . '.show_equipment']);
+                (new SettingsService($this->db))->clearCache();
+            } catch (\Throwable) {
+                // Best-effort cleanup; album deletion must not fail on a stale preference.
+            }
 
             // Album gone — refresh the sitemap so its URLs disappear.
             $this->regenerateSitemap();

@@ -263,6 +263,13 @@
 
                 <label class="flex items-center gap-3">
                   <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black"
+                         type="checkbox" name="show_equipment" id="show_equipment" checked>
+                  <span class="text-sm font-medium text-gray-700">{{ trans('admin.albums.show_equipment') }}</span>
+                </label>
+                <p class="text-xs text-gray-500 ml-7">{{ trans('admin.albums.show_equipment_help') }}</p>
+
+                <label class="flex items-center gap-3">
+                  <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black"
                          type="checkbox" name="is_published" id="pub" checked>
                   <span class="text-sm font-medium text-gray-700">{{ trans('admin.albums.album_published') }}</span>
                 </label>
