@@ -333,7 +333,8 @@ if ($container['db'] !== null) {
 
 $app->add(new CsrfMiddleware());
 $app->add(new FlashMiddleware());
-$app->add(new SecurityHeadersMiddleware());
+// SecurityHeadersMiddleware is registered further down, AFTER the error
+// middleware, so that it also wraps the 404/405/500 pages (see there).
 $app->add(new EarlyHintsMiddleware($basePath));
 
 $twigCacheDir = __DIR__ . '/../storage/cache/twig';
@@ -727,6 +728,14 @@ register_shutdown_function(function () {
         $memoryMb
     );
 });
+
+// Security headers are added AFTER the error middleware so they wrap it
+// (Slim LIFO: later = outer). Registered before it, the 404/405/500 responses
+// built by the error handlers above never passed through this middleware and
+// went out without CSP, X-Frame-Options, nosniff, Referrer-Policy or HSTS.
+// The CSP nonce is generated here before any inner handler runs, so the
+// error templates' csp_nonce() calls still match the emitted policy.
+$app->add(new SecurityHeadersMiddleware());
 
 // Added last, therefore outermost in Slim's LIFO middleware stack. This must
 // run before error handling, routing and Twig rendering so forwarded public
