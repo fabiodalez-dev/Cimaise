@@ -42,11 +42,11 @@ class Logger
 
     private function __construct()
     {
-        $this->enabled = filter_var(envv('LOG_ENABLED', true), FILTER_VALIDATE_BOOLEAN);
-        $this->minLevel = self::$levelMap[strtolower((string)envv('LOG_LEVEL', 'warning'))] ?? self::WARNING;
-        $this->channel = (string)envv('LOG_CHANNEL', 'file');
-        $this->logPath = (string)envv('LOG_PATH', 'storage/logs');
-        $this->maxFiles = (int)envv('LOG_MAX_FILES', 30);
+        $this->enabled = filter_var(self::env('LOG_ENABLED', true), FILTER_VALIDATE_BOOLEAN);
+        $this->minLevel = self::$levelMap[strtolower((string)self::env('LOG_LEVEL', 'warning'))] ?? self::WARNING;
+        $this->channel = (string)self::env('LOG_CHANNEL', 'file');
+        $this->logPath = (string)self::env('LOG_PATH', 'storage/logs');
+        $this->maxFiles = (int)self::env('LOG_MAX_FILES', 30);
 
         // Make log path absolute if relative
         if (!str_starts_with($this->logPath, '/')) {
@@ -57,6 +57,27 @@ class Logger
         if ($this->channel === 'file' && !is_dir($this->logPath)) {
             @mkdir($this->logPath, 0755, true);
         }
+    }
+
+    /**
+     * envv() lives in app/Config/bootstrap.php, which the web/CLI entry points
+     * load but unit tests and ad-hoc scripts need not. A log call must never
+     * fatal with "undefined function envv()" in those contexts — fall back to
+     * the same $_ENV / $_SERVER / getenv() lookup.
+     */
+    private static function env(string $key, mixed $default = null): mixed
+    {
+        if (function_exists('envv')) {
+            return envv($key, $default);
+        }
+        if (array_key_exists($key, $_ENV)) {
+            return $_ENV[$key];
+        }
+        if (array_key_exists($key, $_SERVER)) {
+            return $_SERVER[$key];
+        }
+        $v = getenv($key);
+        return $v !== false ? $v : $default;
     }
 
     public static function getInstance(): self

@@ -120,7 +120,15 @@ class SettingsService
         $replace = $this->db->replaceKeyword();
         $now = $this->db->nowExpression();
         $stmt = $this->db->pdo()->prepare("{$replace} INTO settings(`key`,`value`,`type`,`updated_at`) VALUES(:k, :v, :t, {$now})");
-        $encodedValue = json_encode($value, JSON_UNESCAPED_SLASHES);
+        // JSON_INVALID_UTF8_SUBSTITUTE: a stray byte in a pasted value (custom
+        // CSS/JS, texts) must not make json_encode() return FALSE — that was
+        // persisted as an empty string and the setting silently vanished.
+        $encodedValue = json_encode($value, JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+        if ($encodedValue === false) {
+            Logger::warning('SettingsService: value could not be JSON-encoded, setting not saved', ['key' => $key, 'error' => json_last_error_msg()], 'settings');
+            $this->loadCache();
+            return;
+        }
         $type = $value === null ? 'null' : (\is_bool($value) ? 'boolean' : (\is_numeric($value) ? 'number' : 'string'));
         $stmt->execute([':k' => $key, ':v' => $encodedValue, ':t' => $type]);
 
