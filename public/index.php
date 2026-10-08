@@ -625,15 +625,33 @@ if (is_callable($routes)) {
 }
 
 $errorMiddleware = $app->addErrorMiddleware(filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN), true, true);
-$errorMiddleware->setErrorHandler(HttpNotFoundException::class, function ($request, \Throwable $exception, bool $displayErrorDetails) use ($twig, $translationService) {
+
+// The error templates call trans(), which is only registered when a
+// TranslationService was built (skipped for /media/* requests and when the
+// DB is unavailable). Rendering them without it throws a Twig SyntaxError
+// inside the error handler, turning a plain 404 into a 500 (and, with
+// APP_DEBUG on, into a stack trace). Fall back to a minimal page instead.
+$plainErrorResponse = static function (int $status, string $title): \Slim\Psr7\Response {
+    $response = new \Slim\Psr7\Response($status);
+    $response->getBody()->write(
+        '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex">'
+        . '<title>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</title></head>'
+        . '<body><h1>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</h1></body></html>'
+    );
+    return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+};
+
+$errorMiddleware->setErrorHandler(HttpNotFoundException::class, function ($request, \Throwable $exception, bool $displayErrorDetails) use ($twig, $translationService, $plainErrorResponse) {
+    if (!$translationService instanceof \App\Services\TranslationService) {
+        return $plainErrorResponse(404, 'Not Found');
+    }
+
     $response = new \Slim\Psr7\Response(404);
     $path = $request->getUri()->getPath();
     $isAdmin = str_contains((string) $path, '/admin');
 
     // Set translation scope
-    if ($translationService instanceof \App\Services\TranslationService) {
-        $translationService->setScope($isAdmin ? 'admin' : 'frontend');
-    }
+    $translationService->setScope($isAdmin ? 'admin' : 'frontend');
 
     $template = $isAdmin ? 'errors/404_admin.twig' : 'errors/404.twig';
     return $twig->render($response, $template);
@@ -683,15 +701,32 @@ $errorMiddleware->setErrorHandler(HttpMethodNotAllowedException::class, function
         'message' => $displayErrorDetails ? $exception->getMessage() : 'Method not allowed. Please use the correct HTTP method.'
     ]);
 });
-$errorMiddleware->setDefaultErrorHandler(function ($request, \Throwable $exception, bool $displayErrorDetails, bool $logErrors, bool $logErrorDetails) use ($twig, $translationService) {
+$errorMiddleware->setDefaultErrorHandler(function ($request, \Throwable $exception, bool $displayErrorDetails, bool $logErrors, bool $logErrorDetails) use ($twig, $translationService, $plainErrorResponse) {
+    // A custom default handler replaces Slim's own logging, so record the
+    // failure here (server-side only; details never reach the client unless
+    // APP_DEBUG is on). Best-effort: a logging failure must not mask the page.
+    if ($logErrors) {
+        try {
+            Logger::error('Unhandled exception', [
+                'path' => $request->getUri()->getPath(),
+                'error' => $exception->getMessage(),
+                'file' => $exception->getFile() . ':' . $exception->getLine(),
+            ], 'app');
+        } catch (\Throwable) {
+            // ignore
+        }
+    }
+
+    if (!$translationService instanceof \App\Services\TranslationService) {
+        return $plainErrorResponse(500, 'Internal Server Error');
+    }
+
     $response = new \Slim\Psr7\Response(500);
     $path = $request->getUri()->getPath();
     $isAdmin = str_contains((string) $path, '/admin');
 
     // Set translation scope
-    if ($translationService instanceof \App\Services\TranslationService) {
-        $translationService->setScope($isAdmin ? 'admin' : 'frontend');
-    }
+    $translationService->setScope($isAdmin ? 'admin' : 'frontend');
 
     $template = $isAdmin ? 'errors/500_admin.twig' : 'errors/500.twig';
     return $twig->render($response, $template, [
