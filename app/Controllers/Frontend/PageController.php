@@ -1771,11 +1771,23 @@ class PageController extends BaseController
             ], CacheTags::albumRelated((int) $album['id'], (int) $album['category_id']));
         }
 
-        return $this->view->render($response, $twigTemplate, array_merge($cacheableData, [
+        $rendered = $this->view->render($response, $twigTemplate, array_merge($cacheableData, [
             'is_admin' => $isAdmin,
             'nsfw_consent' => $this->hasNsfwConsent(),
             'csrf' => $_SESSION['csrf'] ?? '',
         ]));
+
+        // A password/NSFW album is only ever rendered for a visitor whose SESSION
+        // currently grants access. The generic HTML policy (`private, max-age=N`)
+        // let the browser keep serving this unlocked page from its own cache for
+        // up to N seconds after the password was changed/removed or the consent
+        // expired — the server-side revocation (PW1) never got asked. Force
+        // revalidation; CacheMiddleware honours an existing private/no-cache.
+        if (!empty($album['password_hash']) || !empty($album['is_nsfw'])) {
+            $rendered = $rendered->withHeader('Cache-Control', 'private, no-cache, must-revalidate');
+        }
+
+        return $rendered;
     }
 
     public function unlockAlbum(Request $request, Response $response, array $args): Response
