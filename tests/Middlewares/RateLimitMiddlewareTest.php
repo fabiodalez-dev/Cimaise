@@ -79,6 +79,16 @@ final class RateLimitMiddlewareTest extends TestCase
         self::assertSame(302, $mw->process($this->request('/about/contact'), $handler)->getStatusCode());
     }
 
+    public function testNsfwConsentCounterIgnoresTheAlbumSlug(): void
+    {
+        $mw = new RateLimitMiddleware(1, 600, true, $this->dir);
+        $handler = $this->redirectHandler('/album/one');
+
+        self::assertSame(302, $mw->process($this->request('/album/one/nsfw-confirm'), $handler)->getStatusCode());
+        // Rotating the slug must not hand out a fresh counter.
+        self::assertSame(429, $mw->process($this->request('/album/two/nsfw-confirm'), $handler)->getStatusCode());
+    }
+
     public function testCountAllModeRecordsTheRequestBeforeForwarding(): void
     {
         $mw = new RateLimitMiddleware(1, 600, true, $this->dir);

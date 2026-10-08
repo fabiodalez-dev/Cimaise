@@ -114,6 +114,11 @@ class RateLimitMiddleware implements MiddlewareInterface
         if (preg_match('#^/download/image/\d+$#', $path)) {
             return 'download_image';
         }
+        // The per-album NSFW consent POST must NOT key on the slug: a client
+        // rotating slugs would otherwise get a fresh counter for each one.
+        if (preg_match('#^/album/[^/]+/nsfw-confirm$#', $path)) {
+            return 'nsfw_confirm';
+        }
         // Every other endpoint gets its own counter: the contact form, the
         // search page and the NSFW consent POSTs must not share one bucket per
         // IP (30 searches would otherwise block the contact form).
