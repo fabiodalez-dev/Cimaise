@@ -27,6 +27,9 @@
   {% elseif image.caption is defined and image.caption %}
     {{ image.caption }}
 
+  {# seo.image_alt_auto off: no synthesized alt (empty alt = decorative) #}
+  {% elseif not (image_alt_auto ?? true) %}
+
   {# Priority 3: Generate from metadata #}
   {% else %}
     {% set parts = [] %}

@@ -162,7 +162,7 @@
                alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
                title="{{ seo_title|e('html_attr') }}"
                {% if image.width and image.height %}width="{{ image.width }}" height="{{ image.height }}"{% endif %}
-               loading="lazy"
+               loading="{{ (lazy_load_images ?? true) ? 'lazy' : 'eager' }}"
                decoding="async"
                data-fallback="hide">
         </picture>

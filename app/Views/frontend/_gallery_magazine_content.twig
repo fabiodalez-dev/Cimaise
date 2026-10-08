@@ -22,7 +22,7 @@
          alt="{{ smart_alt|default(image.alt)|e('html_attr') }}"
          title="{{ seo_title|e('html_attr') }}"
          class="w-full h-full object-cover"
-         {% if is_priority %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+         {% if is_priority %}fetchpriority="high"{% else %}loading="{{ (lazy_load_images ?? true) ? 'lazy' : 'eager' }}"{% endif %}
          decoding="async"
          data-fallback="hide">
   </picture>

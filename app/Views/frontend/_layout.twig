@@ -10,6 +10,9 @@
     {% if meta_description %}
     <meta name="description" content="{{ meta_description|e('html_attr') }}">
     {% endif %}
+    {% if site_keywords|default('') %}
+    <meta name="keywords" content="{{ site_keywords|e('html_attr') }}">
+    {% endif %}
 
     <!-- Favicon & App Icons -->
     {# FaviconService writes /favicon.ico as a PNG (GD imagepng, .ico extension for
@@ -101,6 +104,7 @@
         {% if schema.author_url %}{% set _entity = _entity|merge({ 'url': schema.author_url }) %}{% endif %}
         {% if meta_image %}{% set _entity = _entity|merge({ 'image': meta_image }) %}{% endif %}
         {% set _entity = _entity|merge({ 'jobTitle': schema.photographer_job_title|default('Photographer') }) %}
+        {% if schema.photographer_area_served|default('') %}{% set _entity = _entity|merge({ 'areaServed': schema.photographer_area_served }) %}{% endif %}
         {% set _bio = photographer_bio|default('') %}
         {% if _bio %}{% set _entity = _entity|merge({ 'description': _bio }) %}{% endif %}
         {% set same_as_raw = schema.photographer_same_as|default('') %}
@@ -115,6 +119,7 @@
       {% else %}
         {% set _entity = { '@context': 'https://schema.org', '@type': 'Organization', '@id': _cbase ~ '/#organization', 'name': schema.organization_name } %}
         {% if schema.organization_url %}{% set _entity = _entity|merge({ 'url': schema.organization_url }) %}{% endif %}
+        {% if schema.photographer_area_served|default('') %}{% set _entity = _entity|merge({ 'areaServed': schema.photographer_area_served }) %}{% endif %}
         {% set _logo_raw = site_logo|default('') %}
         {% if _logo_raw %}
           {% if _logo_raw starts with 'http' %}

@@ -160,7 +160,7 @@
            alt="{{ ImgM.smart_alt(image, album, site_title)|trim|e }}"
            title="{{ seo_title|e('html_attr') }}"
            width="{{ image.width|default(1600) }}" height="{{ image.height|default(1067) }}"
-           loading="lazy" decoding="async" class="w-full h-full object-cover block">
+           loading="{{ (lazy_load_images ?? true) ? 'lazy' : 'eager' }}" decoding="async" class="w-full h-full object-cover block">
     </picture>
   {% endmacro %}
 

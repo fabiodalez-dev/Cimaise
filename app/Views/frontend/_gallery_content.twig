@@ -83,7 +83,7 @@
           <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
                alt="{{ image.alt|e }}"
                title="{{ seo_title|e('html_attr') }}"
-               loading="lazy"
+               loading="{{ (lazy_load_images ?? true) ? 'lazy' : 'eager' }}"
                decoding="async"
                data-fallback="hide">
         </picture>
@@ -165,7 +165,7 @@
           <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
                alt="{{ image.alt|e }}"
                title="{{ seo_title|e('html_attr') }}"
-               loading="lazy"
+               loading="{{ (lazy_load_images ?? true) ? 'lazy' : 'eager' }}"
                decoding="async"
                data-fallback="hide">
         </picture>
@@ -249,7 +249,7 @@
              alt="{{ image.alt|e }}"
              title="{{ seo_title|e('html_attr') }}"
              class="w-full h-full object-cover transition-transform duration-300{% if style.hover_scale %} group-hover:scale-105{% endif %}"
-             loading="lazy"
+             loading="{{ (lazy_load_images ?? true) ? 'lazy' : 'eager' }}"
              decoding="async"
              data-fallback="hide">
       </picture>
