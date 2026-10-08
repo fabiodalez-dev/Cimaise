@@ -9,6 +9,7 @@ use App\Support\Database;
 use App\Support\Logger;
 use App\Support\PluginManager;
 use App\Support\PluginSignature;
+use App\Support\ZipSafety;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -239,33 +240,19 @@ class PluginsController extends BaseController
         $extractDir = $tempDir . '/extracted';
         mkdir($extractDir, 0755, true);
 
-        // Security: Validate all ZIP entry names before extraction to prevent path traversal
-        for ($i = 0; $i < $zip->numFiles; $i++) {
-            $entryName = $zip->getNameIndex($i);
-
-            // Check for path traversal sequences
-            if (str_contains($entryName, '../') || str_contains($entryName, '..\\')) {
-                $zip->close();
-                $this->cleanupTemp($tempDir);
-                $response->getBody()->write(json_encode(['success' => false, 'message' => trans('admin.flash.plugin_invalid_zip')]));
-                return $response->withStatus(400);
-            }
-
-            // Check for absolute paths (Unix or Windows)
-            if (str_starts_with($entryName, '/') || preg_match('/^[A-Za-z]:[\\\\\/]/', $entryName)) {
-                $zip->close();
-                $this->cleanupTemp($tempDir);
-                $response->getBody()->write(json_encode(['success' => false, 'message' => trans('admin.flash.plugin_invalid_zip')]));
-                return $response->withStatus(400);
-            }
-
-            // Check for null bytes
-            if (str_contains($entryName, "\0")) {
-                $zip->close();
-                $this->cleanupTemp($tempDir);
-                $response->getBody()->write(json_encode(['success' => false, 'message' => trans('admin.flash.plugin_invalid_zip')]));
-                return $response->withStatus(400);
-            }
+        // Security: validate every ZIP entry BEFORE extraction (zip-slip guard).
+        // Besides "../" and absolute paths this also rejects symlink entries:
+        // extractTo() materialises them and follows them for later entries, so
+        // "evil -> /etc" + "evil/x" would write outside the temp dir — the
+        // realpath sweep below runs only after the damage is done.
+        if (ZipSafety::hasUnsafeEntries($zip)) {
+            $zip->close();
+            $this->cleanupTemp($tempDir);
+            Logger::warning('Plugin upload rejected: unsafe ZIP entry (traversal, absolute path or symlink)', [
+                'filename' => $filename,
+            ], 'security');
+            $response->getBody()->write(json_encode(['success' => false, 'message' => trans('admin.flash.plugin_invalid_zip')]));
+            return $response->withStatus(400);
         }
 
         $zip->extractTo($extractDir);
