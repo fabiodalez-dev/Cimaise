@@ -137,6 +137,9 @@ class SocialController extends BaseController
         // Save settings
         $svc->set('social.enabled', $enabledSocials);
         $svc->set('social.order', $socialOrder);
+        // Album page_cache entries embed the share-button list — bust them so
+        // the new selection/order shows up immediately, not after the 24h TTL.
+        $this->clearPageCache($svc);
 
         // AJAX request support: return JSON instead of redirect
         if ($this->isAjaxRequest($request)) {
@@ -277,6 +280,7 @@ class SocialController extends BaseController
         }
 
         $svc->set('social.profiles', $profiles);
+        $this->clearPageCache($svc);
 
         if ($this->isAjaxRequest($request)) {
             return $this->jsonResponse($response, ['ok' => true, 'profiles' => $profiles]);
@@ -284,6 +288,15 @@ class SocialController extends BaseController
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.social_profiles_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/social'))->withStatus(302);
+    }
+
+    private function clearPageCache(SettingsService $svc): void
+    {
+        try {
+            (new \App\Services\PageCacheService($svc, $this->db))->clearAll();
+        } catch (\Throwable $e) {
+            \App\Support\Logger::warning('SocialController: page cache invalidation failed', ['error' => $e->getMessage()], 'cache');
+        }
     }
 
     /**
