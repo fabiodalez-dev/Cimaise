@@ -50,8 +50,16 @@ test.describe.serial('Album NSFW blur swap', () => {
     const nsfwCheckbox = page.locator('input[name="is_nsfw"]');
     if (await nsfwCheckbox.isChecked()) await nsfwCheckbox.uncheck();
 
-    await page.click('button[type="submit"][form="album-form"]');
-    await page.waitForURL(/\/admin\/albums/, { timeout: 15000 });
+    // The create POST answers with a 302 to the albums list. Wait for that
+    // list page to actually finish loading before navigating again: a bare
+    // waitForURL(/\/admin\/albums/) also matches the in-flight POST URL and
+    // the follow-up page.goto() then aborts the redirect navigation
+    // ("Navigation ... is interrupted by another navigation").
+    await Promise.all([
+      page.waitForURL(/\/admin\/albums\/?(\?.*)?$/, { timeout: 15000, waitUntil: 'load' }),
+      page.click('button[type="submit"][form="album-form"]'),
+    ]);
+    await page.waitForLoadState('load');
 
     // Get album ID from list
     await page.goto(`${BASE}/admin/albums`);
@@ -122,8 +130,13 @@ test.describe.serial('Album NSFW blur swap', () => {
     const nsfwCheckbox = page.locator('input[name="is_nsfw"]');
     if (!(await nsfwCheckbox.isChecked())) await nsfwCheckbox.check();
 
-    await page.click('button[type="submit"][form="album-form"]');
-    await page.waitForURL(/\/admin\/albums/, { timeout: 15000 });
+    // See 'Create regular album': wait for the redirected list page to LOAD
+    // before navigating again, or the goto() aborts the in-flight redirect.
+    await Promise.all([
+      page.waitForURL(/\/admin\/albums\/?(\?.*)?$/, { timeout: 15000, waitUntil: 'load' }),
+      page.click('button[type="submit"][form="album-form"]'),
+    ]);
+    await page.waitForLoadState('load');
 
     await page.goto(`${BASE}/admin/albums`);
     const link = page.locator(`a:has-text("${NSFW_NAME}")`).first();
