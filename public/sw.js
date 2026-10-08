@@ -150,8 +150,17 @@ async function cacheFirstStrategy(request, cacheName, maxItems = 50, event = nul
     const cachedResponse = await cache.match(request);
 
     if (cachedResponse) {
-      log('[SW] Cache hit:', request.url);
-      return cachedResponse;
+      // Entries stored by an older worker (same cache name, same app version)
+      // may be private/no-cache album bytes that must be re-checked on every
+      // view. Evict them instead of serving them, then go to the network.
+      const cachedCacheControl = cachedResponse.headers.get('Cache-Control') || '';
+      if (/no-store|no-cache|private/i.test(cachedCacheControl)) {
+        log('[SW] Evicting non-shareable cached entry:', request.url);
+        await cache.delete(request);
+      } else {
+        log('[SW] Cache hit:', request.url);
+        return cachedResponse;
+      }
     }
 
     // 2. Not in cache, fetch from network
