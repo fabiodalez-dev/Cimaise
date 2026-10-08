@@ -190,19 +190,19 @@ return function (App $app, array $container) {
     $app->post('/album/{slug}/nsfw-confirm', function (Request $request, Response $response, array $args) use ($container) {
         $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
         return $controller->confirmNsfw($request, $response, $args);
-    })->add(new RateLimitMiddleware(10, 300));
+    })->add(new RateLimitMiddleware(10, 300, true));
 
     // Global NSFW warning confirmation (for entire site)
     $app->post('/nsfw-global-confirm', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
         return $controller->confirmNsfwGlobal($request, $response);
-    })->add(new RateLimitMiddleware(10, 300));
+    })->add(new RateLimitMiddleware(10, 300, true));
 
     // Global NSFW age verification confirmation (no album context)
     $app->post('/nsfw/confirm', function (Request $request, Response $response, array $args) use ($container) {
         $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
         return $controller->confirmNsfwGlobal($request, $response);
-    })->add(new RateLimitMiddleware(10, 300));
+    })->add(new RateLimitMiddleware(10, 300, true));
 
     // Album template switcher API
     $app->get('/api/album/{slug}/template', function (Request $request, Response $response, array $args) use ($container) {
@@ -254,7 +254,7 @@ return function (App $app, array $container) {
     $app->post('/about/contact', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
         return $controller->aboutContact($request, $response);
-    })->add(new RateLimitMiddleware(5, 600));
+    })->add(new RateLimitMiddleware(5, 600, true)); // every submission counts: the form relays mail
 
     // Image download route (validates album-level permissions)
     $app->get('/download/image/{id}', function (Request $request, Response $response, array $args) use ($container) {
@@ -290,7 +290,7 @@ return function (App $app, array $container) {
     $app->get('/search', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Frontend\SearchController($container['db'], Twig::fromRequest($request));
         return $controller->index($request, $response);
-    })->add(new RateLimitMiddleware(30, 60)); // 30 requests per minute
+    })->add(new RateLimitMiddleware(30, 60, true)); // 30 requests per minute (every request counts)
 
     // Curated collections (public)
     $app->get('/collections', function (Request $request, Response $response) use ($container) {
@@ -2233,7 +2233,7 @@ return function (App $app, array $container) {
     $app->post('/api/analytics/track', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Admin\AnalyticsController($container['db'], Twig::fromRequest($request));
         return $controller->track($request, $response);
-    })->add(new \App\Middlewares\FileBasedRateLimitMiddleware(dirname(__DIR__, 2) . '/storage/tmp', 60, 60, 'analytics'));
+    })->add(new \App\Middlewares\FileBasedRateLimitMiddleware(dirname(__DIR__, 2) . '/storage/tmp', 60, 60, 'analytics', true)); // 60 beacons/min per IP, every request counts
 
     // Lightweight health check to verify routing in subdirectories
     $app->get('/api/analytics/ping', fn (Request $request, Response $response) => $response->withStatus(204));

@@ -25,11 +25,19 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
 
     private readonly string $storageDir;
 
+    /**
+     * @param bool $countAllRequests When true every request consumes one slot of
+     *   the window (plain request throttle). The default (false) keeps the
+     *   login semantics: only failed attempts count and a success resets the
+     *   counter — which for an endpoint that always answers 2xx (analytics
+     *   beacons) means the limit can never trigger.
+     */
     public function __construct(
         string $storageDir,
         private readonly int $maxAttempts = 5,
         private readonly int $windowSec = 600,
-        private readonly string $keyPrefix = 'rate_limit'
+        private readonly string $keyPrefix = 'rate_limit',
+        private readonly bool $countAllRequests = false
     ) {
         $this->storageDir = rtrim($storageDir, '/');
 
@@ -60,6 +68,16 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         // Check if rate limit exceeded
         if (count($attempts) >= $this->maxAttempts) {
             return $this->createRateLimitResponse();
+        }
+
+        // Plain throttle: the request itself is the attempt, regardless of
+        // outcome. Recorded BEFORE the handler runs so a slow or failing
+        // handler cannot be used to slip past the window.
+        if ($this->countAllRequests) {
+            $attempts[] = $now;
+            $this->saveAttempts($filePath, $attempts);
+
+            return $handler->handle($request)->withoutHeader(self::AUTH_RESULT_HEADER);
         }
 
         // Process the request

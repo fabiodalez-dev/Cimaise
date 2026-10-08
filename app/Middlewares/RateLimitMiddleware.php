@@ -17,10 +17,25 @@ class RateLimitMiddleware implements MiddlewareInterface
 {
     private readonly string $storageDir;
 
-    public function __construct(private readonly int $maxAttempts = 5, private readonly int $windowSec = 600)
-    {
+    /**
+     * @param bool $countAllRequests When true every request consumes one slot of
+     *   the window (plain request throttle), which is what a public endpoint
+     *   such as the contact form or the search page needs. The default (false)
+     *   keeps the outcome-based semantics: only recognised failures (bad
+     *   login, wrong album password, 4xx download) are recorded and a
+     *   successful auth resets the counter. For an endpoint whose outcome is
+     *   never recognised as a failure that default records nothing at all.
+     * @param string|null $storageDir Override of the counter directory
+     *   (defaults to storage/rate_limits; mainly for tests).
+     */
+    public function __construct(
+        private readonly int $maxAttempts = 5,
+        private readonly int $windowSec = 600,
+        private readonly bool $countAllRequests = false,
+        ?string $storageDir = null
+    ) {
         // Use storage directory for rate limit data
-        $this->storageDir = dirname(__DIR__, 2) . '/storage/rate_limits';
+        $this->storageDir = $storageDir ?? dirname(__DIR__, 2) . '/storage/rate_limits';
         if (!is_dir($this->storageDir)) {
             @mkdir($this->storageDir, 0755, true);
         }
@@ -238,6 +253,20 @@ class RateLimitMiddleware implements MiddlewareInterface
             $resp = new \Slim\Psr7\Response(429);
             $resp->getBody()->write("Too Many Attempts. Please try again in " . ceil($remaining / 60) . " minutes.");
             return $resp->withHeader('Retry-After', (string)$remaining);
+        }
+
+        // Plain throttle: the request itself is the attempt, whatever the
+        // handler answers. Recorded BEFORE the handler runs so a slow or
+        // failing handler cannot be used to slip past the window.
+        if ($this->countAllRequests) {
+            $this->updateAttemptsAtomic($key, function (array $currentAttempts) use ($now): array {
+                $filtered = array_filter($currentAttempts, fn ($ts) => $now - (int)$ts < $this->windowSec);
+                $filtered[] = $now;
+
+                return array_values($filtered);
+            });
+
+            return $handler->handle($request);
         }
 
         $response = $handler->handle($request);
