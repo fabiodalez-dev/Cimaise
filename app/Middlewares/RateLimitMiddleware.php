@@ -101,28 +101,37 @@ class RateLimitMiddleware implements MiddlewareInterface
 
     /**
      * Get endpoint identifier with precise matching.
+     *
+     * $pattern is the matched Slim route pattern (e.g. "/album/{slug}/unlock")
+     * when the middleware runs as route middleware. It is preferred over the
+     * raw URI path for classification because it is independent of the
+     * install base path (subdirectory installs) and of route parameters, so a
+     * client cannot obtain a fresh counter by varying either.
      */
-    private function getEndpointIdentifier(string $path): string
+    private function getEndpointIdentifier(string $path, ?string $pattern): string
     {
-        // More precise endpoint matching using regex
-        if (preg_match('#/album/[^/]+/unlock$#', $path)) {
+        $route = $pattern ?? $path;
+
+        // Album unlock keeps a per-album bucket: failures on one album must
+        // not lock a visitor out of another one. The real path carries the slug.
+        if (preg_match('#/album/[^/]+/unlock$#', $route)) {
             return 'album_unlock:' . $path;
         }
-        if ($path === '/login' || $path === '/admin/login') {
+        if (preg_match('#(^|/)(admin/)?login$#', $route)) {
             return 'login';
         }
-        if (preg_match('#^/download/image/\d+$#', $path)) {
+        if (preg_match('#(^|/)download/image/[^/]+$#', $route)) {
             return 'download_image';
         }
         // The per-album NSFW consent POST must NOT key on the slug: a client
         // rotating slugs would otherwise get a fresh counter for each one.
-        if (preg_match('#^/album/[^/]+/nsfw-confirm$#', $path)) {
+        if (preg_match('#/album/[^/]+/nsfw-confirm$#', $route)) {
             return 'nsfw_confirm';
         }
         // Every other endpoint gets its own counter: the contact form, the
         // search page and the NSFW consent POSTs must not share one bucket per
         // IP (30 searches would otherwise block the contact form).
-        return 'generic:' . $path;
+        return 'generic:' . $route;
     }
 
     /**
@@ -286,6 +295,19 @@ class RateLimitMiddleware implements MiddlewareInterface
         }
     }
 
+    /**
+     * Pattern of the route Slim matched for this request, or null when the
+     * middleware runs before routing (or outside Slim, as in unit tests).
+     */
+    private function matchedRoutePattern(Request $request): ?string
+    {
+        $route = $request->getAttribute(\Slim\Routing\RouteContext::ROUTE);
+        if ($route instanceof \Slim\Interfaces\RouteInterface) {
+            return $route->getPattern();
+        }
+        return null;
+    }
+
     public function process(Request $request, Handler $handler): Response
     {
         // Probabilistic cleanup of old rate limit files
@@ -293,9 +315,10 @@ class RateLimitMiddleware implements MiddlewareInterface
 
         $ip = $this->getClientIp($request);
         $path = $request->getUri()->getPath();
+        $pattern = $this->matchedRoutePattern($request);
 
         // Use different keys for different endpoints to track separately
-        $keyIdentifier = $this->getEndpointIdentifier($path);
+        $keyIdentifier = $this->getEndpointIdentifier($path, $pattern);
         $key = 'rl_' . sha1("{$keyIdentifier}:{$ip}");
         $now = time();
 

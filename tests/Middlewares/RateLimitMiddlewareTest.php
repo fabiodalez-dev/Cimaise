@@ -89,6 +89,19 @@ final class RateLimitMiddlewareTest extends TestCase
         self::assertSame(429, $mw->process($this->request('/album/two/nsfw-confirm'), $handler)->getStatusCode());
     }
 
+    public function testRoutePatternWinsOverTheRawPath(): void
+    {
+        // Subdirectory install: the URI carries a base path and a slug, but the
+        // matched route pattern must drive the bucket.
+        $mw = new RateLimitMiddleware(1, 600, true, $this->dir);
+        $handler = $this->redirectHandler('/album/one');
+
+        $first = $this->routedRequest('/site/album/one/nsfw-confirm', '/album/{slug}/nsfw-confirm');
+        $second = $this->routedRequest('/site/album/two/nsfw-confirm', '/album/{slug}/nsfw-confirm');
+        self::assertSame(302, $mw->process($first, $handler)->getStatusCode());
+        self::assertSame(429, $mw->process($second, $handler)->getStatusCode());
+    }
+
     public function testCountAllModeRecordsTheRequestBeforeForwarding(): void
     {
         $mw = new RateLimitMiddleware(1, 600, true, $this->dir);
@@ -141,6 +154,13 @@ final class RateLimitMiddlewareTest extends TestCase
             'http://example.test' . $path,
             ['REMOTE_ADDR' => $ip]
         );
+    }
+
+    private function routedRequest(string $path, string $pattern, string $ip = '203.0.113.9'): ServerRequestInterface
+    {
+        $route = new \Slim\Routing\Route(['POST'], $pattern, static fn () => null, new \Slim\Psr7\Factory\ResponseFactory(), new \Slim\CallableResolver());
+
+        return $this->request($path, $ip)->withAttribute(\Slim\Routing\RouteContext::ROUTE, $route);
     }
 
     private function redirectHandler(string $location): RequestHandlerInterface
