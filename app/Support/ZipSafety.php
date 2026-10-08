@@ -23,6 +23,13 @@ final class ZipSafety
     private const S_IFLNK = 0xA000;
 
     /**
+     * "Made by" host systems that store Unix mode bits in the high 16 bits of
+     * the external attributes: Unix (3) and OS X/Darwin (19). Archives built on
+     * macOS carry 19, and the uploader controls this byte anyway.
+     */
+    private const UNIX_LIKE_OPSYS = [ZipArchive::OPSYS_UNIX, 19];
+
+    /**
      * True when the (already opened) archive contains at least one entry that
      * could escape the extraction directory: an absolute path, a ".." segment,
      * a NUL byte or a symlink.
@@ -74,7 +81,7 @@ final class ZipSafety
             return false;
         }
 
-        return $opsys === ZipArchive::OPSYS_UNIX
+        return in_array($opsys, self::UNIX_LIKE_OPSYS, true)
             && ((($attr >> 16) & self::S_IFMT) === self::S_IFLNK);
     }
 }

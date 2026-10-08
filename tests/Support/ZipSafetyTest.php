@@ -70,6 +70,30 @@ final class ZipSafetyTest extends TestCase
         $zip->close();
     }
 
+    public function testDarwinMadeSymlinkEntryIsRejected(): void
+    {
+        $zip = $this->openZip(static function (ZipArchive $z): void {
+            $z->addFromString('link', '/etc');
+            // "Made by" host 19 (OS X/Darwin) carries the same Unix mode bits.
+            $z->setExternalAttributesName('link', 19, (0xA000 | 0777) << 16);
+            $z->addFromString('link/passwd', 'root::0:0');
+        });
+
+        self::assertTrue(ZipSafety::hasUnsafeEntries($zip));
+        $zip->close();
+    }
+
+    public function testRegularFileWithDarwinOpsysIsSafe(): void
+    {
+        $zip = $this->openZip(static function (ZipArchive $z): void {
+            $z->addFromString('plugin.json', '{}');
+            $z->setExternalAttributesName('plugin.json', 19, (0x8000 | 0644) << 16);
+        });
+
+        self::assertFalse(ZipSafety::hasUnsafeEntries($zip));
+        $zip->close();
+    }
+
     /**
      * @dataProvider entryNames
      */
