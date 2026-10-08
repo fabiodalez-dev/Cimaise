@@ -213,6 +213,15 @@ class CacheMiddleware implements MiddlewareInterface
 
     private function addHtmlCache(Response $response, Request $request, string $normalizedPath): Response
     {
+        // Error responses are never shareable. A 403 from a gated download or
+        // album stamped 'public, max-age=3600' would be stored by a shared
+        // cache/CDN and replayed to the visitor who has since unlocked the
+        // album (and it carries the session-bound X-CSRF-Token header of
+        // whoever triggered it). 404/5xx bodies gain nothing from caching.
+        if ($response->getStatusCode() >= 400) {
+            return $this->addNoCacheHeaders($response);
+        }
+
         // PW2: a controller may mark an HTML response as not shareable — e.g. the
         // password/NSFW gate pages, which embed a session-bound CSRF token. For a
         // first-time visitor isSessionDependent() is still false (no album_access
