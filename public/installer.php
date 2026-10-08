@@ -27,6 +27,26 @@ $rootPath = dirname(__DIR__);
 $dbPath = $rootPath . '/database/database.sqlite';
 $envPath = $rootPath . '/.env';
 
+/**
+ * Whether a PDOException raised AFTER a MySQL connection was opened describes
+ * the connection going away rather than a query-level problem (missing table,
+ * syntax, privilege). SQLSTATE class 08 is "connection exception"; MySQL also
+ * reports several connectivity failures under the generic HY000 with a
+ * client/server error number.
+ */
+function installerIsConnectionLoss(PDOException $e): bool
+{
+    $sqlState = (string) ($e->errorInfo[0] ?? $e->getCode());
+    if (str_starts_with($sqlState, '08')) {
+        return true;
+    }
+    $driverCode = (int) ($e->errorInfo[1] ?? 0);
+    // 1040 too many connections, 1053 server shutdown, 1129/1130 host blocked,
+    // 2002/2003 can't connect, 2006 server has gone away, 2013 lost connection,
+    // 2055 lost connection with error.
+    return in_array($driverCode, [1040, 1053, 1129, 1130, 2002, 2003, 2006, 2013, 2055], true);
+}
+
 // Check if already installed
 $installed = false;
 // Fail closed: a configured MySQL install whose server cannot be reached right
@@ -116,10 +136,14 @@ if (file_exists($markerPath) && file_exists($envPath)) {
     } catch (Exception $e) {
         // A MySQL .env whose server refused the connection (PDO constructor
         // threw, so $pdo is still null) is an installed site with a database
-        // outage, not a fresh system. A reachable DB without the users table
-        // ($pdo set, query failed) is a genuinely incomplete install and may
+        // outage, not a fresh system. The same holds when the connection was
+        // established and then dropped before the verification query answered
+        // (server gone away, lost connection, too many connections...). A
+        // reachable DB without the users table ($pdo set, query failed with a
+        // non-connection error) is a genuinely incomplete install and may
         // legitimately run the installer again.
-        if ($dbConn === 'mysql' && $pdo === null && $e instanceof PDOException) {
+        if ($dbConn === 'mysql' && $e instanceof PDOException
+            && ($pdo === null || installerIsConnectionLoss($e))) {
             $dbUnreachable = true;
         }
     }
