@@ -2884,7 +2884,9 @@
     {% endif %}
 
     {# Block right-click on images for non-admin users #}
-    {% if disable_right_click|default(true) and not is_admin %}
+    {# `?? true` (not `|default(true)`): Twig's default filter also replaces FALSE,
+       which silently re-enabled the blocker after the admin turned it off. #}
+    {% if (disable_right_click ?? true) and not is_admin %}
     <script nonce="{{ csp_nonce() }}">
     document.addEventListener('contextmenu', function(e) {
       const target = e.target;
