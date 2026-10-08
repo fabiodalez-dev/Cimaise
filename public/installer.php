@@ -29,13 +29,18 @@ $envPath = $rootPath . '/.env';
 
 // Check if already installed
 $installed = false;
+// Fail closed: a configured MySQL install whose server cannot be reached right
+// now must NOT be mistaken for a fresh system (which would expose the installer
+// and let anyone re-point the site at their own database and mint an admin).
+$dbUnreachable = false;
 $markerPath = $rootPath . '/storage/tmp/.installed';
 if (file_exists($markerPath) && file_exists($envPath)) {
     $installed = true;
 } elseif (file_exists($envPath)) {
     // DB-agnostic: detect both SQLite and MySQL prior installs
+    $pdo = null;
+    $dbConn = '';
     try {
-        $pdo = null;
         if (file_exists($dbPath) && filesize($dbPath) > 0) {
             $pdo = new PDO('sqlite:' . $dbPath);
         } else {
@@ -108,9 +113,36 @@ if (file_exists($markerPath) && file_exists($envPath)) {
                 $installed = true;
             }
         }
-    } catch (Exception) {
-        // Not installed or DB unreachable
+    } catch (Exception $e) {
+        // A MySQL .env whose server refused the connection (PDO constructor
+        // threw, so $pdo is still null) is an installed site with a database
+        // outage, not a fresh system. A reachable DB without the users table
+        // ($pdo set, query failed) is a genuinely incomplete install and may
+        // legitimately run the installer again.
+        if ($dbConn === 'mysql' && $pdo === null && $e instanceof PDOException) {
+            $dbUnreachable = true;
+        }
     }
+}
+
+if ($dbUnreachable && !$installed) {
+    http_response_code(503);
+    header('Retry-After: 120');
+    header('Content-Type: text/html; charset=utf-8');
+    echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
+        . '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        . '<meta name="robots" content="noindex"><title>Database unavailable — Cimaise</title>'
+        . '<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;'
+        . 'background:#111;color:#eee;display:flex;align-items:center;justify-content:center;'
+        . 'min-height:100vh;margin:0;text-align:center}main{max-width:34rem;padding:2rem}'
+        . 'h1{font-size:1.5rem;font-weight:600}p{color:#aaa;line-height:1.6}code{color:#ddd}</style></head>'
+        . '<body><main><h1>Database unavailable</h1>'
+        . '<p>This site is already installed, but its database server cannot be reached at the moment, '
+        . 'so the installer stays locked.</p>'
+        . '<p>Check the database service and the credentials in <code>.env</code>. '
+        . 'To run a fresh installation on purpose, remove <code>.env</code> first.</p>'
+        . '</main></body></html>';
+    exit;
 }
 
 if ($installed) {
