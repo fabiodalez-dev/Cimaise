@@ -114,7 +114,10 @@ class RateLimitMiddleware implements MiddlewareInterface
         if (preg_match('#^/download/image/\d+$#', $path)) {
             return 'download_image';
         }
-        return 'generic';
+        // Every other endpoint gets its own counter: the contact form, the
+        // search page and the NSFW consent POSTs must not share one bucket per
+        // IP (30 searches would otherwise block the contact form).
+        return 'generic:' . $path;
     }
 
     /**
@@ -151,6 +154,55 @@ class RateLimitMiddleware implements MiddlewareInterface
         }
 
         @file_put_contents($file, json_encode($attempts), LOCK_EX);
+    }
+
+    /**
+     * Count-all mode: read, check and append the current request under a single
+     * exclusive lock. Returns null when the request is admitted (and recorded),
+     * or the number of seconds until the window frees a slot when it is not.
+     */
+    private function reserveSlot(string $key, int $now): ?int
+    {
+        $file = "{$this->storageDir}/{$key}.json";
+        $fp = @fopen($file, 'c+');
+        $locked = $fp !== false && flock($fp, LOCK_EX);
+
+        if ($locked) {
+            $data = stream_get_contents($fp);
+            $attempts = $data ? json_decode($data, true) : [];
+        } else {
+            // Best-effort fallback when the lock cannot be taken.
+            $attempts = $this->getAttempts($key);
+        }
+        $attempts = \is_array($attempts) ? $attempts : [];
+        $attempts = array_values(array_filter($attempts, fn ($ts) => $now - (int)$ts < $this->windowSec));
+
+        if (\count($attempts) >= $this->maxAttempts) {
+            $remaining = $this->windowSec - $now + (int) min($attempts);
+            if ($locked) {
+                flock($fp, LOCK_UN);
+            }
+            if ($fp !== false) {
+                fclose($fp);
+            }
+            return max(1, $remaining);
+        }
+
+        $attempts[] = $now;
+        if ($locked) {
+            rewind($fp);
+            ftruncate($fp, 0);
+            fwrite($fp, json_encode($attempts));
+            flock($fp, LOCK_UN);
+            fclose($fp);
+        } else {
+            if ($fp !== false) {
+                fclose($fp);
+            }
+            $this->saveAttempts($key, $attempts);
+        }
+
+        return null;
     }
 
     /**
@@ -259,12 +311,15 @@ class RateLimitMiddleware implements MiddlewareInterface
         // handler answers. Recorded BEFORE the handler runs so a slow or
         // failing handler cannot be used to slip past the window.
         if ($this->countAllRequests) {
-            $this->updateAttemptsAtomic($key, function (array $currentAttempts) use ($now): array {
-                $filtered = array_filter($currentAttempts, fn ($ts) => $now - (int)$ts < $this->windowSec);
-                $filtered[] = $now;
-
-                return array_values($filtered);
-            });
+            // Check and record under ONE lock: a check-then-write sequence lets
+            // concurrent requests all pass the check before any of them is
+            // counted, which defeats the limit exactly when it matters.
+            $remaining = $this->reserveSlot($key, $now);
+            if ($remaining !== null) {
+                $resp = new \Slim\Psr7\Response(429);
+                $resp->getBody()->write("Too Many Attempts. Please try again in " . ceil($remaining / 60) . " minutes.");
+                return $resp->withHeader('Retry-After', (string)$remaining);
+            }
 
             return $handler->handle($request);
         }

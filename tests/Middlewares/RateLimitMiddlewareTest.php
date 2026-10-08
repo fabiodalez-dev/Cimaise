@@ -68,6 +68,40 @@ final class RateLimitMiddlewareTest extends TestCase
         self::assertSame(302, $mw->process($this->request('/about/contact', '198.51.100.2'), $handler)->getStatusCode());
     }
 
+    public function testCountAllModeKeepsGenericEndpointsSeparate(): void
+    {
+        $mw = new RateLimitMiddleware(1, 600, true, $this->dir);
+        $handler = $this->redirectHandler('/about?sent=1');
+
+        self::assertSame(302, $mw->process($this->request('/search'), $handler)->getStatusCode());
+        self::assertSame(429, $mw->process($this->request('/search'), $handler)->getStatusCode());
+        // Exhausting /search must not block the contact form for the same IP.
+        self::assertSame(302, $mw->process($this->request('/about/contact'), $handler)->getStatusCode());
+    }
+
+    public function testCountAllModeRecordsTheRequestBeforeForwarding(): void
+    {
+        $mw = new RateLimitMiddleware(1, 600, true, $this->dir);
+        $seenFiles = 0;
+        $dir = $this->dir;
+        $handler = new class ($seenFiles, $dir) implements RequestHandlerInterface {
+            public function __construct(private int &$seenFiles, private readonly string $dir)
+            {
+            }
+
+            public function handle(ServerRequestInterface $request): ResponseInterface
+            {
+                // The slot must already be persisted while the handler runs.
+                $this->seenFiles = count(glob($this->dir . '/rl_*.json') ?: []);
+
+                return new Response(200);
+            }
+        };
+
+        $mw->process($this->request('/search'), $handler);
+        self::assertSame(1, $seenFiles);
+    }
+
     public function testCountAllModeDoesNotCallTheHandlerOnceBlocked(): void
     {
         $mw = new RateLimitMiddleware(1, 600, true, $this->dir);

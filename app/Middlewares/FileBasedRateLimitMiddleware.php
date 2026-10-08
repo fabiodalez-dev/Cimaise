@@ -63,21 +63,24 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         $filePath = $this->storageDir . '/' . $key . '.json';
 
         $now = time();
+
+        // Plain throttle: the request itself is the attempt, regardless of
+        // outcome. Read, check and record happen under ONE lock, BEFORE the
+        // handler runs, so neither concurrent requests nor a slow/failing
+        // handler can slip past the window.
+        if ($this->countAllRequests) {
+            if (!$this->reserveSlot($filePath, $now)) {
+                return $this->createRateLimitResponse();
+            }
+
+            return $handler->handle($request)->withoutHeader(self::AUTH_RESULT_HEADER);
+        }
+
         $attempts = $this->loadAttempts($filePath, $now);
 
         // Check if rate limit exceeded
         if (count($attempts) >= $this->maxAttempts) {
             return $this->createRateLimitResponse();
-        }
-
-        // Plain throttle: the request itself is the attempt, regardless of
-        // outcome. Recorded BEFORE the handler runs so a slow or failing
-        // handler cannot be used to slip past the window.
-        if ($this->countAllRequests) {
-            $attempts[] = $now;
-            $this->saveAttempts($filePath, $attempts);
-
-            return $handler->handle($request)->withoutHeader(self::AUTH_RESULT_HEADER);
         }
 
         // Process the request
@@ -134,6 +137,50 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         }
 
         return $remoteAddr;
+    }
+
+    /**
+     * Count-all mode: read, check and append under a single exclusive lock.
+     * Returns true when the request is admitted (and recorded), false when the
+     * window is full. Falls back to best-effort when no lock can be taken.
+     */
+    private function reserveSlot(string $filePath, int $now): bool
+    {
+        $fp = @fopen($filePath, 'c+');
+        $locked = $fp !== false && flock($fp, LOCK_EX);
+
+        if ($locked) {
+            $raw = stream_get_contents($fp);
+            $data = $raw ? json_decode($raw, true) : [];
+            $attempts = is_array($data) && isset($data['attempts']) && is_array($data['attempts']) ? $data['attempts'] : [];
+            $attempts = array_values(array_filter($attempts, fn ($ts) => ($now - (int) $ts) < $this->windowSec));
+        } else {
+            if ($fp !== false) {
+                fclose($fp);
+            }
+            $attempts = $this->loadAttempts($filePath, $now);
+        }
+
+        if (count($attempts) >= $this->maxAttempts) {
+            if ($locked) {
+                flock($fp, LOCK_UN);
+                fclose($fp);
+            }
+            return false;
+        }
+
+        $attempts[] = $now;
+        if ($locked) {
+            rewind($fp);
+            ftruncate($fp, 0);
+            fwrite($fp, (string) json_encode(['attempts' => $attempts, 'last_updated' => $now], JSON_PRETTY_PRINT));
+            flock($fp, LOCK_UN);
+            fclose($fp);
+        } else {
+            $this->saveAttempts($filePath, $attempts);
+        }
+
+        return true;
     }
 
     /** Load the stored attempt timestamps, dropping any outside the current window. */
