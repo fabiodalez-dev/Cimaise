@@ -638,15 +638,24 @@ $plainErrorResponse = static function (int $status, string $title): \Slim\Psr7\R
         . '<title>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</title></head>'
         . '<body><h1>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</h1></body></html>'
     );
-    return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+    return $response
+        ->withHeader('Content-Type', 'text/html; charset=utf-8')
+        ->withHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
 };
 
-$errorMiddleware->setErrorHandler(HttpNotFoundException::class, function ($request, \Throwable $exception, bool $displayErrorDetails) use ($twig, $translationService, $plainErrorResponse) {
+// Responses built by the error handlers never pass through CacheMiddleware
+// (ErrorMiddleware sits outside it), so they must carry their own no-store:
+// a shared cache would otherwise keep serving a 404 after the route appears,
+// or a 403/500 after the condition is gone.
+$errorResponse = static fn (int $status): \Slim\Psr7\Response => (new \Slim\Psr7\Response($status))
+    ->withHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+
+$errorMiddleware->setErrorHandler(HttpNotFoundException::class, function ($request, \Throwable $exception, bool $displayErrorDetails) use ($twig, $translationService, $plainErrorResponse, $errorResponse) {
     if (!$translationService instanceof \App\Services\TranslationService) {
         return $plainErrorResponse(404, 'Not Found');
     }
 
-    $response = new \Slim\Psr7\Response(404);
+    $response = $errorResponse(404);
     $path = $request->getUri()->getPath();
     $isAdmin = str_contains((string) $path, '/admin');
 
@@ -657,8 +666,8 @@ $errorMiddleware->setErrorHandler(HttpNotFoundException::class, function ($reque
     return $twig->render($response, $template);
 });
 // Handle 405 Method Not Allowed - return proper status and JSON for AJAX
-$errorMiddleware->setErrorHandler(HttpMethodNotAllowedException::class, function ($request, \Throwable $exception, bool $displayErrorDetails) use ($twig, $translationService) {
-    $response = new \Slim\Psr7\Response(405);
+$errorMiddleware->setErrorHandler(HttpMethodNotAllowedException::class, function ($request, \Throwable $exception, bool $displayErrorDetails) use ($twig, $translationService, $errorResponse) {
+    $response = $errorResponse(405);
 
     // Add Allow header with permitted methods
     $allowedMethods = [];
@@ -701,7 +710,7 @@ $errorMiddleware->setErrorHandler(HttpMethodNotAllowedException::class, function
         'message' => $displayErrorDetails ? $exception->getMessage() : 'Method not allowed. Please use the correct HTTP method.'
     ]);
 });
-$errorMiddleware->setDefaultErrorHandler(function ($request, \Throwable $exception, bool $displayErrorDetails, bool $logErrors, bool $logErrorDetails) use ($twig, $translationService, $plainErrorResponse) {
+$errorMiddleware->setDefaultErrorHandler(function ($request, \Throwable $exception, bool $displayErrorDetails, bool $logErrors, bool $logErrorDetails) use ($twig, $translationService, $plainErrorResponse, $errorResponse) {
     // A custom default handler replaces Slim's own logging, so record the
     // failure here (server-side only; details never reach the client unless
     // APP_DEBUG is on). Best-effort: a logging failure must not mask the page.
@@ -721,7 +730,7 @@ $errorMiddleware->setDefaultErrorHandler(function ($request, \Throwable $excepti
         return $plainErrorResponse(500, 'Internal Server Error');
     }
 
-    $response = new \Slim\Psr7\Response(500);
+    $response = $errorResponse(500);
     $path = $request->getUri()->getPath();
     $isAdmin = str_contains((string) $path, '/admin');
 
