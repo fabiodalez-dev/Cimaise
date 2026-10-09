@@ -17,11 +17,11 @@
       <!-- Toolbar -->
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 bg-white rounded-lg border border-gray-200 px-4 py-3">
         <div class="flex items-center gap-4">
-          <label class="inline-flex items-center gap-2 text-sm font-medium">
+          <label class="inline-flex items-center gap-2 text-sm font-medium whitespace-nowrap">
             <input type="checkbox" id="media-select-all" class="rounded border-gray-300 text-black focus:ring-black">
             <span id="selection-count">{{ trans('admin.media.select_all') }}</span>
           </label>
-          <div class="text-sm text-gray-500" id="total-count">{{ items|length }} {{ trans('admin.media.items') }}</div>
+          <div class="text-sm text-gray-500 whitespace-nowrap" id="total-count">{{ items|length }} {{ trans('admin.media.items') }}</div>
         </div>
         <div class="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-2 w-full sm:w-auto">
           <select id="media-attach-album" class="form-input text-sm min-w-0 sm:min-w-[200px] w-full sm:w-auto">
@@ -475,7 +475,8 @@
         const id = card.getAttribute('data-media-id');
         const cb = document.createElement('input'); 
         cb.type='checkbox'; 
-        cb.className='absolute top-2 left-2 w-4 h-4 bg-white rounded border z-10'; 
+        cb.className='absolute top-2 left-2 w-5 h-5 bg-white rounded border border-gray-300 shadow-sm cursor-pointer z-10'; 
+        cb.setAttribute('aria-label', (card.querySelector('img') && card.querySelector('img').alt) || ('#' + id));
         cb.setAttribute('data-select-id', id);
         const wrap = card.querySelector('.aspect-square');
         if (wrap) { 

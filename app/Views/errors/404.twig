@@ -1,13 +1,16 @@
 {% extends 'frontend/_layout.twig' %}
 
 {% block content %}
-<div class="min-h-[60vh] flex items-center justify-center">
-    <div class="text-center px-4">
-        <h1 class="text-9xl font-bold text-gray-200">404</h1>
-        <h2 class="text-2xl font-semibold text-gray-800 mt-4 mb-2">{{ trans('errors.404.title') }}</h2>
+<div class="min-h-[60vh] flex items-center justify-center" data-page="404">
+    <div class="text-center px-4 max-w-xl">
+        {# Decorative numeral: the page title is the h1 below, so screen readers
+           hear "Page not found" instead of "404". As a <p> it also escapes the
+           global dark-mode heading colour and stays a quiet watermark. #}
+        <p class="error-numeral text-8xl sm:text-9xl text-gray-200 leading-none select-none" aria-hidden="true">404</p>
+        <h1 class="text-2xl font-semibold text-gray-800 mt-4 mb-2">{{ trans('errors.404.title') }}</h1>
         <p class="text-gray-600 mb-8">{{ trans('errors.404.message') }}</p>
-        <a href="{{ base_path }}/" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors">
-            <i class="fas fa-home"></i>
+        <a href="{{ base_path }}/" class="inline-flex items-center gap-2 min-h-[48px] px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors">
+            <i class="fas fa-home" aria-hidden="true"></i>
             {{ trans('errors.404.back_home') }}
         </a>
     </div>

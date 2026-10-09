@@ -143,6 +143,19 @@ html.dark .btn-primary:hover {
   color: var(--color-accent-contrast);
 }
 
+/* Respect reduced-motion in the admin too (the frontend bundle already does):
+   kill transitions/animations and the smooth scrolling set in app.css. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 @tailwind components;
 @tailwind utilities;
 

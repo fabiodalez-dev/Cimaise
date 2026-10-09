@@ -1092,6 +1092,12 @@ html.dark .header-search-submit:hover {
     background-color: #262626;
 }
 
+/* 404 watermark numeral: heading face, but not a heading element. */
+.error-numeral {
+    font-family: var(--font-headings, Georgia, serif);
+    font-weight: var(--font-headings-weight, 600);
+}
+
 /* Hidden caption content */
 .hidden-caption-content {
     display: none !important;

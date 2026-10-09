@@ -437,7 +437,18 @@ html.dark .modern-search-suggestions__subtitle {
     pointer-events: auto;
 }
 
+/* The triggers are <button>s (keyboard reachable); strip UA button chrome. */
+.menu-btn,
+.menu-close {
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+}
+
 .menu-btn_text {
+    display: block;
     color: var(--modern-white);
     text-transform: uppercase;
     font-family: var(--font-body, inherit);
@@ -450,6 +461,16 @@ html.dark .modern-search-suggestions__subtitle {
 .menu-btn:focus-visible {
     outline: 2px solid var(--modern-white);
     outline-offset: 2px;
+}
+
+/* The trigger relies on mix-blend-mode: difference, which only inverts
+   correctly with WHITE text. The dark palette flips --modern-white to
+   #171717, which made "Menu" dark-on-dark and invisible; keep it white. */
+html.dark .menu-btn .menu-btn_text {
+    color: #fafafa;
+}
+html.dark .menu-btn:focus-visible {
+    outline-color: #fafafa;
 }
 
 .grid-toggle_item:focus-visible {
