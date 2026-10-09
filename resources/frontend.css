@@ -1116,8 +1116,9 @@ html.dark .header-search-submit:hover {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    /* 40px box + 12px gap = a comfortable thumb target; the glyph stays 16px. */
+    width: 40px;
+    height: 40px;
     border-radius: 4px;
     color: #000;
     text-decoration: none;
@@ -1134,6 +1135,13 @@ html.dark .header-search-submit:hover {
 
 .social-btn i {
     font-size: 16px;
+}
+
+/* Seven buttons must fit the 328px phone column on one line:
+   7 x 36px + 6 x 8px = 300px. */
+@media (max-width: 640px) {
+    .social-buttons { gap: 8px; }
+    .social-btn { width: 36px; height: 36px; }
 }
 
 /* Ensure hidden class takes precedence */

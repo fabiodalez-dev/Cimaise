@@ -92,6 +92,13 @@ html.dark {
 [type='radio'] {
   color: var(--color-accent);
 }
+/* app.css turns `.text-black` into #fafafa under html.dark, and the forms
+   plugin paints the checked box with currentColor: a white box with a white
+   check mark, i.e. an invisible checked state. Pin the control colour. */
+html.dark [type='checkbox'],
+html.dark [type='radio'] {
+  color: var(--color-accent) !important;
+}
 
 /* Selected option in a segmented control / current page in a pager: the
    accent fill with its contrast text, which flips to sage + dark ink in dark
@@ -108,6 +115,17 @@ html.dark {
 html.dark .card.stat-accent p {
   color: inherit;
 }
+
+/* Accent-tinted notes (bg-accent-50 / border-accent-200 / text-accent-*)
+   have no dark variant in app.css, so under html.dark they stayed a pale cream
+   block with light text on top. Resolve them through the soft-accent tokens. */
+html.dark .bg-accent-50 { background-color: var(--color-accent-soft) !important; }
+html.dark .border-accent-200 { border-color: var(--color-accent-soft-border) !important; }
+html.dark .text-accent-900,
+html.dark .text-accent-800,
+html.dark .text-accent-700 { color: var(--color-text-primary) !important; }
+html.dark .text-accent-600,
+html.dark .text-accent-500 { color: var(--color-accent) !important; }
 
 /* app.css sets `html.dark a { color: text-primary }` (0,1,1), which beat the
    single-class .btn-primary colour and left pale text on the sage button. */

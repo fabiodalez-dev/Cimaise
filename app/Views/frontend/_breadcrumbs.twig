@@ -40,9 +40,9 @@
         {% if loop.first == false %}<span class="mx-2 md:mx-3 text-neutral-400">›</span>{% endif %}
         {% if it.url %}
           {% if it.url starts with '/' %}
-            <a href="{{ base_path }}{{ it.url }}" class="hover:text-black">{{ it.label|e }}</a>
+            <a href="{{ base_path }}{{ it.url }}" class="inline-block py-1.5 hover:text-black">{{ it.label|e }}</a>
           {% else %}
-            <a href="{{ it.url }}" class="hover:text-black">{{ it.label|e }}</a>
+            <a href="{{ it.url }}" class="inline-block py-1.5 hover:text-black">{{ it.label|e }}</a>
           {% endif %}
         {% else %}
           <span>{{ it.label|e }}</span>
