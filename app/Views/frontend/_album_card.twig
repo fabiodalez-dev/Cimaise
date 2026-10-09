@@ -13,7 +13,11 @@
   {# Image container with relative positioning for badge overlay #}
   <div class="relative">
     {# Image area with link #}
-    <a href="{{ album_url }}" class="block aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm" title="{{ seo_title|e('html_attr') }}">
+    {# `relative` makes this link the containing block of the absolutely
+       positioned cover, so its overflow-hidden actually clips the blurred
+       NSFW/locked cover (blur(30px) + scale(1.1) otherwise bleeds a halo
+       outside the card). #}
+    <a href="{{ album_url }}" class="relative block aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm" title="{{ seo_title|e('html_attr') }}">
     {% set show_nsfw_overlay = not ((nsfw_consent|default(false)) or (is_admin|default(false))) %}
     {% set is_locked = album.is_locked|default(false) %}
     {# NSFW albums use blur cover until user accepts gate (admins always see clear) #}
