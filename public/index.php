@@ -666,7 +666,7 @@ $errorMiddleware->setErrorHandler(HttpNotFoundException::class, function ($reque
     return $twig->render($response, $template);
 });
 // Handle 405 Method Not Allowed - return proper status and JSON for AJAX
-$errorMiddleware->setErrorHandler(HttpMethodNotAllowedException::class, function ($request, \Throwable $exception, bool $displayErrorDetails) use ($twig, $translationService, $errorResponse) {
+$errorMiddleware->setErrorHandler(HttpMethodNotAllowedException::class, function ($request, \Throwable $exception, bool $displayErrorDetails) use ($twig, $translationService, $plainErrorResponse, $errorResponse) {
     $response = $errorResponse(405);
 
     // Add Allow header with permitted methods
@@ -697,13 +697,17 @@ $errorMiddleware->setErrorHandler(HttpMethodNotAllowedException::class, function
         return $response->withHeader('Content-Type', 'application/json');
     }
 
+    // The error templates call trans(): under /media/* the translation layer
+    // is not registered, so fall back to a plain page that keeps the Allow header.
+    if (!$translationService instanceof \App\Services\TranslationService) {
+        return $plainErrorResponse(405, 'Method Not Allowed')
+            ->withHeader('Allow', implode(', ', $allowedMethods));
+    }
+
     // For regular requests, render error page
     $path = $request->getUri()->getPath();
     $isAdmin = str_contains((string) $path, '/admin');
-
-    if ($translationService instanceof \App\Services\TranslationService) {
-        $translationService->setScope($isAdmin ? 'admin' : 'frontend');
-    }
+    $translationService->setScope($isAdmin ? 'admin' : 'frontend');
 
     $template = $isAdmin ? 'errors/500_admin.twig' : 'errors/500.twig';
     return $twig->render($response, $template, [
