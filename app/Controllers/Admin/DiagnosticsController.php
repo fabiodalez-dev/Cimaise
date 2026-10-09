@@ -104,10 +104,10 @@ class DiagnosticsController extends BaseController
 
         // Directory Permissions
         $directories = [
-            'storage' => dirname(__DIR__, 2) . '/storage',
-            'storage/originals' => dirname(__DIR__, 2) . '/storage/originals',
-            'storage/tmp' => dirname(__DIR__, 2) . '/storage/tmp',
-            'public/media' => dirname(__DIR__, 2) . '/public/media'
+            'storage' => dirname(__DIR__, 3) . '/storage',
+            'storage/originals' => dirname(__DIR__, 3) . '/storage/originals',
+            'storage/tmp' => dirname(__DIR__, 3) . '/storage/tmp',
+            'public/media' => dirname(__DIR__, 3) . '/public/media'
         ];
 
         foreach ($directories as $name => $path) {

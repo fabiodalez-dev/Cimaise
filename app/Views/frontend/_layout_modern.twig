@@ -329,7 +329,7 @@
     {% block scripts %}{% endblock %}
 
     {# Block right-click on images for non-admin users #}
-    {% if disable_right_click|default(true) and not is_admin %}
+    {% if (disable_right_click ?? true) and not is_admin %}
     <script nonce="{{ csp_nonce() }}">
     document.addEventListener('contextmenu', function(e) {
       const target = e.target;

@@ -90,6 +90,15 @@ tests/
 !/tests/Controllers/
 /tests/Controllers/*
 !/tests/Controllers/AlbumPasswordAccessTest.php
+!/tests/Controllers/SeoControllerSeededBooleansTest.php
+!/tests/Controllers/DiagnosticsDirectoriesTest.php
+!/tests/Views/
+/tests/Views/*
+!/tests/Views/FrontendSettingGatesTest.php
+!/tests/e2e/
+/tests/e2e/*
+!/tests/e2e/settings-effects.spec.js
+!/tests/e2e/album-robots-default.spec.js
 
 # Cache
 .cache/

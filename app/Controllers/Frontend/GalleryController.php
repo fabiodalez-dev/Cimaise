@@ -659,7 +659,7 @@ class GalleryController extends BaseController
         $galleryCanonicalBase = $roots['base'];
         $galleryCanonical = $galleryCanonicalBase . '/album/' . $canonicalSlug;
 
-        return $this->view->render($response, 'frontend/gallery.twig', [
+        $rendered = $this->view->render($response, 'frontend/gallery.twig', [
             'album' => $galleryMeta,
             'images' => $images,
             'template_name' => $template['name'],
@@ -688,6 +688,14 @@ class GalleryController extends BaseController
             'template_custom_js' => $templateCustomJs,
             'template_custom_twig' => $templateCustomTwig,
         ]);
+
+        // Same rule as PageController::album: a gated album page must be
+        // revalidated on every visit so a revoked grant is noticed at once.
+        if ($isProtectedAlbum) {
+            $rendered = $rendered->withHeader('Cache-Control', 'private, no-cache, must-revalidate');
+        }
+
+        return $rendered;
     }
 
     public function template(Request $request, Response $response): Response

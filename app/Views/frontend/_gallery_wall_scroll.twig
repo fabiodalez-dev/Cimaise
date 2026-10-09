@@ -222,7 +222,7 @@
             <img src="{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
                  alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
                  title="{{ seo_title|e('html_attr') }}"
-                 loading="lazy"
+                 loading="{{ (lazy_load_images ?? true) ? 'lazy' : 'eager' }}"
                  decoding="async"
                  data-fallback="hide">
           </picture>
@@ -296,7 +296,7 @@
           <img src="{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
                alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
                title="{{ seo_title|e('html_attr') }}"
-               loading="lazy"
+               loading="{{ (lazy_load_images ?? true) ? 'lazy' : 'eager' }}"
                decoding="async"
                data-fallback="hide">
         </picture>

@@ -7,7 +7,10 @@
   var GTAG_ID = {{ analytics_gtag|default('')|json_encode|raw }};
   var GTM_ID  = {{ analytics_gtm|default('')|json_encode|raw }};
   var cspNonce = {{ csp_nonce()|json_encode|raw }};
-  var consentRequired = {{ cookie_banner_enabled|default(true) ? 'true' : 'false' }};
+  {# `?? true`, not `|default(true)`: default() also swallows FALSE, so a disabled
+     banner still demanded a consent that no banner could ever grant (tags never
+     loaded). #}
+  var consentRequired = {{ (cookie_banner_enabled ?? true) ? 'true' : 'false' }};
   var loaded = false;
 
   function loadGtag(id) {

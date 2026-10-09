@@ -52,8 +52,9 @@
   </ol>
 </nav>
 
-{# JSON-LD BreadcrumbList #}
-{% if items|length > 1 %}
+{# JSON-LD BreadcrumbList — honours seo.schema_enabled / seo.breadcrumbs_enabled
+   (TwigGlobalsCache::buildSchemaArray neutralises both when schema is off). #}
+{% if items|length > 1 and (schema is not defined or (schema.breadcrumbs_enabled ?? true)) %}
 <script type="application/ld+json" nonce="{{ csp_nonce() }}">
 {
   "@context": "https://schema.org",

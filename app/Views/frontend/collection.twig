@@ -23,7 +23,7 @@
            data-pswp-width="{{ image.width }}"
            data-pswp-height="{{ image.height }}"
            data-pswp-caption="{{ image.caption|default('')|e('html_attr') }}">
-          <img src="{{ image.url }}" alt="{{ image.alt|default('') }}" loading="lazy"
+          <img src="{{ image.url }}" alt="{{ image.alt|default('') }}" loading="{{ (lazy_load_images ?? true) ? 'lazy' : 'eager' }}"
                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
         </a>
       {% endfor %}

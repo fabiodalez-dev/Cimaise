@@ -13,7 +13,9 @@
 #}
 {% import 'frontend/_image_macros.twig' as ImgSchemaMacros %}
 
-{% if (schema is not defined or schema.schema_enabled|default(true)) and images is defined and images|length > 0 %}
+{# `?? true`, not `|default(true)`: default() also replaces FALSE, so disabling
+   structured data in SEO settings still emitted this block. #}
+{% if (schema is not defined or (schema.schema_enabled ?? true)) and images is defined and images|length > 0 %}
   {% set _cb = canonical_base|default('') %}
   {% set _bp = base_path|default('') %}
   {% set _items = [] %}

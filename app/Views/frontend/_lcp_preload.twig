@@ -9,7 +9,7 @@
 
    Expects `all_images` (controller var) and `base_path` in scope. Safe no-op
    when there are no images. #}
-{% if all_images is defined and all_images|length > 0 %}
+{% if (preload_critical_images ?? true) and all_images is defined and all_images|length > 0 %}
   {% set lcp = all_images|first %}
   {% set lcp_sizes = '(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw' %}
   {% set lcp_set = [] %}

@@ -1,6 +1,7 @@
 {# WebSite JSON-LD + SearchAction — shared by all home templates.
    The SearchAction target is ABSOLUTE (via canonical_base) and uses the real
    ?search= query parameter the search endpoint reads. #}
+{% if schema is not defined or (schema.schema_enabled ?? true) %}
 {% set _cb = canonical_base|default('') %}
 {% set search_url_template = _cb
     ? (_cb ~ '/search?search={search_term_string}')
@@ -22,3 +23,4 @@
   }
 }
 </script>
+{% endif %}

@@ -25,7 +25,12 @@ class SeoController extends BaseController
     {
         $svc = new SettingsService($this->db);
 
-        // Get all SEO-related settings
+        // Get all SEO-related settings.
+        // Booleans go through SettingsService::boolean(): the schema seeds store
+        // them as JSON booleans (decoded to PHP bool) while this form saves them
+        // as "true"/"false" strings. A strict `=== 'true'` showed every seeded
+        // toggle as OFF on a fresh install, and the first save then persisted
+        // that OFF for schema, breadcrumbs, sitemap, lazy-loading...
         $settings = [
             // Site-wide SEO
             'site_title' => $svc->get('seo.site_title', 'Photography Portfolio'),
@@ -45,9 +50,9 @@ class SeoController extends BaseController
             'twitter_creator' => $svc->get('seo.twitter_creator', ''),
 
             // Schema.org & Structured Data
-            'schema_enabled' => $svc->get('seo.schema_enabled', 'true') === 'true',
-            'breadcrumbs_enabled' => $svc->get('seo.breadcrumbs_enabled', 'true') === 'true',
-            'local_business_enabled' => $svc->get('seo.local_business_enabled', 'false') === 'true',
+            'schema_enabled' => SettingsService::boolean($svc->get('seo.schema_enabled', true), true),
+            'breadcrumbs_enabled' => SettingsService::boolean($svc->get('seo.breadcrumbs_enabled', true), true),
+            'local_business_enabled' => SettingsService::boolean($svc->get('seo.local_business_enabled', false)),
             'local_business_name' => $svc->get('seo.local_business_name', ''),
             'local_business_type' => $svc->get('seo.local_business_type', 'ProfessionalService'),
             'local_business_address' => $svc->get('seo.local_business_address', ''),
@@ -69,22 +74,22 @@ class SeoController extends BaseController
             // Technical SEO
             'robots_default' => $svc->get('seo.robots_default', 'index,follow'),
             'canonical_base_url' => $svc->get('seo.canonical_base_url', ''),
-            'sitemap_enabled' => $svc->get('seo.sitemap_enabled', 'true') === 'true',
+            'sitemap_enabled' => SettingsService::boolean($svc->get('seo.sitemap_enabled', true), true),
             'analytics_gtag' => $svc->get('seo.analytics_gtag', ''),
             'analytics_gtm' => $svc->get('seo.analytics_gtm', ''),
             'google_verification' => $svc->get('seo.google_verification', ''),
             'bing_verification' => $svc->get('seo.bing_verification', ''),
 
             // Image SEO
-            'image_alt_auto' => $svc->get('seo.image_alt_auto', 'true') === 'true',
+            'image_alt_auto' => SettingsService::boolean($svc->get('seo.image_alt_auto', true), true),
             'image_copyright_notice' => $svc->get('seo.image_copyright_notice', ''),
             'image_license_url' => $svc->get('seo.image_license_url', ''),
             'image_acquire_license_page' => $svc->get('seo.image_acquire_license_page', ''),
-            'expose_gps' => $svc->get('seo.expose_gps', 'false') === 'true',
+            'expose_gps' => SettingsService::boolean($svc->get('seo.expose_gps', false)),
 
             // Performance & Crawling
-            'preload_critical_images' => $svc->get('seo.preload_critical_images', 'true') === 'true',
-            'lazy_load_images' => $svc->get('seo.lazy_load_images', 'true') === 'true',
+            'preload_critical_images' => SettingsService::boolean($svc->get('seo.preload_critical_images', true), true),
+            'lazy_load_images' => SettingsService::boolean($svc->get('seo.lazy_load_images', true), true),
             'structured_data_format' => $svc->get('seo.structured_data_format', 'json-ld')
         ];
 

@@ -306,6 +306,13 @@ class SettingsController extends BaseController
         $svc->set('maintenance.show_logo', isset($data['maintenance_show_logo']));
         $svc->set('maintenance.show_countdown', isset($data['maintenance_show_countdown']));
 
+        // Page cache entries bake settings in: an album entry stores the resolved
+        // page template file (gallery.page_template), the default gallery template
+        // settings (gallery.default_template_id) and the share-button list; the
+        // home entry stores the album list sized by pagination.limit. Without this
+        // a saved setting only showed up after the 24h cache TTL.
+        $this->clearPageCache($svc);
+
         $_SESSION['flash'][] = ['type' => 'success','message' => trans('admin.flash.settings_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/settings') . '?saved=1')->withStatus(302);
     }
@@ -804,6 +811,19 @@ class SettingsController extends BaseController
         }
 
         return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+    }
+
+    /**
+     * Invalidate every page_cache entry (home, galleries, albums, taxonomies).
+     * Never blocks the save: a cache failure is logged, not surfaced.
+     */
+    private function clearPageCache(SettingsService $svc): void
+    {
+        try {
+            (new \App\Services\PageCacheService($svc, $this->db))->clearAll();
+        } catch (\Throwable $e) {
+            Logger::warning('SettingsController: page cache invalidation failed', ['error' => $e->getMessage()], 'cache');
+        }
     }
 
     /**

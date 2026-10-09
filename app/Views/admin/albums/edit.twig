@@ -355,6 +355,9 @@
               <!-- Technical SEO -->
               <div class="space-y-4">
                 <h3 class="text-md font-medium text-gray-900 border-b border-gray-200 pb-2">{{ trans('admin.albums.technical_seo') }}</h3>
+                {# Marker: this form carries the robots checkboxes, so an unchecked box
+                   really means "no". Forms/requests without it keep the index,follow default. #}
+                <input type="hidden" name="robots_present" value="1">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div class="space-y-3">
                     <label class="flex items-center gap-3">

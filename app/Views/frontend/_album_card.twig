@@ -70,7 +70,7 @@
              {% if emit_nsfw_swap %}data-nsfw-real-src="{{ real_url }}"{% endif %}
              alt="{{ (album.cover.alt_text ?? album.title)|e }}"
              title="{{ seo_title|e('html_attr') }}"
-             loading="lazy"
+             loading="{{ (lazy_load_images ?? true) ? 'lazy' : 'eager' }}"
              decoding="async"
              class="nsfw-blur block absolute inset-0 w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
       {% else %}
@@ -133,7 +133,7 @@
           <img src="{{ original_url }}"
                alt="{{ (album.cover.alt_text ?? album.cover_image.alt_text ?? album.title)|e }}"
                title="{{ seo_title|e('html_attr') }}"
-               loading="lazy"
+               loading="{{ (lazy_load_images ?? true) ? 'lazy' : 'eager' }}"
                decoding="async"
                class="block w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
         </picture>
@@ -150,7 +150,7 @@
           <img src="{{ original_url }}"
                alt="{{ (album.cover_image.alt_text ?? album.cover.alt_text ?? album.title)|e }}"
                title="{{ seo_title|e('html_attr') }}"
-               loading="lazy"
+               loading="{{ (lazy_load_images ?? true) ? 'lazy' : 'eager' }}"
                decoding="async"
                class="block absolute inset-0 w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
         {% endif %}

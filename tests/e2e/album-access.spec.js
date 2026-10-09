@@ -322,11 +322,65 @@ test.describe.serial('Album public access — password, NSFW, listings', () => {
 
             const authorized = await ctx.request.get(mediaUrl, { failOnStatusCode: false });
             expect(authorized.status()).toBe(200);
-            expect(authorized.headers()['cache-control'] || '').toContain('no-store');
-            expect(authorized.headers()['cache-control'] || '').not.toContain('public');
+            // Authorized protected bytes are deliberately `private, no-cache`
+            // (ETag revalidation keeps the browser cache usable; a revoked grant
+            // then yields blur/403 on revalidation) — see
+            // MediaController::withAuthorizedProtectedHeaders(). Only the
+            // DENIED/substituted responses are `no-store`. Never `public`.
+            const authorizedCc = authorized.headers()['cache-control'] || '';
+            expect(authorizedCc).toContain('private');
+            expect(authorizedCc).toMatch(/no-cache|no-store/);
+            expect(authorizedCc).not.toContain('public');
             expect(await authorized.body()).not.toEqual(blurredBytes);
         } finally {
             await ctx.close();
+            await deleteAlbum(page, id);
+        }
+    });
+
+    test('ACC-10: an unlocked password album is never kept in the browser cache (revocation is immediate)', async ({ page, browser }) => {
+        await requireServer(test, page);
+        await requireAdmin(test, page);
+        const password = 'Acc10Pass!' + Date.now();
+        const name = `ACC10 ${Date.now()}`;
+        const { id, slug } = await createAlbum(page, name, { password });
+        if (!id || !slug) test.skip(true, 'createAlbum helper could not resolve new album id/slug (env-dependent)');
+        const upload = await uploadCover(page, id, 'ACC10', '#0f766e');
+        if (!upload.ok) test.skip(true, 'test image upload failed');
+
+        const visitor = await browser.newContext();
+        try {
+            const vp = await visitor.newPage();
+            await vp.goto(`${BASE}/album/${slug}`);
+            await vp.fill('#album-password', password);
+            await Promise.all([
+                vp.waitForURL((u) => u.pathname.endsWith(`/album/${slug}`) && !u.search.includes('error')),
+                vp.click('form#album-password-form button[type=submit]'),
+            ]);
+            await expect(vp.locator('form#album-password-form')).toHaveCount(0);
+
+            // The unlocked page must demand revalidation: it is only valid while
+            // the session grant is. `private, max-age=N` let the browser replay
+            // it for up to N seconds after the password was rotated.
+            const unlocked = await visitor.request.get(`${BASE}/album/${slug}`);
+            const cc = unlocked.headers()['cache-control'] || '';
+            expect(cc).toContain('private');
+            expect(cc).toMatch(/no-cache|no-store/);
+            expect(cc).not.toMatch(/max-age=[1-9]/);
+
+            // Rotate the password in the admin: the visitor's grant is revoked
+            // (PW1) and the BROWSER must show the gate on its very next visit.
+            await page.goto(`${BASE}/admin/albums/${id}/edit`);
+            await page.click('#change-password-btn');
+            await page.fill('#password-input', password + '-rotated');
+            await Promise.all([
+                page.waitForURL(/\/admin\/albums\/?(\?.*)?$/, { waitUntil: 'load' }),
+                page.click('#save-change-btn'),
+            ]);
+            await vp.goto(`${BASE}/album/${slug}`);
+            await expect(vp.locator('form#album-password-form')).toHaveCount(1);
+        } finally {
+            await visitor.close();
             await deleteAlbum(page, id);
         }
     });

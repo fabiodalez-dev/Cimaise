@@ -379,7 +379,7 @@
                            width="{{ image.width }}"
                            height="{{ image.height }}"
                            class="dense-grid-img"
-                           {% if loop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+                           {% if loop.first %}fetchpriority="high"{% else %}loading="{{ (lazy_load_images ?? true) ? 'lazy' : 'eager' }}"{% endif %}
                            decoding="async"
                            data-fallback="hide">
                   </picture>
@@ -537,7 +537,7 @@
                                    title="{{ seo_title|e('html_attr') }}"
                                    width="{{ imgW }}"
                                    height="{{ imgH }}"
-                                   {% if loop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+                                   {% if loop.first %}fetchpriority="high"{% else %}loading="{{ (lazy_load_images ?? true) ? 'lazy' : 'eager' }}"{% endif %}
                                    decoding="async"
                                    data-fallback="hide">
                           </picture>
@@ -656,7 +656,7 @@
                                title="{{ seo_title|e('html_attr') }}"
                                width="{{ image.width }}"
                                height="{{ image.height }}"
-                               {% if loop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+                               {% if loop.first %}fetchpriority="high"{% else %}loading="{{ (lazy_load_images ?? true) ? 'lazy' : 'eager' }}"{% endif %}
                                decoding="async"
                                data-fallback="hide"
                                class="w-full h-full object-cover transition-transform duration-300 {{ hover_class }}">

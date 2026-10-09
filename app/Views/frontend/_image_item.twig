@@ -95,7 +95,7 @@
            title="{{ seo_title|e('html_attr') }}"
            width="{{ image.width }}"
            height="{{ image.height }}"
-           loading="lazy"
+           loading="{{ (lazy_load_images ?? true) ? 'lazy' : 'eager' }}"
            decoding="async"
            data-fallback="hide"
            class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">

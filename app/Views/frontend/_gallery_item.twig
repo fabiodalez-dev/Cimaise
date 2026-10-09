@@ -110,7 +110,7 @@
            title="{{ seo_title|e('html_attr') }}"
            width="{{ image.width }}"
            height="{{ image.height }}"
-           loading="lazy"
+           loading="{{ (lazy_load_images ?? true) ? 'lazy' : 'eager' }}"
            decoding="async"
            data-fallback="hide"
            class="{% if item_layout == 'grid' %}w-full h-full object-cover{% else %}w-full h-auto block{% endif %} transition-transform duration-300 {{ hover_class }}">

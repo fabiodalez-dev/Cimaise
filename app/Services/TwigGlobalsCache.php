@@ -23,7 +23,7 @@ class TwigGlobalsCache
      * globals changes (new/renamed keys), so deployed caches with the old shape
      * are never served to templates expecting the new key.
      */
-    private const CACHE_KEY_PREFIX = 'twig_globals:v4:';
+    private const CACHE_KEY_PREFIX = 'twig_globals:v5:';
     private const TTL = 300; // 5 minutes
 
     /**
@@ -152,6 +152,14 @@ class TwigGlobalsCache
                 // the <meta> tags real rather than always-empty dead markup.
                 $globals['google_verification'] = $settings->get('seo.google_verification', '');
                 $globals['bing_verification'] = $settings->get('seo.bing_verification', '');
+
+                // Image/crawling SEO toggles. These were saved by the SEO form but
+                // never read anywhere on the frontend (dead settings); templates
+                // now honour them via these globals.
+                $globals['site_keywords'] = (string) ($settings->get('seo.site_keywords', '') ?? '');
+                $globals['lazy_load_images'] = SettingsService::boolean($settings->get('seo.lazy_load_images', true), true);
+                $globals['preload_critical_images'] = SettingsService::boolean($settings->get('seo.preload_critical_images', true), true);
+                $globals['image_alt_auto'] = SettingsService::boolean($settings->get('seo.image_alt_auto', true), true);
             }
 
             return $globals;
@@ -203,6 +211,7 @@ class TwigGlobalsCache
                 'photographer_job_title' => '',
                 'photographer_services' => '',
                 'photographer_same_as' => '',
+                'photographer_area_served' => '',
                 'image_copyright_notice' => '',
                 'image_license_url' => '',
                 'image_acquire_license_page' => '',
@@ -232,6 +241,7 @@ class TwigGlobalsCache
             'photographer_job_title' => (string) ($settings->get('seo.photographer_job_title', 'Professional Photographer') ?? 'Professional Photographer'),
             'photographer_services' => (string) ($settings->get('seo.photographer_services', 'Professional Photography Services') ?? 'Professional Photography Services'),
             'photographer_same_as' => (string) ($settings->get('seo.photographer_same_as', '') ?? ''),
+            'photographer_area_served' => (string) ($settings->get('seo.photographer_area_served', '') ?? ''),
             'image_copyright_notice' => (string) ($settings->get('seo.image_copyright_notice', '') ?? ''),
             'image_license_url' => (string) ($settings->get('seo.image_license_url', '') ?? ''),
             'image_acquire_license_page' => (string) ($settings->get('seo.image_acquire_license_page', '') ?? ''),
@@ -315,6 +325,7 @@ class TwigGlobalsCache
                 'photographer_job_title' => 'Professional Photographer',
                 'photographer_services' => 'Professional Photography Services',
                 'photographer_same_as' => '',
+                'photographer_area_served' => '',
                 'image_copyright_notice' => '',
                 'image_license_url' => '',
                 'image_acquire_license_page' => '',
@@ -336,6 +347,10 @@ class TwigGlobalsCache
             'analytics_gtm' => '',
             'google_verification' => '',
             'bing_verification' => '',
+            'site_keywords' => '',
+            'lazy_load_images' => true,
+            'preload_critical_images' => true,
+            'image_alt_auto' => true,
         ];
     }
 }
