@@ -69,7 +69,7 @@
       <p class="font-serif text-3xl text-gray-900 mt-2 leading-none">{{ stats.photos|default(0) }}</p>
       <p class="text-xs text-gray-500 mt-2">{{ trans('admin.dashboard.photos_desc') }}</p>
     </a>
-    <div class="card p-5" style="background: var(--color-accent); color: var(--color-accent-contrast); border-color: var(--color-accent); cursor: default;">
+    <div class="card stat-accent p-5" style="background: var(--color-accent); color: var(--color-accent-contrast); border-color: var(--color-accent); cursor: default;">
       <p class="text-xs font-semibold uppercase tracking-wider" style="opacity:.72">{{ trans('admin.dashboard.storage_used') }}</p>
       <p class="font-serif text-3xl mt-2 leading-none">{{ stats.storage_human|default('0 MB') }}</p>
       <p class="text-xs mt-2" style="opacity:.72">{{ trans('admin.dashboard.storage_desc') }}</p>

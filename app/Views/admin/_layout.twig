@@ -150,11 +150,16 @@
       text-decoration: none;
       display: inline-flex;
       align-items: center;
+      white-space: nowrap;
       transition: background-color 0.2s;
     }
     .btn-primary:hover {
       background-color: var(--color-accent-hover);
     }
+    /* app.css recolours every `html.dark a` to the primary text token, which
+       outranks .btn-primary and left pale text on the sage button. */
+    html.dark a.btn-primary,
+    html.dark a.btn-primary:hover { color: var(--color-accent-contrast); }
     .btn-secondary {
       background-color: var(--color-bg-tertiary);
       color: var(--color-text-primary);
@@ -163,6 +168,7 @@
       text-decoration: none;
       display: inline-flex;
       align-items: center;
+      white-space: nowrap;
       transition: background-color 0.2s;
     }
     .btn-secondary:hover {
@@ -293,11 +299,16 @@
     }
     .input:focus {
       outline: none;
-      border-color: #000;
-      box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px var(--color-focus-ring);
     }
-    .table-row:hover { 
-      background-color: #f9fafb; 
+    .table-row:hover {
+      background-color: #f7f4ef;
+    }
+    /* The light hover tint turned rows cream (with invisible light text) in
+       dark mode; lift to the dark subtle surface instead. */
+    html.dark .table-row:hover {
+      background-color: var(--color-bg-tertiary);
     }
     .dropdown {
       position: relative;
@@ -394,32 +405,32 @@
   {{ hook('admin_body_start', {'base_path': base_path}) }}
   <!-- Header -->
   <nav id="admin-header" class="bg-white border-b border-gray-200 fixed w-full z-30 top-0">
-    <div class="px-6 py-4">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center">
+    <div class="px-4 sm:px-6 py-3 sm:py-4">
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center min-w-0 flex-1">
           <!-- Hamburger Menu Button (Mobile/Tablet) -->
-          <button id="sidebar-toggle" class="lg:hidden mr-3 p-2 rounded-md text-gray-600 hover:text-black hover:bg-gray-100 transition-colors">
+          <button id="sidebar-toggle" class="lg:hidden -ml-2 mr-2 w-11 h-11 inline-flex items-center justify-center shrink-0 rounded-md text-gray-600 hover:text-black hover:bg-gray-100 transition-colors" aria-label="{{ trans('admin.sidebar.open_menu', {}, 'Open menu') }}" aria-controls="sidebar">
             <i class="fas fa-bars"></i>
           </button>
           
           {% if logo_type == 'image' and site_logo %}
-            <img src="{{ base_path ~ site_logo }}" alt="{{ site_title|default('Cimaise')|e }}" class="h-7 w-auto mr-3">
+            <img src="{{ base_path ~ site_logo }}" alt="{{ site_title|default('Cimaise')|e }}" class="h-7 w-auto mr-3 shrink-0">
           {% else %}
-            <i class="fas fa-camera text-2xl text-black mr-3"></i>
-            <h1 class="font-serif text-2xl font-medium text-black tracking-tight">{{ site_title|default('Cimaise') }}</h1>
+            <i class="fas fa-camera text-2xl text-black mr-3 shrink-0"></i>
+            <h1 class="font-serif text-xl sm:text-2xl font-medium text-black tracking-tight truncate min-w-0">{{ site_title|default('Cimaise') }}</h1>
           {% endif %}
           <span class="ml-3 hidden lg:inline self-center text-[11px] leading-none text-gray-400 font-normal border border-gray-200 rounded px-1.5 py-0.5" title="{{ trans('admin.version_label', {}, 'Application version') }}">v{{ app_version|default('1.0.0') }}</span>
         </div>
         
         <!-- User Administration Area -->
-        <div class="flex items-center space-x-6">
+        <div class="flex items-center gap-2 sm:gap-6 shrink-0">
           <!-- Dark-mode toggle -->
-          <button type="button" id="admin-theme-toggle" class="text-gray-600 hover:text-black transition-colors" title="{{ trans('admin.header.toggle_theme', {}, 'Toggle dark mode') }}" aria-label="{{ trans('admin.header.toggle_theme', {}, 'Toggle dark mode') }}">
+          <button type="button" id="admin-theme-toggle" class="w-11 h-11 inline-flex items-center justify-center rounded-md text-gray-600 hover:text-black hover:bg-gray-100 transition-colors" title="{{ trans('admin.header.toggle_theme', {}, 'Toggle dark mode') }}" aria-label="{{ trans('admin.header.toggle_theme', {}, 'Toggle dark mode') }}">
             <i class="fas fa-moon"></i>
           </button>
 
           <!-- Frontend Link -->
-          <a href="{{ base_path }}/" target="_blank" class="text-gray-600 hover:text-black transition-colors flex items-center space-x-2" title="{{ trans('admin.header.view_frontend') }}">
+          <a href="{{ base_path }}/" target="_blank" class="min-h-[44px] px-2 rounded-md text-gray-600 hover:text-black transition-colors flex items-center space-x-2" title="{{ trans('admin.header.view_frontend') }}">
             <i class="fas fa-external-link-alt"></i>
             <span class="hidden md:inline text-sm">{{ trans('admin.header.frontend') }}</span>
           </a>

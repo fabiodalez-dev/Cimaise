@@ -93,6 +93,30 @@ html.dark {
   color: var(--color-accent);
 }
 
+/* Selected option in a segmented control / current page in a pager: the
+   accent fill with its contrast text, which flips to sage + dark ink in dark
+   mode through the tokens (a hard-coded bg-black would not). */
+.chip-active {
+  background-color: var(--color-accent);
+  color: var(--color-accent-contrast);
+}
+
+/* Accent-filled stat card: app.css paints every `.card p` light under
+   html.dark, which turned this card's text pale-on-sage. Inherit the card's
+   own contrast colour instead. */
+.card.stat-accent p,
+html.dark .card.stat-accent p {
+  color: inherit;
+}
+
+/* app.css sets `html.dark a { color: text-primary }` (0,1,1), which beat the
+   single-class .btn-primary colour and left pale text on the sage button. */
+html.dark a.btn-primary,
+html.dark .btn-primary,
+html.dark .btn-primary:hover {
+  color: var(--color-accent-contrast);
+}
+
 @tailwind components;
 @tailwind utilities;
 

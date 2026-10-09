@@ -8,8 +8,8 @@
     </div>
     <div class="flex items-center gap-3">
       <div class="inline-flex rounded overflow-hidden border border-gray-300">
-        <a href="?order=manual" class="px-3 py-2 text-sm {{ order_mode=='manual' ? 'bg-black text-white' : 'bg-white text-gray-700 hover:bg-gray-50' }}">{{ trans('admin.albums.manual_order') }}</a>
-        <a href="?order=date" class="px-3 py-2 text-sm {{ order_mode=='date' ? 'bg-black text-white' : 'bg-white text-gray-700 hover:bg-gray-50' }}">{{ trans('admin.albums.date_order') }}</a>
+        <a href="?order=manual" class="px-3 py-2 text-sm {{ order_mode=='manual' ? 'chip-active' : 'bg-white text-gray-700 hover:bg-gray-50' }}">{{ trans('admin.albums.manual_order') }}</a>
+        <a href="?order=date" class="px-3 py-2 text-sm {{ order_mode=='date' ? 'chip-active' : 'bg-white text-gray-700 hover:bg-gray-50' }}">{{ trans('admin.albums.date_order') }}</a>
       </div>
       <a href="{{ base_path }}/admin/albums/create" class="btn-primary">
         <i class="fas fa-plus mr-2"></i>{{ trans('admin.albums.new_album') }}
@@ -224,7 +224,7 @@
 
         {% for p in range(max(1, pagination.page - 2), min(pagination.pages, pagination.page + 2) + 1) %}
           {% if p == pagination.page %}
-            <span class="px-3 py-2 text-sm bg-black text-white rounded">{{ p }}</span>
+            <span class="px-3 py-2 text-sm chip-active rounded" aria-current="page">{{ p }}</span>
           {% else %}
             <a href="?page={{ p }}&order={{ order_mode|e('url') }}" class="px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">{{ p }}</a>
           {% endif %}

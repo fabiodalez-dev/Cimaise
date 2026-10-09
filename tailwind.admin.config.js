@@ -18,6 +18,25 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // "Black" ink is the forest-green text token, never #000 (DESIGN.md).
+        // text-black / bg-black / border-black all resolve to it.
+        black: '#1c322d',
+        // The stock cool gray is replaced by the warm green-gray neutrals from
+        // DESIGN.md so every text-gray-*/bg-gray-*/border-gray-* utility in the
+        // admin sits on the cream palette. 500+ stay >= 4.5:1 on white and on
+        // the cream app background for small text.
+        gray: {
+          50: '#f7f4ef',
+          100: '#efeae2',
+          200: '#e4ded5',
+          300: '#cdc7bc',
+          400: '#9aa79f',
+          500: '#62716b',
+          600: '#5d6f69',
+          700: '#41534d',
+          800: '#28352f',
+          900: '#1c322d',
+        },
         primary: {
           50: '#f7f4ef',
           100: '#efeae2',
@@ -53,6 +72,24 @@ module.exports = {
           500: '#1c322d', 600: '#16271f', 700: '#112019', 800: '#0c1813', 900: '#08100c',
         },
         indigo: {
+          50: '#eef2f0', 100: '#d7e2dc', 200: '#b5c9c0', 300: '#8aa89c', 400: '#4d6b60',
+          500: '#1c322d', 600: '#16271f', 700: '#112019', 800: '#0c1813', 900: '#08100c',
+        },
+        // Purple/violet/fuchsia (plugin pages, role badges, "pro" accents) and
+        // pink fold into the same forest-green accent: one accent, no stray hue.
+        purple: {
+          50: '#eef2f0', 100: '#d7e2dc', 200: '#b5c9c0', 300: '#8aa89c', 400: '#4d6b60',
+          500: '#1c322d', 600: '#16271f', 700: '#112019', 800: '#0c1813', 900: '#08100c',
+        },
+        violet: {
+          50: '#eef2f0', 100: '#d7e2dc', 200: '#b5c9c0', 300: '#8aa89c', 400: '#4d6b60',
+          500: '#1c322d', 600: '#16271f', 700: '#112019', 800: '#0c1813', 900: '#08100c',
+        },
+        fuchsia: {
+          50: '#eef2f0', 100: '#d7e2dc', 200: '#b5c9c0', 300: '#8aa89c', 400: '#4d6b60',
+          500: '#1c322d', 600: '#16271f', 700: '#112019', 800: '#0c1813', 900: '#08100c',
+        },
+        pink: {
           50: '#eef2f0', 100: '#d7e2dc', 200: '#b5c9c0', 300: '#8aa89c', 400: '#4d6b60',
           500: '#1c322d', 600: '#16271f', 700: '#112019', 800: '#0c1813', 900: '#08100c',
         },

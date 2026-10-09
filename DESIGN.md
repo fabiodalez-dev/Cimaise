@@ -32,6 +32,16 @@ its own palette on top because it loads `admin-app.css` **after** `app.css`:
 Never move the green tokens into `resources/app.css` or the preset's
 `accent`/`primary` — that would recolor the public site.
 
+`tailwind.admin.config.js` also remaps the **stock neutrals** so templates can
+keep using `gray-*` utilities and still land on this palette: `gray` is the
+warm green-gray scale below (50 `#f7f4ef` … 500 `#62716b` … 900 `#1c322d`;
+500+ stay ≥ 4.5:1 on white and on the cream app background), `black` is the
+ink `#1c322d` (so `text-black`/`bg-black` never paint `#000`), and
+`purple`/`violet`/`fuchsia`/`pink` fold into the forest-green accent like
+`blue`/`indigo` already do. Selected states in segmented controls and pagers
+use the `.chip-active` component (accent fill + contrast text, flips to sage
+in dark mode) rather than a hard-coded `bg-black`.
+
 ## Color tokens
 
 ### Accent — forest green `#1C322D`
