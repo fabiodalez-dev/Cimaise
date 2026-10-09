@@ -248,7 +248,7 @@ class Logger
      */
     public static function sql(string $query, array $params = [], float $executionTime = 0): void
     {
-        if (!filter_var(envv('DEBUG_SQL', false), FILTER_VALIDATE_BOOLEAN)) {
+        if (!filter_var(self::env('DEBUG_SQL', false), FILTER_VALIDATE_BOOLEAN)) {
             return;
         }
 
@@ -267,7 +267,7 @@ class Logger
      */
     public static function request(string $method, string $uri, int $statusCode, float $duration): void
     {
-        if (!filter_var(envv('DEBUG_REQUESTS', false), FILTER_VALIDATE_BOOLEAN)) {
+        if (!filter_var(self::env('DEBUG_REQUESTS', false), FILTER_VALIDATE_BOOLEAN)) {
             return;
         }
 
@@ -284,7 +284,7 @@ class Logger
      */
     public static function performance(string $uri, string $method, float $duration, float $memoryMb): void
     {
-        if (!filter_var(envv('DEBUG_PERFORMANCE', false), FILTER_VALIDATE_BOOLEAN)) {
+        if (!filter_var(self::env('DEBUG_PERFORMANCE', false), FILTER_VALIDATE_BOOLEAN)) {
             return;
         }
 
