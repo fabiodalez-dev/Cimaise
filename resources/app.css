@@ -106,6 +106,20 @@ body {
     --tw-ring-color: var(--color-accent);
     border-color: var(--color-accent);
   }
+
+  /* Keyboard focus: one brand ring for every link/button/control, instead of
+     the browser's stock blue outline (which reads as foreign on a monochrome
+     photo site). Form fields keep their own accent ring from the block above;
+     mouse clicks never show a ring (:focus-visible only). */
+  a:focus-visible,
+  button:focus-visible,
+  summary:focus-visible,
+  [role="button"]:focus-visible,
+  [tabindex]:not([tabindex="-1"]):focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
 }
 
 @layer components {

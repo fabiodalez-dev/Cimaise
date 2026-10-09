@@ -372,9 +372,9 @@
 </div>
 
 <!-- Menu Button -->
-<div class="menu-btn modern-desktop-only">
-    <div class="menu-btn_text">{{ trans('home_modern.menu')|default('Menu') }}</div>
-</div>
+<button type="button" class="menu-btn modern-desktop-only">
+    <span class="menu-btn_text">{{ trans('home_modern.menu')|default('Menu') }}</span>
+</button>
 
 <!-- Main Content -->
 <div class="page-content">
@@ -559,9 +559,9 @@
 
 <!-- Mega Menu Overlay -->
 <div class="menu-component">
-    <div class="menu-close">
-        <div class="menu-btn_text">{{ trans('home_modern.close')|default('Close') }}</div>
-    </div>
+    <button type="button" class="menu-close">
+        <span class="menu-btn_text">{{ trans('home_modern.close')|default('Close') }}</span>
+    </button>
     <nav class="mega-menu">
         <a href="{{ base_path }}/" class="mega-menu_link is-current">
           <span class="mega-menu_scroll-wrapper">

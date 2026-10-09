@@ -92,6 +92,69 @@ html.dark {
 [type='radio'] {
   color: var(--color-accent);
 }
+/* app.css turns `.text-black` into #fafafa under html.dark, and the forms
+   plugin paints the checked box with currentColor: a white box with a white
+   check mark, i.e. an invisible checked state. Pin the control colour. */
+html.dark [type='checkbox'],
+html.dark [type='radio'] {
+  color: var(--color-accent) !important;
+}
+
+/* Selected option in a segmented control / current page in a pager: the
+   accent fill with its contrast text, which flips to sage + dark ink in dark
+   mode through the tokens (a hard-coded bg-black would not). */
+.chip-active {
+  background-color: var(--color-accent);
+  color: var(--color-accent-contrast);
+}
+
+/* app.css paints every `html.dark a` (and its :hover) with the text tokens,
+   which outrank .chip-active on selected sort links and pager pages: pale
+   text on the sage fill. Keep the contrast colour on links too. */
+html.dark a.chip-active,
+html.dark a.chip-active:hover {
+  color: var(--color-accent-contrast);
+}
+
+/* Accent-filled stat card: app.css paints every `.card p` light under
+   html.dark, which turned this card's text pale-on-sage. Inherit the card's
+   own contrast colour instead. */
+.card.stat-accent p,
+html.dark .card.stat-accent p {
+  color: inherit;
+}
+
+/* Accent-tinted notes (bg-accent-50 / border-accent-200 / text-accent-*)
+   have no dark variant in app.css, so under html.dark they stayed a pale cream
+   block with light text on top. Resolve them through the soft-accent tokens. */
+html.dark .bg-accent-50 { background-color: var(--color-accent-soft) !important; }
+html.dark .border-accent-200 { border-color: var(--color-accent-soft-border) !important; }
+html.dark .text-accent-900,
+html.dark .text-accent-800,
+html.dark .text-accent-700 { color: var(--color-text-primary) !important; }
+html.dark .text-accent-600,
+html.dark .text-accent-500 { color: var(--color-accent) !important; }
+
+/* app.css sets `html.dark a { color: text-primary }` (0,1,1), which beat the
+   single-class .btn-primary colour and left pale text on the sage button. */
+html.dark a.btn-primary,
+html.dark .btn-primary,
+html.dark .btn-primary:hover {
+  color: var(--color-accent-contrast);
+}
+
+/* Respect reduced-motion in the admin too (the frontend bundle already does):
+   kill transitions/animations and the smooth scrolling set in app.css. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 
 @tailwind components;
 @tailwind utilities;

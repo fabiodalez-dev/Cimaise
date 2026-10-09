@@ -50,7 +50,7 @@
         </div>
         
         <div class="flex items-center gap-4">
-          <div class="text-sm text-gray-600 font-medium" id="results-count">
+          <div class="text-sm text-gray-600 font-medium whitespace-nowrap" id="results-count">
             {% if albums|length == 1 %}
               {{ trans('filter.gallery_count') }}
             {% else %}
@@ -1294,7 +1294,8 @@ function debounce(func, wait) {
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
-    padding: 0.375rem 0.625rem;
+    min-height: 36px;
+    padding: 0.375rem 0.75rem;
     border: 1px solid #d1d5db;
     border-radius: 0.5rem;
     background-color: #fff;

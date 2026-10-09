@@ -9,27 +9,27 @@
 {% if album.is_nsfw and not is_admin %}
 <div id="nsfw-gate" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 hidden"
      role="dialog" aria-modal="true" aria-labelledby="nsfw-gate-title">
-  <div class="bg-white rounded-2xl max-w-lg w-full p-8 text-center shadow-2xl">
-    <div class="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
-      <i class="fas fa-exclamation-triangle text-amber-600 text-4xl" aria-hidden="true"></i>
+  <div class="bg-white rounded-2xl max-w-md w-full p-6 sm:p-8 text-center shadow-2xl">
+    <div class="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center mx-auto mb-5" aria-hidden="true">
+      <i class="fas fa-eye-slash text-gray-700 text-2xl"></i>
     </div>
-    <h2 id="nsfw-gate-title" class="text-2xl font-semibold text-gray-900 mb-4">{{ trans('album.nsfw_title') }}</h2>
+    <span class="inline-flex items-center rounded-full bg-gray-900 text-white text-[11px] font-semibold tracking-wide px-2.5 py-0.5 mb-3" aria-hidden="true">18+</span>
+    <h2 id="nsfw-gate-title" class="text-2xl font-semibold text-gray-900 mb-3">{{ trans('album.nsfw_title') }}</h2>
     <p class="text-gray-600 mb-6 leading-relaxed">
       {{ trans('album.nsfw_album_message') }}
     </p>
     <div class="flex flex-col sm:flex-row gap-3 justify-center">
-      <button id="nsfw-confirm-btn" data-action="confirm-nsfw-album" class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium">
+      <button id="nsfw-confirm-btn" data-action="confirm-nsfw-album" class="inline-flex items-center justify-center min-h-[48px] px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium">
         {{ trans('album.nsfw_confirm') }}
       </button>
-      <a href="{{ base_path }}/galleries" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium inline-block">
+      <a href="{{ base_path }}/galleries" class="inline-flex items-center justify-center min-h-[48px] px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors font-medium">
         {{ trans('album.nsfw_go_back') }}
       </a>
     </div>
-    <p class="text-xs text-gray-400 mt-6">
+    <p class="text-xs text-gray-500 mt-6">
       {{ trans('album.nsfw_remember') }}
     </p>
   </div>
-</div>
 
 <style nonce="{{ csp_nonce() }}">
   .nsfw-hidden { display: none !important; }
