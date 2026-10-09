@@ -475,20 +475,26 @@
         const id = card.getAttribute('data-media-id');
         const cb = document.createElement('input'); 
         cb.type='checkbox'; 
-        cb.className='absolute top-2 left-2 w-5 h-5 bg-white rounded border border-gray-300 shadow-sm cursor-pointer z-10'; 
+        cb.className='w-5 h-5 bg-white rounded border border-gray-300 shadow-sm cursor-pointer';
         cb.setAttribute('aria-label', (card.querySelector('img') && card.querySelector('img').alt) || ('#' + id));
         cb.setAttribute('data-select-id', id);
+        // A 44px transparent hit area around the 20px box: on phones a tap that
+        // just misses the box must still toggle it, not open the sidebar.
+        const hit = document.createElement('label');
+        hit.className = 'absolute top-0 left-0 w-11 h-11 flex items-center justify-center cursor-pointer z-10';
+        hit.setAttribute('data-select-hit', '');
+        hit.appendChild(cb);
         const wrap = card.querySelector('.aspect-square');
         if (wrap) { 
           // Make the existing wrap relative to position checkbox
           wrap.style.position = 'relative';
-          wrap.appendChild(cb);
+          wrap.appendChild(hit);
         }
 
         // Add click handler for opening sidebar
         card.addEventListener('click', (e) => {
-          // Don't open sidebar if checkbox was clicked
-          if (e.target.type === 'checkbox') return;
+          // Don't open sidebar for taps on the checkbox or its hit area
+          if (e.target.closest('[data-select-hit]')) return;
           openSidebarWithExif(id, card);
         });
 
