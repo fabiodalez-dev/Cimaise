@@ -25,11 +25,19 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
 
     private readonly string $storageDir;
 
+    /**
+     * @param bool $countAllRequests When true every request consumes one slot of
+     *   the window (plain request throttle). The default (false) keeps the
+     *   login semantics: only failed attempts count and a success resets the
+     *   counter — which for an endpoint that always answers 2xx (analytics
+     *   beacons) means the limit can never trigger.
+     */
     public function __construct(
         string $storageDir,
         private readonly int $maxAttempts = 5,
         private readonly int $windowSec = 600,
-        private readonly string $keyPrefix = 'rate_limit'
+        private readonly string $keyPrefix = 'rate_limit',
+        private readonly bool $countAllRequests = false
     ) {
         $this->storageDir = rtrim($storageDir, '/');
 
@@ -55,6 +63,19 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         $filePath = $this->storageDir . '/' . $key . '.json';
 
         $now = time();
+
+        // Plain throttle: the request itself is the attempt, regardless of
+        // outcome. Read, check and record happen under ONE lock, BEFORE the
+        // handler runs, so neither concurrent requests nor a slow/failing
+        // handler can slip past the window.
+        if ($this->countAllRequests) {
+            if (!$this->reserveSlot($filePath, $now)) {
+                return $this->createRateLimitResponse();
+            }
+
+            return $handler->handle($request)->withoutHeader(self::AUTH_RESULT_HEADER);
+        }
+
         $attempts = $this->loadAttempts($filePath, $now);
 
         // Check if rate limit exceeded
@@ -116,6 +137,50 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         }
 
         return $remoteAddr;
+    }
+
+    /**
+     * Count-all mode: read, check and append under a single exclusive lock.
+     * Returns true when the request is admitted (and recorded), false when the
+     * window is full. Falls back to best-effort when no lock can be taken.
+     */
+    private function reserveSlot(string $filePath, int $now): bool
+    {
+        $fp = @fopen($filePath, 'c+');
+        $locked = $fp !== false && flock($fp, LOCK_EX);
+
+        if ($locked) {
+            $raw = stream_get_contents($fp);
+            $data = $raw ? json_decode($raw, true) : [];
+            $attempts = is_array($data) && isset($data['attempts']) && is_array($data['attempts']) ? $data['attempts'] : [];
+            $attempts = array_values(array_filter($attempts, fn ($ts) => ($now - (int) $ts) < $this->windowSec));
+        } else {
+            if ($fp !== false) {
+                fclose($fp);
+            }
+            $attempts = $this->loadAttempts($filePath, $now);
+        }
+
+        if (count($attempts) >= $this->maxAttempts) {
+            if ($locked) {
+                flock($fp, LOCK_UN);
+                fclose($fp);
+            }
+            return false;
+        }
+
+        $attempts[] = $now;
+        if ($locked) {
+            rewind($fp);
+            ftruncate($fp, 0);
+            fwrite($fp, (string) json_encode(['attempts' => $attempts, 'last_updated' => $now], JSON_PRETTY_PRINT));
+            flock($fp, LOCK_UN);
+            fclose($fp);
+        } else {
+            $this->saveAttempts($filePath, $attempts);
+        }
+
+        return true;
     }
 
     /** Load the stored attempt timestamps, dropping any outside the current window. */

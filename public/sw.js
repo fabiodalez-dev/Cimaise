@@ -150,8 +150,17 @@ async function cacheFirstStrategy(request, cacheName, maxItems = 50, event = nul
     const cachedResponse = await cache.match(request);
 
     if (cachedResponse) {
-      log('[SW] Cache hit:', request.url);
-      return cachedResponse;
+      // Entries stored by an older worker (same cache name, same app version)
+      // may be private/no-cache album bytes that must be re-checked on every
+      // view. Evict them instead of serving them, then go to the network.
+      const cachedCacheControl = cachedResponse.headers.get('Cache-Control') || '';
+      if (/no-store|no-cache|private/i.test(cachedCacheControl)) {
+        log('[SW] Evicting non-shareable cached entry:', request.url);
+        await cache.delete(request);
+      } else {
+        log('[SW] Cache hit:', request.url);
+        return cachedResponse;
+      }
     }
 
     // 2. Not in cache, fetch from network
@@ -168,12 +177,18 @@ async function cacheFirstStrategy(request, cacheName, maxItems = 50, event = nul
     //    reach the network and repaint — it doesn't need to be cached.
     const contentType = networkResponse ? (networkResponse.headers.get('Content-Type') || '') : '';
     const isHealRetry = new URL(request.url).searchParams.has('swcb');
-    // Honour no-store: access-denied media (blur/placeholder served under the
-    // SHARP variant URL of a password/NSFW album) is marked no-store by the
-    // server. Caching it here would keep showing the blur forever after the
-    // visitor unlocks the album — cache-first never revalidates.
+    // Honour the server's cache directives. Cache-first never revalidates, so
+    // anything that must be re-checked on every view must not land here:
+    //  - no-store: access-denied media (blur/placeholder served under the
+    //    SHARP variant URL of a password/NSFW album) — caching it would keep
+    //    showing the blur forever after the visitor unlocks the album;
+    //  - private / no-cache: AUTHORIZED password/NSFW album bytes. The server
+    //    lets the browser's HTTP cache keep them only with revalidation, so an
+    //    expired unlock (24h window, rotated password) yields blur/403 again.
+    //    Storing them in this cache would keep serving the sharp photos to
+    //    whoever uses this browser next, with no access check at all.
     const cacheControl = networkResponse ? (networkResponse.headers.get('Cache-Control') || '') : '';
-    const isNoStore = cacheControl.toLowerCase().includes('no-store');
+    const isNoStore = /no-store|no-cache|private/i.test(cacheControl);
     if (
       networkResponse &&
       networkResponse.status === 200 &&

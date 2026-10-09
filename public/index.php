@@ -333,7 +333,8 @@ if ($container['db'] !== null) {
 
 $app->add(new CsrfMiddleware());
 $app->add(new FlashMiddleware());
-$app->add(new SecurityHeadersMiddleware());
+// SecurityHeadersMiddleware is registered further down, AFTER the error
+// middleware, so that it also wraps the 404/405/500 pages (see there).
 $app->add(new EarlyHintsMiddleware($basePath));
 
 $twigCacheDir = __DIR__ . '/../storage/cache/twig';
@@ -624,22 +625,49 @@ if (is_callable($routes)) {
 }
 
 $errorMiddleware = $app->addErrorMiddleware(filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN), true, true);
-$errorMiddleware->setErrorHandler(HttpNotFoundException::class, function ($request, \Throwable $exception, bool $displayErrorDetails) use ($twig, $translationService) {
-    $response = new \Slim\Psr7\Response(404);
+
+// The error templates call trans(), which is only registered when a
+// TranslationService was built (skipped for /media/* requests and when the
+// DB is unavailable). Rendering them without it throws a Twig SyntaxError
+// inside the error handler, turning a plain 404 into a 500 (and, with
+// APP_DEBUG on, into a stack trace). Fall back to a minimal page instead.
+$plainErrorResponse = static function (int $status, string $title): \Slim\Psr7\Response {
+    $response = new \Slim\Psr7\Response($status);
+    $response->getBody()->write(
+        '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex">'
+        . '<title>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</title></head>'
+        . '<body><h1>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</h1></body></html>'
+    );
+    return $response
+        ->withHeader('Content-Type', 'text/html; charset=utf-8')
+        ->withHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+};
+
+// Responses built by the error handlers never pass through CacheMiddleware
+// (ErrorMiddleware sits outside it), so they must carry their own no-store:
+// a shared cache would otherwise keep serving a 404 after the route appears,
+// or a 403/500 after the condition is gone.
+$errorResponse = static fn (int $status): \Slim\Psr7\Response => (new \Slim\Psr7\Response($status))
+    ->withHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+
+$errorMiddleware->setErrorHandler(HttpNotFoundException::class, function ($request, \Throwable $exception, bool $displayErrorDetails) use ($twig, $translationService, $plainErrorResponse, $errorResponse) {
+    if (!$translationService instanceof \App\Services\TranslationService) {
+        return $plainErrorResponse(404, 'Not Found');
+    }
+
+    $response = $errorResponse(404);
     $path = $request->getUri()->getPath();
     $isAdmin = str_contains((string) $path, '/admin');
 
     // Set translation scope
-    if ($translationService instanceof \App\Services\TranslationService) {
-        $translationService->setScope($isAdmin ? 'admin' : 'frontend');
-    }
+    $translationService->setScope($isAdmin ? 'admin' : 'frontend');
 
     $template = $isAdmin ? 'errors/404_admin.twig' : 'errors/404.twig';
     return $twig->render($response, $template);
 });
 // Handle 405 Method Not Allowed - return proper status and JSON for AJAX
-$errorMiddleware->setErrorHandler(HttpMethodNotAllowedException::class, function ($request, \Throwable $exception, bool $displayErrorDetails) use ($twig, $translationService) {
-    $response = new \Slim\Psr7\Response(405);
+$errorMiddleware->setErrorHandler(HttpMethodNotAllowedException::class, function ($request, \Throwable $exception, bool $displayErrorDetails) use ($twig, $translationService, $plainErrorResponse, $errorResponse) {
+    $response = $errorResponse(405);
 
     // Add Allow header with permitted methods
     $allowedMethods = [];
@@ -669,28 +697,49 @@ $errorMiddleware->setErrorHandler(HttpMethodNotAllowedException::class, function
         return $response->withHeader('Content-Type', 'application/json');
     }
 
+    // The error templates call trans(): under /media/* the translation layer
+    // is not registered, so fall back to a plain page that keeps the Allow header.
+    if (!$translationService instanceof \App\Services\TranslationService) {
+        return $plainErrorResponse(405, 'Method Not Allowed')
+            ->withHeader('Allow', implode(', ', $allowedMethods));
+    }
+
     // For regular requests, render error page
     $path = $request->getUri()->getPath();
     $isAdmin = str_contains((string) $path, '/admin');
-
-    if ($translationService instanceof \App\Services\TranslationService) {
-        $translationService->setScope($isAdmin ? 'admin' : 'frontend');
-    }
+    $translationService->setScope($isAdmin ? 'admin' : 'frontend');
 
     $template = $isAdmin ? 'errors/500_admin.twig' : 'errors/500.twig';
     return $twig->render($response, $template, [
         'message' => $displayErrorDetails ? $exception->getMessage() : 'Method not allowed. Please use the correct HTTP method.'
     ]);
 });
-$errorMiddleware->setDefaultErrorHandler(function ($request, \Throwable $exception, bool $displayErrorDetails, bool $logErrors, bool $logErrorDetails) use ($twig, $translationService) {
-    $response = new \Slim\Psr7\Response(500);
+$errorMiddleware->setDefaultErrorHandler(function ($request, \Throwable $exception, bool $displayErrorDetails, bool $logErrors, bool $logErrorDetails) use ($twig, $translationService, $plainErrorResponse, $errorResponse) {
+    // A custom default handler replaces Slim's own logging, so record the
+    // failure here (server-side only; details never reach the client unless
+    // APP_DEBUG is on). Best-effort: a logging failure must not mask the page.
+    if ($logErrors) {
+        try {
+            Logger::error('Unhandled exception', [
+                'path' => $request->getUri()->getPath(),
+                'error' => $exception->getMessage(),
+                'file' => $exception->getFile() . ':' . $exception->getLine(),
+            ], 'app');
+        } catch (\Throwable) {
+            // ignore
+        }
+    }
+
+    if (!$translationService instanceof \App\Services\TranslationService) {
+        return $plainErrorResponse(500, 'Internal Server Error');
+    }
+
+    $response = $errorResponse(500);
     $path = $request->getUri()->getPath();
     $isAdmin = str_contains((string) $path, '/admin');
 
     // Set translation scope
-    if ($translationService instanceof \App\Services\TranslationService) {
-        $translationService->setScope($isAdmin ? 'admin' : 'frontend');
-    }
+    $translationService->setScope($isAdmin ? 'admin' : 'frontend');
 
     $template = $isAdmin ? 'errors/500_admin.twig' : 'errors/500.twig';
     return $twig->render($response, $template, [
@@ -727,6 +776,14 @@ register_shutdown_function(function () {
         $memoryMb
     );
 });
+
+// Security headers are added AFTER the error middleware so they wrap it
+// (Slim LIFO: later = outer). Registered before it, the 404/405/500 responses
+// built by the error handlers above never passed through this middleware and
+// went out without CSP, X-Frame-Options, nosniff, Referrer-Policy or HSTS.
+// The CSP nonce is generated here before any inner handler runs, so the
+// error templates' csp_nonce() calls still match the emitted policy.
+$app->add(new SecurityHeadersMiddleware());
 
 // Added last, therefore outermost in Slim's LIFO middleware stack. This must
 // run before error handling, routing and Twig rendering so forwarded public

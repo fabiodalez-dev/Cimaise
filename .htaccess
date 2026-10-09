@@ -31,6 +31,13 @@
     RewriteRule ^config/ - [F,L]
     RewriteRule ^bin/ - [F,L]
 
+    # Developer/CI material that ships in the repo but has no business being
+    # web-reachable when DocumentRoot points at this folder: CLI scripts
+    # (scripts/*.php would be executed by the PHP handler), frontend sources,
+    # docs, tests, Docker files and tool configs (info disclosure).
+    RewriteRule ^(scripts|tests|docs|resources|release-patches|docker|design-system|screenshot|reports)/ - [F,L]
+    RewriteRule ^(Dockerfile|docker-compose\.yml|php\.ini|phpunit\.xml|phpstan[^/]*|playwright\.config\.js|vite\.config\.js|postcss\.config\.js|tailwind[^/]*\.js|version\.json)$ - [F,L]
+
     # Never expose user media through the /public alias. /media/* must pass
     # through MediaController, which enforces publication/password/NSFW access.
     RewriteRule ^public/media/ - [F,L]

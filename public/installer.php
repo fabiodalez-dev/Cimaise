@@ -27,15 +27,40 @@ $rootPath = dirname(__DIR__);
 $dbPath = $rootPath . '/database/database.sqlite';
 $envPath = $rootPath . '/.env';
 
+/**
+ * Whether a PDOException raised AFTER a MySQL connection was opened describes
+ * the connection going away rather than a query-level problem (missing table,
+ * syntax, privilege). SQLSTATE class 08 is "connection exception"; MySQL also
+ * reports several connectivity failures under the generic HY000 with a
+ * client/server error number.
+ */
+function installerIsConnectionLoss(PDOException $e): bool
+{
+    $sqlState = (string) ($e->errorInfo[0] ?? $e->getCode());
+    if (str_starts_with($sqlState, '08')) {
+        return true;
+    }
+    $driverCode = (int) ($e->errorInfo[1] ?? 0);
+    // 1040 too many connections, 1053 server shutdown, 1129/1130 host blocked,
+    // 2002/2003 can't connect, 2006 server has gone away, 2013 lost connection,
+    // 2055 lost connection with error.
+    return in_array($driverCode, [1040, 1053, 1129, 1130, 2002, 2003, 2006, 2013, 2055], true);
+}
+
 // Check if already installed
 $installed = false;
+// Fail closed: a configured MySQL install whose server cannot be reached right
+// now must NOT be mistaken for a fresh system (which would expose the installer
+// and let anyone re-point the site at their own database and mint an admin).
+$dbUnreachable = false;
 $markerPath = $rootPath . '/storage/tmp/.installed';
 if (file_exists($markerPath) && file_exists($envPath)) {
     $installed = true;
 } elseif (file_exists($envPath)) {
     // DB-agnostic: detect both SQLite and MySQL prior installs
+    $pdo = null;
+    $dbConn = '';
     try {
-        $pdo = null;
         if (file_exists($dbPath) && filesize($dbPath) > 0) {
             $pdo = new PDO('sqlite:' . $dbPath);
         } else {
@@ -108,9 +133,40 @@ if (file_exists($markerPath) && file_exists($envPath)) {
                 $installed = true;
             }
         }
-    } catch (Exception) {
-        // Not installed or DB unreachable
+    } catch (Exception $e) {
+        // A MySQL .env whose server refused the connection (PDO constructor
+        // threw, so $pdo is still null) is an installed site with a database
+        // outage, not a fresh system. The same holds when the connection was
+        // established and then dropped before the verification query answered
+        // (server gone away, lost connection, too many connections...). A
+        // reachable DB without the users table ($pdo set, query failed with a
+        // non-connection error) is a genuinely incomplete install and may
+        // legitimately run the installer again.
+        if ($dbConn === 'mysql' && $e instanceof PDOException
+            && ($pdo === null || installerIsConnectionLoss($e))) {
+            $dbUnreachable = true;
+        }
     }
+}
+
+if ($dbUnreachable && !$installed) {
+    http_response_code(503);
+    header('Retry-After: 120');
+    header('Content-Type: text/html; charset=utf-8');
+    echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
+        . '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        . '<meta name="robots" content="noindex"><title>Database unavailable — Cimaise</title>'
+        . '<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;'
+        . 'background:#111;color:#eee;display:flex;align-items:center;justify-content:center;'
+        . 'min-height:100vh;margin:0;text-align:center}main{max-width:34rem;padding:2rem}'
+        . 'h1{font-size:1.5rem;font-weight:600}p{color:#aaa;line-height:1.6}code{color:#ddd}</style></head>'
+        . '<body><main><h1>Database unavailable</h1>'
+        . '<p>This site is already installed, but its database server cannot be reached at the moment, '
+        . 'so the installer stays locked.</p>'
+        . '<p>Check the database service and the credentials in <code>.env</code>. '
+        . 'To run a fresh installation on purpose, remove <code>.env</code> first.</p>'
+        . '</main></body></html>';
+    exit;
 }
 
 if ($installed) {

@@ -17,10 +17,25 @@ class RateLimitMiddleware implements MiddlewareInterface
 {
     private readonly string $storageDir;
 
-    public function __construct(private readonly int $maxAttempts = 5, private readonly int $windowSec = 600)
-    {
+    /**
+     * @param bool $countAllRequests When true every request consumes one slot of
+     *   the window (plain request throttle), which is what a public endpoint
+     *   such as the contact form or the search page needs. The default (false)
+     *   keeps the outcome-based semantics: only recognised failures (bad
+     *   login, wrong album password, 4xx download) are recorded and a
+     *   successful auth resets the counter. For an endpoint whose outcome is
+     *   never recognised as a failure that default records nothing at all.
+     * @param string|null $storageDir Override of the counter directory
+     *   (defaults to storage/rate_limits; mainly for tests).
+     */
+    public function __construct(
+        private readonly int $maxAttempts = 5,
+        private readonly int $windowSec = 600,
+        private readonly bool $countAllRequests = false,
+        ?string $storageDir = null
+    ) {
         // Use storage directory for rate limit data
-        $this->storageDir = dirname(__DIR__, 2) . '/storage/rate_limits';
+        $this->storageDir = $storageDir ?? dirname(__DIR__, 2) . '/storage/rate_limits';
         if (!is_dir($this->storageDir)) {
             @mkdir($this->storageDir, 0755, true);
         }
@@ -86,20 +101,37 @@ class RateLimitMiddleware implements MiddlewareInterface
 
     /**
      * Get endpoint identifier with precise matching.
+     *
+     * $pattern is the matched Slim route pattern (e.g. "/album/{slug}/unlock")
+     * when the middleware runs as route middleware. It is preferred over the
+     * raw URI path for classification because it is independent of the
+     * install base path (subdirectory installs) and of route parameters, so a
+     * client cannot obtain a fresh counter by varying either.
      */
-    private function getEndpointIdentifier(string $path): string
+    private function getEndpointIdentifier(string $path, ?string $pattern): string
     {
-        // More precise endpoint matching using regex
-        if (preg_match('#/album/[^/]+/unlock$#', $path)) {
+        $route = $pattern ?? $path;
+
+        // Album unlock keeps a per-album bucket: failures on one album must
+        // not lock a visitor out of another one. The real path carries the slug.
+        if (preg_match('#/album/[^/]+/unlock$#', $route)) {
             return 'album_unlock:' . $path;
         }
-        if ($path === '/login' || $path === '/admin/login') {
+        if (preg_match('#(^|/)(admin/)?login$#', $route)) {
             return 'login';
         }
-        if (preg_match('#^/download/image/\d+$#', $path)) {
+        if (preg_match('#(^|/)download/image/[^/]+$#', $route)) {
             return 'download_image';
         }
-        return 'generic';
+        // The per-album NSFW consent POST must NOT key on the slug: a client
+        // rotating slugs would otherwise get a fresh counter for each one.
+        if (preg_match('#/album/[^/]+/nsfw-confirm$#', $route)) {
+            return 'nsfw_confirm';
+        }
+        // Every other endpoint gets its own counter: the contact form, the
+        // search page and the NSFW consent POSTs must not share one bucket per
+        // IP (30 searches would otherwise block the contact form).
+        return 'generic:' . $route;
     }
 
     /**
@@ -136,6 +168,55 @@ class RateLimitMiddleware implements MiddlewareInterface
         }
 
         @file_put_contents($file, json_encode($attempts), LOCK_EX);
+    }
+
+    /**
+     * Count-all mode: read, check and append the current request under a single
+     * exclusive lock. Returns null when the request is admitted (and recorded),
+     * or the number of seconds until the window frees a slot when it is not.
+     */
+    private function reserveSlot(string $key, int $now): ?int
+    {
+        $file = "{$this->storageDir}/{$key}.json";
+        $fp = @fopen($file, 'c+');
+        $locked = $fp !== false && flock($fp, LOCK_EX);
+
+        if ($locked) {
+            $data = stream_get_contents($fp);
+            $attempts = $data ? json_decode($data, true) : [];
+        } else {
+            // Best-effort fallback when the lock cannot be taken.
+            $attempts = $this->getAttempts($key);
+        }
+        $attempts = \is_array($attempts) ? $attempts : [];
+        $attempts = array_values(array_filter($attempts, fn ($ts) => $now - (int)$ts < $this->windowSec));
+
+        if (\count($attempts) >= $this->maxAttempts) {
+            $remaining = $this->windowSec - $now + (int) min($attempts);
+            if ($locked) {
+                flock($fp, LOCK_UN);
+            }
+            if ($fp !== false) {
+                fclose($fp);
+            }
+            return max(1, $remaining);
+        }
+
+        $attempts[] = $now;
+        if ($locked) {
+            rewind($fp);
+            ftruncate($fp, 0);
+            fwrite($fp, json_encode($attempts));
+            flock($fp, LOCK_UN);
+            fclose($fp);
+        } else {
+            if ($fp !== false) {
+                fclose($fp);
+            }
+            $this->saveAttempts($key, $attempts);
+        }
+
+        return null;
     }
 
     /**
@@ -214,6 +295,19 @@ class RateLimitMiddleware implements MiddlewareInterface
         }
     }
 
+    /**
+     * Pattern of the route Slim matched for this request, or null when the
+     * middleware runs before routing (or outside Slim, as in unit tests).
+     */
+    private function matchedRoutePattern(Request $request): ?string
+    {
+        $route = $request->getAttribute(\Slim\Routing\RouteContext::ROUTE);
+        if ($route instanceof \Slim\Interfaces\RouteInterface) {
+            return $route->getPattern();
+        }
+        return null;
+    }
+
     public function process(Request $request, Handler $handler): Response
     {
         // Probabilistic cleanup of old rate limit files
@@ -221,9 +315,10 @@ class RateLimitMiddleware implements MiddlewareInterface
 
         $ip = $this->getClientIp($request);
         $path = $request->getUri()->getPath();
+        $pattern = $this->matchedRoutePattern($request);
 
         // Use different keys for different endpoints to track separately
-        $keyIdentifier = $this->getEndpointIdentifier($path);
+        $keyIdentifier = $this->getEndpointIdentifier($path, $pattern);
         $key = 'rl_' . sha1("{$keyIdentifier}:{$ip}");
         $now = time();
 
@@ -238,6 +333,23 @@ class RateLimitMiddleware implements MiddlewareInterface
             $resp = new \Slim\Psr7\Response(429);
             $resp->getBody()->write("Too Many Attempts. Please try again in " . ceil($remaining / 60) . " minutes.");
             return $resp->withHeader('Retry-After', (string)$remaining);
+        }
+
+        // Plain throttle: the request itself is the attempt, whatever the
+        // handler answers. Recorded BEFORE the handler runs so a slow or
+        // failing handler cannot be used to slip past the window.
+        if ($this->countAllRequests) {
+            // Check and record under ONE lock: a check-then-write sequence lets
+            // concurrent requests all pass the check before any of them is
+            // counted, which defeats the limit exactly when it matters.
+            $remaining = $this->reserveSlot($key, $now);
+            if ($remaining !== null) {
+                $resp = new \Slim\Psr7\Response(429);
+                $resp->getBody()->write("Too Many Attempts. Please try again in " . ceil($remaining / 60) . " minutes.");
+                return $resp->withHeader('Retry-After', (string)$remaining);
+            }
+
+            return $handler->handle($request);
         }
 
         $response = $handler->handle($request);

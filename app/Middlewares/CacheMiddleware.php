@@ -71,6 +71,17 @@ class CacheMiddleware implements MiddlewareInterface
             return $response;
         }
 
+        // Error responses are never shareable, whatever the path looks like.
+        // A 403 from a gated download stamped 'public, max-age=3600' would be
+        // stored by a shared cache/CDN and replayed to the visitor who has
+        // since unlocked the album (together with the session-bound
+        // X-CSRF-Token header of whoever triggered it); a 404 for a .jpg path
+        // would otherwise fall into the static branch and get 'public,
+        // immutable' for a year. Decide this BEFORE any strategy branch.
+        if ($response->getStatusCode() >= 400) {
+            return $this->addNoCacheHeaders($response);
+        }
+
         // Only cache GET and HEAD requests
         if (!in_array($method, ['GET', 'HEAD'])) {
             return $response;
