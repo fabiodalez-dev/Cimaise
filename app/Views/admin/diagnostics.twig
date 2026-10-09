@@ -5,64 +5,41 @@
 {% block content %}
 <div class="max-w-6xl mx-auto">
 
-    <div class="flex justify-between items-center mb-8">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
         <h1 class="text-2xl font-semibold text-gray-900">{{ trans('admin.diagnostics.title') }}</h1>
         <button data-action="reload-page" class="btn-primary">
             {{ trans('admin.diagnostics.refresh') }}
         </button>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="card">
         {% for key, diagnostic in diagnostics %}
-        <div class="bg-white border border-gray-200 rounded-lg p-6">
-            <div class="flex items-start justify-between">
-                <div class="flex-1">
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">
-                        {{ diagnostic.name }}
-                    </h3>
-                    
-                    <div class="flex items-center mb-3">
-                        {% if diagnostic.status == 'ok' %}
-                        <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                        </svg>
-                        <span class="text-green-700 font-medium">{{ diagnostic.value }}</span>
-                        {% elseif diagnostic.status == 'warning' %}
-                        <svg class="w-5 h-5 text-yellow-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                        </svg>
-                        <span class="text-yellow-700 font-medium">{{ diagnostic.value }}</span>
-                        {% elseif diagnostic.status == 'error' %}
-                        <svg class="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                        </svg>
-                        <span class="text-red-700 font-medium">{{ diagnostic.value }}</span>
-                        {% else %}
-                        <svg class="w-5 h-5 text-accent-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                        </svg>
-                        <span class="text-accent-700 font-medium">{{ diagnostic.value }}</span>
-                        {% endif %}
-                    </div>
-                    
-                    <p class="text-gray-600 text-sm mb-4">
-                        {{ diagnostic.message }}
-                    </p>
-                    
-                    {% if diagnostic.details %}
-                    <div class="bg-gray-50 rounded p-3">
-                        <h4 class="text-sm font-medium text-gray-800 mb-2">{{ trans('admin.diagnostics.details') }}</h4>
-                        <dl class="text-sm space-y-1">
-                            {% for key, value in diagnostic.details %}
-                            <div class="flex justify-between">
-                                <dt class="text-gray-600">{{ key }}:</dt>
-                                <dd class="text-gray-900 font-mono text-xs">{{ value }}</dd>
-                            </div>
-                            {% endfor %}
-                        </dl>
-                    </div>
-                    {% endif %}
+        {% set tone = diagnostic.status == 'ok' ? 'bg-green-100 text-green-800'
+                    : (diagnostic.status == 'warning' ? 'bg-yellow-100 text-yellow-800'
+                    : (diagnostic.status == 'error' ? 'bg-red-100 text-red-800' : 'bg-accent-100 text-accent-800')) %}
+        {% set icon = diagnostic.status == 'ok' ? 'fa-check-circle'
+                    : (diagnostic.status == 'warning' ? 'fa-exclamation-triangle'
+                    : (diagnostic.status == 'error' ? 'fa-times-circle' : 'fa-info-circle')) %}
+        <div class="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-6 px-5 py-4 border-b border-gray-200 last:border-b-0">
+            <h3 class="sm:w-56 shrink-0 text-sm font-semibold text-gray-900 sm:pt-0.5">{{ diagnostic.name }}</h3>
+            <div class="flex-1 min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium {{ tone }}">
+                        <i class="fas {{ icon }}" aria-hidden="true"></i>
+                        {{ diagnostic.value }}
+                    </span>
+                    <span class="text-sm text-gray-600">{{ diagnostic.message }}</span>
                 </div>
+                {% if diagnostic.details %}
+                <dl class="mt-2 grid gap-x-6 gap-y-1 sm:grid-cols-2 text-xs">
+                    {% for key, value in diagnostic.details %}
+                    <div class="flex justify-between gap-3 min-w-0">
+                        <dt class="text-gray-500 shrink-0">{{ key }}</dt>
+                        <dd class="text-gray-900 font-mono text-right break-all min-w-0">{{ value }}</dd>
+                    </div>
+                    {% endfor %}
+                </dl>
+                {% endif %}
             </div>
         </div>
         {% endfor %}
@@ -124,13 +101,6 @@
 {% block scripts %}
 <script nonce="{{ csp_nonce() }}">
 (function initDiagnosticsPage() {
-  document.querySelectorAll('.diagnostic-card').forEach(card => {
-    if (card._bound) return;
-    card._bound = true;
-    card.addEventListener('click', () => {
-      card.classList.toggle('expanded');
-    });
-  });
   document.querySelectorAll('[data-action="reload-page"]').forEach(btn => {
     if (btn._bound) return;
     btn._bound = true;
@@ -138,9 +108,4 @@
   });
 })();
 </script>
-<style nonce="{{ csp_nonce() }}">
-.diagnostic-card.expanded .text-sm.text-gray-600 {
-  max-height: none;
-}
-</style>
 {% endblock %}

@@ -22,7 +22,7 @@
         </h3>
 
         {% if updateInfo.error %}
-          <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+          <div class="rounded-lg border border-red-200 bg-red-50 p-4 mb-4">
             <div class="flex items-center">
               <i class="fas fa-exclamation-triangle text-red-500 mr-3"></i>
               <div>
@@ -36,7 +36,7 @@
             {# Release published WITHOUT the installable package asset: the
                release workflow failed. Installing is impossible — warn instead
                of offering a doomed update. #}
-            <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-4">
+            <div class="rounded-lg border border-yellow-200 bg-yellow-50 p-4 mb-4">
               <div class="flex items-start">
                 <i class="fas fa-exclamation-triangle text-yellow-500 mr-3 mt-1"></i>
                 <div>
@@ -50,7 +50,7 @@
               </div>
             </div>
           {% else %}
-          <div class="bg-accent-50 border-l-4 border-accent-500 p-4 mb-4">
+          <div class="rounded-lg border border-accent-200 bg-accent-50 p-4 mb-4">
             <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div class="flex items-start">
                 <i class="fas fa-arrow-circle-up text-accent-500 mr-3 mt-1"></i>
@@ -74,7 +74,7 @@
           </div>
           {% endif %}
         {% else %}
-          <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-4">
+          <div class="rounded-lg border border-green-200 bg-green-50 p-4 mb-4">
             <div class="flex items-center">
               <i class="fas fa-check-circle text-green-500 mr-3"></i>
               <div>
@@ -142,7 +142,7 @@
         </div>
 
         {% if not requirements.met %}
-          <div class="mt-4 bg-yellow-50 border-l-4 border-yellow-500 p-4">
+          <div class="mt-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
             <div class="flex items-center">
               <i class="fas fa-exclamation-triangle text-yellow-500 mr-3"></i>
               <p class="text-sm text-yellow-800">
@@ -165,7 +165,7 @@
 
         <div class="space-y-4 max-h-96 overflow-y-auto">
           {% for release in changelog %}
-          <div class="border-l-4 border-accent-500 pl-4 py-2">
+          <div class="py-3 border-b border-gray-200 last:border-b-0">
             <div class="flex items-center justify-between">
               <h4 class="font-medium text-gray-900">
                 {{ release.name }}
