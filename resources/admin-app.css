@@ -108,6 +108,14 @@ html.dark [type='radio'] {
   color: var(--color-accent-contrast);
 }
 
+/* app.css paints every `html.dark a` (and its :hover) with the text tokens,
+   which outrank .chip-active on selected sort links and pager pages: pale
+   text on the sage fill. Keep the contrast colour on links too. */
+html.dark a.chip-active,
+html.dark a.chip-active:hover {
+  color: var(--color-accent-contrast);
+}
+
 /* Accent-filled stat card: app.css paints every `.card p` light under
    html.dark, which turned this card's text pale-on-sage. Inherit the card's
    own contrast colour instead. */
