@@ -23,7 +23,7 @@
     <meta name="theme-color" content="#ffffff">
 
     <!-- Preload local typography fonts -->
-    <link rel="preload" href="{{ base_path }}/fonts/typography.css" as="style">
+    <link rel="preload" href="{{ base_path }}/fonts/typography.css?v={{ typography_version|default(app_version) }}" as="style">
 
     <!-- Open Graph -->
     <meta property="og:title" content="{{ page_title|e('html_attr') }}">
@@ -154,7 +154,7 @@
     {% endif %}
 
     <!-- CRITICAL CSS (render blocking) -->
-    <link rel="stylesheet" href="{{ base_path }}/fonts/typography.css">
+    <link rel="stylesheet" href="{{ base_path }}/fonts/typography.css?v={{ typography_version|default(app_version) }}">
     <!-- Classic frontend styles (mobile only) -->
     <link rel="stylesheet" href="{{ vite_asset('app.css') }}" media="(max-width: 767px)">
 
@@ -253,7 +253,7 @@
     <div id="preloader-curtain" class="preloader-curtain preloader-hidden" aria-hidden="true">
         <div class="preloader-content">
             {% if logo_type == 'image' and site_logo %}
-                <img src="{{ base_path ~ site_logo }}" alt="{{ site_title|default('Portfolio')|e }}" class="preloader-logo">
+                {% include 'frontend/_site_logo.twig' with { logo_class: 'preloader-logo' } %}
             {% else %}
                 <span class="preloader-title">{{ site_title|default('Portfolio') }}</span>
             {% endif %}
@@ -329,6 +329,9 @@
     {% block scripts %}{% endblock %}
 
     {# Block right-click on images for non-admin users #}
+    {% if not is_admin and ((disable_right_click ?? true) or not (allow_downloads ?? false)) %}
+    <style nonce="{{ csp_nonce() }}">img, picture { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; } img { -webkit-user-drag: none; }</style>
+    {% endif %}
     {% if (disable_right_click ?? true) and not is_admin %}
     <script nonce="{{ csp_nonce() }}">
     document.addEventListener('contextmenu', function(e) {
@@ -345,6 +348,7 @@
     {% include 'partials/cookie-banner.twig' %}
 
     {# PWA runtime: SW registration + broken-image self-heal (shared with classic layout) #}
+    {% include 'frontend/_download_runtime.twig' %}
     {% include 'frontend/_pwa_runtime.twig' %}
 </body>
 </html>

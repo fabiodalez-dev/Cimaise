@@ -32,6 +32,7 @@ class ImagesWorkCommand extends Command
     {
         $this->setDescription('Process pending image jobs (variants, LQIP, blur); failed jobs stay queued for retry')
              ->addOption('time-limit', null, InputOption::VALUE_REQUIRED, 'Stop starting new jobs after this many seconds (0 = no limit)', '0')
+             ->addOption('watch', null, InputOption::VALUE_NONE, 'Retry queued jobs for up to five minutes (compatibility option)')
              ->addOption('quiet-mode', null, InputOption::VALUE_NONE, 'Suppress all output (for cron)');
     }
 
@@ -39,7 +40,21 @@ class ImagesWorkCommand extends Command
     {
         $quiet = (bool) $input->getOption('quiet-mode');
         try {
-            $result = (new ImageJobQueue($this->db))->drain(max(0, (int) $input->getOption('time-limit')));
+            $queue = new ImageJobQueue($this->db);
+            $watch = (bool)$input->getOption('watch');
+            $timeLimit = max(0, (int)$input->getOption('time-limit'));
+            $deadline = time() + ($timeLimit > 0 ? $timeLimit : 300);
+            $result = ['processed' => 0, 'failed' => 0, 'remaining' => 0];
+            do {
+                $pass = $queue->drain($watch ? max(1, $deadline - time()) : $timeLimit);
+                $result['processed'] += $pass['processed'];
+                $result['failed'] += $pass['failed'];
+                $result['remaining'] = $pass['remaining'];
+                if (!$watch || !$pass['remaining'] || time() >= $deadline) {
+                    break;
+                }
+                sleep(2);
+            } while (true);
         } catch (\Throwable $e) {
             if (!$quiet) {
                 $output->writeln('<error>Image worker failed: ' . $e->getMessage() . '</error>');

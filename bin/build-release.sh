@@ -428,6 +428,8 @@ verify_zip_package() {
     # updater silently SKIPS such migrations and functionality goes missing.
     # ---------------------------------------------------------------
     local migration mig_base mig_version
+    # Match the runtime updater: prereleases include their numeric release schema.
+    local schema_version="${version%%-*}"
     for migration in "$pkg"/database/migrations/migrate_*.sql; do
         [ -e "$migration" ] || continue
         mig_base=$(basename "$migration")
@@ -437,7 +439,7 @@ verify_zip_package() {
             has_errors=true
             continue
         fi
-        if version_gt "$mig_version" "$version"; then
+        if version_gt "$mig_version" "$schema_version"; then
             log_error "Migration $mig_base has version $mig_version > release version $version (would be silently skipped by the updater)"
             has_errors=true
         fi

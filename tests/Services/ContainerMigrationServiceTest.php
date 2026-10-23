@@ -16,7 +16,7 @@ final class ContainerMigrationServiceTest extends TestCase
         $this->db = new Database(database: ':memory:', isSqlite: true);
         // Retained 1.4.23 shape, with user data and a page from the old image.
         $schema = str_replace('  show_equipment INTEGER NOT NULL DEFAULT 1,' . "\n", '',
-            (string) file_get_contents(dirname(__DIR__, 2) . '/database/schema.sqlite.sql'));
+            str_replace("\r\n", "\n", (string) file_get_contents(dirname(__DIR__, 2) . '/database/schema.sqlite.sql')));
         $this->db->pdo()->exec($schema);
         $this->db->pdo()->exec("INSERT INTO categories (id,name,slug) VALUES (99999,'Review','review');
             INSERT INTO albums (id,title,slug,category_id,custom_cameras) VALUES (99999,'Review','review',99999,'Retained camera');
@@ -53,6 +53,29 @@ final class ContainerMigrationServiceTest extends TestCase
         self::assertSame(0, (int) $this->db->query('SELECT show_equipment FROM albums WHERE id = 99999')->fetchColumn());
         self::assertSame('"1.4.24"', $this->version());
         self::assertSame(0, (int) $this->db->query('SELECT COUNT(*) FROM page_cache')->fetchColumn());
+    }
+
+    public function testPrereleaseMigratesStableSchemaAndTracksFullImageVersion(): void
+    {
+        $service = new ContainerMigrationService($this->db, $this->dir);
+        self::assertSame(['migrate_1.4.24_sqlite.sql'], $service->migrate('1.4.24-test.1'));
+        self::assertSame('"1.4.24"', $this->version());
+        self::assertSame('"1.4.24-test.1"', $this->db->query("SELECT value FROM settings WHERE key = 'docker.image_version'")->fetchColumn());
+        self::assertSame([], $service->migrate('1.4.24-test.2'));
+    }
+
+    public function testForkEquipmentPreferencesSurviveUpgradeAndAreNotReplayed(): void
+    {
+        $this->db->execute('INSERT INTO settings (`key`, `value`, `type`) VALUES (?, ?, ?)',
+            ['album.99999.show_equipment', 'false', 'boolean']);
+        $service = new ContainerMigrationService($this->db, $this->dir);
+        $service->migrate('1.4.24-test.1');
+        self::assertSame(0, (int)$this->db->query('SELECT show_equipment FROM albums WHERE id = 99999')->fetchColumn());
+        self::assertSame('Retained camera', $this->db->query('SELECT custom_cameras FROM albums WHERE id = 99999')->fetchColumn());
+        self::assertSame('false', $this->db->query("SELECT value FROM settings WHERE key = 'album.99999.show_equipment'")->fetchColumn());
+        $this->db->execute('UPDATE albums SET show_equipment = 1 WHERE id = 99999');
+        $service->migrate('1.4.24-test.2');
+        self::assertSame(1, (int)$this->db->query('SELECT show_equipment FROM albums WHERE id = 99999')->fetchColumn());
     }
 
     public function testRestartDoesNotReplayMigrationsOrClearNewCache(): void

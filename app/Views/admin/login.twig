@@ -29,7 +29,7 @@
       position: relative;
       background: #1c322d; /* forest green — brand stage */
       color: #f8f3ee;
-      display: flex; flex-direction: column; justify-content: space-between;
+      display: flex; flex-direction: column; justify-content: space-between; gap: 3rem;
       padding: 2rem 2.25rem;
       overflow: hidden;
     }
@@ -52,14 +52,21 @@
     }
     .login-kicker {
       font-size: 0.6875rem; letter-spacing: 0.22em; text-transform: uppercase;
-      color: rgba(245, 244, 242, 0.55);
+      color: #b8cec5;
     }
+    .login-brand { width: 100%; max-width: 32rem; margin: auto; text-align: center; }
+    .login-logo-mount { display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; background: #f8f3ee; border-radius: 1rem; }
+    .login-logo-mount.has-dark-logo { background: transparent; padding: 2rem 0; }
+    .login-logo { width: auto; height: auto; max-width: 100%; max-height: 9rem; object-fit: contain; }
+    .login-brand-title { margin-top: 2rem; font-family: 'Playfair Display', Georgia, serif; font-size: clamp(1.6rem, 3vw, 2.5rem); line-height: 1.2; color: #f8f3ee; overflow-wrap: anywhere; }
+    .login-brand-rule { width: 3rem; height: 1px; background: #a2c2b3; margin: 1.5rem auto; }
+    .login-wordmark { margin: auto; overflow-wrap: anywhere; }
     .login-stage-meta {
       display: flex; align-items: center; gap: 0.75rem;
       font-size: 0.75rem; color: rgba(245, 244, 242, 0.62);
       font-variant-numeric: tabular-nums;
     }
-    .login-stage-meta .dot { width: 4px; height: 4px; border-radius: 9999px; background: var(--color-accent, #D70261); }
+    .login-stage-meta .dot { width: 4px; height: 4px; border-radius: 9999px; background: #a2c2b3; }
 
     .login-form-pane {
       background: var(--color-bg-primary, #F6F7F9);
@@ -73,9 +80,14 @@
 
     /* On small screens the stage becomes a compact masthead */
     @media (max-width: 1023.98px) {
-      .login-stage { min-height: 11rem; }
+      .login-stage { min-height: 11rem; gap: 1.5rem; }
       .login-stage::after { inset: 10px; }
       .login-wordmark { font-size: clamp(1.9rem, 8vw, 2.6rem); }
+      .login-logo-mount { padding: 1.25rem; max-width: 20rem; margin: auto; }
+      .login-logo-mount.has-dark-logo { padding: 0; }
+      .login-logo { max-height: 4rem; }
+      .login-brand-title { margin-top: 1rem; font-size: 1.25rem; }
+      .login-brand-rule { display: none; }
       .login-stage-bottom { display: none; }
     }
 
@@ -105,14 +117,18 @@
 
     {# ---- Stage: the photographer's brand carries the page ---- #}
     <section class="login-stage" aria-hidden="true">
-      <div class="login-kicker">{{ site_title|default('Cimaise') }} · {{ trans('admin.login.admin_panel') }}</div>
-      <div>
+      <div class="login-kicker">{{ trans('admin.login.admin_panel') }}</div>
+      <div class="login-brand">
         {% if logo_type == 'image' and site_logo %}
-          <img src="{% if site_logo starts with '/' %}{{ base_path }}{{ site_logo }}{% else %}{{ site_logo }}{% endif %}"
-               alt="" class="h-14 w-auto">
+          {% set login_logo = site_logo_dark|default(site_logo) %}
+          <div class="login-logo-mount{% if site_logo_dark|default('') %} has-dark-logo{% endif %}">
+            <img src="{% if login_logo starts with '/' %}{{ base_path }}{% endif %}{{ login_logo }}" alt="" class="login-logo">
+          </div>
+          <div class="login-brand-title">{{ site_title|default('Cimaise') }}</div>
         {% else %}
           <div class="login-wordmark">{{ site_title|default('Cimaise') }}</div>
         {% endif %}
+        <div class="login-brand-rule"></div>
       </div>
       <div class="login-stage-bottom login-stage-meta">
         <span>Cimaise</span><span class="dot"></span><span>{{ "now"|date('Y') }}</span>

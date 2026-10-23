@@ -1,0 +1,5 @@
+{# Keep uploaded image colors intact; choose the logo matching the active theme. #}
+<img src="{% if site_logo starts with '/' %}{{ base_path }}{% endif %}{{ site_logo }}" alt="{{ site_title|default('Portfolio')|e('html_attr') }}" class="{{ logo_class|e('html_attr') }}{% if site_logo_dark %} cimaise-logo-light{% endif %}">
+{% if site_logo_dark %}
+<img src="{% if site_logo_dark starts with '/' %}{{ base_path }}{% endif %}{{ site_logo_dark }}" alt="{{ site_title|default('Portfolio')|e('html_attr') }}" class="{{ logo_class|e('html_attr') }} cimaise-logo-dark">
+{% endif %}

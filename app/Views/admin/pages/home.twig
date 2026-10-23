@@ -287,6 +287,8 @@
                     <span class="block text-xs text-gray-500 mt-1">{{ trans('admin.pages.home.hero_enabled_hint') }}</span>
                   </span>
                 </label>
+                <label class="flex items-center gap-2"><input type="checkbox" name="hero_show_title" {{ (settings['home.hero_show_title'] ?? true) ? 'checked' : '' }}> {{ trans('admin.pages.home.show_title', {}, 'Show title') }}</label>
+                <label class="flex items-center gap-2"><input type="checkbox" name="hero_show_text" {{ (settings['home.hero_show_text'] ?? true) ? 'checked' : '' }}> {{ trans('admin.pages.home.show_text', {}, 'Show text') }}</label>
                 <div>
                   <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.title') }}</label>
                   <input type="text" name="hero_title" class="form-input" placeholder="{{ trans('admin.pages.home.hero_title_placeholder')|e('html_attr') }}" value="{{ settings['home.hero_title']|default(trans('admin.pages.home.hero_title_default'))|e('html_attr') }}">
@@ -308,6 +310,9 @@
                 {{ trans('admin.pages.home.infinite_gallery') }}
               </h3>
               <p class="text-sm text-gray-600 mb-4">{{ trans('admin.pages.home.infinite_gallery_desc') }}</p>
+              <label class="block text-sm text-gray-700 mb-2" for="gallery-per-album">{{ trans('admin.pages.home.per_album', {}, 'Maximum unique photos per album') }}</label>
+              <input id="gallery-per-album" class="form-input mb-2" type="number" min="0" max="100" name="gallery_per_album" value="{{ settings['home.gallery_per_album']|default(0) }}">
+              <p class="text-xs text-gray-500 mb-4">{{ trans('admin.pages.home.per_album_hint', {}, '0 keeps the current selection. The animation may repeat selected photos to loop smoothly.') }}</p>
               <div class="space-y-4">
                 <div>
                   <label class="block text-sm text-gray-700 mb-2">{{ trans('admin.pages.home.scroll_direction') }}</label>

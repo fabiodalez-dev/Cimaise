@@ -288,9 +288,10 @@ class VariantMaintenanceService
         // Count only formats generateVariantsForImage() can actually emit in
         // THIS runtime (UploadService::canGenerateFormat mirrors its encoder
         // chain, including the CIMAISE_DISABLE_IMAGICK opt-out). 'jxl' is
-        // deliberately not generatable: only the images:generate CLI produces
-        // it — counting it here made every image perpetually "missing" and
-        // forced a full re-scan (with repeated failed encodes) on every run.
+        // deliberately not counted: it is best-effort (CLI cjxl route, or
+        // libvips+libjxl) — counting it here made every image perpetually
+        // "missing" and forced a full re-scan (with repeated failed encodes)
+        // on every run.
         $enabledFormats = [];
         foreach ($formats as $format => $enabled) {
             if (is_string($enabled)) {

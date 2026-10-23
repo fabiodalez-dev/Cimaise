@@ -62,10 +62,13 @@
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.categories') }} <span class="text-red-500">*</span></label>
-                  <select name="categories[]" id="album-categories" class="form-input" multiple required>
+                  <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.categories') }}</label>
+                  <select name="categories[]" id="album-categories" class="form-input" multiple>
+                    <option value="0">{{ trans('admin.albums.none_category', {}, 'None') }}</option>
                     {% for c in categories %}
+                      {% if c.slug != 'none' %}
                       <option value="{{ c.id }}" {{ c.slug == 'photo' ? 'selected' : '' }}>{{ c.name }}</option>
+                      {% endif %}
                     {% endfor %}
                   </select>
                   <p class="text-xs text-gray-500 mt-1">{{ trans('admin.albums.categories_help') }}</p>
@@ -821,11 +824,6 @@
 
       function prepareCreatePayload(){
         const formData = new FormData(form);
-        // Require at least one category; title is optional
-        const cats = formData.getAll('categories[]');
-        if (!cats || cats.length === 0) {
-          throw new Error('missing_category');
-        }
         // Auto-title if missing
         let title = (formData.get('title') || '').toString().trim();
         if (!title) {
@@ -847,16 +845,7 @@
         
         showProgress('{{ trans('admin.albums.creating_album')|e('js') }}');
         
-        let body;
-        try { body = prepareCreatePayload(); } catch(e){
-          if (e && e.message === 'missing_category') {
-            const msg = '{{ trans('admin.albums.select_category')|e('js') }}';
-            if (window.showToast) showToast(msg, 'error'); else alert(msg);
-            hideProgress();
-            throw e;
-          }
-          throw e;
-        }
+        const body = prepareCreatePayload();
         const res = await fetch(form.action, { 
           method:'POST', 
           headers:{ 
@@ -975,16 +964,6 @@
       async function uploadFiles(files){
         if (!files.length) return;
         if (isUploading) return;
-
-        // Validation: require at least one category. Title is optional.
-        const fdCheck = new FormData(form);
-        const cats = fdCheck.getAll('categories[]');
-        const hasCat = cats && cats.length > 0;
-        if (!hasCat) {
-          const msg = '{{ trans('admin.albums.select_category')|e('js') }}';
-          if (window.showToast) showToast(msg, 'error'); else alert(msg);
-          return;
-        }
 
         isUploading = true;
         uploader.classList.add('pointer-events-none', 'opacity-50');

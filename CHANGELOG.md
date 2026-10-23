@@ -8,6 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The release workflow extracts the `## [VERSION]` section below into the GitHub
 release notes, so keep one section per released tag.
 
+## [Unreleased]
+### Added
+- Grouped admin navigation, gallery keyboard navigation and collapsible media filters.
+- Original-image details and downloads, image-generation progress and enhanced-version notifications.
+- Per-album storage totals, uncategorized albums, independent hero text controls and a Classic homepage album limit.
+- Light/dark logos, editable About navigation and permalink, and local font uploads.
+
+### Fixed
+- Retry interrupted image jobs and SQLite contention safely across Apache, PHP-FPM and CLI generation.
+- Revalidate changed content, purge affected page caches and prevent maintenance pages from serving cached content.
+- Preserve album previews when deleting albums and avoid duplicate Analytics Pro navigation.
+- Preserve SQLite binary and text storage types in updater backups on PHP 8.5.
+- Apply numeric schema migrations during prerelease upgrades and preserve worker ownership.
+
+### Changed
+- Batch settings writes, cache album storage inspection and adapt admin polling to upload activity.
+- Verify the published Docker image (PHP 8.5.12 or later) and never let prerelease tags replace the stable aliases.
+- Uploads are sent as they are: the in-browser compression (JPEG re-encode at 85%, 4000 px cap, large PNGs converted to JPEG) is gone, so originals and their metadata reach the server intact.
+- An image job that fails 10 times in a row is parked (`storage/image-jobs/{id}.failed`) instead of being retried hourly forever; uploading or regenerating the image starts it again.
+- Visitors' pages watch for enhanced image versions only while images are still being generated, and for at most 10 minutes.
+- Exercise uploads, queues, SQLite contention, upgrades and admin controls in Apache, PHP-FPM and Chromium integration checks.
+
 ## [1.4.27] - 2026-10-22
 ### Security
 - **The Docker image runs PHP 8.5.12.** PHP 8.5.12, 8.4.27, 8.3.36 and 8.2.35, released on 2026-10-21, fix two critical remote code execution vulnerabilities in the PHP engine itself (CVE-2026-109618 and CVE-2026-109619, CVSS 9.2). The Apache `mod_php` setup the image uses is the most exposed one. The `1.4.26` image was already rebuilt on PHP 8.5.12 on 2026-10-21; this release ships it under a new version so every install picks it up. Image builds now always fetch the current PHP base image, so a rebuild after a PHP security release can never reuse an older one from the build cache.

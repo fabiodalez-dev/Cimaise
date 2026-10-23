@@ -1,0 +1,27 @@
+<script nonce="{{ csp_nonce() }}">
+window.downloadOriginal = async function(url, button) {
+    if (!url || button?.disabled) return;
+    if (button) button.disabled = true;
+    const failedMessage = '{{ trans('image.download_failed', {}, 'Unable to download the original. Check that downloads are enabled and unlock the album if required.')|e('js') }}';
+    try {
+        const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
+        if (!response.ok || !response.headers.get('Content-Type')?.startsWith('image/')) {
+            throw new Error(response.status === 503
+                ? '{{ trans('image.download_maintenance', {}, 'Downloads are unavailable during maintenance.')|e('js') }}'
+                : failedMessage);
+        }
+        const blobUrl = URL.createObjectURL(await response.blob());
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = response.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] || 'original';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    } catch (error) {
+        alert(error instanceof TypeError ? failedMessage : error.message);
+    } finally {
+        if (button) button.disabled = false;
+    }
+};
+</script>

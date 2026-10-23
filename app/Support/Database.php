@@ -36,8 +36,8 @@ class Database
             ];
             $this->pdo = new PDO($dsn, null, null, $options);
             $this->pdo->exec('PRAGMA foreign_keys = ON');
-            $this->pdo->exec('PRAGMA journal_mode = WAL');      // Write-Ahead Logging for better concurrency
-            $this->pdo->exec('PRAGMA busy_timeout = 30000');    // Wait up to 30 seconds on lock
+            $this->pdo->exec('PRAGMA busy_timeout = 5000');
+            SqliteRetry::run($this->pdo, fn () => $this->pdo->exec('PRAGMA journal_mode = WAL'));
         } else {
             // MySQL mode
             //
@@ -146,8 +146,11 @@ class Database
     {
         $startTime = microtime(true);
 
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
+        $stmt = SqliteRetry::run($this->pdo, function () use ($sql, $params): \PDOStatement {
+            $statement = $this->pdo->prepare($sql);
+            $statement->execute($params);
+            return $statement;
+        });
 
         // Log SQL query if DEBUG_SQL is enabled
         if (function_exists('envv') && filter_var(envv('DEBUG_SQL', false), FILTER_VALIDATE_BOOLEAN)) {
@@ -165,8 +168,11 @@ class Database
     {
         $startTime = microtime(true);
 
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
+        $stmt = SqliteRetry::run($this->pdo, function () use ($sql, $params): \PDOStatement {
+            $statement = $this->pdo->prepare($sql);
+            $statement->execute($params);
+            return $statement;
+        });
         $rowCount = $stmt->rowCount();
 
         // Log SQL query if DEBUG_SQL is enabled

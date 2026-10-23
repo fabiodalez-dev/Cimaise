@@ -26,6 +26,7 @@ final class ContainerMigrationService
     // Do not replay older table rebuilds on an unversioned Docker database.
     private const LEGACY_VERSION = '1.4.13';
     private const VERSION_PATTERN = '/^\d+\.\d+\.\d+$/';
+    private const IMAGE_VERSION_PATTERN = '/^(\d+\.\d+\.\d+)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/D';
 
     public function __construct(private readonly Database $db, private readonly string $migrationsPath)
     {
@@ -34,25 +35,30 @@ final class ContainerMigrationService
     /** @return string[] Applied migration filenames. */
     public function migrate(string $targetVersion): array
     {
-        if (!preg_match(self::VERSION_PATTERN, $targetVersion)) {
+        if (!preg_match(self::IMAGE_VERSION_PATTERN, $targetVersion, $versionParts)) {
             throw new RuntimeException('Invalid image version');
         }
+        $migrationVersion = $versionParts[1];
         $schemaVersion = $this->stored(self::SCHEMA_KEY) ?? self::LEGACY_VERSION;
         if (!is_dir($this->migrationsPath)) {
             throw new RuntimeException('Image migration directory is missing');
         }
-        $imageSchemaVersion = $this->newestImageMigration($targetVersion);
+        $imageSchemaVersion = $this->newestImageMigration($migrationVersion);
         if (version_compare($schemaVersion, $imageSchemaVersion, '>')) {
             throw new RuntimeException('The database schema is newer than this image; use the newer image');
         }
 
         $executed = [];
         if ($schemaVersion !== $imageSchemaVersion) {
-            $result = (new Updater($this->db))->runMigrations($schemaVersion, $targetVersion, $this->migrationsPath);
+            $result = (new Updater($this->db))->runMigrations($schemaVersion, $migrationVersion, $this->migrationsPath);
             if (!$result['success']) {
                 throw new RuntimeException('Database migration failed: ' . (string) $result['error']);
             }
             $executed = $result['executed'];
+        }
+
+        if (version_compare($imageSchemaVersion, '1.4.24', '>=')) {
+            $this->migrateLegacyEquipmentPreferences();
         }
 
         // Discard presentation data from the previous image before marking the
@@ -91,10 +97,38 @@ final class ContainerMigrationService
             return null;
         }
         $value = json_decode((string) $raw, true);
-        if (!is_string($value) || !preg_match(self::VERSION_PATTERN, $value)) {
+        $pattern = $key === self::IMAGE_KEY ? self::IMAGE_VERSION_PATTERN : self::VERSION_PATTERN;
+        if (!is_string($value) || !preg_match($pattern, $value)) {
             throw new RuntimeException('Invalid stored Docker version (' . $key . ')');
         }
         return $value;
+    }
+
+    private function migrateLegacyEquipmentPreferences(): void
+    {
+        $marker = 'docker.fork_equipment_preferences_migrated';
+        $stmt = $this->db->query('SELECT `value` FROM settings WHERE `key` = ?', [$marker]);
+        $complete = $stmt->fetchColumn();
+        $stmt->closeCursor();
+        if ($complete !== false) {
+            return;
+        }
+        $stmt = $this->db->query("SELECT `key`, `value` FROM settings WHERE `key` LIKE 'album.%.show_equipment'");
+        $preferences = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
+        foreach ($preferences as $preference) {
+            if (!preg_match('/^album\.([1-9][0-9]*)\.show_equipment$/D', (string)$preference['key'], $match)) {
+                continue;
+            }
+            $value = json_decode((string)$preference['value'], true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                continue;
+            }
+            $this->db->execute('UPDATE albums SET show_equipment = ? WHERE id = ?',
+                [SettingsService::boolean($value, true) ? 1 : 0, (int)$match[1]]);
+        }
+        $this->db->execute($this->db->replaceKeyword() . ' INTO settings (`key`, `value`, `type`) VALUES (?, ?, ?)',
+            [$marker, 'true', 'boolean']);
     }
 
     private function store(string $key, string $version): void

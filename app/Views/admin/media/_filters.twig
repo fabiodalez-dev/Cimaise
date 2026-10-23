@@ -1,0 +1,41 @@
+<form method="get" action="{{ base_path }}/admin/media" id="media-filters">
+  <div id="media-filter-panel" class="media-filter-panel"{% if not active_filter_count %} hidden{% endif %}>
+    <div class="media-filter-group">
+      <label for="media-query" class="media-filter-label"><i class="fas fa-search" aria-hidden="true"></i> {{ trans('admin.media.search_button') }}</label>
+      <input id="media-query" type="search" name="q" value="{{ filters.q }}" class="form-input" placeholder="{{ trans('admin.media.search') }}">
+    </div>
+    <fieldset class="media-filter-group">
+      <legend class="media-filter-label"><i class="fas fa-folder-open" aria-hidden="true"></i> {{ trans('admin.media.filter_album', {}, 'Album') }}</legend>
+      <label for="media-album-search" class="sr-only">{{ trans('admin.media.search_albums', {}, 'Search albums') }}</label>
+      <input id="media-album-search" type="search" class="form-input mb-3" placeholder="{{ trans('admin.media.search_albums', {}, 'Search albums') }}" autocomplete="off">
+      <div class="media-filter-chips media-album-chips">
+        <label class="media-filter-chip"><input type="radio" name="album" value=""{% if not filters.album %} checked{% endif %}><span>{{ trans('admin.media.all_albums') }}</span></label>
+        {% for a in albums %}
+          <label class="media-filter-chip" data-album-title="{{ a.title|lower|e('html_attr') }}"><input type="radio" name="album" value="{{ a.id }}"{% if filters.album == a.id %} checked{% endif %}><span>{{ a.title }}</span></label>
+        {% endfor %}
+      </div>
+    </fieldset>
+    <fieldset class="media-filter-group">
+      <legend class="media-filter-label">{{ trans('admin.media.filter_format', {}, 'Original format') }}</legend>
+      <div class="media-filter-chips">
+        <label class="media-filter-chip"><input type="radio" name="format" value=""{% if not filters.format %} checked{% endif %}><span>{{ trans('admin.media.all_formats') }}</span></label>
+        {% for format in ['jpeg', 'png', 'webp', 'heic', 'heif'] %}
+          <label class="media-filter-chip"><input type="radio" name="format" value="{{ format }}"{% if filters.format == format %} checked{% endif %}><span>{{ format|upper }}</span></label>
+        {% endfor %}
+      </div>
+    </fieldset>
+    <fieldset class="media-filter-group">
+      <legend class="media-filter-label">{{ trans('admin.media.filter_generation', {}, 'Image versions') }}</legend>
+      <div class="media-filter-chips">
+        <label class="media-filter-chip"><input type="radio" name="generation" value=""{% if not filters.generation %} checked{% endif %}><span>{{ trans('admin.media.all_versions') }}</span></label>
+        {% for value, key in {active: 'generating', retrying: 'retrying', preview: 'preview_only', generated: 'has_versions'} %}
+          <label class="media-filter-chip"><input type="radio" name="generation" value="{{ value }}"{% if filters.generation == value %} checked{% endif %}><span>{{ trans('admin.media.filter_' ~ key) }}</span></label>
+        {% endfor %}
+      </div>
+    </fieldset>
+    <div class="media-filter-actions">
+      <button type="submit" class="btn-secondary text-sm"><i class="fas fa-search mr-2" aria-hidden="true"></i>{{ trans('admin.media.search_button') }}</button>
+      <a href="{{ base_path }}/admin/media" class="text-sm underline">{{ trans('admin.media.clear_filters') }}</a>
+    </div>
+  </div>
+</form>

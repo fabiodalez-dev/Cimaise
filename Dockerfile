@@ -104,7 +104,7 @@ RUN apt-get purge -y --auto-remove \
 # Apache: rewrite + headers for the project's .htaccess contract. The global
 # ServerName silences the AH00558 "could not reliably determine the server's
 # fully qualified domain name" startup warning inside containers.
-RUN a2enmod rewrite headers \
+RUN a2enmod rewrite headers brotli deflate \
  && rm -f /etc/apache2/sites-enabled/000-default.conf \
  && printf 'ServerName localhost\n' > /etc/apache2/conf-available/zz-servername.conf \
  && a2enconf zz-servername

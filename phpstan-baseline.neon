@@ -1333,24 +1333,6 @@ parameters:
 			path: app/Services/CacheTags.php
 
 		-
-			message: '#^Method App\\Services\\CacheWarmService\:\:buildImageSources\(\) has parameter \$image with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Services/CacheWarmService.php
-
-		-
-			message: '#^Method App\\Services\\CacheWarmService\:\:buildImageSources\(\) has parameter \$variants with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Services/CacheWarmService.php
-
-		-
-			message: '#^Method App\\Services\\CacheWarmService\:\:buildImageSources\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Services/CacheWarmService.php
-
-		-
 			message: '#^Method App\\Services\\CacheWarmService\:\:enrichAlbums\(\) has parameter \$albums with no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
@@ -1370,18 +1352,6 @@ parameters:
 
 		-
 			message: '#^Method App\\Services\\CacheWarmService\:\:getFilterSettings\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Services/CacheWarmService.php
-
-		-
-			message: '#^Method App\\Services\\CacheWarmService\:\:processImageSources\(\) has parameter \$image with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Services/CacheWarmService.php
-
-		-
-			message: '#^Method App\\Services\\CacheWarmService\:\:processImageSources\(\) return type has no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
 			path: app/Services/CacheWarmService.php
@@ -2300,11 +2270,6 @@ parameters:
 			count: 1
 			path: app/Services/UploadService.php
 
-		-
-			message: '#^Method App\\Services\\UploadService\:\:generateVariantsForImage\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Services/UploadService.php
 
 		-
 			message: '#^Method App\\Services\\UploadService\:\:ingestAlbumUpload\(\) has parameter \$file with no value type specified in iterable type array\.$#'

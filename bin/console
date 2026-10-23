@@ -32,6 +32,7 @@ if ($isNoDbCommand) {
     $cli->add(new App\Tasks\SeedCommand($container['db'], __DIR__ . '/../database/seeds'));
     $cli->add(new App\Tasks\UserCreateCommand($container['db']));
     $cli->add(new App\Tasks\UserUpdateCommand($container['db']));
+
     $cli->add(new App\Tasks\ImagesGenerateCommand($container['db']));
     $cli->add(new App\Tasks\ImagesGenerateVariantsCommand($container['db']));
     $cli->add(new App\Tasks\ImagesWorkCommand($container['db']));
@@ -52,4 +53,4 @@ if ($isNoDbCommand) {
     $cli->add(new App\Tasks\DbTemplateCommand());
 }
 
-$cli->run();
+exit($cli->run());

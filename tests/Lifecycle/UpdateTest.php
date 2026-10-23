@@ -95,10 +95,10 @@ final class UpdateTest extends TestCase
 <?php
 $path = (string) parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $release = (string) file_get_contents(__DIR__ . '/release.json');
-if (preg_match('#^/download/(cimaise-v[0-9.]+\.zip)$#', $path, $m) && is_file(__DIR__ . '/' . $m[1])) {
+if (preg_match('#^/download/(cimaise-v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?\.zip)$#', $path, $m) && is_file(__DIR__ . '/' . $m[1])) {
     header('Content-Type: application/zip');
     readfile(__DIR__ . '/' . $m[1]);
-} elseif (preg_match('#^/repos/[^/]+/[^/]+/releases/(latest|tags/v[0-9.]+)$#', $path)) {
+} elseif (preg_match('#^/repos/[^/]+/[^/]+/releases/(latest|tags/v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?)$#', $path)) {
     header('Content-Type: application/json');
     echo $release;
 } elseif (preg_match('#^/repos/[^/]+/[^/]+/releases$#', $path)) {

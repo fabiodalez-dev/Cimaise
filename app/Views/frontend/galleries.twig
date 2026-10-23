@@ -1695,7 +1695,7 @@ document.addEventListener('click', function(event) {
         event.stopPropagation();
         const url = target.dataset.downloadUrl;
         if (url) {
-            window.location.href = url;
+            window.downloadOriginal(url, target);
         }
     }
 });

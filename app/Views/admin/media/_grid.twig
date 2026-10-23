@@ -3,6 +3,7 @@
     {% set src = it.preview_path starts with '/' ? base_path ~ it.preview_path : it.preview_path %}
     <div class="group border rounded overflow-hidden cursor-pointer hover:border-gray-900 transition-colors"
          data-media-id="{{ it.id }}"
+         tabindex="0" role="button" aria-label="{{ trans('admin.media.versions', {}, 'Image versions') }} #{{ it.id }}"
          data-width="{{ it.width }}"
          data-height="{{ it.height }}"
          data-alt_text="{{ it.alt_text }}"

@@ -1,4 +1,10 @@
 {% extends 'admin/_layout.twig' %}
+{% macro bytes(value) %}
+  {%- if value >= 1073741824 -%}{{ (value / 1073741824)|number_format(2) }} GiB
+  {%- elseif value >= 1048576 -%}{{ (value / 1048576)|number_format(2) }} MiB
+  {%- elseif value >= 1024 -%}{{ (value / 1024)|number_format(2) }} KiB
+  {%- else -%}{{ value }} B{%- endif -%}
+{% endmacro %}
 {% block title %}{{ trans('admin.albums.title') }} — Cimaise{% endblock %}
 {% block content %}
   <div class="flex items-center justify-between mb-8 flex-wrap gap-3">
@@ -30,6 +36,7 @@
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.albums.categories') }}</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.albums.status') }}</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.albums.slug') }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.albums.storage') }}</th>
             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.common.actions') }}</th>
           </tr>
         </thead>
@@ -71,6 +78,11 @@
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
               <code class="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">{{ a.slug }}</code>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap" data-album-storage="{{ a.id }}" title="{{ trans('admin.albums.storage_help')|e('html_attr') }}">
+              <div class="text-sm font-medium text-gray-900">{{ _self.bytes(a.storage.total_bytes) }}</div>
+              <div class="text-xs text-gray-500">{{ trans('admin.albums.storage_originals') }}: {{ _self.bytes(a.storage.original_bytes) }}</div>
+              <div class="text-xs text-gray-500">{{ trans('admin.albums.storage_versions') }}: {{ _self.bytes(a.storage.variant_bytes) }}</div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
               <div class="flex items-center justify-end space-x-2">

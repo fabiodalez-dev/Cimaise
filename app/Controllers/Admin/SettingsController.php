@@ -53,6 +53,7 @@ class SettingsController extends BaseController
         $compressionAvailability = [
             'brotli' => function_exists('brotli_compress') || in_array('mod_brotli', $apacheModules, true),
             'gzip' => function_exists('gzencode') || in_array('mod_deflate', $apacheModules, true),
+            'server' => in_array('mod_brotli', $apacheModules, true) || in_array('mod_deflate', $apacheModules, true),
             'deflate' => function_exists('gzdeflate'),
             'zlib' => extension_loaded('zlib')
         ];
@@ -77,6 +78,7 @@ class SettingsController extends BaseController
 
         $data = (array)$request->getParsedBody();
         $svc = new SettingsService($this->db);
+        $changes = [];
 
         // formats
         $formats = [
@@ -145,12 +147,12 @@ class SettingsController extends BaseController
         $showExif = isset($data['show_exif_lightbox']);
 
         // Save all settings
-        $svc->set('image.formats', $formats);
-        $svc->set('image.quality', $quality);
-        $svc->set('image.preview', $preview);
-        $svc->set('image.breakpoints', $breakpoints);
-        $svc->set('image.variants_async', $variantsAsync);
-        $svc->set('lightbox.show_exif', $showExif);
+        $changes['image.formats'] = $formats;
+        $changes['image.quality'] = $quality;
+        $changes['image.preview'] = $preview;
+        $changes['image.breakpoints'] = $breakpoints;
+        $changes['image.variants_async'] = $variantsAsync;
+        $changes['lightbox.show_exif'] = $showExif;
 
         $galleryPageTemplate = (string)($data['gallery_page_template'] ?? 'classic');
         $allowedPageTemplates = array_merge(
@@ -163,34 +165,37 @@ class SettingsController extends BaseController
         if (!in_array($galleryPageTemplate, $allowedPageTemplates, true)) {
             $galleryPageTemplate = 'classic';
         }
-        $svc->set('gallery.page_template', $galleryPageTemplate);
+        $changes['gallery.page_template'] = $galleryPageTemplate;
 
-        $svc->set('gallery.default_template_id', $defaultTemplateId);
-        $svc->set('site.title', $siteSettings['title']);
-        $svc->set('site.logo', $siteSettings['logo']);
+        $changes['gallery.default_template_id'] = $defaultTemplateId;
+        $changes['site.title'] = $siteSettings['title'];
+        $changes['site.logo'] = $siteSettings['logo'];
+        if (array_key_exists('site_logo_dark', $data)) {
+            $changes['site.logo_dark'] = trim((string)$data['site_logo_dark']) ?: null;
+        }
 
         // Logo type (text or image)
         $logoType = in_array($data['logo_type'] ?? 'text', ['text', 'image'], true) ? $data['logo_type'] : 'text';
-        $svc->set('site.logo_type', $logoType);
+        $changes['site.logo_type'] = $logoType;
 
         // Favicon source (for text logo mode) - only save if provided, don't clear on empty
         if (isset($data['favicon_source']) && $data['favicon_source'] !== '') {
-            $svc->set('site.favicon_source', (string)$data['favicon_source']);
+            $changes['site.favicon_source'] = (string)$data['favicon_source'];
         }
 
-        $svc->set('site.description', $siteSettings['description']);
-        $svc->set('site.copyright', $siteSettings['copyright']);
-        $svc->set('site.email', $siteSettings['email']);
+        $changes['site.description'] = $siteSettings['description'];
+        $changes['site.copyright'] = $siteSettings['copyright'];
+        $changes['site.email'] = $siteSettings['email'];
 
         // Date format setting
         $dateFormat = in_array($data['date_format'] ?? 'Y-m-d', ['Y-m-d', 'd-m-Y'], true)
             ? $data['date_format']
             : 'Y-m-d';
-        $svc->set('date.format', $dateFormat);
+        $changes['date.format'] = $dateFormat;
 
         // Site language setting
         $siteLanguage = preg_replace('/[^a-z0-9_-]/i', '', (string)($data['site_language'] ?? 'en')) ?: 'en';
-        $svc->set('site.language', $siteLanguage);
+        $changes['site.language'] = $siteLanguage;
 
         // reCAPTCHA settings
         $recaptchaSiteKey = trim((string)($data['recaptcha_site_key'] ?? ''));
@@ -222,19 +227,19 @@ class SettingsController extends BaseController
             $recaptchaEnabled = false;
         }
 
-        $svc->set('recaptcha.site_key', $finalSiteKey);
+        $changes['recaptcha.site_key'] = $finalSiteKey;
         // Only update secret key if a new value is provided (never expose existing key to client)
         if ($recaptchaSecretKey !== '') {
-            $svc->set('recaptcha.secret_key', $recaptchaSecretKey);
+            $changes['recaptcha.secret_key'] = $recaptchaSecretKey;
         }
-        $svc->set('recaptcha.enabled', $recaptchaEnabled);
+        $changes['recaptcha.enabled'] = $recaptchaEnabled;
 
-        $svc->set('pagination.limit', $paginationLimit);
-        $svc->set('admin.debug_logs', isset($data['admin_debug_logs']));
-        $svc->set('frontend.disable_right_click', $disableRightClick);
-        $svc->set('frontend.dark_mode', isset($data['dark_mode']));
+        $changes['pagination.limit'] = $paginationLimit;
+        $changes['admin.debug_logs'] = isset($data['admin_debug_logs']);
+        $changes['frontend.disable_right_click'] = $disableRightClick;
+        $changes['frontend.dark_mode'] = isset($data['dark_mode']);
         // Unchecked checkboxes are not posted, so absence means "disabled" (same pattern as dark_mode).
-        $svc->set('frontend.allow_theme_toggle', isset($data['allow_theme_toggle']));
+        $changes['frontend.allow_theme_toggle'] = isset($data['allow_theme_toggle']);
 
         // PWA settings
         $pwaThemeColor = trim((string)($data['pwa_theme_color'] ?? '#ffffff'));
@@ -246,8 +251,8 @@ class SettingsController extends BaseController
         if (!preg_match('/^#[0-9A-Fa-f]{6}$/', $pwaBackgroundColor)) {
             $pwaBackgroundColor = '#ffffff';
         }
-        $svc->set('pwa.theme_color', $pwaThemeColor);
-        $svc->set('pwa.background_color', $pwaBackgroundColor);
+        $changes['pwa.theme_color'] = $pwaThemeColor;
+        $changes['pwa.background_color'] = $pwaBackgroundColor;
 
         // Custom CSS - sanitize with maximum security
         $customCss = '';
@@ -281,38 +286,40 @@ class SettingsController extends BaseController
             $customCss = trim((string) $customCss);
         }
 
-        $svc->set('frontend.custom_css', $customCss);
-        $svc->set('navigation.show_tags_in_header', isset($data['show_tags_in_header']));
-        $svc->set('privacy.nsfw_global_warning', isset($data['nsfw_global_warning']));
+        $changes['frontend.custom_css'] = $customCss;
+        $changes['navigation.show_tags_in_header'] = isset($data['show_tags_in_header']);
+        $changes['privacy.nsfw_global_warning'] = isset($data['nsfw_global_warning']);
 
         // Performance & Cache settings
-        $svc->set('performance.compression_enabled', isset($data['compression_enabled']));
+        $changes['performance.compression_enabled'] = isset($data['compression_enabled']);
         $compressionType = in_array($data['compression_type'] ?? 'auto', ['auto', 'brotli', 'gzip'], true)
             ? $data['compression_type']
             : 'auto';
-        $svc->set('performance.compression_type', $compressionType);
+        $changes['performance.compression_type'] = $compressionType;
         $compressionLevel = max(0, min(11, (int)($data['compression_level'] ?? 6)));
-        $svc->set('performance.compression_level', $compressionLevel);
-        $svc->set('performance.cache_enabled', isset($data['cache_enabled']));
+        $changes['performance.compression_level'] = $compressionLevel;
+        $changes['performance.cache_enabled'] = isset($data['cache_enabled']);
         $staticCacheMaxAge = max(0, (int)($data['static_cache_max_age'] ?? 31536000));
-        $svc->set('performance.static_cache_max_age', $staticCacheMaxAge);
+        $changes['performance.static_cache_max_age'] = $staticCacheMaxAge;
         $mediaCacheMaxAge = max(0, (int)($data['media_cache_max_age'] ?? 86400));
-        $svc->set('performance.media_cache_max_age', $mediaCacheMaxAge);
+        $changes['performance.media_cache_max_age'] = $mediaCacheMaxAge;
         $htmlCacheMaxAge = max(0, (int)($data['html_cache_max_age'] ?? 3600));
-        $svc->set('performance.html_cache_max_age', $htmlCacheMaxAge);
+        $changes['performance.html_cache_max_age'] = $htmlCacheMaxAge;
 
         // Maintenance Mode settings (dot notation for consistency). The section
         // is only rendered while the plugin is active: without it the form
         // carries none of these fields, and saving anything else must not
         // blank the stored title/message or switch the options off.
         if (array_key_exists('maintenance_title', $data)) {
-            $svc->set('maintenance.enabled', isset($data['maintenance_enabled']));
-            $svc->set('maintenance.title', trim((string)$data['maintenance_title']));
-            $svc->set('maintenance.message', trim((string)($data['maintenance_message'] ?? '')));
-            $svc->set('maintenance.show_logo', isset($data['maintenance_show_logo']));
-            $svc->set('maintenance.show_admin_login', isset($data['maintenance_show_admin_login']));
-            $svc->set('maintenance.show_countdown', isset($data['maintenance_show_countdown']));
+            $changes['maintenance.enabled'] = isset($data['maintenance_enabled']);
+            $changes['maintenance.title'] = trim((string)$data['maintenance_title']);
+            $changes['maintenance.message'] = trim((string)($data['maintenance_message'] ?? ''));
+            $changes['maintenance.show_logo'] = isset($data['maintenance_show_logo']);
+            $changes['maintenance.show_admin_login'] = isset($data['maintenance_show_admin_login']);
+            $changes['maintenance.show_countdown'] = isset($data['maintenance_show_countdown']);
         }
+
+        $svc->setMany($changes);
 
         // Page cache entries bake settings in: an album entry stores the resolved
         // page template file (gallery.page_template), the default gallery template

@@ -1550,18 +1550,18 @@ class Updater
                 fwrite($handle, "DROP TABLE IF EXISTS `{$table}`;\n");
                 fwrite($handle, $createStmt . ";\n\n");
 
-                // Get data (table name validated above)
-                $rows = $pdo->query("SELECT * FROM `{$table}`")->fetchAll(PDO::FETCH_ASSOC);
-                foreach ($rows as $row) {
-                    $columns = array_keys($row);
-                    $values = array_map(function ($val) use ($pdo) {
-                        if ($val === null) {
-                            return 'NULL';
-                        }
-                        return $pdo->quote((string)$val);
-                    }, array_values($row));
-
-                    fwrite($handle, "INSERT INTO `{$table}` (`" . implode('`, `', $columns) . "`) VALUES (" . implode(', ', $values) . ");\n");
+                // Let SQLite serialize its own storage types, including binary
+                // values. quote() keeps text readable; only text holding a NUL
+                // byte (which quote() would truncate) is written as hex.
+                $columns = $pdo->query("PRAGMA table_info(`{$table}`)")->fetchAll(PDO::FETCH_COLUMN, 1);
+                $quotedColumns = array_map(static fn ($column) => '"' . str_replace('"', '""', (string) $column) . '"', $columns);
+                $expressions = array_map(static fn ($column) =>
+                    "CASE WHEN typeof({$column}) = 'text' AND instr(CAST({$column} AS BLOB), X'00') > 0"
+                    . " THEN 'CAST(X''' || hex({$column}) || ''' AS TEXT)' ELSE quote({$column}) END",
+                    $quotedColumns);
+                $rows = $pdo->query('SELECT ' . implode(', ', $expressions) . " FROM `{$table}`");
+                while ($values = $rows->fetch(PDO::FETCH_NUM)) {
+                    fwrite($handle, "INSERT INTO `{$table}` (" . implode(', ', $quotedColumns) . ") VALUES (" . implode(', ', $values) . ");\n");
                 }
                 fwrite($handle, "\n");
             }
@@ -2180,6 +2180,13 @@ class Updater
      */
     public function runMigrations(string $fromVersion, string $toVersion, ?string $migrationsPath = null): array
     {
+        // Prerelease images ship the schema of their numeric release. Do not
+        // silently skip migrate_1.4.24 when installing 1.4.24-test.2.
+        $schemaVersion = static fn (string $version): string =>
+            preg_match('/^(\d+\.\d+\.\d+)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/D', $version, $parts)
+                ? $parts[1] : $version;
+        $fromVersion = $schemaVersion($fromVersion);
+        $toVersion = $schemaVersion($toVersion);
         $executed = [];
 
         $this->debugLog('INFO', 'Starting migrations', [

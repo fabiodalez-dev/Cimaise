@@ -70,10 +70,17 @@ jobs:
           TAGS=""
           if [ -n "$VERSION" ]; then
             TAGS="$VERSION"
-            MM="$(printf '%s' "$VERSION" | grep -oE '^[0-9]+\.[0-9]+' || true)"
-            [ -n "$MM" ] && TAGS="$TAGS $MM"
+            case "$VERSION" in
+              *-*) ;; # Test releases never replace stable aliases.
+              *)
+                MM="$(printf '%s' "$VERSION" | grep -oE '^[0-9]+\.[0-9]+' || true)"
+                [ -n "$MM" ] && TAGS="$TAGS $MM"
+                TAGS="$TAGS latest"
+                ;;
+            esac
+          else
+            TAGS="latest"
           fi
-          TAGS="$TAGS latest"
 
           {
             echo "tags=$TAGS"
@@ -145,6 +152,9 @@ jobs:
           # Always resolve the base image again: a manual re-run after a PHP
           # security release must pick up the patched php:8.5-apache image.
           pull: true
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha,scope=${{ steps.vars.outputs.pair }}
           cache-to: type=gha,mode=max,scope=${{ steps.vars.outputs.pair }}
           # name= is double-quoted so the comma between multiple image names is
@@ -223,10 +233,11 @@ jobs:
       - name: Inspect published image
         env:
           REPO: ${{ github.repository }}
+          TAGS: ${{ needs.prepare.outputs.tags }}
         run: |
           set -euo pipefail
           GHCR="ghcr.io/$(printf '%s' "$REPO" | tr '[:upper:]' '[:lower:]')"
-          docker buildx imagetools inspect "${GHCR}:latest"
+          docker buildx imagetools inspect "${GHCR}:${TAGS%% *}"
 
       # Keep the Docker Hub repository page (overview + short description) in
       # sync with the repo on every release. Needs the checkout because the

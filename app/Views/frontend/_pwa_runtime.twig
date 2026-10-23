@@ -49,6 +49,18 @@
     }, true);
     </script>
 
+    <script nonce="{{ csp_nonce() }}">
+    window.cimaiseImageNotice = {
+      revision: '{{ image_generation_revision|default('0')|e('js') }}',
+      pending: {{ (image_generation_pending ?? false) ? 'true' : 'false' }},
+      endpoint: '{{ base_path|e('js') }}/api/image-generation-revision',
+      message: '{{ trans('images.enhanced_ready', {}, 'Enhanced image versions are ready')|e('js') }}',
+      reload: '{{ trans('updates.reload', {}, 'Reload')|e('js') }}',
+      dismiss: '{{ trans('updates.dismiss', {}, 'Dismiss')|e('js') }}'
+    };
+    </script>
+    <script src="{{ base_path }}/assets/js/image-version-notice.js?v={{ app_version|default('0')|e('url') }}" defer nonce="{{ csp_nonce() }}"></script>
+
     {# PWA Service Worker Registration #}
     <script nonce="{{ csp_nonce() }}">
     // Register Service Worker for offline support and PWA features
@@ -80,39 +92,9 @@
                   // New content available, notify user
                   pwaLog('[PWA] New content available, please refresh.');
                   // Show a non-blocking update banner
-                  if (!document.getElementById('pwa-update-banner')) {
-                    const banner = document.createElement('div');
-                    banner.id = 'pwa-update-banner';
-                    banner.className = 'fixed bottom-4 left-1/2 z-[9999] flex -translate-x-1/2 items-center gap-3 rounded-full bg-black/90 px-4 py-2 text-xs text-white shadow-lg';
-                    banner.setAttribute('role', 'status');
-                    banner.setAttribute('aria-live', 'polite');
-                    banner.setAttribute('aria-label', 'Update notification');
-                    banner.innerHTML = '<span>New version available</span>';
-                    const refreshBtn = document.createElement('button');
-                    refreshBtn.type = 'button';
-                    refreshBtn.className = 'rounded-full bg-white/10 px-3 py-1 text-xs hover:bg-white/20';
-                    refreshBtn.setAttribute('aria-label', 'Refresh to update now');
-                    refreshBtn.textContent = 'Refresh';
-                    refreshBtn.addEventListener('click', function() {
-                      newWorker.postMessage({ type: 'SKIP_WAITING' });
-                    });
-                    const dismissBtn = document.createElement('button');
-                    dismissBtn.type = 'button';
-                    dismissBtn.className = 'rounded-full bg-white/10 px-3 py-1 text-xs hover:bg-white/20';
-                    dismissBtn.setAttribute('aria-label', 'Dismiss update notification');
-                    dismissBtn.textContent = 'Dismiss';
-                    dismissBtn.addEventListener('click', function() {
-                      banner.remove();
-                    });
-                    banner.appendChild(refreshBtn);
-                    banner.appendChild(dismissBtn);
-                    document.body.appendChild(banner);
-                    setTimeout(function() {
-                      if (banner.parentNode) {
-                        banner.remove();
-                      }
-                    }, 30000);
-                  }
+                  window.cimaiseShowUpdate('{{ trans('updates.available', {}, 'New version available')|e('js') }}', function() {
+                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                  }, 'application');
                 }
               });
             });

@@ -117,7 +117,7 @@
                     <h1 class="text-xl font-semibold">
                         <a href="{{ base_path }}/" class="hover:text-gray-600 transition-colors duration-200 flex items-center gap-3">
                             {% if logo_type == 'image' and site_logo %}
-                              <img src="{% if site_logo starts with '/' %}{{ base_path }}{{ site_logo }}{% else %}{{ site_logo }}{% endif %}" alt="{{ site_title|default('Portfolio')|e }}" class="h-12 w-auto">
+                              {% include 'frontend/_site_logo.twig' with { logo_class: 'h-12 w-auto' } %}
                             {% else %}
                               {{ site_title|default('Portfolio')|e }}
                             {% endif %}
@@ -128,7 +128,7 @@
                     <nav class="hidden lg:flex items-center gap-6" id="desktop-nav">
                         <a href="{{ base_path }}/" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ trans('nav.home') }}</a>
                         <a href="{{ base_path }}/galleries" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ trans('nav.galleries') }}</a>
-                        <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ trans('nav.about') }}</a>
+                        <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ about_menu_label|default(trans('nav.about'), true)|e }}</a>
                         {{ hook('frontend_nav_after_about', {'base_path': base_path, 'location': 'desktop', 'csp_nonce': csp_nonce()}) }}
 
                         <!-- Categories Mega Menu -->
@@ -244,7 +244,7 @@
                 <div class="px-2 space-y-1">
                     <a href="{{ base_path }}/" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">{{ trans('nav.home') }}</a>
                     <a href="{{ base_path }}/galleries" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">{{ trans('nav.galleries') }}</a>
-                    <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">{{ trans('nav.about') }}</a>
+                    <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">{{ about_menu_label|default(trans('nav.about'), true)|e }}</a>
                     {{ hook('frontend_nav_after_about', {'base_path': base_path, 'location': 'mobile', 'csp_nonce': csp_nonce()}) }}
                     {% if is_admin %}
                     <a href="{{ base_path }}/admin" class="block text-sm font-medium text-white bg-gray-900 hover:bg-gray-700 rounded-md p-3 transition-colors duration-200">
@@ -344,7 +344,7 @@
     <div class="global-head_layout">
         <a href="{{ base_path }}/" class="head-logo_holder">
             {% if logo_type == 'image' and site_logo %}
-                <img src="{% if site_logo starts with '/' %}{{ base_path }}{{ site_logo }}{% else %}{{ site_logo }}{% endif %}" alt="{{ site_title|e('html_attr') }}" class="head-logo_img">
+                {% include 'frontend/_site_logo.twig' with { logo_class: 'head-logo_img' } %}
             {% else %}
                 <span class="head-logo_text">{{ site_title|e }}</span>
             {% endif %}
@@ -578,8 +578,8 @@
         {% set about_href = about_url|default('/about') %}
         <a href="{% if about_href starts with '/' %}{{ base_path }}{{ about_href }}{% else %}{{ about_href }}{% endif %}" class="mega-menu_link">
           <span class="mega-menu_scroll-wrapper">
-            <span class="mega-menu_text">{{ trans('nav.about')|default('About') }}</span>
-            <span class="mega-menu_text" aria-hidden="true">{{ trans('nav.about')|default('About') }}</span>
+            <span class="mega-menu_text">{{ about_menu_label|default(trans('nav.about'), true)|e }}</span>
+            <span class="mega-menu_text" aria-hidden="true">{{ about_menu_label|default(trans('nav.about'), true)|e }}</span>
           </span>
         </a>
         {{ hook('frontend_nav_after_about', {'base_path': base_path, 'location': 'mega-menu', 'csp_nonce': csp_nonce()}) }}

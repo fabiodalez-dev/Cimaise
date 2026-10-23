@@ -607,6 +607,7 @@
   </div>
 
   <script nonce="{{ csp_nonce() }}">
+    (() => {
     // Global base path for API calls
     window.basePath = '{{ base_path }}';
 
@@ -659,7 +660,8 @@
       const rootList = document.getElementById('root-list');
       if (!container) return;
       if (!rootList) {
-        window.sortableInstances = ['empty'];
+        window.sortableInstances = [];
+        container.dataset.categoriesReady = 'true';
         return;
       }
 
@@ -728,6 +730,7 @@
       });
 
       window.sortableInstances = sortables;
+      container.dataset.categoriesReady = 'true';
       syncWrapperAttributes();
     }
 
@@ -834,7 +837,7 @@
     }
     
     // Edit click → open modal (replaces sidebar quick edit)
-    document.addEventListener('click', async (e) => {
+    document.getElementById('categories-container').addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-edit]');
       if (!btn) return;
       e.preventDefault();
@@ -894,6 +897,9 @@
     // normal full page load it still waits for DOMContentLoaded.
     function initCategoriesPage() {
       initCategorySortable();
+      const container = document.getElementById('categories-container');
+      if (!container || container.dataset.categoryFormsBound) return;
+      container.dataset.categoryFormsBound = 'true';
       setupImageUpload();
       setupFormValidation();
       setupCategoryModal();
@@ -917,26 +923,8 @@
         });
       });
     }
-    // Bulletproof bootstrap. DOMContentLoaded is unreliable here: on a normal load
-    // the listener timing races SortableJS, and after an admin SPA innerHTML swap
-    // the re-executed inline script registers a DOMContentLoaded listener that can
-    // never fire (the event is long past). So poll until the DOM nodes and Sortable
-    // are present, then initialise once. initCategorySortable() is idempotent.
-    (function bootstrapCategories() {
-      let tries = 0;
-      (function attempt() {
-        const ready = document.getElementById('categories-container')
-          && document.getElementById('root-list')
-          && typeof Sortable !== 'undefined';
-        if (ready) {
-          initCategoriesPage();
-          return;
-        }
-        if (++tries < 60) {
-          setTimeout(attempt, 100); // up to ~6s for the deferred admin bundle
-        }
-      })();
-    })();
+    window.pageInitializers = window.pageInitializers || {};
+    window.pageInitializers.categories = initCategoriesPage;
     
     // Enhanced image upload with drag & drop
     function setupImageUpload() {
@@ -1194,6 +1182,7 @@
       // Show modal
       modal.classList.remove('hidden');
     }
+    })();
   </script>
 
   

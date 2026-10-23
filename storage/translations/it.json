@@ -22,6 +22,10 @@
     "about.portrait_alt": "Ritratto"
   },
   "theme": {
+    "images.enhanced_ready": "Sono disponibili versioni migliorate delle immagini",
+    "updates.reload": "Ricarica",
+    "updates.dismiss": "Chiudi",
+    "updates.available": "Nuova versione disponibile",
     "theme.toggle_dark": "Passa al tema scuro",
     "theme.toggle_light": "Passa al tema chiaro"
   },
@@ -287,6 +291,8 @@
     "home_snap.view_album": "Vedi album"
   },
   "image": {
+    "image.download_failed": "Impossibile scaricare l'originale. Verifica che i download siano abilitati e sblocca l'album se necessario.",
+    "image.download_maintenance": "I download non sono disponibili durante la manutenzione.",
     "image.download": "Scarica"
   },
   "installer": {

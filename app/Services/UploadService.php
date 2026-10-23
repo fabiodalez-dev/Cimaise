@@ -286,7 +286,7 @@ class UploadService
         return null;
     }
 
-    public function ingestAlbumUpload(int $albumId, array $file): array
+    public function ingestAlbumUpload(int $albumId, array $file, ?string $uploadToken = null): array
     {
         if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
             throw new RuntimeException('Upload error: ' . $this->getUploadErrorMessage($file['error'] ?? UPLOAD_ERR_NO_FILE));
@@ -356,7 +356,7 @@ class UploadService
 
         // Insert DB record with EXIF editor fields
         $pdo = $this->db->pdo();
-        $stmt = $pdo->prepare('INSERT INTO images(
+        $insertSql = 'INSERT INTO images(
             album_id, original_path, file_hash, width, height, mime, alt_text, caption, exif,
             camera_id, lens_id, iso, shutter_speed, aperture, sort_order,
             exif_make, exif_model, exif_lens_maker, exif_lens_model, software,
@@ -372,7 +372,7 @@ class UploadService
             :metering_mode, :exposure_mode, :date_original, :color_space, :contrast,
             :saturation, :sharpness, :scene_capture_type, :light_source,
             :gps_lat, :gps_lng, :artist, :copyright
-        )');
+        )';
 
         // Extract GPS coordinates if available
         $gpsLat = null;
@@ -382,7 +382,7 @@ class UploadService
             $gpsLng = $exif['GPS']['lng'] ?? null;
         }
 
-        $stmt->execute([
+        $this->db->execute($insertSql, [
             ':a' => $albumId,
             ':p' => str_replace(dirname(__DIR__, 2), '', $dest),
             ':h' => $hash,
@@ -421,11 +421,15 @@ class UploadService
             ':copyright' => $exif['Copyright'] ?? null,
         ]);
         $imageId = (int)$pdo->lastInsertId();
+        if ($uploadToken !== null) {
+            (new ImageJobQueue($this->db))->trackUpload($imageId, $uploadToken);
+        }
 
         // Generate preview outside the web root when the album is protected.
         $albumFlagsStmt = $pdo->prepare('SELECT is_nsfw, password_hash FROM albums WHERE id = :id');
         $albumFlagsStmt->execute([':id' => $albumId]);
         $albumFlags = $albumFlagsStmt->fetch() ?: [];
+        $albumFlagsStmt->closeCursor();
         $isProtectedAlbum = (int)($albumFlags['is_nsfw'] ?? 0) === 1 || !empty($albumFlags['password_hash']);
         $protectedStorage = new ProtectedMediaStorage($this->db);
         $mediaDir = $protectedStorage->directoryForProtection($isProtectedAlbum);
@@ -457,28 +461,32 @@ class UploadService
             $relUrl = "/media/{$imageId}_sm.jpg";
             $previewSize = @getimagesize($preview) ?: [$previewW, 0];
             $replaceKeyword = $this->db->replaceKeyword();
-            $pdo->prepare(sprintf('%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)', $replaceKeyword))
-                ->execute([$imageId,'sm','jpg',$relUrl,$previewW,$previewSize[1], (int)filesize($preview)]);
+            $this->db->execute(sprintf('%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)', $replaceKeyword), [$imageId,'sm','jpg',$relUrl,$previewW,$previewSize[1], (int)filesize($preview)]);
             $previewRel = $relUrl;
         } else {
             $previewRel = null;
         }
 
-        // PERFORMANCE: Variant generation moved to controller after response flush.
-        // ingestAlbumUpload() only generates sm preview for immediate UI feedback.
-        // Full variants are generated:
-        // - After fastcgi_finish_request() in FPM environments
-        // - By VariantMaintenanceService cron in non-FPM environments
-
         // Fetch album settings for cover check
         $coverCheck = $pdo->prepare('SELECT cover_image_id FROM albums WHERE id = :id');
         $coverCheck->execute([':id' => $albumId]);
         $album = $coverCheck->fetch();
+        $coverCheck->closeCursor();
 
         // Set as cover if album doesn't have one yet
         if ($album && !$album['cover_image_id']) {
-            $pdo->prepare('UPDATE albums SET cover_image_id = :imageId WHERE id = :albumId')
-                ->execute([':imageId' => $imageId, ':albumId' => $albumId]);
+            $this->db->execute('UPDATE albums SET cover_image_id = :imageId WHERE id = :albumId', [':imageId' => $imageId, ':albumId' => $albumId]);
+        }
+
+        $queue = new ImageJobQueue($this->db);
+        if (SettingsService::boolean($settingsSvc->get('image.variants_async', true), true)) {
+            $queue->enqueue($imageId);
+        } else {
+            try {
+                $queue->runSynchronously($imageId);
+            } catch (\Throwable $e) {
+                Logger::warning('Synchronous variant generation failed, queued for retry', ['image_id' => $imageId, 'error' => $e->getMessage()], 'upload');
+            }
         }
 
         return ['id' => $imageId,'path' => $dest,'mime' => $mime,'width' => $width,'height' => $height,'preview_url' => $previewRel];
@@ -558,6 +566,8 @@ class UploadService
         $srcImg = match ($info['mime']) {
             'image/jpeg' => @imagecreatefromjpeg($src),
             'image/png' => @imagecreatefrompng($src),
+            'image/gif' => @imagecreatefromgif($src),
+            'image/webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($src) : null,
             default => null,
         };
         if (!$srcImg) {
@@ -589,6 +599,8 @@ class UploadService
         $srcImg = match ($info['mime']) {
             'image/jpeg' => @imagecreatefromjpeg($src),
             'image/png' => @imagecreatefrompng($src),
+            'image/gif' => @imagecreatefromgif($src),
+            'image/webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($src) : null,
             default => null,
         };
         if (!$srcImg) {
@@ -616,17 +628,38 @@ class UploadService
     }
 
     /**
-     * Generate variants for an image that was uploaded in fast mode
-     * Returns array with statistics: ['generated' => int, 'failed' => int, 'skipped' => int]
-     * @param bool $force Force regeneration of existing variants
-     * @param string|null $onlyVariant Restrict generation to a single breakpoint (e.g. 'md').
-     *                                 Used by MediaController's on-demand path so a request
-     *                                 never pays for the full 5-sizes × 3-formats matrix.
-     * @param string|null $onlyFormat  Restrict generation to a single format ('jpg'|'webp'|'avif').
-     *                                 Upload/cron callers omit both and keep full generation.
+     * The worker and admin UI use the same enabled size/format matrix.
+     * @return array{breakpoints: array<string, mixed>, formats: list<string>}
      */
-    public function generateVariantsForImage(int $imageId, bool $force = false, ?string $onlyVariant = null, ?string $onlyFormat = null): array
+    public static function variantConfiguration(SettingsService $settings): array
     {
+        $defaults = $settings->defaults();
+        $formats = $settings->get('image.formats', $defaults['image.formats']);
+        $breakpoints = $settings->get('image.breakpoints', $defaults['image.breakpoints']);
+        $formats = is_array($formats) && $formats ? $formats : $defaults['image.formats'];
+        $breakpoints = is_array($breakpoints) && $breakpoints ? $breakpoints : $defaults['image.breakpoints'];
+        $formats = array_map(static fn ($enabled) => filter_var($enabled, FILTER_VALIDATE_BOOLEAN), $formats);
+        if (!array_filter($formats)) { $formats['jpg'] = true; }
+        $enabled = array_values(array_filter(['avif', 'webp', 'jpg', 'jxl'], static fn ($fmt) => ($formats[$fmt] ?? false)
+            && ($fmt !== 'jxl' || \App\Services\Imaging\ImageEngine::jxlWritable())));
+        return ['breakpoints' => $breakpoints, 'formats' => $enabled];
+    }
+
+    /**
+     * Generate configured variants, optionally restricted for on-demand media requests.
+     * @return array{generated: int, failed: int, skipped: int}
+     * @param callable(int, int, string): void|null $progress Completed steps, total, current variant.
+     */
+    public function generateVariantsForImage(int $imageId, bool $force = false, ?string $onlyVariant = null, ?string $onlyFormat = null, ?callable $progress = null): array
+    {
+        return \App\Support\ImageProcessingLock::run($imageId,
+            fn () => $this->generateVariantsUnlocked($imageId, $force, $onlyVariant, $onlyFormat, $progress));
+    }
+
+    /** @return array{generated: int, failed: int, skipped: int} */
+    private function generateVariantsUnlocked(int $imageId, bool $force, ?string $onlyVariant, ?string $onlyFormat, ?callable $progress): array
+    {
+        clearstatcache();
         $pdo = $this->db->pdo();
 
         // Get image details
@@ -638,6 +671,7 @@ class UploadService
         );
         $stmt->execute([$imageId]);
         $image = $stmt->fetch();
+        $stmt->closeCursor();
 
         if (!$image) {
             throw new RuntimeException("Image {$imageId} not found");
@@ -675,53 +709,40 @@ class UploadService
         $settings = new \App\Services\SettingsService($this->db);
         $defaults = $settings->defaults();
 
-        $formats = $settings->get('image.formats', $defaults['image.formats']);
-        if (!is_array($formats) || !$formats) {
-            $formats = $defaults['image.formats'];
-        }
-        // jpg is the mandatory baseline. A legacy/corrupt record can be a NON-empty
-        // array with every value false ({avif:false,webp:false,jpg:false}) — that
-        // passes the guard above yet silently disables ALL variant generation.
-        if (!array_filter($formats)) {
-            $formats['jpg'] = true;
-        }
+        $configuration = self::variantConfiguration($settings);
         $quality = $settings->get('image.quality', $defaults['image.quality']);
         if (!is_array($quality) || !$quality) {
             $quality = $defaults['image.quality'];
         }
-        $breakpoints = $settings->get('image.breakpoints', $defaults['image.breakpoints']);
-        if (!is_array($breakpoints) || !$breakpoints) {
-            $breakpoints = $defaults['image.breakpoints'];
-        }
+        $breakpoints = $configuration['breakpoints'];
 
         $isProtectedAlbum = (int)($image['album_is_nsfw'] ?? 0) === 1 || !empty($image['album_password_hash']);
         $protectedStorage = new ProtectedMediaStorage($this->db);
         $mediaDir = $protectedStorage->directoryForProtection($isProtectedAlbum);
         ImagesService::ensureDir($mediaDir);
 
+        // A terminated encoder may leave temporary output, never a published file.
+        foreach (glob($mediaDir . "/{$imageId}_*.tmp-*") ?: [] as $temporary) {
+            self::safeUnlink($temporary);
+        }
+
         $haveImagick = class_exists(\Imagick::class) && !$this->imagickDisabled();
         $stats = ['generated' => 0, 'failed' => 0, 'skipped' => 0];
+        $enabledFormats = array_values(array_filter($configuration['formats'], static fn ($fmt) => $onlyFormat === null || $fmt === $onlyFormat));
+        $total = count($enabledFormats) * count(array_filter(array_keys($breakpoints), static fn ($variant) => $onlyVariant === null || (string)$variant === $onlyVariant));
 
         foreach ($breakpoints as $variant => $targetW) {
             if ($onlyVariant !== null && (string)$variant !== $onlyVariant) {
                 continue;
             }
             $targetW = max(1, (int)$targetW);
-            foreach (['avif','webp','jpg'] as $fmt) {
-                if ($onlyFormat !== null && $fmt !== $onlyFormat) {
-                    continue;
-                }
-                $enabled = $formats[$fmt] ?? false;
-                if (is_string($enabled)) {
-                    $enabled = filter_var($enabled, FILTER_VALIDATE_BOOLEAN);
-                }
-                if (!$enabled) {
-                    continue;
-                }
-
+            foreach ($enabledFormats as $fmt) {
                 $destRelUrl = "/media/{$imageId}_{$variant}.{$fmt}";
                 $destPath = $mediaDir . "/{$imageId}_{$variant}.{$fmt}";
                 $key = $variant . '|' . $fmt;
+                if ($progress !== null) {
+                    $progress($stats['generated'] + $stats['skipped'], $total, (string)$variant . '.' . $fmt);
+                }
 
                 // Check if variant already exists in DB
                 $existsInDb = isset($existingVariants[$key]);
@@ -730,7 +751,7 @@ class UploadService
                 // 1. force is false AND
                 // 2. DB record exists AND
                 // 3. file exists on disk
-                if (!$force && $existsInDb && is_file($destPath)) {
+                if (!$force && $existsInDb && is_file($destPath) && filesize($destPath) > 0) {
                     $stats['skipped']++;
                     continue;
                 }
@@ -741,10 +762,14 @@ class UploadService
                 }
 
                 @mkdir(dirname($destPath), 0775, true);
+                $finalPath = $destPath;
+                $destPath = $mediaDir . '/' . $imageId . '_' . $variant . '.tmp-' . bin2hex(random_bytes(6)) . '.' . $fmt;
                 $ok = false;
 
                 // Generate based on format
-                if ($fmt === 'jpg') {
+                if ($fmt === 'jxl') {
+                    $ok = \App\Services\Imaging\ImageEngine::encode($originalPath, $destPath, $targetW, $fmt, (int)($quality['jxl'] ?? 80), $this->envFlag('STRIP_EXIF', true));
+                } elseif ($fmt === 'jpg') {
                     $ok = $this->resizeWithImagickOrGd($originalPath, $destPath, $targetW, 'jpeg', (int)($quality['jpg'] ?? 85));
                 } else {
                     // 'webp' or 'avif' (narrowed by the if/elseif chain above).
@@ -765,19 +790,23 @@ class UploadService
                     }
                 }
 
-                if ($ok && is_file($destPath)) {
+                if ($ok && is_file($destPath) && filesize($destPath) > 0 && rename($destPath, $finalPath)) {
+                    $destPath = $finalPath;
                     $oppositeDir = $protectedStorage->directoryForProtection(!$isProtectedAlbum);
                     // Route through safeUnlink so the deletion is confined to the
                     // allowed storage roots (path-traversal guard) instead of a
                     // raw unlink on a composed path.
                     self::safeUnlink($oppositeDir . "/{$imageId}_{$variant}.{$fmt}");
                     $size = (int)filesize($destPath);
-                    [$vw, $vh] = getimagesize($destPath) ?: [$targetW, 0];
+                    // getimagesize() cannot read JPEG-XL: derive the dimensions
+                    // from the source, never upscaled past its own width.
+                    $fallbackW = (int)$image['width'] > 0 ? min($targetW, (int)$image['width']) : $targetW;
+                    [$vw, $vh] = ($fmt === 'jxl' ? false : getimagesize($destPath)) ?: [$fallbackW, (int)round($fallbackW * (int)$image['height'] / max(1, (int)$image['width']))];
                     $replaceKeyword = $this->db->replaceKeyword();
-                    $pdo->prepare(sprintf('%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)', $replaceKeyword))
-                        ->execute([$imageId, (string)$variant, (string)$fmt, $destRelUrl, (int)$vw, $vh, $size]);
+                    $this->db->execute(sprintf('%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)', $replaceKeyword), [$imageId, (string)$variant, (string)$fmt, $destRelUrl, (int)$vw, $vh, $size]);
                     $stats['generated']++;
                 } else {
+                    self::safeUnlink($destPath);
                     $stats['failed']++;
                     Logger::warning("UploadService: Failed to generate variant", [
                         'format' => $fmt,
@@ -788,6 +817,9 @@ class UploadService
             }
         }
 
+        if ($progress !== null) {
+            $progress($stats['generated'] + $stats['skipped'], $total, 'placeholder');
+        }
         return $stats;
     }
 
@@ -839,11 +871,17 @@ class UploadService
      */
     public function generateBlurredVariant(int $imageId, bool $force = false): ?string
     {
+        return \App\Support\ImageProcessingLock::run($imageId, fn () => $this->generateBlurredVariantUnlocked($imageId, $force));
+    }
+
+    private function generateBlurredVariantUnlocked(int $imageId, bool $force): ?string
+    {
         $pdo = $this->db->pdo();
 
         $stmt = $pdo->prepare('SELECT * FROM images WHERE id = ?');
         $stmt->execute([$imageId]);
         $image = $stmt->fetch();
+        $stmt->closeCursor();
 
         if (!$image) {
             return null;
@@ -910,8 +948,7 @@ class UploadService
 
             // Store as blur variant
             $replaceKeyword = $this->db->replaceKeyword();
-            $pdo->prepare(sprintf('%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)', $replaceKeyword))
-                ->execute([$imageId, 'blur', 'jpg', $destRelUrl, $w, $h, $size]);
+            $this->db->execute(sprintf('%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)', $replaceKeyword), [$imageId, 'blur', 'jpg', $destRelUrl, $w, $h, $size]);
 
             return $destRelUrl;
         }
@@ -1095,7 +1132,14 @@ class UploadService
             // Check if blur file existed BEFORE generation to track stats correctly
             $existedBefore = is_file($mediaDir . "/{$image['id']}_blur.jpg");
 
-            $blurPath = $this->generateBlurredVariant((int)$image['id'], $force);
+            try {
+                $blurPath = $this->generateBlurredVariant((int)$image['id'], $force);
+            } catch (\Throwable $e) {
+                // One image held by the worker (or failing) must not stop the
+                // rest of the album; the worker's own job generates its blur.
+                Logger::warning('Blurred variant skipped', ['image_id' => (int)$image['id'], 'error' => $e->getMessage()], 'upload');
+                $blurPath = null;
+            }
             if ($blurPath !== null) {
                 if (!$force && $existedBefore) {
                     $stats['skipped']++;
@@ -1221,6 +1265,11 @@ class UploadService
      */
     public function generateLQIP(int $imageId, bool $force = false): ?string
     {
+        return \App\Support\ImageProcessingLock::run($imageId, fn () => $this->generateLQIPUnlocked($imageId, $force));
+    }
+
+    private function generateLQIPUnlocked(int $imageId, bool $force): ?string
+    {
         $pdo = $this->db->pdo();
 
         // SECURITY: Check if image belongs to protected album
@@ -1232,6 +1281,7 @@ class UploadService
         ');
         $stmt->execute([$imageId]);
         $album = $stmt->fetch();
+        $stmt->closeCursor();
 
         if (!$album) {
             Logger::warning('UploadService: Image not found for LQIP generation', [
@@ -1252,9 +1302,10 @@ class UploadService
         }
 
         // Find source file (prefer md variant for speed, fallback to original)
-        $variantStmt = $pdo->prepare('SELECT path FROM image_variants WHERE image_id = ? AND variant = ? LIMIT 1');
+        $variantStmt = $pdo->prepare('SELECT path FROM image_variants WHERE image_id = ? AND variant = ? ORDER BY CASE format WHEN \'jpg\' THEN 0 WHEN \'webp\' THEN 1 ELSE 2 END LIMIT 1');
         $variantStmt->execute([$imageId, 'md']);
         $mdPath = $variantStmt->fetchColumn();
+        $variantStmt->closeCursor();
 
         $sourcePath = null;
         $triedPaths = [];
@@ -1272,6 +1323,7 @@ class UploadService
             $imgStmt = $pdo->prepare('SELECT original_path FROM images WHERE id = ?');
             $imgStmt->execute([$imageId]);
             $origPath = $imgStmt->fetchColumn();
+            $imgStmt->closeCursor();
 
             if ($origPath && str_starts_with((string) $origPath, '/storage/originals/')) {
                 $tryPath = $root . $origPath;
@@ -1341,8 +1393,7 @@ class UploadService
 
                     // Store as lqip variant
                     $replaceKeyword = $this->db->replaceKeyword();
-                    $pdo->prepare(sprintf('%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)', $replaceKeyword))
-                        ->execute([$imageId, 'lqip', 'jpg', $destRelUrl, $w, $h, $size]);
+                    $this->db->execute(sprintf('%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)', $replaceKeyword), [$imageId, 'lqip', 'jpg', $destRelUrl, $w, $h, $size]);
 
                     Logger::debug('UploadService: LQIP generated successfully', [
                         'image_id' => $imageId,
@@ -1434,6 +1485,7 @@ class UploadService
             'image/jpeg' => @imagecreatefromjpeg($src),
             'image/png' => @imagecreatefrompng($src),
             'image/webp' => @imagecreatefromwebp($src),
+            'image/avif' => function_exists('imagecreatefromavif') ? @imagecreatefromavif($src) : null,
             default => null,
         };
 

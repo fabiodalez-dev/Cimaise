@@ -39,7 +39,9 @@ class UploadController extends BaseController
         try {
             $check = $this->db->pdo()->prepare('SELECT id FROM albums WHERE id = :id');
             $check->execute([':id' => $albumId]);
-            if (!$check->fetch()) {
+            $albumExists = $check->fetch();
+            $check->closeCursor();
+            if (!$albumExists) {
                 Logger::warning('UploadController: Album not found', ['album_id' => $albumId], 'upload');
                 $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Album not found']));
                 return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
@@ -96,9 +98,14 @@ class UploadController extends BaseController
 
         // Prepare array compatible with UploadService
         $fArr = ['tmp_name' => $tmpPath, 'error' => $file->getError()];
+        // Authentication and CSRF have been checked; allow status polling and parallel uploads.
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
         try {
             $svc = new UploadService($this->db);
-            $meta = $svc->ingestAlbumUpload($albumId, $fArr);
+            $uploadToken = $request->getParsedBody()['upload_token'] ?? null;
+            $meta = $svc->ingestAlbumUpload($albumId, $fArr, is_string($uploadToken) ? $uploadToken : null);
 
             // ingestAlbumUpload() only produces the small preview the admin grid
             // needs; the variant matrix, LQIP and blur go through the queue.
@@ -152,40 +159,10 @@ class UploadController extends BaseController
         }
     }
 
-    /**
-     * Honour the "generate variants in background" setting.
-     *
-     * Background: the job is persisted first, so a killed process or a
-     * restart cannot lose it, then drained after the response on PHP-FPM or by
-     * the image worker elsewhere. Foreground: generated before answering; a
-     * failure falls back to the queue instead of failing the upload.
-     */
+    /** Resume jobs persisted by ingest after the PHP-FPM response is sent. */
     private function scheduleVariantGeneration(int $imageId): void
     {
-        $queue = new ImageJobQueue($this->db);
-        $settings = new SettingsService($this->db);
-        try {
-            if (!SettingsService::boolean($settings->get('image.variants_async', true), true)) {
-                try {
-                    $queue->process($imageId);
-                    return;
-                } catch (\Throwable $e) {
-                    Logger::warning('Synchronous variant generation failed, queued for retry', [
-                        'image_id' => $imageId,
-                        'error' => $e->getMessage(),
-                    ], 'upload');
-                }
-            }
-            $queue->enqueue($imageId);
-            $queue->drainAfterResponse();
-        } catch (\Throwable $e) {
-            // The upload itself succeeded; missing variants are still produced
-            // on demand and by maintenance:run.
-            Logger::warning('Could not queue variant generation', [
-                'image_id' => $imageId,
-                'error' => $e->getMessage(),
-            ], 'upload');
-        }
+        (new ImageJobQueue($this->db))->drainAfterResponse();
     }
 
     /**
@@ -255,16 +232,19 @@ class UploadController extends BaseController
             $relUrl = '/media/' . basename($destPath);
             // Save setting
             $settings = new \App\Services\SettingsService($this->db);
-            $settings->set('site.logo', $relUrl);
+            $darkLogo = ($request->getQueryParams()['theme'] ?? '') === 'dark';
+            $settings->set($darkLogo ? 'site.logo_dark' : 'site.logo', $relUrl);
 
             // Automatically generate favicons from the uploaded logo
             $faviconResult = ['generated' => [], 'success' => false];
             try {
-                $publicPath = dirname(__DIR__, 3) . '/public';
-                $faviconService = new \App\Services\FaviconService($publicPath);
-                $faviconResult = $faviconService->generateFavicons($destPath);
-                if (!empty($faviconResult['success'])) {
-                    $settings->set('pwa.existing_icons', []);
+                if (!$darkLogo) {
+                    $publicPath = dirname(__DIR__, 3) . '/public';
+                    $faviconService = new \App\Services\FaviconService($publicPath);
+                    $faviconResult = $faviconService->generateFavicons($destPath);
+                    if (!empty($faviconResult['success'])) {
+                        $settings->set('pwa.existing_icons', []);
+                    }
                 }
             } catch (\Throwable $faviconError) {
                 $faviconResult['error'] = $faviconError->getMessage();

@@ -1,0 +1,91 @@
+name: Verify image jobs
+on:
+  workflow_dispatch:
+  push:
+    branches: ['main']
+  pull_request:
+    paths: ['app/**', 'plugins/**', 'resources/**', 'public/**', 'docker/**', 'Dockerfile', 'tests/integration/**']
+permissions:
+  contents: read
+concurrency:
+  group: image-jobs-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Verify adaptive progress polling and the visitors' version watcher
+        run: node --test tests/integration/image-job-polling.cjs tests/integration/image-version-notice.cjs
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build production Apache image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          load: true
+          tags: cimaise:test
+          cache-from: type=gha,scope=image-jobs
+          cache-to: type=gha,mode=max,scope=image-jobs
+      - name: Verify patched PHP runtime
+        run: |
+          docker run --rm --entrypoint php cimaise:test -r 'echo "PHP ", PHP_VERSION, "\n"; exit(PHP_MAJOR_VERSION === 8 && PHP_MINOR_VERSION === 5 && version_compare(PHP_VERSION, "8.5.12", ">=") ? 0 : 1);'
+      - name: Verify PHP regressions and real Docker startup migrations
+        run: |
+          mkdir -p /tmp/cimaise-test-vendor
+          docker run --rm -v "$PWD:/app:ro" -v /tmp/cimaise-test-vendor:/app/vendor composer:2 install --ignore-platform-reqs --no-interaction --no-progress --no-scripts
+          docker run --rm --entrypoint php -v /tmp/cimaise-test-vendor:/var/www/html/vendor:ro -v "$PWD/tests:/var/www/html/tests:ro" -v "$PWD/phpunit.xml:/var/www/html/phpunit.xml:ro" cimaise:test vendor/bin/phpunit -c phpunit.xml
+      - name: Verify complete prerelease package
+        run: |
+          docker create --name package-source cimaise:test
+          mkdir -p /tmp/cimaise-package-source
+          docker cp package-source:/var/www/html/. /tmp/cimaise-package-source/
+          docker run --rm --entrypoint bash -v /tmp/cimaise-package-source:/var/www/html cimaise:test -c 'apt-get update -qq && apt-get install -y --no-install-recommends jq rsync zip unzip >/dev/null && bash bin/build-release.sh --skip-build'
+      - name: Verify upgrade from the published upstream baseline
+        run: |
+          docker run --rm --network host --entrypoint php -e CIMAISE_DOCKER_IMAGE=cimaise:test -v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker:ro -v /tmp/cimaise-test-vendor:/var/www/html/vendor:ro -v "$PWD/tests:/var/www/html/tests:ro" -v "$PWD/phpunit.xml:/var/www/html/phpunit.xml:ro" cimaise:test vendor/bin/phpunit -c phpunit.xml tests/Docker/ImageUpgradeTest.php
+      - name: Verify queue, SQLite contention and CLI failures
+        run: |
+          docker run --rm --entrypoint php -v "$PWD/tests/integration:/var/www/html/tests/integration:ro" cimaise:test /var/www/html/tests/integration/image-jobs.php
+          docker run --rm --entrypoint php -v "$PWD/tests/integration:/var/www/html/tests/integration:ro" cimaise:test /var/www/html/tests/integration/admin-options.php
+      - name: Verify Apache HTTP upload and restart recovery
+        run: |
+          docker run -d --name cimaise-apache -p 8080:80 -v "$PWD/tests/integration:/tests:ro" cimaise:test
+          bash tests/integration/web-upload.sh cimaise-apache 8080
+      - name: Build PHP-FPM test host
+        # Production Apache browser checks also exercise all combined admin controls.
+        run: |
+          docker create --name fpm-source cimaise:test
+          mkdir -p /tmp/fpm-source
+          docker cp fpm-source:/var/www/html/. /tmp/fpm-source/
+          # The production context excludes vendor because Composer rebuilds it.
+          # This test host must retain the already-built production dependencies.
+          rm /tmp/fpm-source/.dockerignore
+          docker build -f tests/integration/Dockerfile.fpm -t cimaise:fpm /tmp/fpm-source
+          docker run --rm --entrypoint php cimaise:fpm -r 'echo "PHP-FPM host ", PHP_VERSION, "\n"; exit(PHP_MAJOR_VERSION === 8 && PHP_MINOR_VERSION === 2 && version_compare(PHP_VERSION, "8.2.35", ">=") ? 0 : 1);'
+      - name: Verify admin gallery, visibility controls and progress in Chromium
+        run: |
+          npm install --prefix /tmp/cimaise-browser-tests --no-audit --no-fund playwright
+          /tmp/cimaise-browser-tests/node_modules/.bin/playwright install --with-deps chromium
+          docker exec -u www-data cimaise-apache touch /var/www/html/storage/image-jobs/999.job
+          NODE_PATH=/tmp/cimaise-browser-tests/node_modules node tests/integration/admin-ui.cjs
+      - name: Upload admin screenshot
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: admin-gallery-preview
+          path: /tmp/cimaise-admin-gallery.png
+          if-no-files-found: ignore
+      - name: Verify PHP-FPM HTTP upload and restart recovery
+        run: |
+          docker run -d --name cimaise-fpm -p 8081:80 -v "$PWD/tests/integration:/tests:ro" cimaise:fpm
+          bash tests/integration/web-upload.sh cimaise-fpm 8081 fpm
+      - name: Verify PHP-FPM with process execution disabled
+        run: |
+          docker run -d --name cimaise-fpm-restricted -p 8082:80 -v "$PWD/tests/integration:/tests:ro" cimaise:fpm sh -c 'nginx && exec php-fpm -d disable_functions=exec -F'
+          bash tests/integration/web-upload.sh cimaise-fpm-restricted 8082 fpm
+      - name: Container diagnostics
+        if: always()
+        run: |
+          docker logs cimaise-apache || true
+          docker logs cimaise-fpm || true
+          docker logs cimaise-fpm-restricted || true

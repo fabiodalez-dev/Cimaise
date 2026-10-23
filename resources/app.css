@@ -4,6 +4,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Switch uploaded logos with the same class used by the theme toggle. */
+.cimaise-logo-dark { display: none !important; }
+.dark .cimaise-logo-light { display: none !important; }
+.dark .cimaise-logo-dark { display: block !important; }
+
 /* Never allow horizontal page scroll on the frontend. Several home templates
    (masonry, modern, parallax, gallery) render LQIP placeholders with
    `transform: scale(1.1)` to hide their blurred edges; while still blurred the

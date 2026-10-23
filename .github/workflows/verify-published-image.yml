@@ -1,0 +1,31 @@
+name: Verify published Docker image
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published version to verify without rebuilding or retagging
+        required: true
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: v${{ inputs.tag }}
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Verify public manifest and source revision
+        env:
+          REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          IMAGE="ghcr.io/$(printf '%s' "$REPO" | tr '[:upper:]' '[:lower:]'):${TAG}"
+          docker buildx imagetools inspect --raw "$IMAGE" > /tmp/published-manifest.json
+          jq -e '[.manifests[] | select(.platform.os == "linux") | .platform.architecture] | contains(["amd64", "arm64"])' /tmp/published-manifest.json
+          docker pull "$IMAGE"
+          docker run --rm --entrypoint php "$IMAGE" -r 'echo "Published PHP ", PHP_VERSION, "\n"; exit(PHP_MAJOR_VERSION === 8 && PHP_MINOR_VERSION === 5 && version_compare(PHP_VERSION, "8.5.12", ">=") ? 0 : 1);'
+          test "$(docker inspect "$IMAGE" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')" = "$(git rev-parse HEAD)"
+          test "$(docker inspect "$IMAGE" --format '{{ index .Config.Labels "org.opencontainers.image.source" }}')" = "https://github.com/$REPO"
+          docker buildx imagetools inspect "$IMAGE"

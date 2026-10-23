@@ -114,12 +114,9 @@ class SettingsService
 
     public function set(string $key, mixed $value): void
     {
-        // Invalidate all caches before writing
-        $this->clearCache();
-
         $replace = $this->db->replaceKeyword();
         $now = $this->db->nowExpression();
-        $stmt = $this->db->pdo()->prepare("{$replace} INTO settings(`key`,`value`,`type`,`updated_at`) VALUES(:k, :v, :t, {$now})");
+        $sql = "{$replace} INTO settings(`key`,`value`,`type`,`updated_at`) VALUES(:k, :v, :t, {$now})";
         // JSON_INVALID_UTF8_SUBSTITUTE: a stray byte in a pasted value (custom
         // CSS/JS, texts) must not make json_encode() return FALSE — that was
         // persisted as an empty string and the setting silently vanished.
@@ -130,13 +127,73 @@ class SettingsService
             return;
         }
         $type = $value === null ? 'null' : (\is_bool($value) ? 'boolean' : (\is_numeric($value) ? 'number' : 'string'));
-        $stmt->execute([':k' => $key, ':v' => $encodedValue, ':t' => $type]);
+        $this->db->execute($sql, [':k' => $key, ':v' => $encodedValue, ':t' => $type]);
+
+        // Invalidate after committing so concurrent reads cannot retain a pre-save cache.
+        $this->clearCache();
 
         // Invalidate TwigGlobalsCache since settings affect Twig globals
         TwigGlobalsCache::invalidate();
 
         // Reload cache with fresh data from database
         $this->loadCache();
+    }
+
+    /**
+     * Save a form atomically; publish fresh caches only after the whole batch commits.
+     * @param array<string, mixed> $values
+     */
+    public function setMany(array $values): void
+    {
+        if ($values === []) {
+            return;
+        }
+        $pdo = $this->db->pdo();
+        if ($pdo->inTransaction()) {
+            throw new \LogicException('Settings batches must own their transaction');
+        }
+        $encoded = [];
+        foreach ($values as $key => $value) {
+            $json = json_encode($value, JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+            if ($json === false) {
+                throw new \InvalidArgumentException('Cannot encode setting: ' . $key);
+            }
+            $encoded[$key] = [$json, $value === null ? 'null' : (\is_bool($value) ? 'boolean' : (\is_numeric($value) ? 'number' : 'string'))];
+        }
+        // Roll back before retrying: a busy SQLite snapshot requires replaying the whole batch.
+        $changed = \App\Support\SqliteRetry::run($pdo, function () use ($pdo, $encoded): bool {
+            $pdo->beginTransaction();
+            try {
+                $stmt = $this->db->query('SELECT `key`, `value`, `type` FROM settings');
+                $stored = [];
+                foreach ($stmt->fetchAll() as $row) {
+                    $stored[$row['key']] = [$row['value'], $row['type']];
+                }
+                $stmt->closeCursor();
+                $changed = false;
+                $replace = $this->db->replaceKeyword();
+                $now = $this->db->nowExpression();
+                foreach ($encoded as $key => [$json, $type]) {
+                    if (($stored[$key] ?? null) === [$json, $type]) {
+                        continue;
+                    }
+                    $this->db->execute("{$replace} INTO settings(`key`,`value`,`type`,`updated_at`) VALUES(?, ?, ?, {$now})", [$key, $json, $type]);
+                    $changed = true;
+                }
+                $pdo->commit();
+                return $changed;
+            } catch (\Throwable $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                throw $e;
+            }
+        });
+        if ($changed) {
+            $this->clearCache();
+            TwigGlobalsCache::invalidate();
+            $this->loadCache();
+        }
     }
 
     public function defaults(): array

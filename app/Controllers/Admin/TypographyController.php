@@ -16,6 +16,72 @@ class TypographyController extends BaseController
 {
     private readonly TypographyService $typographyService;
 
+    public function uploadFont(Request $request, Response $response): Response
+    {
+        if (!$this->validateCsrf($request)) { return $response->withStatus(400); }
+        try {
+            $data = (array)$request->getParsedBody();
+            $name = trim((string)($data['font_name'] ?? ''));
+            if (!preg_match('/^[a-zA-Z0-9][a-zA-Z0-9 -]{0,79}$/D', $name)) {
+                throw new \RuntimeException('Use a font name with letters, numbers, spaces or hyphens.');
+            }
+            $weight = (int)($data['font_weight'] ?? 400);
+            if ($weight < 100 || $weight > 900 || $weight % 100 !== 0) {
+                throw new \RuntimeException('Choose a weight from 100 to 900.');
+            }
+            $file = $request->getUploadedFiles()['font_file'] ?? null;
+            if (!$file || $file->getError() !== UPLOAD_ERR_OK || ($file->getSize() ?? 0) > 10485760) {
+                throw new \RuntimeException('Upload a font file up to 10 MB.');
+            }
+            $bytes = (string)$file->getStream();
+            $ext = strtolower(pathinfo((string)$file->getClientFilename(), PATHINFO_EXTENSION));
+            $signatures = ['woff2' => 'wOF2', 'woff' => 'wOFF', 'ttf' => "\x00\x01\x00\x00", 'otf' => 'OTTO'];
+            if (strlen($bytes) < 48 || strlen($bytes) > 10485760 || !isset($signatures[$ext]) || !str_starts_with($bytes, $signatures[$ext])) {
+                throw new \RuntimeException('Choose a valid WOFF2, WOFF, TTF or OTF font.');
+            }
+            if (in_array($ext, ['woff', 'woff2'], true) && unpack('Nlength', substr($bytes, 8, 4))['length'] !== strlen($bytes)) {
+                throw new \RuntimeException('The font file is incomplete.');
+            }
+            $filename = hash('sha256', $bytes) . '.' . $ext;
+            $directory = dirname(__DIR__, 3) . '/storage/fonts';
+            \App\Services\ImagesService::ensureDir($directory);
+            if (file_put_contents($directory . '/' . $filename, $bytes, LOCK_EX) !== strlen($bytes)) {
+                throw new \RuntimeException('Could not save the font.');
+            }
+            $settings = new SettingsService($this->db);
+            $fonts = (array)$settings->get('typography.custom_fonts', []);
+            $slug = 'custom-' . substr(hash('sha256', strtolower($name)), 0, 16);
+            $font = $fonts[$slug] ?? ['name' => $name, 'weights' => [], 'files' => [],
+                'type' => ($data['font_type'] ?? '') === 'serif' ? 'serif' : 'sans',
+                'category' => ($data['font_type'] ?? '') === 'serif' ? 'editorial' : 'clean', 'description' => 'Uploaded font'];
+            $font['files'][$weight] = $filename;
+            $font['weights'] = array_map(intval(...), array_keys($font['files']));
+            sort($font['weights']);
+            $fonts[$slug] = $font;
+            $settings->set('typography.custom_fonts', $fonts);
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.typography.font_uploaded', [], 'Font uploaded. Select it below and save.')];
+        } catch (\Throwable $error) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => $error->getMessage()];
+        }
+        return $response->withHeader('Location', $this->redirect('/admin/typography'))->withStatus(302);
+    }
+
+    /** @param array<string, mixed> $args */
+    public function serveFont(Request $request, Response $response, array $args): Response
+    {
+        $filename = (string)($args['filename'] ?? '');
+        if (!preg_match('/^[a-f0-9]{64}\.(woff2|woff|ttf|otf)$/D', $filename, $matches)) {
+            return $response->withStatus(404);
+        }
+        $file = dirname(__DIR__, 3) . '/storage/fonts/' . $filename;
+        if (!is_file($file) || !($stream = fopen($file, 'rb'))) { return $response->withStatus(404); }
+        return $response->withBody(new \Slim\Psr7\Stream($stream))
+            ->withHeader('Content-Type', 'font/' . $matches[1])
+            ->withHeader('Content-Length', (string)filesize($file))
+            ->withHeader('X-Content-Type-Options', 'nosniff')
+            ->withHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+
     public function __construct(private readonly Database $db, private readonly Twig $view)
     {
         parent::__construct();

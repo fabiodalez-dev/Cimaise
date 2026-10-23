@@ -46,6 +46,19 @@
     </div>
 </div>
 
+<form action="{{ base_path }}/admin/typography/upload" method="post" enctype="multipart/form-data" class="card p-6 mb-6" id="font-upload-form">
+    <h2 class="font-semibold mb-3">{{ trans('admin.typography.upload_font', {}, 'Upload a font') }}</h2>
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="grid sm:grid-cols-2 gap-3">
+        <label>{{ trans('admin.typography.font_name', {}, 'Font family name') }}<input class="form-input" name="font_name" required maxlength="80" pattern="[a-zA-Z0-9][a-zA-Z0-9 -]*"></label>
+        <label>{{ trans('admin.typography.font_file', {}, 'Font file (WOFF2, WOFF, TTF or OTF; up to 10 MB)') }}<input class="form-input" type="file" name="font_file" accept=".woff2,.woff,.ttf,.otf" required></label>
+        <label>{{ trans('admin.typography.font_weight', {}, 'Weight') }}<select class="form-input" name="font_weight">{% for weight in [100,200,300,400,500,600,700,800,900] %}<option value="{{ weight }}" {{ weight == 400 ? 'selected' : '' }}>{{ weight }}</option>{% endfor %}</select></label>
+        <label>{{ trans('admin.typography.font_type', {}, 'Style') }}<select class="form-input" name="font_type"><option value="sans">Sans-serif</option><option value="serif">Serif</option></select></label>
+    </div>
+    <p class="text-xs text-gray-500 my-3">{{ trans('admin.typography.upload_hint', {}, 'Upload additional weights using the same family name. Use fonts licensed for web embedding.') }}</p>
+    <button class="btn-primary" type="submit">{{ trans('admin.typography.upload_font', {}, 'Upload a font') }}</button>
+</form>
+
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 pb-48">
     <!-- Left Column: Settings Form -->
     <div class="space-y-6">

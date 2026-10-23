@@ -30,6 +30,11 @@
                 <input type="text" name="about_title" class="form-input" placeholder="About" value="{{ settings['about.title']|default('About') }}">
               </div>
               <div>
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.about.menu_label') }}</label>
+                <input type="text" name="about_menu_label" class="form-input" placeholder="{{ trans('nav.about') }}" value="{{ settings['about.menu_label']|default('') }}">
+                <p class="text-xs text-gray-500 mt-1">{{ trans('admin.pages.about.menu_label_hint') }}</p>
+              </div>
+              <div>
                 <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.subtitle') }}</label>
                 <input type="text" name="about_subtitle" class="form-input" placeholder="Analog and digital photography, ..." value="{{ settings['about.subtitle']|default('') }}">
               </div>

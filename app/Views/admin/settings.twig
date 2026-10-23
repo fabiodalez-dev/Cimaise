@@ -148,7 +148,7 @@
     </div>
 
     <!-- Site Settings -->
-    <div class="card">
+    <div class="card" id="site-branding" style="scroll-margin-top: 5rem;">
       <div class="p-6">
         <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
           <i class="fas fa-globe mr-3 text-gray-600"></i>
@@ -201,6 +201,34 @@
               </div>
             </div>
             <p class="text-xs text-gray-500 mt-2">{{ trans('admin.settings.logo_hint') }}</p>
+
+            <label class="block text-sm font-medium text-gray-700 mb-3 mt-6">{{ trans('admin.settings.logo_dark') }}</label>
+            <input type="hidden" id="site_logo_dark" name="site_logo_dark" value="{{ settings['site.logo_dark'] ?? '' }}">
+            <div class="flex flex-col md:flex-row items-start gap-6">
+              <div class="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg bg-neutral-900 flex items-center justify-center overflow-hidden flex-shrink-0">
+                {% if settings['site.logo_dark'] %}
+                  <img id="site-logo-preview-dark" src="{{ base_path ~ settings['site.logo_dark'] }}" alt="Logo" class="max-w-full max-h-full">
+                  <span id="site-logo-placeholder-dark" class="text-xs text-gray-300 hidden">{{ trans('admin.settings.no_logo') }}</span>
+                {% else %}
+                  <img id="site-logo-preview-dark" src="" alt="Logo" class="max-w-full max-h-full hidden">
+                  <span id="site-logo-placeholder-dark" class="text-xs text-gray-300">{{ trans('admin.settings.no_logo') }}</span>
+                {% endif %}
+              </div>
+              <div class="flex-1">
+                <div id="logo-uppy-dark" data-endpoint="{{ base_path }}/admin/settings/logo-upload?theme=dark" data-csrf="{{ csrf }}"
+                     class="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors">
+                  <div class="flex flex-col items-center justify-center gap-2">
+                    <i class="fas fa-cloud-upload-alt text-2xl text-gray-400"></i>
+                    <div class="font-medium">{{ trans('admin.settings.upload_logo') }}</div>
+                    <div class="text-sm text-gray-500">{{ trans('admin.settings.logo_formats') }}</div>
+                  </div>
+                </div>
+                <button id="site-logo-clear-dark" type="button" class="mt-3 text-sm text-red-600 hover:underline {{ settings['site.logo_dark'] ? '' : 'hidden' }}">
+                  <i class="fas fa-trash mr-1"></i>{{ trans('admin.settings.remove_logo') }}
+                </button>
+              </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">{{ trans('admin.settings.logo_dark_hint') }}</p>
 
             <!-- Favicon Generation -->
             <div id="favicon-section" class="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
@@ -697,6 +725,10 @@
               </span>
             {% endif %}
           </div>
+
+          {% if compressionAvailability.server %}
+          <p class="mt-3 text-xs text-gray-600">{{ trans('admin.settings.compression_server_managed', {}, 'Apache handles compression automatically. The controls below apply only to PHP compression when server compression is unavailable.') }}</p>
+          {% endif %}
 
           {% if not compressionAvailability.brotli and not compressionAvailability.gzip %}
           <div class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded">

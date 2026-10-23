@@ -87,6 +87,12 @@ tests/
 !/tests/Services/ProtectedMediaStorageTest.php
 !/tests/Services/BaseUrlServiceTest.php
 !/tests/Services/SettingsServiceBooleanTest.php
+!/tests/Services/SettingsPostWriteCacheTest.php
+!/tests/Services/SettingsBatchTest.php
+!/tests/Services/AlbumStorageCacheTest.php
+!/tests/Services/AlbumStorageServiceTest.php
+!/tests/Services/ImageGenerationFallbacksTest.php
+!/tests/Services/ImagesGenerateCommandTest.php
 !/tests/Services/ContainerMigrationServiceTest.php
 !/tests/Services/AnalyticsDeviceDetectionTest.php
 !/tests/Services/OriginalImageTest.php
@@ -98,6 +104,7 @@ tests/
 !/tests/Middlewares/RateLimitMiddlewareTest.php
 !/tests/Middlewares/SecurityHeadersMiddlewareTest.php
 !/tests/Middlewares/CacheRevalidationTest.php
+!/tests/Middlewares/ImageGenerationValidatorTest.php
 !/tests/Docker/
 /tests/Docker/*
 !/tests/Docker/EntrypointMigrationsTest.php
@@ -108,6 +115,8 @@ tests/
 !/tests/Support/ZipSafetyTest.php
 !/tests/Support/TwigCacheTest.php
 !/tests/Support/TestFilesystem.php
+!/tests/Support/UpdaterPrereleaseMigrationTest.php
+!/tests/Support/UpdaterSqliteBackupTest.php
 !/tests/Support/AppSandbox.php
 !/tests/README.md
 !/tests/Lifecycle/
@@ -122,12 +131,14 @@ tests/
 !/tests/Controllers/AlbumPasswordAccessTest.php
 !/tests/Controllers/SeoControllerSeededBooleansTest.php
 !/tests/Controllers/DiagnosticsDirectoriesTest.php
+!/tests/Controllers/AlbumShowEquipmentTest.php
 !/tests/Views/
 /tests/Views/*
 !/tests/Views/FrontendSettingGatesTest.php
 !/tests/Views/AdminSidebarTranslationsTest.php
 !/tests/Views/HeroPanelThemeTest.php
 !/tests/Views/MaintenancePageTest.php
+!/tests/Views/TranslationCoverageTest.php
 !/tests/e2e/
 /tests/e2e/*
 !/tests/e2e/settings-effects.spec.js
@@ -212,3 +223,12 @@ presentazione.md
 .playwright-mcp/
 m8-before/
 m8-after/
+
+/storage/image-jobs/
+
+# Album deletion and warmed gallery regression coverage
+!/tests/Controllers/AlbumDeletionCacheTest.php
+
+# Docker/PHP-FPM/Chromium integration checks (.github/workflows/image-jobs.yml)
+!/tests/integration/
+!/tests/integration/**

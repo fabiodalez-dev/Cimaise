@@ -26,8 +26,11 @@ class CimaiseAnalyticsProPlugin
     private ?\CimaiseAnalyticsPro\AnalyticsPro $analytics = null;
     private ?Database $db = null;
 
-    public function __construct()
+    public function __construct(bool $registerHooks = true)
     {
+        if (!$registerHooks) {
+            return;
+        }
         // Hook principale: inizializzazione app
         Hooks::addAction('cimaise_init', [$this, 'initialize'], 10, 'cimaise-analytics-pro');
 

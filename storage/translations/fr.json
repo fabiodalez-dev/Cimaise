@@ -23,7 +23,11 @@
   },
   "theme": {
     "theme.toggle_dark": "Passer au thème sombre",
-    "theme.toggle_light": "Passer au thème clair"
+    "theme.toggle_light": "Passer au thème clair",
+    "images.enhanced_ready": "Des versions améliorées des images sont disponibles",
+    "updates.reload": "Recharger",
+    "updates.dismiss": "Ignorer",
+    "updates.available": "Nouvelle version disponible"
   },
   "album": {
     "album.camera": "Appareil photo",
@@ -287,7 +291,9 @@
     "home_snap.view_album": "Voir l'album"
   },
   "image": {
-    "image.download": "Télécharger"
+    "image.download": "Télécharger",
+    "image.download_failed": "Impossible de télécharger l’original. Vérifiez que les téléchargements sont activés et déverrouillez l’album si nécessaire.",
+    "image.download_maintenance": "Les téléchargements sont indisponibles pendant la maintenance."
   },
   "installer": {
     "installer.admin_language": "Langue d'administration",

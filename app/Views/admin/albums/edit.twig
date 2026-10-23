@@ -69,11 +69,16 @@
 
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
-                  <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.categories') }} <span class="text-red-500">*</span></label>
-                  <select name="categories[]" id="album-categories" class="form-input" multiple required>
+                  <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.categories') }}</label>
+                  <select name="categories[]" id="album-categories" class="form-input" multiple>
                     {% set selectedCats = categoryIds|default([item.category_id ? item.category_id : 0]) %}
+                    {% set noneSelected = false %}
+                    {% for c in categories %}{% if c.slug == 'none' and c.id in selectedCats %}{% set noneSelected = true %}{% endif %}{% endfor %}
+                    <option value="0" {{ noneSelected ? 'selected' : '' }}>{{ trans('admin.albums.none_category', {}, 'None') }}</option>
                     {% for c in categories %}
+                      {% if c.slug != 'none' %}
                       <option value="{{ c.id }}" {% if c.id in selectedCats %}selected{% endif %}>{{ c.name }}</option>
+                      {% endif %}
                     {% endfor %}
                   </select>
                   <p class="text-xs text-gray-500 mt-1">{{ trans('admin.albums.categories_help') }}</p>

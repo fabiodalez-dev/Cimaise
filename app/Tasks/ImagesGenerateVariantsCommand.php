@@ -130,7 +130,7 @@ class ImagesGenerateVariantsCommand extends Command
             $output->writeln('');
             $output->writeln('<info>✓ Variant generation complete!</info>');
 
-            return Command::SUCCESS;
+            return $totalStats['failed'] > 0 ? Command::FAILURE : Command::SUCCESS;
 
         } catch (\Throwable $e) {
             $output->writeln('');

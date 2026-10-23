@@ -24,7 +24,8 @@ final class AdminSidebarTranslationsTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->layout = (string) file_get_contents(dirname(__DIR__, 2) . '/app/Views/admin/_layout.twig');
+        $this->layout = (string) file_get_contents(dirname(__DIR__, 2) . '/app/Views/admin/_layout.twig')
+            . (string) file_get_contents(dirname(__DIR__, 2) . '/app/Views/admin/_navigation.twig');
     }
 
     /** @return array<string, string> source path => contents */

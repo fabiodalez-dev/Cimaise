@@ -65,7 +65,7 @@ final class EntrypointMigrationsTest extends TestCase
         $db = new PDO('sqlite:' . $this->root . '/database/database.sqlite');
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $schema = str_replace('  show_equipment INTEGER NOT NULL DEFAULT 1,' . "\n", '',
-            (string) file_get_contents(dirname(__DIR__, 2) . '/database/schema.sqlite.sql'));
+            str_replace("\r\n", "\n", (string) file_get_contents(dirname(__DIR__, 2) . '/database/schema.sqlite.sql')));
         $db->exec($schema);
         $db->exec("INSERT INTO categories (id,name,slug) VALUES (99999,'Review','review');
             INSERT INTO albums (id,title,slug,category_id,custom_cameras) VALUES (99999,'Review','review',99999,'Retained camera')");

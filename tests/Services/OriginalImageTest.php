@@ -30,10 +30,10 @@ final class OriginalImageTest extends TestCase
 
     public function testResolvesCurrentAndLegacyLocations(): void
     {
-        self::assertSame($this->root . '/storage/originals/current.jpg', OriginalImage::resolve('/storage/originals/current.jpg', $this->root));
+        self::assertSame(realpath($this->root . '/storage/originals/current.jpg'), OriginalImage::resolve('/storage/originals/current.jpg', $this->root));
         // Legacy rows point below public/ without naming it.
-        self::assertSame($this->root . '/public/media/originals/legacy.jpg', OriginalImage::resolve('/media/originals/legacy.jpg', $this->root));
-        self::assertSame($this->root . '/storage/originals/current.jpg', OriginalImage::resolve('current.jpg', $this->root));
+        self::assertSame(realpath($this->root . '/public/media/originals/legacy.jpg'), OriginalImage::resolve('/media/originals/legacy.jpg', $this->root));
+        self::assertSame(realpath($this->root . '/storage/originals/current.jpg'), OriginalImage::resolve('current.jpg', $this->root));
     }
 
     public function testRefusesAnythingOutsideTheOriginalsDirectories(): void

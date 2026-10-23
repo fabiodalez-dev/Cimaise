@@ -1,0 +1,18 @@
+{# Render the compact sidebar immediately; JavaScript adds grouped page tools. #}
+{% set navigation_groups = [
+  {id: 'dashboard', label: trans('admin.sidebar.dashboard'), icon: 'fa-tachometer-alt', url: '/admin', routes: ['/admin']},
+  {id: 'gallery', label: trans('admin.sidebar.gallery'), icon: 'fa-images', url: '/admin/media', routes: ['/admin/media']},
+  {id: 'albums', label: trans('admin.sidebar.albums'), icon: 'fa-layer-group', url: '/admin/albums', routes: ['/admin/albums', '/admin/collections', '/admin/categories', '/admin/tags']},
+  {id: 'website', label: trans('admin.sidebar.website'), icon: 'fa-globe', url: '/admin/pages/home', routes: ['/admin/pages/home', '/admin/pages', '/admin/texts', '/admin/social', '/admin/seo', '/admin/privacy', '/admin/filter-settings']},
+  {id: 'appearance', label: trans('admin.sidebar.appearance'), icon: 'fa-palette', url: '/admin/templates', routes: ['/admin/templates', '/admin/typography', '/admin/settings#site-branding', '/admin/custom-templates']},
+  {id: 'metadata', label: trans('admin.sidebar.metadata'), icon: 'fa-camera', url: '/admin/cameras', routes: ['/admin/cameras', '/admin/lenses', '/admin/films', '/admin/developers', '/admin/labs', '/admin/locations', '/admin/custom-field-types']},
+  {id: 'analytics', label: trans('admin.sidebar.analytics'), icon: 'fa-chart-line', url: '/admin/analytics', routes: ['/admin/analytics', '/admin/analytics-pro']},
+  {id: 'system', label: trans('admin.sidebar.system'), icon: 'fa-cog', url: '/admin/settings', routes: ['/admin/settings', '/admin/plugins', '/admin/users', '/admin/commands', '/admin/diagnostics', '/admin/cache', '/admin/updates']}
+] %}
+<nav id="admin-primary-navigation" aria-label="{{ trans('admin.sidebar.navigation') }}" data-base-path="{{ base_path|e('html_attr') }}">
+  {% for group in navigation_groups %}
+    <a href="{{ base_path }}{{ group.url }}" class="sidebar-link" data-spa-link data-nav-group="{{ group.id }}" data-nav-routes="{{ group.routes|json_encode|e('html_attr') }}">
+      <i class="fas {{ group.icon }}" aria-hidden="true"></i><span class="nav-title">{{ group.label }}</span>
+    </a>
+  {% endfor %}
+</nav>

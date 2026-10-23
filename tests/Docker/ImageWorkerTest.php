@@ -27,7 +27,8 @@ final class ImageWorkerTest extends TestCase
     protected function tearDown(): void
     {
         if (is_resource($this->process)) {
-            proc_terminate($this->process, SIGKILL);
+            // Signal 9 works without requiring the optional pcntl extension.
+            proc_terminate($this->process, 9);
             proc_close($this->process);
         }
         TestFilesystem::remove($this->root);
@@ -93,6 +94,22 @@ final class ImageWorkerTest extends TestCase
         self::assertSame(0, $this->calls(), 'update in progress');
 
         TestFilesystem::remove($this->root . '/storage/.maintenance');
+        $this->waitForCalls(1, 5.0);
+        self::assertSame(1, $this->calls());
+    }
+
+    public function testBackingOffAndParkedJobsDoNotStartPhp(): void
+    {
+        file_put_contents($this->root . '/.env', "DB_CONNECTION=sqlite\n");
+        file_put_contents($this->root . '/storage/image-jobs/42.job', json_encode(['attempts' => 3, 'next_at' => time() + 3600]));
+        touch($this->root . '/storage/image-jobs/43.failed');
+        $this->start();
+
+        usleep(2500000);
+        self::assertSame(0, $this->calls(), 'a job waiting for its retry, or parked, must not boot PHP');
+
+        // Its retry time has come.
+        file_put_contents($this->root . '/storage/image-jobs/42.job', json_encode(['attempts' => 3, 'next_at' => time() - 1]));
         $this->waitForCalls(1, 5.0);
         self::assertSame(1, $this->calls());
     }

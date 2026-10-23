@@ -31,6 +31,7 @@ WRITABLE_DIRS="
   storage/logs
   storage/image-jobs
   storage/originals
+  storage/fonts
   storage/protected-media
   storage/rate_limits
   storage/tmp

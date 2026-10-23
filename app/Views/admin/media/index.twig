@@ -3,20 +3,16 @@
 {% block content %}
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
     <h1 class="text-2xl font-bold text-black">{{ trans('admin.media.title') }}</h1>
-    <form method="get" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-      <input type="text" name="q" value="{{ app.request.getQueryParams.q|default('') }}" class="form-input w-full sm:w-64" placeholder="{{ trans('admin.media.search') }}">
-      <button class="btn-secondary text-sm sm:text-base">
-        <i class="fas fa-search mr-2"></i>{{ trans('admin.media.search_button') }}
-      </button>
-    </form>
   </div>
 
   <div class="flex gap-6 min-h-screen flex-col lg:flex-row">
     <!-- Main content area - larger on desktop -->
     <div class="flex-1 lg:flex-[3]">
       <!-- Toolbar -->
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 bg-white rounded-lg border border-gray-200 px-4 py-3">
-        <div class="flex items-center gap-4">
+      {% set active_filter_count = (filters.q ? 1 : 0) + (filters.album ? 1 : 0) + (filters.format ? 1 : 0) + (filters.generation ? 1 : 0) %}
+      <section class="media-toolbar mb-4">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 px-4 py-3">
+        <div class="flex flex-wrap items-center gap-4">
           <label class="inline-flex items-center gap-2 text-sm font-medium whitespace-nowrap">
             <input type="checkbox" id="media-select-all" class="rounded border-gray-300 text-black focus:ring-black">
             <span id="selection-count">{{ trans('admin.media.select_all') }}</span>
@@ -24,6 +20,10 @@
           <div class="text-sm text-gray-500 whitespace-nowrap" id="total-count">{{ items|length }} {{ trans('admin.media.items') }}</div>
         </div>
         <div class="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-2 w-full sm:w-auto">
+          <button type="button" id="media-filter-toggle" class="btn-primary text-sm" aria-expanded="{{ active_filter_count ? 'true' : 'false' }}" aria-controls="media-filter-panel">
+            <i class="fas fa-filter mr-2" aria-hidden="true"></i>{{ trans('admin.media.filters', {}, 'Filters') }}{% if active_filter_count %} ({{ active_filter_count }}){% endif %}
+            <i class="fas fa-chevron-down ml-2" aria-hidden="true"></i>
+          </button>
           <select id="media-attach-album" class="form-input text-sm min-w-0 sm:min-w-[200px] w-full sm:w-auto">
             <option value="">{{ trans('admin.media.add_to_album') }}</option>
             {% for a in albums %}
@@ -41,6 +41,9 @@
         </div>
       </div>
 
+      {% include 'admin/media/_filters.twig' %}
+      </section>
+
       <!-- Media Grid -->
       {% include 'admin/media/_grid.twig' %}
 
@@ -51,7 +54,7 @@
           {# Previous button #}
           {% if pagination.current_page > 1 %}
           <li>
-            <a href="?page={{ pagination.current_page - 1 }}{% if pagination.query %}&q={{ pagination.query|url_encode }}{% endif %}"
+            <a href="?page={{ pagination.current_page - 1 }}&{{ pagination.filters }}"
                class="flex items-center justify-center w-9 h-9 border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition-colors"
                aria-label="{{ trans('admin.pagination.previous') }}">
               <i class="fas fa-chevron-left text-xs"></i>
@@ -67,7 +70,7 @@
             </li>
             {% else %}
             <li>
-              <a href="?page={{ p }}{% if pagination.query %}&q={{ pagination.query|url_encode }}{% endif %}"
+              <a href="?page={{ p }}&{{ pagination.filters }}"
                  aria-label="{{ trans('admin.pagination.goto_page')|default('Go to page') }} {{ p }}"
                  class="flex items-center justify-center w-9 h-9 border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition-colors">{{ p }}</a>
             </li>
@@ -77,7 +80,7 @@
           {# Next button #}
           {% if pagination.current_page < pagination.total_pages %}
           <li>
-            <a href="?page={{ pagination.current_page + 1 }}{% if pagination.query %}&q={{ pagination.query|url_encode }}{% endif %}"
+            <a href="?page={{ pagination.current_page + 1 }}&{{ pagination.filters }}"
                class="flex items-center justify-center w-9 h-9 border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition-colors"
                aria-label="{{ trans('admin.pagination.next') }}">
               <i class="fas fa-chevron-right text-xs"></i>
@@ -96,7 +99,7 @@
     <div id="media-sidebar" class="w-full lg:w-96 bg-white rounded-lg border border-gray-200 hidden flex-shrink-0 max-w-full flex-col">
       <div class="p-4 border-b border-gray-200 relative">
         <h3 class="font-semibold text-gray-900 mb-4">{{ trans('admin.media.image_details') }}</h3>
-        <button id="sidebar-close" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100" type="button">
+        <button id="media-sidebar-close" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100" type="button">
           <i class="fas fa-times"></i>
         </button>
       </div>
@@ -108,6 +111,15 @@
           <div class="mt-2 text-xs text-gray-500" id="sidebar-dimensions"></div>
         </div>
 
+        <section aria-labelledby="original-image-title">
+          <h3 id="original-image-title" class="text-sm font-semibold mb-2">{{ trans('admin.media.original_image', {}, 'Original Image') }}</h3>
+          <div id="original-image-details" class="text-xs"></div>
+        </section>
+        <section class="mb-4" aria-labelledby="image-versions-title">
+          <h3 id="image-versions-title" class="text-sm font-semibold mb-2">{{ trans('admin.media.versions', {}, 'Image versions') }}</h3>
+          <p id="image-versions-status" class="text-xs text-gray-600 mb-2" role="status"></p>
+          <div id="image-versions-list" class="space-y-2 text-xs"></div>
+        </section>
         <!-- Image details form -->
         <form id="sidebar-form" class="space-y-4">
           <input type="hidden" name="csrf" value="{{ csrf }}">
@@ -460,7 +472,7 @@
       const grid = document.getElementById('media-grid');
       const sidebar = document.getElementById('media-sidebar');
       const sidebarForm = document.getElementById('sidebar-form');
-      const sidebarClose = document.getElementById('sidebar-close');
+      const sidebarClose = document.getElementById('media-sidebar-close');
       const attachBtn = document.getElementById('media-attach-btn');
       const deleteBtn = document.getElementById('media-delete-btn');
       const selectAll = document.getElementById('media-select-all');
@@ -469,6 +481,48 @@
       if (!grid) return;
       
       let currentImageId = null;
+      let versionsTimer = null;
+
+      async function loadVersions(imageId) {
+        clearTimeout(versionsTimer);
+        const status = document.getElementById('image-versions-status');
+        const list = document.getElementById('image-versions-list');
+        try {
+          const response = await fetch(`${window.basePath || ''}/admin/media/images/${imageId}/variants`, { cache: 'no-store', headers: { Accept: 'application/json' } });
+          if (!response.ok) throw new Error('Unavailable');
+          const data = await response.json();
+          if (currentImageId !== imageId || !sidebar.isConnected) return;
+          list.replaceChildren();
+          const originalList = document.getElementById('original-image-details');
+          originalList.replaceChildren();
+          const ready = data.variants.filter(variant => variant.ready).length;
+          status.textContent = window.adminTf('admin.media.versions_ready', { ready, total: data.variants.length }, '{ready}/{total} versions ready');
+          if (data.job?.pending && data.job.state === 'retrying') status.textContent += ' · ' + window.adminT('admin.media.versions_retrying', 'Waiting to retry automatically');
+          const original = data.original ? { ...data.original, name: window.adminT('admin.media.original', 'Original'), original: true } : null;
+          for (const variant of [...(original ? [original] : []), ...data.variants]) {
+            const row = document.createElement('div');
+            row.className = 'flex items-center justify-between gap-2';
+            const label = document.createElement('span');
+            const size = variant.bytes >= 1048576 ? `${(variant.bytes / 1048576).toFixed(2)} MB` : `${Math.ceil(variant.bytes / 1024)} KB`;
+            label.textContent = variant.name + (variant.ready ? ` · ${variant.width} × ${variant.height} · ${size}` : ' · ' + window.adminT('admin.media.versions_missing', 'Not generated'));
+            row.appendChild(label);
+            if (variant.ready) {
+              const link = document.createElement('a');
+              link.href = (window.basePath || '') + variant.url;
+              link.target = '_blank';
+              link.rel = 'noopener';
+              link.className = 'underline';
+              link.textContent = variant.original ? window.adminT('admin.media.download_original', 'Download original') : window.adminT('admin.media.versions_view', 'View');
+              if (variant.original) link.download = '';
+              row.appendChild(link);
+            }
+            (variant.original ? originalList : list).appendChild(row);
+          }
+          if (data.job?.pending) versionsTimer = setTimeout(() => loadVersions(imageId), 2000);
+        } catch (_) {
+          if (currentImageId === imageId) status.textContent = window.adminT('admin.image_jobs.unavailable', 'Reconnecting to image generation status…');
+        }
+      }
 
       // Add checkboxes to grid items
       grid.querySelectorAll('[data-media-id]')?.forEach(card => {
@@ -496,6 +550,12 @@
           // Don't open sidebar for taps on the checkbox or its hit area
           if (e.target.closest('[data-select-hit]')) return;
           openSidebarWithExif(id, card);
+        });
+        card.addEventListener('keydown', (e) => {
+          if (e.target === card && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            openSidebarWithExif(id, card);
+          }
         });
 
         // Update selection count when checkbox changes
@@ -537,6 +597,10 @@
       // Open sidebar with image details
       function openSidebar(imageId, cardElement) {
         currentImageId = imageId;
+        document.getElementById('image-versions-list').replaceChildren();
+        document.getElementById('original-image-details').replaceChildren();
+        document.getElementById('image-versions-status').textContent = '…';
+        loadVersions(imageId);
         sidebar.classList.remove('hidden');
         sidebar.classList.add('flex');
         
@@ -587,6 +651,7 @@
 
       // Close sidebar function
       function closeSidebar() {
+        clearTimeout(versionsTimer);
         if (sidebar) {
           sidebar.classList.add('hidden');
           sidebar.classList.remove('flex');
@@ -609,7 +674,7 @@
       // Close sidebar when clicking outside
       document.addEventListener('click', (e) => {
         // Handle direct clicks on close button
-        if (e.target.closest('#sidebar-close')) {
+        if (e.target.closest('#media-sidebar-close')) {
           e.preventDefault();
           e.stopPropagation();
           closeSidebar();
@@ -621,15 +686,25 @@
             !sidebar.contains(e.target) && 
             e.target !== sidebar &&
             !e.target.closest('[data-media-id]') &&
-            !e.target.closest('#sidebar-close')) {
+            !e.target.closest('#media-sidebar-close')) {
           closeSidebar();
         }
       });
       
       // Close sidebar with Escape key
       document.addEventListener('keydown', (e) => {
+        if (!sidebar.isConnected || sidebar.classList.contains('hidden')) return;
         if (e.key === 'Escape' && sidebar && !sidebar.classList.contains('hidden')) {
           closeSidebar();
+        }
+        if (!['ArrowLeft', 'ArrowRight'].includes(e.key) || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey
+            || e.target.closest('input, textarea, select, [contenteditable="true"], [role="textbox"]')) return;
+        const cards = Array.from(grid.querySelectorAll('[data-media-id]'));
+        const index = cards.findIndex(card => Number(card.dataset.mediaId) === Number(currentImageId));
+        const next = cards[index + (e.key === 'ArrowRight' ? 1 : -1)];
+        if (index >= 0 && next) {
+          e.preventDefault();
+          window.openSidebar(Number(next.dataset.mediaId), next);
         }
       });
 
@@ -1042,7 +1117,8 @@
       });
 
       // Load EXIF when sidebar opens
-      const originalOpenSidebar = window.openSidebar || openSidebar;
+      // SPA navigation must bind to this page's sidebar, never a detached old one.
+      const originalOpenSidebar = openSidebar;
       function openSidebarWithExif(imageId, cardElement) {
         // Reset EXIF editor state
         exifEditor.classList.add('hidden');

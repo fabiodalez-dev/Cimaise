@@ -90,6 +90,18 @@ class HomeImageService
     {
     }
 
+    private function classicAlbumLimitSql(): string
+    {
+        $settings = new SettingsService($this->db);
+        $cap = $settings->get('home.template', 'classic') === 'classic'
+            ? max(0, min(100, (int)$settings->get('home.gallery_per_album', 0))) : 0;
+        if ($cap === 0) { return ''; }
+        // Rank within the album before pagination, so every batch shares the cap.
+        return " AND (SELECT COUNT(*) FROM images prior WHERE prior.album_id = i.album_id
+            AND (COALESCE(prior.sort_order, 0) < COALESCE(i.sort_order, 0)
+            OR (COALESCE(prior.sort_order, 0) = COALESCE(i.sort_order, 0) AND prior.id <= i.id))) <= {$cap}";
+    }
+
     /**
      * Get initial batch of images ensuring album diversity.
      * Returns 1 image per album, then fills to reach limit.
@@ -102,6 +114,7 @@ class HomeImageService
     {
         $limit = max(1, min($limit, self::MAX_FETCH_LIMIT));
         $pdo = $this->db->pdo();
+        $albumLimitSql = $this->classicAlbumLimitSql();
 
         // Fetch images from published albums with LIMIT to prevent memory issues
         // Uses ORDER BY album_id to improve album distribution within the limit
@@ -117,6 +130,7 @@ class HomeImageService
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')
+            {$albumLimitSql}
             GROUP BY i.id
             ORDER BY a.id, i.sort_order
             LIMIT :max_fetch
@@ -136,6 +150,7 @@ class HomeImageService
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')
+              {$albumLimitSql}
         ");
         $countStmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
         $countStmt->execute();
@@ -480,6 +495,10 @@ class HomeImageService
         $limit = max(1, min($limit, self::MAX_FETCH_LIMIT));
         $pdo = $this->db->pdo();
 
+        $albumLimitSql = $this->classicAlbumLimitSql();
+        $excludeIds = array_values(array_unique(array_filter(array_map(intval(...), $excludeImageIds), static fn ($id) => $id > 0)));
+        $excludeSql = $excludeIds ? ' AND i.id NOT IN (' . implode(',', $excludeIds) . ')' : '';
+
         // Fetch eligible images with LIMIT to prevent memory issues
         // REFACTORED: Use LEFT JOIN + GROUP BY instead of correlated subquery to avoid N+1 performance hit
         $stmt = $pdo->prepare("
@@ -493,6 +512,8 @@ class HomeImageService
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')
+            {$albumLimitSql}
+            {$excludeSql}
             GROUP BY i.id
             ORDER BY a.id, i.sort_order
             LIMIT :max_fetch

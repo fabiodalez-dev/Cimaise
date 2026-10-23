@@ -15,9 +15,16 @@ INTERVAL="${CIMAISE_IMAGE_WORKER_INTERVAL:-3}"
 # After a failed run, or while the only jobs left are waiting for a retry.
 RETRY_INTERVAL="${CIMAISE_IMAGE_WORKER_RETRY_INTERVAL:-15}"
 
+# A job is due when it has no retry time yet ({"next_at":N} written by a
+# failed attempt) or that time has passed. Jobs still backing off do not start
+# PHP; jobs parked after repeated failures are *.failed and never match.
 has_jobs() {
+  now=$(date +%s)
   for job in "$JOBS_DIR"/*.job; do
-    [ -e "$job" ] && return 0
+    [ -e "$job" ] || continue
+    next_at=$(sed -n 's/.*"next_at":\([0-9]*\).*/\1/p' "$job" 2>/dev/null)
+    [ -z "$next_at" ] && return 0
+    [ "$next_at" -le "$now" ] && return 0
   done
   return 1
 }

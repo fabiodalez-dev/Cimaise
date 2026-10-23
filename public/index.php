@@ -36,6 +36,7 @@ if (is_file($maintenanceFlagFile)) {
     if (is_file($maintenanceFlagFile) && !str_contains($maintenancePath, '/admin/updates')) {
         http_response_code(503);
         header('Retry-After: 120');
+        header('X-Cimaise-Maintenance: 1');
         header('Content-Type: text/html; charset=utf-8');
         header('Cache-Control: no-store, max-age=0');
         header('X-Robots-Tag: noindex');
@@ -283,6 +284,7 @@ if ($container['db'] !== null && !$isInstallerRoute) {
                 $pluginCheckStmt = $container['db']->pdo()->prepare('SELECT is_active FROM plugin_status WHERE slug = ? AND is_installed = 1');
                 $pluginCheckStmt->execute(['maintenance-mode']);
                 $pluginStatus = $pluginCheckStmt->fetch(\PDO::FETCH_ASSOC);
+                $pluginCheckStmt->closeCursor();
                 $isActive = $pluginStatus && $pluginStatus['is_active'];
                 // Atomic write: ensure directory exists, write to temp file, then rename
                 $cacheDir = dirname($cacheFile);
@@ -433,6 +435,8 @@ if (file_exists($versionFile)) {
     $appVersion = $versionData['version'] ?? '1.0.0';
 }
 $twig->getEnvironment()->addGlobal('app_version', $appVersion);
+$twig->getEnvironment()->addGlobal('image_generation_revision', \App\Services\ImageGenerationRevision::current());
+$twig->getEnvironment()->addGlobal('image_generation_pending', \App\Services\ImageGenerationRevision::pending());
 
 // Load Twig globals from cache (APCu/file) - reduces ~50 settings queries to ~1
 // Cache is invalidated when settings change via TwigGlobalsCache::invalidate()
@@ -576,6 +580,7 @@ if (!$isInstallerRoute && !$isMediaRequest && $container['db'] !== null) {
             $typographyService = new \App\Services\TypographyService($settingsSvc);
             $criticalFonts = $typographyService->getCriticalFontsForPreload($basePath);
             $twig->getEnvironment()->addGlobal('critical_fonts_preload', $criticalFonts);
+            $twig->getEnvironment()->addGlobal('typography_version', substr(hash('sha256', $typographyService->generateFullCss($basePath)), 0, 16));
         }
     } catch (\Throwable) {
         // Fallback: use TwigGlobalsCache defaults on error

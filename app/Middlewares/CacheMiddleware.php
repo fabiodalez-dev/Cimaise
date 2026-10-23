@@ -33,6 +33,11 @@ class CacheMiddleware implements MiddlewareInterface
         // (e.g. /foo must not match /foobar).
         $path = $request->getUri()->getPath();
         $basePath = rtrim((string) $this->settings->get('site.base_path', ''), '/');
+        if ($basePath === '') {
+            $scriptDirectory = dirname((string)($_SERVER['SCRIPT_NAME'] ?? '/index.php'));
+            if (str_ends_with($scriptDirectory, '/public')) { $scriptDirectory = substr($scriptDirectory, 0, -7); }
+            $basePath = in_array($scriptDirectory, ['/', '.', '\\'], true) ? '' : $scriptDirectory;
+        }
         if ($basePath !== '' && str_starts_with($path, $basePath) && (strlen($path) === strlen($basePath) || $path[strlen($basePath)] === '/')) {
             $path = substr($path, strlen($basePath)) ?: '/';
         }
@@ -61,13 +66,22 @@ class CacheMiddleware implements MiddlewareInterface
                         ->withStatus(304)
                         ->withBody($emptyBody)
                         ->withHeader('ETag', $earlyEtag)
-                        ->withHeader('Cache-Control', "public, max-age={$maxAge}, must-revalidate, stale-while-revalidate=60")
+                        ->withHeader('Cache-Control', "public, no-cache, max-age={$maxAge}, must-revalidate")
                         ->withHeader('Vary', 'Accept-Encoding');
                 }
             }
         }
 
         $response = $handler->handle($request);
+
+        // These editors change shared layout or page content. Hard-purge after
+        // the final write so the next visitor cannot receive a stale page.
+        if (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)
+            && !empty($_SESSION['admin_id']) && $response->getStatusCode() < 400
+            && preg_match('#^/admin/(settings|pages|social|typography)(/|$)#', $path)) {
+            $this->pageCacheService?->clearAll();
+            \App\Services\TwigGlobalsCache::invalidate();
+        }
 
         if (!$cacheEnabled) {
             return $response;
@@ -96,6 +110,9 @@ class CacheMiddleware implements MiddlewareInterface
 
         // API routes
         if (str_starts_with($path, '/api/')) {
+            if ($path === '/api/image-generation-revision') {
+                return $response->withHeader('Cache-Control', 'no-store');
+            }
             // Admin API: no cache
             if ($path === '/api/admin' || str_starts_with($path, '/api/admin/')) {
                 return $this->addNoCacheHeaders($response);
@@ -311,7 +328,7 @@ class CacheMiddleware implements MiddlewareInterface
                     ->withStatus(304)
                     ->withBody($emptyBody)
                     ->withHeader('ETag', $etag)
-                    ->withHeader('Cache-Control', "{$visibility}, max-age={$maxAge}, must-revalidate, stale-while-revalidate=60");
+                    ->withHeader('Cache-Control', "{$visibility}, no-cache, max-age={$maxAge}, must-revalidate");
                 $vary304 = 'Accept-Encoding';
                 if ($isSessionDependent) {
                     $vary304 .= ', Cookie';
@@ -320,9 +337,9 @@ class CacheMiddleware implements MiddlewareInterface
             }
         }
 
-        // For HTML, use shorter cache with must-revalidate
+        // Keep stored HTML, but validate its content ID before every reuse.
         $result = $response
-            ->withHeader('Cache-Control', "{$visibility}, max-age={$maxAge}, must-revalidate, stale-while-revalidate=60")
+            ->withHeader('Cache-Control', "{$visibility}, no-cache, max-age={$maxAge}, must-revalidate")
             ->withHeader('Expires', gmdate('D, d M Y H:i:s', time() + $maxAge) . ' GMT');
 
         if ($etag) {
@@ -390,7 +407,7 @@ class CacheMiddleware implements MiddlewareInterface
         if ($backend === 'database') {
             $hash = $this->pageCacheService->getHash($cacheType);
             if ($hash) {
-                return '"' . $hash . '"';
+                return $this->htmlContentId($hash);
             }
             return null;
         }
@@ -401,15 +418,22 @@ class CacheMiddleware implements MiddlewareInterface
         }
         $cacheFile = $this->pageCacheService->getCacheFilePath($cacheType);
         if ($cacheFile && file_exists($cacheFile)) {
-            $mtime = filemtime($cacheFile);
-            $size = filesize($cacheFile);
-            if ($mtime === false || $size === false) {
-                return null;
-            }
-            return '"' . md5($mtime . '-' . $size) . '"';
+            $hash = hash_file('sha256', $cacheFile);
+            return $hash === false ? null : $this->htmlContentId($hash);
         }
 
         return null;
+    }
+
+    private function htmlContentId(string $hash): string
+    {
+        $release = hash_file('sha256', dirname(__DIR__, 2) . '/version.json');
+        // The layout embeds the image-generation state (the visitor's
+        // enhanced-version watcher): a validator that ignored it would keep
+        // serving 304 for a page whose watcher state is stale.
+        $generation = \App\Services\ImageGenerationRevision::current()
+            . (\App\Services\ImageGenerationRevision::pending() ? ':pending' : ':idle');
+        return '"' . hash('sha256', $hash . json_encode($this->settings->all()) . $release . $generation) . '"';
     }
 
     /**

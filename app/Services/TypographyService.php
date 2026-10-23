@@ -318,10 +318,16 @@ class TypographyService
      */
     public function getAllFonts(): array
     {
-        return [
+        $fonts = [
             'serif' => self::SERIF_FONTS,
             'sans' => self::SANS_FONTS,
         ];
+        foreach ((array)$this->settings->get('typography.custom_fonts', []) as $slug => $font) {
+            if (is_array($font) && preg_match('/^custom-[a-f0-9]{16}$/D', (string)$slug)) {
+                $fonts[$font['type'] === 'serif' ? 'serif' : 'sans'][$slug] = $font;
+            }
+        }
+        return $fonts;
     }
 
     /**
@@ -381,6 +387,10 @@ class TypographyService
      */
     public function getFontBySlug(string $slug): ?array
     {
+        $custom = (array)$this->settings->get('typography.custom_fonts', []);
+        if (isset($custom[$slug]) && preg_match('/^custom-[a-f0-9]{16}$/D', $slug)) {
+            return $custom[$slug];
+        }
         if (isset(self::SERIF_FONTS[$slug])) {
             return array_merge(self::SERIF_FONTS[$slug], ['type' => 'serif']);
         }
@@ -395,7 +405,7 @@ class TypographyService
      */
     public function isSerif(string $slug): bool
     {
-        return isset(self::SERIF_FONTS[$slug]);
+        return ($this->getFontBySlug($slug)['type'] ?? null) === 'serif';
     }
 
     /**
@@ -440,7 +450,10 @@ class TypographyService
                 $css .= "  font-style: normal;\n";
                 $css .= "  font-weight: {$weight};\n";
                 $css .= "  font-display: optional;\n";
-                $css .= "  src: url('{$basePath}/fonts/{$slug}/{$slug}-{$weight}.woff2') format('woff2');\n";
+                $file = $fontData['files'][$weight] ?? null;
+                $url = $file ? "{$basePath}/fonts/custom/{$file}" : "{$basePath}/fonts/{$slug}/{$slug}-{$weight}.woff2";
+                $format = $file ? (['ttf' => 'truetype', 'otf' => 'opentype'][pathinfo($file, PATHINFO_EXTENSION)] ?? pathinfo($file, PATHINFO_EXTENSION)) : 'woff2';
+                $css .= "  src: url('{$url}') format('{$format}');\n";
                 $css .= "}\n\n";
             }
         }
@@ -550,7 +563,7 @@ class TypographyService
         $slug = preg_replace('/[^a-z0-9\-]/', '', strtolower($slug)) ?? '';
 
         // Verify it's a valid font
-        if (!isset(self::SERIF_FONTS[$slug]) && !isset(self::SANS_FONTS[$slug])) {
+        if ($this->getFontBySlug($slug) === null) {
             return 'inter'; // Default fallback
         }
 
@@ -588,13 +601,15 @@ class TypographyService
                 $weight = $this->getClosestWeight($fontData['weights'], $weight);
             }
 
-            $fontUrl = "{$basePath}/fonts/{$slug}/{$slug}-{$weight}.woff2";
+            $file = $fontData['files'][$weight] ?? null;
+            $fontUrl = $file ? "{$basePath}/fonts/custom/{$file}" : "{$basePath}/fonts/{$slug}/{$slug}-{$weight}.woff2";
             $fontKey = "{$slug}-{$weight}";
 
             // Avoid duplicates (if headings and body use same font/weight)
             if (!isset($preloadFonts[$fontKey])) {
                 $preloadFonts[$fontKey] = [
                     'url' => $fontUrl,
+                    'mime' => 'font/' . ($file ? pathinfo($file, PATHINFO_EXTENSION) : 'woff2'),
                     'font' => $fontData['name'],
                     'weight' => $weight,
                 ];

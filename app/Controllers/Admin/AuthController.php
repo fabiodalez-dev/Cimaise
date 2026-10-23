@@ -100,6 +100,7 @@ class AuthController extends BaseController
         $stmt = $this->db->pdo()->prepare('SELECT id, email, password_hash, role, is_active, first_name, last_name FROM users WHERE LOWER(email) = :email LIMIT 1');
         $stmt->execute([':email' => $email]);
         $user = $stmt->fetch();
+        $stmt->closeCursor();
 
         if (!$user || !password_verify($password, (string) $user['password_hash'])) {
             return $this->view->render($response, 'admin/login.twig', [
@@ -379,6 +380,7 @@ class AuthController extends BaseController
         $stmt = $this->db->pdo()->prepare('SELECT password_hash FROM users WHERE id = :id');
         $stmt->execute([':id' => $_SESSION['admin_id']]);
         $user = $stmt->fetch();
+        $stmt->closeCursor();
 
         if (!$user || !password_verify($currentPassword, (string) $user['password_hash'])) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.current_password_incorrect')];

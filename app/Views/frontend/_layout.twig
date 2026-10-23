@@ -45,14 +45,14 @@
     {% endfor %}
 
     <!-- Preload Critical Resources -->
-    <link rel="preload" href="{{ base_path }}/fonts/typography.css" as="style">
+    <link rel="preload" href="{{ base_path }}/fonts/typography.css?v={{ typography_version|default(app_version) }}" as="style">
     <link rel="preload" href="{{ vite_asset('app.css') }}" as="style">
     <link rel="preload" href="{{ vite_asset('frontend.css') }}" as="style">
 
     <!-- Preload Critical Fonts (user-selected) to prevent FOUT -->
     {% if critical_fonts_preload is defined and critical_fonts_preload|length > 0 %}
         {% for font in critical_fonts_preload %}
-    <link rel="preload" href="{{ font.url }}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{{ font.url }}" as="font" type="{{ font.mime|default('font/woff2') }}" crossorigin>
         {% endfor %}
     {% endif %}
 
@@ -178,7 +178,7 @@
 
     <!-- CRITICAL CSS - Render blocking (required for initial paint) -->
     <link href="{{ vite_asset('app.css') }}" rel="stylesheet">
-    <link rel="stylesheet" href="{{ base_path }}/fonts/typography.css">
+    <link rel="stylesheet" href="{{ base_path }}/fonts/typography.css?v={{ typography_version|default(app_version) }}">
 
     <!-- NON-CRITICAL CSS - Loaded async to avoid render blocking -->
     <!-- PhotoSwipe CSS (only needed when lightbox opens) -->
@@ -261,7 +261,7 @@
                     <div class="text-xl font-semibold">
                         <a href="{{ base_path }}/" class="hover:text-gray-600 transition-colors duration-200 flex items-center gap-3">
                             {% if logo_type == 'image' and site_logo %}
-                              <img src="{{ base_path ~ site_logo }}" alt="{{ site_title|default('Portfolio')|e }}" class="h-12 w-auto">
+                              {% include 'frontend/_site_logo.twig' with { logo_class: 'h-12 w-auto' } %}
                             {% else %}
                               {{ site_title|default('Portfolio') }}
                             {% endif %}
@@ -272,7 +272,7 @@
                     <nav class="hidden lg:flex items-center gap-6" id="desktop-nav">
                         <a href="{{ base_path }}/" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ trans('nav.home') }}</a>
                         <a href="{{ base_path }}/galleries" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ trans('nav.galleries') }}</a>
-                        <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ trans('nav.about') }}</a>
+                        <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ about_menu_label|default(trans('nav.about'), true)|e }}</a>
 
                         {{ hook('frontend_nav_after_about', {'base_path': base_path, 'location': 'desktop', 'csp_nonce': csp_nonce()}) }}
 
@@ -440,7 +440,7 @@
                 <div class="px-2 space-y-1">
                     <a href="{{ base_path }}/" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">{{ trans('nav.home') }}</a>
                     <a href="{{ base_path }}/galleries" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">{{ trans('nav.galleries') }}</a>
-                    <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">{{ trans('nav.about') }}</a>
+                    <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">{{ about_menu_label|default(trans('nav.about'), true)|e }}</a>
 
                     {{ hook('frontend_nav_after_about', {'base_path': base_path, 'location': 'mobile', 'csp_nonce': csp_nonce()}) }}
 
@@ -783,17 +783,20 @@
             const icon = document.getElementById('categories-icon');
             let isOpen = false;
             let hoverTimeout;
+            let hideTimeout;
             
             if (!toggle || !menu) return;
             
             function closeMenu() {
+                clearTimeout(hoverTimeout);
                 if (!isOpen) return;
 
                 menu.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
                 menu.style.opacity = '0';
                 menu.style.transform = 'translateX(-50%) translateY(-10px)';
 
-                setTimeout(() => {
+                hideTimeout = setTimeout(() => {
+                    if (isOpen) return;
                     menu.classList.add('opacity-0', 'invisible');
                     menu.classList.remove('opacity-100', 'visible');
                 }, 200);
@@ -807,12 +810,16 @@
             }
 
             function openMenu() {
+                clearTimeout(hoverTimeout);
+                clearTimeout(hideTimeout);
                 if (isOpen) return;
+                isOpen = true;
 
                 menu.classList.remove('opacity-0', 'invisible');
                 menu.classList.add('opacity-100', 'visible');
 
                 requestAnimationFrame(() => {
+                    if (!isOpen) return;
                     menu.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
                     menu.style.opacity = '1';
                     menu.style.transform = 'translateX(-50%) translateY(0)';
@@ -823,14 +830,13 @@
                 }
 
                 toggle.setAttribute('aria-expanded', 'true');
-                isOpen = true;
             }
             
             // Mouse enter/leave for smooth mega menu (keep open across whitespace)
             const dropdown = document.getElementById('categories-dropdown');
             const scheduleClose = () => {
                 clearTimeout(hoverTimeout);
-                hoverTimeout = setTimeout(closeMenu, 180);
+                hoverTimeout = setTimeout(closeMenu, 280);
             };
             const clearClose = () => clearTimeout(hoverTimeout);
             const isHoveringTarget = (target) => {
@@ -2274,8 +2280,8 @@
                             name: 'download-button', order: 8, isButton: true, appendTo: 'bar',
                             html: '<svg aria-hidden="true" class="pswp__icn" viewBox="0 0 32 32" width="32" height="32"><path d="M16 18l-6-6h4V6h4v6h4l-6 6zm-8 2v4h16v-4h2v6H6v-6h2z" fill="currentColor"/></svg>',
                             onInit: (el, pswp) => {
-                                el.setAttribute('title', 'Scarica immagine');
-                                el.setAttribute('aria-label', 'Scarica immagine');
+                                el.setAttribute('title', '{{ trans('image.download')|e('js') }}');
+                                el.setAttribute('aria-label', '{{ trans('image.download')|e('js') }}');
                                 const resolveDownloadUrl = () => {
                                     if (!window.allowDownloads) return null;
                                     const data = pswp?.currSlide?.data || {};
@@ -2295,17 +2301,7 @@
                                     const url = resolveDownloadUrl();
                                     el.style.display = url ? '' : 'none';
                                 };
-                                el.onclick = () => {
-                                    const url = resolveDownloadUrl();
-                                    if (!url) return;
-                                    const link = document.createElement('a');
-                                    link.href = url;
-                                    link.download = '';
-                                    link.target = '_blank';
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
-                                };
+                                el.onclick = () => window.downloadOriginal(resolveDownloadUrl(), el);
                                 pswp.on('change', updateVisibility);
                                 pswp.on('openingAnimationEnd', updateVisibility);
                                 updateVisibility();
@@ -2871,6 +2867,7 @@
         {% endif %}
     </script>
 
+    {% include 'frontend/_download_runtime.twig' %}
     {% include 'frontend/_pwa_runtime.twig' %}
 
     {% if page_custom_js is defined and page_custom_js %}
@@ -2891,6 +2888,9 @@
     {# Block right-click on images for non-admin users #}
     {# `?? true` (not `|default(true)`): Twig's default filter also replaces FALSE,
        which silently re-enabled the blocker after the admin turned it off. #}
+    {% if not is_admin and ((disable_right_click ?? true) or not (allow_downloads ?? false)) %}
+    <style nonce="{{ csp_nonce() }}">img, picture { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; } img { -webkit-user-drag: none; }</style>
+    {% endif %}
     {% if (disable_right_click ?? true) and not is_admin %}
     <script nonce="{{ csp_nonce() }}">
     document.addEventListener('contextmenu', function(e) {

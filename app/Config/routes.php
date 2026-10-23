@@ -25,6 +25,10 @@ function isAppInstalled($db): bool
 }
 
 return function (App $app, array $container) {
+    $app->get('/api/image-generation-revision', function (Request $request, Response $response): Response {
+        $response->getBody()->write(json_encode(['revision' => \App\Services\ImageGenerationRevision::current()]));
+        return $response->withHeader('Content-Type', 'application/json')->withHeader('Cache-Control', 'no-store');
+    });
 
     // Installer routes — redirect all /install/* to standalone installer.php
     if (!$container['db'] || !isAppInstalled($container['db'])) {
@@ -49,6 +53,10 @@ return function (App $app, array $container) {
     $app->get('/site.webmanifest', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
         return $controller->webManifest($request, $response);
+    });
+
+    $app->get('/fonts/custom/{filename}', function (Request $request, Response $response, array $args) use ($container) {
+        return (new \App\Controllers\Admin\TypographyController($container['db'], Twig::fromRequest($request)))->serveFont($request, $response, $args);
     });
 
     // Typography CSS (dynamic, based on settings)
@@ -448,6 +456,18 @@ return function (App $app, array $container) {
         return $resp;
     });
 
+    // Read-only, authenticated progress polling; no database writes or job claims.
+    $app->get('/admin/api/image-jobs', function (Request $request, Response $response) use ($container) {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+        $jobs = (new \App\Services\ImageJobQueue($container['db']))->status();
+        $response->getBody()->write(json_encode(['jobs' => $jobs], JSON_THROW_ON_ERROR));
+        return $response->withHeader('Content-Type', 'application/json')->withHeader('Cache-Control', 'no-store');
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        return new \Slim\Psr7\Response(503);
+    });
+
     // Upload + API
     $app->post('/admin/albums/{id}/upload', function (Request $request, Response $response, array $args) use ($container) {
         $controller = new \App\Controllers\Admin\UploadController($container['db']);
@@ -829,6 +849,11 @@ return function (App $app, array $container) {
             $resp->getBody()->write('Service Unavailable');
             return $resp;
         });
+    $app->post('/admin/typography/upload', function (Request $request, Response $response) use ($container) {
+        return (new \App\Controllers\Admin\TypographyController($container['db'], Twig::fromRequest($request)))->uploadFont($request, $response);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        return new \Slim\Psr7\Response(503);
+    });
     $app->get('/admin/typography/font/{slug}', function (Request $request, Response $response, array $args) use ($container) {
         $controller = new \App\Controllers\Admin\TypographyController($container['db'], Twig::fromRequest($request));
         return $controller->fontInfo($request, $response, $args);
@@ -1260,7 +1285,8 @@ return function (App $app, array $container) {
     // wrapped in the shared admin chrome via admin/plugin-page.twig).
     if (class_exists('CimaiseAnalyticsProPlugin') && file_exists(__DIR__ . '/../../plugins/cimaise-analytics-pro/plugin.php')) {
         $app->get('/admin/analytics-pro', function (Request $request, Response $response) use ($container) {
-            $plugin = new \CimaiseAnalyticsProPlugin();
+            // The loaded plugin already registered tracking/sidebar hooks.
+            $plugin = new \CimaiseAnalyticsProPlugin(false);
             $plugin->initialize($container['db']);
             $html = $plugin->renderDashboardPage($container['db']);
             return Twig::fromRequest($request)->render($response, 'admin/plugin-page.twig', [
@@ -2264,6 +2290,23 @@ return function (App $app, array $container) {
         $resp->getBody()->write('Service Unavailable');
         return $resp;
     });
+    $app->get('/admin/media/images/{id}/original', function (Request $request, Response $response, array $args) use ($container) {
+        return (new \App\Controllers\Frontend\DownloadController($container['db']))->downloadImage($request, $response, $args, true);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        return new \Slim\Psr7\Response(503);
+    });
+    $app->get('/admin/media/images/{id}/variants/{variant}.{format}', function (Request $request, Response $response, array $args) use ($container) {
+        $controller = new \App\Controllers\Admin\MediaController($container['db'], Twig::fromRequest($request), new \App\Services\ExifService($container['db']));
+        return $controller->viewVariant($request, $response, $args);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        return new \Slim\Psr7\Response(503);
+    });
+    $app->get('/admin/media/images/{id}/variants', function (Request $request, Response $response, array $args) use ($container) {
+        $controller = new \App\Controllers\Admin\MediaController($container['db'], Twig::fromRequest($request), new \App\Services\ExifService($container['db']));
+        return $controller->variants($request, $response, $args);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        return new \Slim\Psr7\Response(503);
+    });
     $app->post('/admin/media/images/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
         $exifService = new \App\Services\ExifService($container['db']);
         $controller = new \App\Controllers\Admin\MediaController($container['db'], Twig::fromRequest($request), $exifService);
@@ -2301,5 +2344,28 @@ return function (App $app, array $container) {
         $resp->getBody()->write('Service Unavailable');
         return $resp;
     });
+
+    // Keep legacy About URLs working while honoring the saved permalink.
+    if ($container['db']) {
+        $aboutSettings = new \App\Services\SettingsService($container['db']);
+        $aboutSlug = trim((string)($aboutSettings->get('about.slug', 'about') ?? 'about'));
+        if ($aboutSlug !== 'about' && preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/D', $aboutSlug)) {
+            $aboutPath = '/' . $aboutSlug;
+            $registeredPaths = array_map(static fn ($route) => $route->getPattern(), $app->getRouteCollector()->getRoutes());
+            // Never replace an existing application or admin route.
+            if (!in_array($aboutPath, $registeredPaths, true)) {
+                $app->get($aboutPath, function (Request $request, Response $response) use ($container) {
+                    $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
+                    return $controller->about($request, $response);
+                });
+                if (!in_array($aboutPath . '/contact', $registeredPaths, true)) {
+                    $app->post($aboutPath . '/contact', function (Request $request, Response $response) use ($container) {
+                        $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
+                        return $controller->aboutContact($request, $response);
+                    })->add(new RateLimitMiddleware(5, 600, true));
+                }
+            }
+        }
+    }
 
 }; // End routes function

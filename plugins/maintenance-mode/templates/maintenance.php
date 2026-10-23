@@ -40,9 +40,9 @@ $nonce = bin2hex(random_bytes(16));
 // Set response headers
 http_response_code(503);
 header('Retry-After: 3600');
-// A cached maintenance page would outlive the maintenance itself.
 header('Cache-Control: no-store, max-age=0');
 header('Pragma: no-cache');
+header('X-Cimaise-Maintenance: 1');
 header('X-Robots-Tag: noindex, nofollow');
 header('Content-Type: text/html; charset=UTF-8');
 ?>

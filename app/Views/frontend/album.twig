@@ -166,7 +166,7 @@ document.addEventListener('click', function(event) {
     event.stopPropagation();
     const url = downloadBtn.dataset.downloadUrl;
     if (url) {
-      window.location.href = url;
+      window.downloadOriginal(url, downloadBtn);
     }
     return;
   }

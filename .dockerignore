@@ -84,3 +84,5 @@ firebase-debug.log
 # Docs that don't belong in the runtime image (README is kept for reference)
 *.zip
 *.tar.gz
+
+storage/image-jobs
