@@ -65,6 +65,27 @@ final class LazySession
         return str_contains($body, $token);
     }
 
+    /**
+     * Keep-or-drop decision for a finished response. The outer middlewares
+     * may already have compressed the body (PHP compression when the web
+     * server does not do it): it is decoded to look for the token, and when
+     * that is not possible the session is kept rather than break a form that
+     * will POST the token back.
+     *
+     * @param array<string, mixed> $session
+     */
+    public static function decide(array $session, string $contentType, ?string $body, string $contentEncoding): bool
+    {
+        $encoding = strtolower(trim($contentEncoding));
+        if ($body !== null && $encoding !== '' && $encoding !== 'identity') {
+            $body = self::decode($body, $encoding);
+        }
+        if (self::isScannable($contentType) && $body === null) {
+            return true;
+        }
+        return self::shouldKeep($session, $body);
+    }
+
     public static function isScannable(string $contentType): bool
     {
         $type = strtolower(trim(explode(';', $contentType)[0]));
@@ -96,7 +117,7 @@ final class LazySession
             }
         }
 
-        if (self::shouldKeep($_SESSION, $body)) {
+        if (self::decide($_SESSION, $contentType, $body, $response->getHeaderLine('Content-Encoding'))) {
             if (!headers_sent()) {
                 $params = session_get_cookie_params();
                 setcookie(session_name(), (string) session_id(), [
@@ -115,6 +136,17 @@ final class LazySession
         $_SESSION = [];
         session_destroy();
         return $response->withoutHeader('X-CSRF-Token');
+    }
+
+    public static function decode(string $body, string $encoding): ?string
+    {
+        $decoded = match ($encoding) {
+            'gzip', 'x-gzip' => @gzdecode($body),
+            'deflate' => @gzinflate($body) ?: @gzuncompress($body),
+            'br' => function_exists('brotli_uncompress') ? @brotli_uncompress($body) : false,
+            default => false,
+        };
+        return is_string($decoded) ? $decoded : null;
     }
 
     /** @internal for tests */

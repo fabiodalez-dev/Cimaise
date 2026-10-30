@@ -11,9 +11,14 @@ namespace App\Services;
  * full Twig render. This stores the rendered HTML of home / galleries / album
  * pages, keyed by URL and validated against the page's content ETag computed
  * by CacheMiddleware (page_cache hash + settings + release + image-generation
- * state): when any of those change the entry simply stops matching, so there
- * is no separate invalidation to keep in sync. One file per URL, so the
- * directory stays bounded by the number of pages.
+ * state, texts, header tags): when any of those change the entry simply
+ * stops matching, so there is no separate invalidation to keep in sync.
+ * Entries also expire after MAX_AGE, which bounds staleness from layout
+ * inputs that are not part of the validator (e.g. category counts).
+ *
+ * The key comes from the request (Host header, path variants of the same
+ * slug), so the directory is capped at MAX_ENTRIES: once full, new pages are
+ * simply not stored until "clear cache" or until expired entries are pruned.
  *
  * The per-request CSP nonce is replaced by a placeholder when storing and by
  * the current request's nonce when serving, so nonces are never reused.
@@ -22,12 +27,17 @@ final class HtmlPageCache
 {
     private const NONCE_PLACEHOLDER = '__CIMAISE_CSP_NONCE__';
     private const FORMAT = 1;
+    private const MAX_AGE = 600;
+    private const MAX_ENTRIES = 2000;
 
     /** Response headers that are per-request or recomputed by CacheMiddleware. */
     private const SKIPPED_HEADERS = ['set-cookie', 'x-csrf-token', 'cache-control', 'expires', 'etag', 'vary', 'pragma', 'content-length', 'content-encoding', 'last-modified'];
 
-    public function __construct(private readonly string $dir)
-    {
+    public function __construct(
+        private readonly string $dir,
+        private readonly int $maxEntries = self::MAX_ENTRIES,
+        private readonly int $maxAge = self::MAX_AGE
+    ) {
     }
 
     public static function forApp(): self
@@ -56,7 +66,7 @@ final class HtmlPageCache
         }
         $data = json_decode(substr($raw, 0, $newline), true);
         if (!is_array($data) || ($data['v'] ?? null) !== self::FORMAT || ($data['etag'] ?? null) !== $etag
-            || !is_array($data['headers'] ?? null)) {
+            || !is_array($data['headers'] ?? null) || (int) ($data['t'] ?? 0) < time() - $this->maxAge) {
             return null;
         }
         $html = @gzdecode(substr($raw, $newline + 1));
@@ -93,13 +103,17 @@ final class HtmlPageCache
         if ($compressed === false) {
             return false;
         }
-        $meta = json_encode(['v' => self::FORMAT, 'etag' => $etag, 'headers' => $kept], JSON_UNESCAPED_SLASHES);
+        $file = $this->file($key);
+        if (!is_file($file) && !$this->hasRoom()) {
+            return false;
+        }
+
+        $meta = json_encode(['v' => self::FORMAT, 'etag' => $etag, 't' => time(), 'headers' => $kept], JSON_UNESCAPED_SLASHES);
         if ($meta === false) {
             return false;
         }
         $payload = $meta . "\n" . $compressed;
 
-        $file = $this->file($key);
         $tmp = $file . '.' . bin2hex(random_bytes(4)) . '.tmp';
         if (@file_put_contents($tmp, $payload, LOCK_EX) === false) {
             return false;
@@ -109,6 +123,27 @@ final class HtmlPageCache
             return false;
         }
         return true;
+    }
+
+    /**
+     * True while the directory holds fewer than maxEntries entries. When it is
+     * full, expired entries are pruned once before giving up.
+     */
+    private function hasRoom(): bool
+    {
+        $files = glob($this->dir . '/*.cache') ?: [];
+        if (count($files) < $this->maxEntries) {
+            return true;
+        }
+        $cutoff = time() - $this->maxAge;
+        foreach ($files as $file) {
+            $mtime = @filemtime($file);
+            if ($mtime !== false && $mtime < $cutoff) {
+                @unlink($file);
+            }
+        }
+        clearstatcache();
+        return count(glob($this->dir . '/*.cache') ?: []) < $this->maxEntries;
     }
 
     public function clear(): void

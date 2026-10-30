@@ -29,6 +29,15 @@ final class FrontendLayoutScriptTest extends TestCase
         self::assertStringContainsString('function fallbackClose', $js);
     }
 
+    public function testPhotoSwipeKeyboardOptionsAreNotOverriddenByDuplicateKeys(): void
+    {
+        $js = (string) file_get_contents(self::root() . '/public/assets/js/frontend-layout.js');
+        // A later literal `escKey: true` silently won over the template setting.
+        self::assertSame(1, preg_match_all('/^\s*escKey\s*:/m', $js));
+        self::assertSame(1, preg_match_all('/^\s*arrowKeys\s*:/m', $js));
+        self::assertMatchesRegularExpression('/escKey: \(psCfg\.escKey === undefined/', $js);
+    }
+
     public function testEveryTranslatedStringUsedByTheRuntimeIsProvidedByTheLayout(): void
     {
         $js = (string) file_get_contents(self::root() . '/public/assets/js/frontend-layout.js');

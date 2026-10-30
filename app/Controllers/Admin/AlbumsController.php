@@ -56,6 +56,8 @@ class AlbumsController extends BaseController
      */
     private function invalidatePageCaches(?string $albumSlug = null, ?int $albumId = null, ?array $invalidationTags = null): void
     {
+        // Publication, protection and tag changes alter the header tag menu.
+        \App\Services\NavigationService::invalidateTagsCache();
         try {
             $settings = new SettingsService($this->db);
             if (!$this->pageCacheService instanceof \App\Services\PageCacheService) {

@@ -68,12 +68,17 @@ class PluginManager
         // only a safety net for old installs, so run it once a day per install
         // instead of on every request.
         $cache = QueryCache::getInstance();
-        $flag = 'plugin_status_table_' . md5(dirname(__DIR__, 2) . '|' . ($db->isSqlite() ? 'sqlite' : 'mysql'));
+        $flag = self::tableFlagKey($db);
         if ($cache->get($flag) !== true) {
             if ($this->ensurePluginTable()) {
                 $cache->set($flag, true, 86400);
             }
         }
+    }
+
+    private static function tableFlagKey(Database $db): string
+    {
+        return 'plugin_status_table_' . md5(dirname(__DIR__, 2) . '|' . $db->identity());
     }
 
     /**
@@ -359,20 +364,10 @@ class PluginManager
 
     /**
      * Estrae metadata da commento header del file plugin
+     *
+     * @return array<string, string>
      */
     private function parsePluginMetadata(string $file): array
-    {
-        // Cached by path + mtime + size: loadPlugins() runs on every request.
-        $stat = @stat($file);
-        if ($stat === false) {
-            return [];
-        }
-        $key = 'plugin_meta_' . md5($file . '|' . $stat['mtime'] . '|' . $stat['size']);
-        return QueryCache::getInstance()->remember($key, fn (): array => $this->readPluginMetadata($file), 86400);
-    }
-
-    /** @return array<string, string> */
-    private function readPluginMetadata(string $file): array
     {
         $content = (string) @file_get_contents($file);
         $metadata = [];
@@ -500,9 +495,13 @@ class PluginManager
                 ];
             }
         } catch (\Throwable $e) {
-            // Table may not exist yet (fresh install before ensurePluginTable runs);
-            // leave $statusCache as empty array so we don't keep retrying.
+            // Table may not exist yet (fresh install, or a database restored in
+            // place after the daily "table exists" flag was cached): create it
+            // now and forget the flag. $statusCache stays an empty array so we
+            // don't keep retrying within this request.
             Logger::warning('PluginManager: Failed to prime plugin status cache', ['error' => $e->getMessage()], 'plugin');
+            QueryCache::getInstance()->forget(self::tableFlagKey($this->db));
+            $this->ensurePluginTable();
         }
     }
 

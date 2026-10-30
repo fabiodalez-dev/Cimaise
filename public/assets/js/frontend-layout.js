@@ -1153,8 +1153,6 @@ function initLightbox() {
                 // Enable advanced features
                 zoom: true,
                 counter: true,
-                arrowKeys: true,
-                escKey: true,
                 mouseUsed: false,
                 
             });

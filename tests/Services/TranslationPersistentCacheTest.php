@@ -38,6 +38,15 @@ final class TranslationPersistentCacheTest extends TestCase
         self::assertNotSame('nav.home', $second->get('nav.home'), 'JSON base translations are part of the cached set');
     }
 
+    public function testASetBuiltWhileTheDatabaseFailedIsNotCached(): void
+    {
+        $this->db->pdo()->exec('ALTER TABLE frontend_texts RENAME TO frontend_texts_away');
+        self::assertSame('zz.perf_test', (new TranslationService($this->db))->get('zz.perf_test'), 'Falls back to the key');
+
+        $this->db->pdo()->exec('ALTER TABLE frontend_texts_away RENAME TO frontend_texts');
+        self::assertSame('first', (new TranslationService($this->db))->get('zz.perf_test'), 'The JSON-only set was not frozen in the cache');
+    }
+
     public function testEveryServiceWriteInvalidatesAllCachedSets(): void
     {
         self::assertSame('first', (new TranslationService($this->db))->get('zz.perf_test'));

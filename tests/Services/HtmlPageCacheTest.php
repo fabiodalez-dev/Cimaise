@@ -80,6 +80,23 @@ final class HtmlPageCacheTest extends TestCase
         self::assertNull($this->cache->get('b', '"e"', 'N'));
     }
 
+    public function testEntriesExpireEvenWhenTheValidatorStillMatches(): void
+    {
+        $expired = new HtmlPageCache($this->dir, maxAge: -1);
+        $expired->put('k', '"e1"', 'N1', $this->page('N1'), []);
+        self::assertNull($expired->get('k', '"e1"', 'N2'));
+    }
+
+    public function testDirectoryIsCappedButExistingPagesCanBeRefreshed(): void
+    {
+        $capped = new HtmlPageCache($this->dir, maxEntries: 2);
+        self::assertTrue($capped->put('a', '"e"', 'N', $this->page('N'), []));
+        self::assertTrue($capped->put('b', '"e"', 'N', $this->page('N'), []));
+        self::assertFalse($capped->put('c', '"e"', 'N', $this->page('N'), []), 'Host/path variants cannot fill the disk');
+        self::assertTrue($capped->put('a', '"e2"', 'N', $this->page('N'), []), 'An existing page is still updated');
+        self::assertCount(2, glob($this->dir . '/*.cache') ?: []);
+    }
+
     public function testKeySeparatesHostSchemePortAndPath(): void
     {
         $base = HtmlPageCache::key('https', 'example.org', null, '/album/x');

@@ -127,6 +127,7 @@ tests/
 !/tests/Support/LazySessionTest.php
 !/tests/Support/RouteCacheTest.php
 !/tests/Support/TempQueryCache.php
+!/tests/Support/DatabaseIdentityTest.php
 !/tests/README.md
 !/tests/Lifecycle/
 /tests/Lifecycle/*

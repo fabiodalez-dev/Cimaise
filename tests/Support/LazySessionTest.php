@@ -50,6 +50,23 @@ final class LazySessionTest extends TestCase
         self::assertFalse(LazySession::isScannable('application/zip'));
     }
 
+    public function testTokenIsFoundInsideABodyCompressedByPhp(): void
+    {
+        $html = '<input name="csrf" value="' . self::TOKEN . '">';
+        $session = ['csrf' => self::TOKEN];
+        self::assertTrue(LazySession::decide($session, 'text/html', gzencode($html), 'gzip'));
+        self::assertTrue(LazySession::decide($session, 'text/html', gzdeflate($html), 'deflate'));
+        self::assertFalse(LazySession::decide($session, 'text/html', gzencode('<p>no form</p>'), 'gzip'));
+    }
+
+    public function testUnreadableTextBodiesKeepTheSession(): void
+    {
+        $session = ['csrf' => self::TOKEN];
+        self::assertTrue(LazySession::decide($session, 'text/html', 'not-gzip-bytes', 'gzip'), 'Undecodable: keep rather than break a form');
+        self::assertTrue(LazySession::decide($session, 'text/html', null, ''), 'Body too large or not seekable');
+        self::assertFalse(LazySession::decide($session, 'image/avif', null, ''), 'Images never carry the token');
+    }
+
     public function testFinalizeIsANoOpWhenNoLazySessionWasStarted(): void
     {
         LazySession::reset();

@@ -507,13 +507,29 @@ class CacheMiddleware implements MiddlewareInterface
 
     private function htmlContentId(string $hash): string
     {
-        $this->staticContentId ??= json_encode($this->settings->all()) . hash_file('sha256', dirname(__DIR__, 2) . '/version.json');
+        $this->staticContentId ??= json_encode($this->settings->all()) . hash_file('sha256', dirname(__DIR__, 2) . '/version.json')
+            . $this->layoutContentId();
         // The layout embeds the image-generation state (the visitor's
         // enhanced-version watcher): a validator that ignored it would keep
         // serving 304 for a page whose watcher state is stale.
         $generation = \App\Services\ImageGenerationRevision::current()
             . (\App\Services\ImageGenerationRevision::pending() ? ':pending' : ':idle');
         return '"' . hash('sha256', $hash . $this->staticContentId . $generation) . '"';
+    }
+
+    /**
+     * Shared-layout inputs that live outside settings and page_cache: the
+     * frontend texts (any frontend_texts write bumps the generation) and the
+     * header tag menu. Without them a renamed tag or an edited text kept
+     * serving 304s and stored HTML with the old layout.
+     */
+    private function layoutContentId(): string
+    {
+        $id = \App\Services\TranslationService::cacheGeneration();
+        if ($this->database instanceof Database && $this->settings->get('navigation.show_tags_in_header', false)) {
+            $id .= md5((string) json_encode((new \App\Services\NavigationService($this->database))->getHeaderTags()));
+        }
+        return $id;
     }
 
     /**

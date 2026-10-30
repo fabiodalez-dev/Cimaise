@@ -15,6 +15,8 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Slim\Psr7\Factory\ServerRequestFactory;
 use Slim\Psr7\Response;
 
+require_once dirname(__DIR__) . '/Support/TempQueryCache.php';
+
 final class HtmlPageCacheMiddlewareTest extends TestCase
 {
     private Database $db;
@@ -25,9 +27,11 @@ final class HtmlPageCacheMiddlewareTest extends TestCase
     private mixed $settingsSnapshot;
     private string $scriptName;
     private int $renders = 0;
+    private Closure $restoreCache;
 
     protected function setUp(): void
     {
+        $this->restoreCache = TempQueryCache::install();
         $this->session = $_SESSION ?? [];
         $this->scriptName = $_SERVER['SCRIPT_NAME'];
         $_SESSION = ['csrf' => str_repeat('ab', 32)];
@@ -49,6 +53,7 @@ final class HtmlPageCacheMiddlewareTest extends TestCase
     protected function tearDown(): void
     {
         LazySession::reset();
+        ($this->restoreCache)();
         (new ReflectionProperty(SettingsService::class, 'cache'))->setValue(null, $this->settingsSnapshot);
         $_SESSION = $this->session;
         $_SERVER['SCRIPT_NAME'] = $this->scriptName;
@@ -129,6 +134,16 @@ final class HtmlPageCacheMiddlewareTest extends TestCase
 
         self::assertSame(2, $this->renders);
         self::assertSame('', $response->getHeaderLine('X-Cimaise-Cache'));
+    }
+
+    public function testEditedFrontendTextsChangeTheValidator(): void
+    {
+        $first = $this->middleware()->process($this->request('N1'), $this->handler());
+        \App\Services\TranslationService::invalidatePersistentCache();
+        $second = $this->middleware()->process($this->request('N2'), $this->handler());
+
+        self::assertSame(2, $this->renders, 'Every page embeds texts: an edit must not be served from the stored HTML');
+        self::assertNotSame($first->getHeaderLine('ETag'), $second->getHeaderLine('ETag'), 'Nor revalidated with a 304');
     }
 
     public function testNotUsedWithoutALazySession(): void

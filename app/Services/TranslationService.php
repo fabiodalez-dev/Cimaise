@@ -317,24 +317,32 @@ class TranslationService
             return;
         }
 
-        $this->cache = QueryCache::getInstance()->remember($this->persistentCacheKey(), function (): array {
-            $this->cache = [];
+        $cache = QueryCache::getInstance();
+        $key = $this->persistentCacheKey();
+        $cached = $cache->get($key);
+        if (\is_array($cached)) {
+            $this->cache = $cached;
+            $this->loaded = true;
+            return;
+        }
 
-            // 1. Load from JSON file first (base translations)
-            $this->loadFromJsonFile();
+        $this->cache = [];
 
-            // 2. Overlay database translations (customizations)
-            try {
-                $stmt = $this->db->pdo()->query('SELECT text_key, text_value FROM frontend_texts');
-                foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                    $this->cache[$row['text_key']] = $row['text_value'];
-                }
-            } catch (\PDOException) {
-                // Table might not exist yet
+        // 1. Load from JSON file first (base translations)
+        $this->loadFromJsonFile();
+
+        // 2. Overlay database translations (customizations). Only a complete
+        // set is cached: a transient DB error (e.g. SQLite "database is
+        // locked") must not freeze the JSON-only set for an hour.
+        try {
+            $stmt = $this->db->pdo()->query('SELECT text_key, text_value FROM frontend_texts');
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $this->cache[$row['text_key']] = $row['text_value'];
             }
-
-            return $this->cache;
-        }, self::CACHE_TTL);
+            $cache->set($key, $this->cache, self::CACHE_TTL);
+        } catch (\PDOException) {
+            // Table might not exist yet
+        }
 
         $this->loaded = true;
     }
@@ -355,6 +363,15 @@ class TranslationService
      * Current cache generation. A missing generation (first run, or evicted
      * from APCu) gets a fresh random value, so stale entries are never reused.
      */
+    /**
+     * Changes whenever any frontend_texts write invalidates the cached sets.
+     * Part of the HTML content ID (CacheMiddleware), since every page embeds texts.
+     */
+    public static function cacheGeneration(): string
+    {
+        return self::generation();
+    }
+
     private static function generation(): string
     {
         $cache = QueryCache::getInstance();
