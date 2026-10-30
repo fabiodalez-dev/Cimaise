@@ -146,6 +146,17 @@ final class HtmlPageCacheMiddlewareTest extends TestCase
         self::assertNotSame($first->getHeaderLine('ETag'), $second->getHeaderLine('ETag'), 'Nor revalidated with a 304');
     }
 
+    public function testRenamedMenuCategoryChangesTheValidatorOfUnrelatedPages(): void
+    {
+        $first = $this->middleware()->process($this->request('N1'), $this->handler());
+        $this->db->pdo()->exec("UPDATE categories SET slug = 'renamed' WHERE id = 88888");
+        \App\Services\NavigationService::invalidateCache();
+        $second = $this->middleware()->process($this->request('N2'), $this->handler());
+
+        self::assertSame(2, $this->renders, 'The layout links the category slug in the mega menu');
+        self::assertNotSame($first->getHeaderLine('ETag'), $second->getHeaderLine('ETag'));
+    }
+
     public function testNotUsedWithoutALazySession(): void
     {
         LazySession::reset();

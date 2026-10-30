@@ -47,6 +47,38 @@ final class TranslationPersistentCacheTest extends TestCase
         self::assertSame('first', (new TranslationService($this->db))->get('zz.perf_test'), 'The JSON-only set was not frozen in the cache');
     }
 
+    public function testCachedSetsAreScopedToTheConfiguredDatabase(): void
+    {
+        self::assertSame('first', (new TranslationService($this->db))->get('zz.perf_test'));
+
+        // Another site's database (file-backed: every :memory: DB shares one identity).
+        $file = sys_get_temp_dir() . '/cimaise-tr-' . bin2hex(random_bytes(4)) . '.sqlite';
+        try {
+            $onDisk = new Database(database: $file, isSqlite: true);
+            $onDisk->pdo()->exec('CREATE TABLE frontend_texts (id INTEGER PRIMARY KEY AUTOINCREMENT, text_key TEXT UNIQUE, text_value TEXT, context TEXT, description TEXT, created_at TEXT, updated_at TEXT)');
+            $onDisk->pdo()->exec("INSERT INTO frontend_texts (text_key, text_value, context) VALUES ('zz.perf_test', 'other site', 'general')");
+            self::assertSame('other site', (new TranslationService($onDisk))->get('zz.perf_test'));
+        } finally {
+            @unlink($file);
+        }
+    }
+
+    public function testEditingATranslationFileChangesTheContentVersion(): void
+    {
+        $file = dirname(__DIR__, 2) . '/storage/translations/en.json';
+        self::assertFileExists($file);
+        $mtime = (int) filemtime($file);
+        $before = TranslationService::cacheGeneration();
+        try {
+            touch($file, $mtime + 5);
+            clearstatcache();
+            self::assertNotSame($before, TranslationService::cacheGeneration(), 'A JSON edit must change the HTML validator');
+        } finally {
+            touch($file, $mtime);
+            clearstatcache();
+        }
+    }
+
     public function testEveryServiceWriteInvalidatesAllCachedSets(): void
     {
         self::assertSame('first', (new TranslationService($this->db))->get('zz.perf_test'));

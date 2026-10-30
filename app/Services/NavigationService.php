@@ -19,7 +19,8 @@ class NavigationService
     private static array $parentCategoriesCache = [];
     /** @var list<array<string, mixed>>|null */
     private static ?array $headerTagsCache = null;
-    private const HEADER_TAGS_KEY = 'nav_header_tags';
+    private const HEADER_TAGS_KEY = 'nav_header_tags_';
+    private const HEADER_TAGS_GENERATION_KEY = 'nav_header_tags_generation';
 
     public function getNavigationCategories(): array
     {
@@ -118,7 +119,17 @@ class NavigationService
             return self::$headerTagsCache;
         }
 
-        return self::$headerTagsCache = QueryCache::getInstance()->remember(self::HEADER_TAGS_KEY, function (): array {
+        // Scoped to the configured database (QueryCache is shared, e.g. APCu)
+        // and to a generation bumped by invalidateTagsCache().
+        $cache = QueryCache::getInstance();
+        $generation = $cache->get(self::HEADER_TAGS_GENERATION_KEY);
+        if (!\is_string($generation) || $generation === '') {
+            $generation = bin2hex(random_bytes(8));
+            $cache->set(self::HEADER_TAGS_GENERATION_KEY, $generation, 86400 * 30);
+        }
+        $key = self::HEADER_TAGS_KEY . md5($this->db->identity() . '|' . $generation);
+
+        return self::$headerTagsCache = $cache->remember($key, function (): array {
             try {
                 $stmt = $this->db->pdo()->query(<<<'SQL'
                     SELECT t.id, t.name, t.slug, COUNT(at.album_id) as albums_count
@@ -144,7 +155,7 @@ class NavigationService
     public static function invalidateTagsCache(): void
     {
         self::$headerTagsCache = null;
-        QueryCache::getInstance()->forget(self::HEADER_TAGS_KEY);
+        QueryCache::getInstance()->set(self::HEADER_TAGS_GENERATION_KEY, bin2hex(random_bytes(8)), 86400 * 30);
     }
 
     /**

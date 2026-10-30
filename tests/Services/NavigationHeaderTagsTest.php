@@ -43,4 +43,33 @@ final class NavigationHeaderTagsTest extends TestCase
         NavigationService::invalidateTagsCache();
         self::assertSame(['street', 'late'], array_column((new NavigationService($db))->getHeaderTags(), 'slug'));
     }
+
+    public function testCacheIsScopedToTheConfiguredDatabase(): void
+    {
+        $dir = sys_get_temp_dir() . '/cimaise-navdb-' . bin2hex(random_bytes(4));
+        mkdir($dir);
+        try {
+            $make = function (string $file, string $tag) use ($dir): Database {
+                $db = new Database(database: $dir . '/' . $file, isSqlite: true);
+                $db->pdo()->exec('CREATE TABLE tags (id INTEGER PRIMARY KEY, name TEXT, slug TEXT); CREATE TABLE album_tag (album_id INTEGER, tag_id INTEGER); CREATE TABLE albums (id INTEGER PRIMARY KEY, is_published INTEGER, is_nsfw INTEGER, password_hash TEXT)');
+                $db->pdo()->exec("INSERT INTO tags VALUES (1,'$tag','$tag'); INSERT INTO albums VALUES (1,1,0,NULL); INSERT INTO album_tag VALUES (1,1)");
+                return $db;
+            };
+            $first = $make('a.sqlite', 'alpha');
+            $second = $make('b.sqlite', 'beta');
+            self::assertSame(['alpha'], array_column((new NavigationService($first))->getHeaderTags(), 'slug'));
+            $this->resetRequestCopy(); // next request: only the persistent cache is left
+            self::assertSame(['beta'], array_column((new NavigationService($second))->getHeaderTags(), 'slug'), 'Switching DB_DATABASE never shows the previous site\'s tags');
+        } finally {
+            foreach (glob($dir . '/*') ?: [] as $file) {
+                @unlink($file);
+            }
+            @rmdir($dir);
+        }
+    }
+
+    private function resetRequestCopy(): void
+    {
+        (new ReflectionProperty(NavigationService::class, 'headerTagsCache'))->setValue(null, null);
+    }
 }

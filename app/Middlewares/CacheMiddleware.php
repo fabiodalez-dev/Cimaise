@@ -519,17 +519,27 @@ class CacheMiddleware implements MiddlewareInterface
 
     /**
      * Shared-layout inputs that live outside settings and page_cache: the
-     * frontend texts (any frontend_texts write bumps the generation) and the
-     * header tag menu. Without them a renamed tag or an edited text kept
-     * serving 304s and stored HTML with the old layout.
+     * frontend texts (DB writes and translation JSON files), the category
+     * mega menu and the header tag menu. Without them a renamed tag or
+     * category, or an edited text, kept serving 304s and stored HTML with the
+     * old layout on pages not otherwise related to the change.
      */
     private function layoutContentId(): string
     {
         $id = \App\Services\TranslationService::cacheGeneration();
-        if ($this->database instanceof Database && $this->settings->get('navigation.show_tags_in_header', false)) {
-            $id .= md5((string) json_encode((new \App\Services\NavigationService($this->database))->getHeaderTags()));
+        if (!$this->database instanceof Database) {
+            return $id;
         }
-        return $id;
+        try {
+            $navigation = new \App\Services\NavigationService($this->database);
+            $menu = [$navigation->getParentCategoriesForNavigation(false), $navigation->getParentCategoriesForNavigation(true)];
+            if ($this->settings->get('navigation.show_tags_in_header', false)) {
+                $menu[] = $navigation->getHeaderTags();
+            }
+        } catch (\Throwable) {
+            $menu = ['unavailable', bin2hex(random_bytes(8))]; // never validate against an unknown menu
+        }
+        return $id . md5((string) json_encode($menu));
     }
 
     /**

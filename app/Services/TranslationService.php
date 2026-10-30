@@ -356,7 +356,7 @@ class TranslationService
             $mtimes[] = (int) @filemtime($this->translationsDir . '/' . $name . '.json');
         }
 
-        return 'translations_' . md5(implode('|', [$this->scope, $lang, $this->translationsDir, self::generation(), ...$mtimes]));
+        return 'translations_' . md5(implode('|', [$this->db->identity(), $this->scope, $lang, $this->translationsDir, self::generation(), ...$mtimes]));
     }
 
     /**
@@ -364,12 +364,17 @@ class TranslationService
      * from APCu) gets a fresh random value, so stale entries are never reused.
      */
     /**
-     * Changes whenever any frontend_texts write invalidates the cached sets.
+     * Changes whenever the texts a page can embed change: any frontend_texts
+     * write (generation) or an edit of a translation JSON file on disk.
      * Part of the HTML content ID (CacheMiddleware), since every page embeds texts.
      */
     public static function cacheGeneration(): string
     {
-        return self::generation();
+        $mtimes = '';
+        foreach (glob(dirname(__DIR__, 2) . '/storage/translations/*.json') ?: [] as $file) {
+            $mtimes .= basename($file) . ':' . (int) @filemtime($file) . ';';
+        }
+        return self::generation() . md5($mtimes);
     }
 
     private static function generation(): string
