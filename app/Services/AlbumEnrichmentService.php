@@ -67,8 +67,9 @@ class AlbumEnrichmentService
 
     /**
      * For albums without an explicit cover_image_id, fetch the first image
-     * (lowest sort_order, then id) using a window function — replaces the
-     * old correlated subquery that ran one SELECT per candidate row.
+     * (lowest sort_order, then id). The correlated subquery runs once per
+     * requested album (not per image row) and is served by
+     * idx_images_album_sort. No CTE / window function: those break on MySQL 5.7.
      *
      * Returns rows keyed by album_id.
      */
@@ -81,20 +82,21 @@ class AlbumEnrichmentService
 
         $ph = $this->placeholders(count($albumIds));
         $stmt = $this->pdo->prepare("
-            WITH ranked AS (
-                SELECT id, album_id,
-                       ROW_NUMBER() OVER (PARTITION BY album_id ORDER BY sort_order ASC, id ASC) AS rn
-                FROM images
-                WHERE album_id IN ($ph)
-            )
             SELECT i.*,
                    iv.path AS preview_path,
                    blur.path AS blur_path
-            FROM ranked r
-            JOIN images i ON i.id = r.id
+            FROM (
+                SELECT a.id AS album_id,
+                       (SELECT i2.id FROM images i2
+                         WHERE i2.album_id = a.id
+                         ORDER BY i2.sort_order ASC, i2.id ASC
+                         LIMIT 1) AS first_image_id
+                FROM albums a
+                WHERE a.id IN ($ph)
+            ) f
+            JOIN images i ON i.id = f.first_image_id
             LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm' AND iv.format = 'jpg'
             LEFT JOIN image_variants blur ON blur.image_id = i.id AND blur.variant = 'blur'
-            WHERE r.rn = 1
         ");
         $stmt->execute($albumIds);
 

@@ -1,0 +1,125 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services;
+
+/**
+ * Finished-HTML cache for cookie-less visitors (first visits, crawlers).
+ *
+ * page_cache stores the page DATA, so every anonymous view still paid for the
+ * full Twig render. This stores the rendered HTML of home / galleries / album
+ * pages, keyed by URL and validated against the page's content ETag computed
+ * by CacheMiddleware (page_cache hash + settings + release + image-generation
+ * state): when any of those change the entry simply stops matching, so there
+ * is no separate invalidation to keep in sync. One file per URL, so the
+ * directory stays bounded by the number of pages.
+ *
+ * The per-request CSP nonce is replaced by a placeholder when storing and by
+ * the current request's nonce when serving, so nonces are never reused.
+ */
+final class HtmlPageCache
+{
+    private const NONCE_PLACEHOLDER = '__CIMAISE_CSP_NONCE__';
+    private const FORMAT = 1;
+
+    /** Response headers that are per-request or recomputed by CacheMiddleware. */
+    private const SKIPPED_HEADERS = ['set-cookie', 'x-csrf-token', 'cache-control', 'expires', 'etag', 'vary', 'pragma', 'content-length', 'content-encoding', 'last-modified'];
+
+    public function __construct(private readonly string $dir)
+    {
+    }
+
+    public static function forApp(): self
+    {
+        return new self(dirname(__DIR__, 2) . '/storage/cache/html');
+    }
+
+    public static function key(string $scheme, string $host, ?int $port, string $path): string
+    {
+        return hash('sha256', strtolower($scheme) . '://' . strtolower($host) . ':' . ($port ?? 0) . $path);
+    }
+
+    /**
+     * @return array{body: string, headers: array<string, string[]>}|null
+     */
+    public function get(string $key, string $etag, string $nonce): ?array
+    {
+        $raw = @file_get_contents($this->file($key));
+        if ($raw === false || $raw === '') {
+            return null;
+        }
+        // Format: one JSON metadata line, then the gzipped HTML (no unserialize).
+        $newline = strpos($raw, "\n");
+        if ($newline === false) {
+            return null;
+        }
+        $data = json_decode(substr($raw, 0, $newline), true);
+        if (!is_array($data) || ($data['v'] ?? null) !== self::FORMAT || ($data['etag'] ?? null) !== $etag
+            || !is_array($data['headers'] ?? null)) {
+            return null;
+        }
+        $html = @gzdecode(substr($raw, $newline + 1));
+        if (!is_string($html)) {
+            return null;
+        }
+
+        return [
+            'body' => str_replace(self::NONCE_PLACEHOLDER, $nonce, $html),
+            'headers' => $data['headers'],
+        ];
+    }
+
+    /**
+     * @param array<string, string[]> $headers
+     */
+    public function put(string $key, string $etag, string $nonce, string $html, array $headers): bool
+    {
+        if ($nonce === '' || $html === '') {
+            return false;
+        }
+        if (!is_dir($this->dir) && !@mkdir($this->dir, 0775, true) && !is_dir($this->dir)) {
+            return false;
+        }
+
+        $kept = [];
+        foreach ($headers as $name => $values) {
+            if (!in_array(strtolower((string) $name), self::SKIPPED_HEADERS, true)) {
+                $kept[(string) $name] = array_values(array_map('strval', $values));
+            }
+        }
+
+        $compressed = gzencode(str_replace($nonce, self::NONCE_PLACEHOLDER, $html), 6);
+        if ($compressed === false) {
+            return false;
+        }
+        $meta = json_encode(['v' => self::FORMAT, 'etag' => $etag, 'headers' => $kept], JSON_UNESCAPED_SLASHES);
+        if ($meta === false) {
+            return false;
+        }
+        $payload = $meta . "\n" . $compressed;
+
+        $file = $this->file($key);
+        $tmp = $file . '.' . bin2hex(random_bytes(4)) . '.tmp';
+        if (@file_put_contents($tmp, $payload, LOCK_EX) === false) {
+            return false;
+        }
+        if (!@rename($tmp, $file)) {
+            @unlink($tmp);
+            return false;
+        }
+        return true;
+    }
+
+    public function clear(): void
+    {
+        foreach (glob($this->dir . '/*.cache') ?: [] as $file) {
+            @unlink($file);
+        }
+    }
+
+    private function file(string $key): string
+    {
+        return $this->dir . '/' . $key . '.cache';
+    }
+}

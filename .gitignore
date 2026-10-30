@@ -97,6 +97,10 @@ tests/
 !/tests/Services/AnalyticsDeviceDetectionTest.php
 !/tests/Services/OriginalImageTest.php
 !/tests/Services/ImageJobQueueTest.php
+!/tests/Services/AlbumEnrichmentFallbackCoverTest.php
+!/tests/Services/HtmlPageCacheTest.php
+!/tests/Services/TranslationPersistentCacheTest.php
+!/tests/Services/NavigationHeaderTagsTest.php
 !/tests/Middlewares/
 /tests/Middlewares/*
 !/tests/Middlewares/TrustedProxyMiddlewareTest.php
@@ -105,6 +109,8 @@ tests/
 !/tests/Middlewares/SecurityHeadersMiddlewareTest.php
 !/tests/Middlewares/CacheRevalidationTest.php
 !/tests/Middlewares/ImageGenerationValidatorTest.php
+!/tests/Middlewares/CompressionDetectionTest.php
+!/tests/Middlewares/HtmlPageCacheMiddlewareTest.php
 !/tests/Docker/
 /tests/Docker/*
 !/tests/Docker/EntrypointMigrationsTest.php
@@ -118,6 +124,9 @@ tests/
 !/tests/Support/UpdaterPrereleaseMigrationTest.php
 !/tests/Support/UpdaterSqliteBackupTest.php
 !/tests/Support/AppSandbox.php
+!/tests/Support/LazySessionTest.php
+!/tests/Support/RouteCacheTest.php
+!/tests/Support/TempQueryCache.php
 !/tests/README.md
 !/tests/Lifecycle/
 /tests/Lifecycle/*
@@ -126,6 +135,7 @@ tests/
 !/tests/Smoke/
 /tests/Smoke/*
 !/tests/Smoke/LiveSiteSmokeTest.php
+!/tests/Smoke/PerformanceSmokeTest.php
 !/tests/Controllers/
 /tests/Controllers/*
 !/tests/Controllers/AlbumPasswordAccessTest.php
@@ -139,6 +149,7 @@ tests/
 !/tests/Views/HeroPanelThemeTest.php
 !/tests/Views/MaintenancePageTest.php
 !/tests/Views/TranslationCoverageTest.php
+!/tests/Views/FrontendLayoutScriptTest.php
 !/tests/e2e/
 /tests/e2e/*
 !/tests/e2e/settings-effects.spec.js

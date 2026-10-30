@@ -279,6 +279,10 @@ class PageCacheService
      */
     public function clearAll(): int
     {
+        // Rendered-HTML entries are validated against page_cache anyway; drop
+        // them too so "clear everything" really starts from scratch.
+        HtmlPageCache::forApp()->clear();
+
         return $this->backend === 'database'
             ? $this->clearAllFromDatabase()
             : $this->clearAllFromFiles();

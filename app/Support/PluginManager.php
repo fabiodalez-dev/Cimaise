@@ -63,16 +63,26 @@ class PluginManager
     public function setDatabase(Database $db): void
     {
         $this->db = $db;
-        $this->ensurePluginTable();
+
+        // The table ships with the schema; the CREATE TABLE IF NOT EXISTS is
+        // only a safety net for old installs, so run it once a day per install
+        // instead of on every request.
+        $cache = QueryCache::getInstance();
+        $flag = 'plugin_status_table_' . md5(dirname(__DIR__, 2) . '|' . ($db->isSqlite() ? 'sqlite' : 'mysql'));
+        if ($cache->get($flag) !== true) {
+            if ($this->ensurePluginTable()) {
+                $cache->set($flag, true, 86400);
+            }
+        }
     }
 
     /**
      * Verifica e crea la tabella plugin se non esiste
      */
-    private function ensurePluginTable(): void
+    private function ensurePluginTable(): bool
     {
         if (!$this->db) {
-            return;
+            return false;
         }
 
         try {
@@ -111,8 +121,10 @@ class PluginManager
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
                 $this->db->pdo()->exec($sql);
             }
+            return true;
         } catch (\Throwable $e) {
             Logger::error('PluginManager: Error creating plugin_status table', ['error' => $e->getMessage()], 'plugin');
+            return false;
         }
     }
 
@@ -350,7 +362,19 @@ class PluginManager
      */
     private function parsePluginMetadata(string $file): array
     {
-        $content = file_get_contents($file);
+        // Cached by path + mtime + size: loadPlugins() runs on every request.
+        $stat = @stat($file);
+        if ($stat === false) {
+            return [];
+        }
+        $key = 'plugin_meta_' . md5($file . '|' . $stat['mtime'] . '|' . $stat['size']);
+        return QueryCache::getInstance()->remember($key, fn (): array => $this->readPluginMetadata($file), 86400);
+    }
+
+    /** @return array<string, string> */
+    private function readPluginMetadata(string $file): array
+    {
+        $content = (string) @file_get_contents($file);
         $metadata = [];
 
         // Cerca header comment block

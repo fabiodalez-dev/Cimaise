@@ -80,7 +80,6 @@ use Slim\Factory\AppFactory;
 use Slim\Views\Twig;
 use Slim\Views\TwigMiddleware;
 use App\Middlewares\CsrfMiddleware;
-use App\Middlewares\EarlyHintsMiddleware;
 use App\Middlewares\FlashMiddleware;
 use App\Middlewares\SecurityHeadersMiddleware;
 use Slim\Exception\HttpNotFoundException;
@@ -232,6 +231,10 @@ if ($isMediaRequest) {
         session_start();
         session_write_close();
     }
+} elseif (\App\Support\LazySession::isCandidate($_SERVER['REQUEST_METHOD'] ?? 'GET', $_COOKIE, session_name())) {
+    // Cookie-less GET/HEAD: the session is only persisted if the page needs
+    // it (see LazySession::finalize, run by the outermost middleware below).
+    \App\Support\LazySession::start();
 } else {
     session_start();
 }
@@ -317,6 +320,24 @@ if ($container['db'] !== null && !$isInstallerRoute) {
     }
 }
 
+// Media fast path: /media/* is the hottest route (one request per image) but
+// needs none of Twig, translations, the frontend globals or the other routes.
+// Serve it from a minimal app with the SAME route definitions and access
+// checks (media_routes.php -> MediaController), the cache-header policy and
+// the security headers. Saves ~15 ms of PHP work per image.
+if ($isMediaRequest && $container['db'] !== null && !$isInstallerRoute) {
+    $mediaApp = AppFactory::create();
+    if ($basePath) {
+        $mediaApp->setBasePath($basePath);
+    }
+    $mediaApp->add(new \App\Middlewares\CacheMiddleware(new \App\Services\SettingsService($container['db']), $container['db']));
+    (require __DIR__ . '/../app/Config/media_routes.php')($mediaApp, $container);
+    $mediaApp->addErrorMiddleware(filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN), true, true);
+    $mediaApp->add(new SecurityHeadersMiddleware());
+    $mediaApp->run();
+    return;
+}
+
 $app = AppFactory::create();
 
 if ($basePath) {
@@ -337,7 +358,6 @@ $app->add(new CsrfMiddleware());
 $app->add(new FlashMiddleware());
 // SecurityHeadersMiddleware is registered further down, AFTER the error
 // middleware, so that it also wraps the 404/405/500 pages (see there).
-$app->add(new EarlyHintsMiddleware($basePath));
 
 // One compiled-template directory per release (see TwigCache).
 $twigCache = \App\Support\TwigCache::directory(dirname(__DIR__)) ?? false;
@@ -542,38 +562,12 @@ if (!$isInstallerRoute && !$isMediaRequest && $container['db'] !== null) {
             $twig->getEnvironment()->addGlobal('social_profiles', $safeProfiles);
         }
 
-        // Navigation tags (has its own session-based caching)
+        // Navigation tags (site-wide QueryCache, see NavigationService::getHeaderTags)
         $showTagsInHeader = $cachedGlobals['show_tags_in_header'] ?? false;
-        if (!$isAdminRoute && $showTagsInHeader) {
-            $navTags = [];
-            if (isset($_SESSION['nav_tags_cache']) &&
-                isset($_SESSION['nav_tags_cache_time']) &&
-                (time() - $_SESSION['nav_tags_cache_time']) < 300) {
-                $navTags = $_SESSION['nav_tags_cache'];
-            } else {
-                try {
-                    $tagsQuery = $container['db']->query(<<<'SQL'
-                        SELECT t.id, t.name, t.slug, COUNT(at.album_id) as albums_count
-                        FROM tags t
-                        JOIN album_tag at ON at.tag_id = t.id
-                        JOIN albums a ON a.id = at.album_id AND a.is_published = 1
-                            AND a.is_nsfw = 0
-                            AND (a.password_hash IS NULL OR a.password_hash = '')
-                        GROUP BY t.id, t.name, t.slug
-                        ORDER BY albums_count DESC, t.name ASC
-                        LIMIT 20
-                    SQL);
-                    $navTags = $tagsQuery->fetchAll(\PDO::FETCH_ASSOC);
-                    $_SESSION['nav_tags_cache'] = $navTags;
-                    $_SESSION['nav_tags_cache_time'] = time();
-                } catch (\Throwable) {
-                    // Tags table might not exist
-                }
-            }
-            $twig->getEnvironment()->addGlobal('nav_tags', $navTags);
-        } else {
-            $twig->getEnvironment()->addGlobal('nav_tags', []);
-        }
+        $twig->getEnvironment()->addGlobal(
+            'nav_tags',
+            (!$isAdminRoute && $showTagsInHeader) ? (new \App\Services\NavigationService($container['db']))->getHeaderTags() : []
+        );
 
         // Font preloading (frontend only, requires service)
         if (!$isAdminRoute) {
@@ -626,6 +620,7 @@ $routes = require __DIR__ . '/../app/Config/routes.php';
 if (is_callable($routes)) {
     $routes($app, $container);
 }
+\App\Support\RouteCache::configure($app->getRouteCollector(), dirname(__DIR__) . '/storage/cache/routes');
 
 $errorMiddleware = $app->addErrorMiddleware(filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN), true, true);
 
@@ -797,6 +792,9 @@ $canonicalOverride = trim((string) ($schemaGlobals['canonical_base'] ?? ''));
 if ($canonicalOverride === '') {
     $canonicalOverride = (string) ($_ENV['APP_URL'] ?? '');
 }
+// Decides whether a lazily started session is kept, once the full response
+// (including error pages and security headers) exists.
+$app->add(new \App\Middlewares\LazySessionMiddleware());
 $app->add(new \App\Middlewares\TrustedProxyMiddleware($twig, $basePath, $canonicalOverride));
 
 $app->run();

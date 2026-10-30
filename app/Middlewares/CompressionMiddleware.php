@@ -93,12 +93,13 @@ class CompressionMiddleware implements MiddlewareInterface
      * Detect whether the web server itself will compress the response, making
      * PHP-level compression redundant.
      *
-     * - Under mod_php, apache_get_modules() reveals mod_brotli/mod_deflate
-     *   (both are configured in public/.htaccess), so Apache handles it.
-     * - Under PHP-FPM/CLI apache_get_modules() does not exist; module state is
-     *   unknowable from PHP, so we keep compressing — unless the explicit
-     *   COMPRESSION_DISABLE env override is set (use COMPRESSION_DISABLE=1
-     *   when a front server or reverse proxy already handles Content-Encoding).
+     * - public/.htaccess sets CIMAISE_SERVER_COMPRESSION=1 inside the
+     *   mod_brotli/mod_deflate blocks, so the flag reaches PHP under mod_php
+     *   AND PHP-FPM only when Apache really compresses (after the rewrite to
+     *   index.php Apache may expose it as REDIRECT_CIMAISE_SERVER_COMPRESSION).
+     * - Under mod_php, apache_get_modules() reveals the modules as well.
+     * - COMPRESSION_DISABLE=1 forces it off when a front server or reverse
+     *   proxy (e.g. nginx) already handles Content-Encoding.
      *
      * The result is cached in a static so detection runs at most once per request.
      */
@@ -109,19 +110,35 @@ class CompressionMiddleware implements MiddlewareInterface
             return $result;
         }
 
-        // Explicit override (env), consistent with how the app reads config via envv()
-        $disable = \envv('COMPRESSION_DISABLE');
-        if ($disable !== null && filter_var($disable, FILTER_VALIDATE_BOOLEAN)) {
-            return $result = true; // treat as "handled elsewhere"
+        return $result = self::detectServerCompression(
+            $_SERVER,
+            \envv('COMPRESSION_DISABLE'),
+            function_exists('apache_get_modules') ? apache_get_modules() : null
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $server  $_SERVER
+     * @param string[]|null $apacheModules  apache_get_modules() under mod_php, null otherwise
+     */
+    public static function detectServerCompression(array $server, mixed $disableEnv, ?array $apacheModules): bool
+    {
+        if ($disableEnv !== null && filter_var($disableEnv, FILTER_VALIDATE_BOOLEAN)) {
+            return true; // treat as "handled elsewhere"
         }
 
-        if (function_exists('apache_get_modules')) {
-            $modules = apache_get_modules();
-            return $result = in_array('mod_brotli', $modules, true)
-                || in_array('mod_deflate', $modules, true);
+        foreach (['CIMAISE_SERVER_COMPRESSION', 'REDIRECT_CIMAISE_SERVER_COMPRESSION'] as $key) {
+            if (isset($server[$key]) && filter_var($server[$key], FILTER_VALIDATE_BOOLEAN)) {
+                return true;
+            }
         }
 
-        return $result = false;
+        if ($apacheModules !== null) {
+            return in_array('mod_brotli', $apacheModules, true)
+                || in_array('mod_deflate', $apacheModules, true);
+        }
+
+        return false;
     }
 
     private function selectCompression(string $acceptEncoding, string $preferredType): ?string
