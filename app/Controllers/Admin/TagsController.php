@@ -29,7 +29,7 @@ class TagsController extends BaseController
      */
     private function invalidateTagCache(?int $tagId = null): void
     {
-        unset($_SESSION['nav_tags_cache']);
+        \App\Services\NavigationService::invalidateTagsCache();
 
         // Invalidate page caches using tags
         $settings = new SettingsService($this->db);

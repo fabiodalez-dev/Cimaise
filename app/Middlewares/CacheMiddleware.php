@@ -10,17 +10,35 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface as Handler;
 use App\Services\SettingsService;
 use App\Services\PageCacheService;
+use App\Services\HtmlPageCache;
+use App\Support\LazySession;
 use App\Support\Database;
 
 class CacheMiddleware implements MiddlewareInterface
 {
     private ?PageCacheService $pageCacheService = null;
 
+    /**
+     * Per-request memo for the parts of the HTML validator that cannot change
+     * while one request is handled. generateHtmlEtag() runs before AND after
+     * rendering (race detection), so without it each HTML request hashed
+     * version.json and JSON-encoded all settings twice, and album pages ran
+     * the slug lookup twice. The page_cache hash and the image-generation
+     * state are still read fresh on both passes.
+     */
+    private ?string $staticContentId = null;
+    /** @var array<string, string|null> */
+    private array $albumKeyBySlug = [];
+
+    private readonly HtmlPageCache $htmlCache;
+
     public function __construct(
         private readonly SettingsService $settings,
-        private readonly ?Database $database = null
+        private readonly ?Database $database = null,
+        ?HtmlPageCache $htmlCache = null
     ) {
         $this->pageCacheService = new PageCacheService($this->settings, $this->database);
+        $this->htmlCache = $htmlCache ?? HtmlPageCache::forApp();
     }
 
     public function process(Request $request, Handler $handler): Response
@@ -69,6 +87,23 @@ class CacheMiddleware implements MiddlewareInterface
                         ->withHeader('Cache-Control', "public, no-cache, max-age={$maxAge}, must-revalidate")
                         ->withHeader('Vary', 'Accept-Encoding');
                 }
+            }
+        }
+
+        // Rendered-HTML cache for cookie-less visitors (see HtmlPageCache).
+        $htmlCacheKey = null;
+        $nonce = (string) $request->getAttribute('csp_nonce', '');
+        if ($etagBeforeRendering !== null && $nonce !== '' && $this->canUseHtmlCache($request)) {
+            $uri = $request->getUri();
+            $htmlCacheKey = HtmlPageCache::key($uri->getScheme(), $uri->getHost(), $uri->getPort(), $uri->getPath());
+            $hit = $this->htmlCache->get($htmlCacheKey, $etagBeforeRendering, $nonce);
+            if ($hit !== null) {
+                $cached = new \Slim\Psr7\Response(200);
+                $cached->getBody()->write($hit['body']);
+                foreach ($hit['headers'] as $name => $values) {
+                    $cached = $cached->withHeader($name, $values);
+                }
+                return $this->addHtmlCache($cached->withHeader('X-Cimaise-Cache', 'hit'), $request, $path, $etagBeforeRendering);
             }
         }
 
@@ -149,7 +184,46 @@ class CacheMiddleware implements MiddlewareInterface
             return $response;
         }
 
-        return $this->addHtmlCache($response, $request, $path, $etagBeforeRendering);
+        $result = $this->addHtmlCache($response, $request, $path, $etagBeforeRendering);
+        if ($htmlCacheKey !== null && $etagBeforeRendering !== null) {
+            $this->storeRenderedHtml($htmlCacheKey, $etagBeforeRendering, $nonce, $result);
+        }
+        return $result;
+    }
+
+    /**
+     * Only requests carrying no cookie at all: NSFW consent, language or admin
+     * state can come from cookies, and a session cookie means per-visitor data.
+     */
+    private function canUseHtmlCache(Request $request): bool
+    {
+        return $request->getMethod() === 'GET'
+            && $request->getCookieParams() === []
+            && LazySession::isActive()
+            && !$this->isSessionDependent();
+    }
+
+    private function storeRenderedHtml(string $key, string $etagBeforeRendering, string $nonce, Response $result): void
+    {
+        // Same validator before and after rendering (no concurrent rebuild),
+        // shareable, and no session-bound token in the markup.
+        if ($result->getStatusCode() !== 200
+            || $result->getHeaderLine('ETag') !== $etagBeforeRendering
+            || !str_starts_with($result->getHeaderLine('Cache-Control'), 'public')) {
+            return;
+        }
+        $stream = $result->getBody();
+        if (!$stream->isSeekable()) {
+            return;
+        }
+        $stream->rewind();
+        $html = $stream->getContents();
+        $stream->rewind();
+        $token = $_SESSION['csrf'] ?? null;
+        if ($html === '' || (is_string($token) && $token !== '' && str_contains($html, $token))) {
+            return;
+        }
+        $this->htmlCache->put($key, $etagBeforeRendering, $nonce, $html, $result->getHeaders());
     }
 
     private function isStaticAsset(string $path): bool
@@ -395,7 +469,11 @@ class CacheMiddleware implements MiddlewareInterface
             if (isset($query['template'])) {
                 return null;
             }
-            $cacheType = $this->pageCacheService->albumPageKeyForSlug(rawurldecode($matches[1]));
+            $slug = rawurldecode($matches[1]);
+            if (!array_key_exists($slug, $this->albumKeyBySlug)) {
+                $this->albumKeyBySlug[$slug] = $this->pageCacheService->albumPageKeyForSlug($slug);
+            }
+            $cacheType = $this->albumKeyBySlug[$slug];
         }
 
         if (!$cacheType) {
@@ -429,13 +507,39 @@ class CacheMiddleware implements MiddlewareInterface
 
     private function htmlContentId(string $hash): string
     {
-        $release = hash_file('sha256', dirname(__DIR__, 2) . '/version.json');
+        $this->staticContentId ??= json_encode($this->settings->all()) . hash_file('sha256', dirname(__DIR__, 2) . '/version.json')
+            . $this->layoutContentId();
         // The layout embeds the image-generation state (the visitor's
         // enhanced-version watcher): a validator that ignored it would keep
         // serving 304 for a page whose watcher state is stale.
         $generation = \App\Services\ImageGenerationRevision::current()
             . (\App\Services\ImageGenerationRevision::pending() ? ':pending' : ':idle');
-        return '"' . hash('sha256', $hash . json_encode($this->settings->all()) . $release . $generation) . '"';
+        return '"' . hash('sha256', $hash . $this->staticContentId . $generation) . '"';
+    }
+
+    /**
+     * Shared-layout inputs that live outside settings and page_cache: the
+     * frontend texts (DB writes and translation JSON files), the category
+     * mega menu and the header tag menu. Without them a renamed tag or
+     * category, or an edited text, kept serving 304s and stored HTML with the
+     * old layout on pages not otherwise related to the change.
+     */
+    private function layoutContentId(): string
+    {
+        $id = \App\Services\TranslationService::cacheGeneration();
+        if (!$this->database instanceof Database) {
+            return $id;
+        }
+        try {
+            $navigation = new \App\Services\NavigationService($this->database);
+            $menu = [$navigation->getParentCategoriesForNavigation(false), $navigation->getParentCategoriesForNavigation(true)];
+            if ($this->settings->get('navigation.show_tags_in_header', false)) {
+                $menu[] = $navigation->getHeaderTags();
+            }
+        } catch (\Throwable) {
+            $menu = ['unavailable', bin2hex(random_bytes(8))]; // never validate against an unknown menu
+        }
+        return $id . md5((string) json_encode($menu));
     }
 
     /**

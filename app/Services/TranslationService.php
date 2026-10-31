@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Support\Database;
 use App\Support\Logger;
+use App\Support\QueryCache;
 use PDO;
 
 class TranslationService
@@ -16,6 +17,9 @@ class TranslationService
     private string $adminLanguage = 'en';   // Admin panel language
     private string $scope = 'frontend';     // Current scope: 'frontend' or 'admin'
     private readonly string $translationsDir;
+
+    private const CACHE_TTL = 3600;
+    private const GENERATION_KEY = 'translations_generation';
 
     public function __construct(private readonly Database $db)
     {
@@ -199,6 +203,7 @@ class TranslationService
 
         // Update cache
         $this->cache[$key] = $value;
+        self::invalidatePersistentCache();
     }
 
     /**
@@ -224,6 +229,7 @@ class TranslationService
         // Invalidate cache
         $this->loaded = false;
         $this->cache = [];
+        self::invalidatePersistentCache();
 
         return $result;
     }
@@ -250,6 +256,7 @@ class TranslationService
         // Invalidate cache
         $this->loaded = false;
         $this->cache = [];
+        self::invalidatePersistentCache();
 
         return (int)$this->db->pdo()->lastInsertId();
     }
@@ -265,6 +272,7 @@ class TranslationService
         // Invalidate cache
         $this->loaded = false;
         $this->cache = [];
+        self::invalidatePersistentCache();
 
         return $result;
     }
@@ -296,7 +304,12 @@ class TranslationService
 
     /**
      * Load all translations into cache
-     * First loads from JSON file (based on language), then overlays database translations
+     * First loads from JSON file (based on language), then overlays database translations.
+     *
+     * The merged result is kept in QueryCache (APCu/file) so a page view does
+     * not decode the ~20 KB JSON file and query frontend_texts every time. The
+     * key carries the JSON files' mtime (edits on disk are picked up at once)
+     * and a generation bumped by every frontend_texts write.
      */
     private function loadAll(): void
     {
@@ -304,20 +317,84 @@ class TranslationService
             return;
         }
 
+        $cache = QueryCache::getInstance();
+        $key = $this->persistentCacheKey();
+        $cached = $cache->get($key);
+        if (\is_array($cached)) {
+            $this->cache = $cached;
+            $this->loaded = true;
+            return;
+        }
+
+        $this->cache = [];
+
         // 1. Load from JSON file first (base translations)
         $this->loadFromJsonFile();
 
-        // 2. Overlay database translations (customizations)
+        // 2. Overlay database translations (customizations). Only a complete
+        // set is cached: a transient DB error (e.g. SQLite "database is
+        // locked") must not freeze the JSON-only set for an hour.
         try {
             $stmt = $this->db->pdo()->query('SELECT text_key, text_value FROM frontend_texts');
             foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                 $this->cache[$row['text_key']] = $row['text_value'];
             }
+            $cache->set($key, $this->cache, self::CACHE_TTL);
         } catch (\PDOException) {
             // Table might not exist yet
         }
 
         $this->loaded = true;
+    }
+
+    private function persistentCacheKey(): string
+    {
+        $lang = $this->getActiveLanguage();
+        $suffix = $this->scope === 'admin' ? '_admin' : '';
+        $mtimes = [];
+        foreach ([$lang . $suffix, 'en' . $suffix] as $name) {
+            $mtimes[] = (int) @filemtime($this->translationsDir . '/' . $name . '.json');
+        }
+
+        return 'translations_' . md5(implode('|', [$this->db->identity(), $this->scope, $lang, $this->translationsDir, self::generation(), ...$mtimes]));
+    }
+
+    /**
+     * Current cache generation. A missing generation (first run, or evicted
+     * from APCu) gets a fresh random value, so stale entries are never reused.
+     */
+    /**
+     * Changes whenever the texts a page can embed change: any frontend_texts
+     * write (generation) or an edit of a translation JSON file on disk.
+     * Part of the HTML content ID (CacheMiddleware), since every page embeds texts.
+     */
+    public static function cacheGeneration(): string
+    {
+        $mtimes = '';
+        foreach (glob(dirname(__DIR__, 2) . '/storage/translations/*.json') ?: [] as $file) {
+            $mtimes .= basename($file) . ':' . (int) @filemtime($file) . ';';
+        }
+        return self::generation() . md5($mtimes);
+    }
+
+    private static function generation(): string
+    {
+        $cache = QueryCache::getInstance();
+        $generation = $cache->get(self::GENERATION_KEY);
+        if (!\is_string($generation) || $generation === '') {
+            $generation = bin2hex(random_bytes(8));
+            $cache->set(self::GENERATION_KEY, $generation, 86400 * 30);
+        }
+        return $generation;
+    }
+
+    /**
+     * Drop every cached translation set (all languages and scopes).
+     * Call after writing frontend_texts outside this service.
+     */
+    public static function invalidatePersistentCache(): void
+    {
+        QueryCache::getInstance()->set(self::GENERATION_KEY, bin2hex(random_bytes(8)), 86400 * 30);
     }
 
     /**

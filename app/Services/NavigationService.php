@@ -17,6 +17,10 @@ class NavigationService
 
     private static ?array $navigationCategoriesCache = null;
     private static array $parentCategoriesCache = [];
+    /** @var list<array<string, mixed>>|null */
+    private static ?array $headerTagsCache = null;
+    private const HEADER_TAGS_KEY = 'nav_header_tags_';
+    private const HEADER_TAGS_GENERATION_KEY = 'nav_header_tags_generation';
 
     public function getNavigationCategories(): array
     {
@@ -103,6 +107,58 @@ class NavigationService
     }
 
     /**
+     * Most-used public tags for the header menu (max 20). Cached site-wide:
+     * this used to be cached per visitor in $_SESSION, so every new visitor
+     * and every crawler hit re-ran the GROUP BY and grew its session file.
+     *
+     * @return list<array{id: int|string, name: string, slug: string, albums_count: int|string}>
+     */
+    public function getHeaderTags(): array
+    {
+        if (self::$headerTagsCache !== null) {
+            return self::$headerTagsCache;
+        }
+
+        // Scoped to the configured database (QueryCache is shared, e.g. APCu)
+        // and to a generation bumped by invalidateTagsCache().
+        $cache = QueryCache::getInstance();
+        $generation = $cache->get(self::HEADER_TAGS_GENERATION_KEY);
+        if (!\is_string($generation) || $generation === '') {
+            $generation = bin2hex(random_bytes(8));
+            $cache->set(self::HEADER_TAGS_GENERATION_KEY, $generation, 86400 * 30);
+        }
+        $key = self::HEADER_TAGS_KEY . md5($this->db->identity() . '|' . $generation);
+
+        return self::$headerTagsCache = $cache->remember($key, function (): array {
+            try {
+                $stmt = $this->db->pdo()->query(<<<'SQL'
+                    SELECT t.id, t.name, t.slug, COUNT(at.album_id) as albums_count
+                    FROM tags t
+                    JOIN album_tag at ON at.tag_id = t.id
+                    JOIN albums a ON a.id = at.album_id AND a.is_published = 1
+                        AND a.is_nsfw = 0
+                        AND (a.password_hash IS NULL OR a.password_hash = '')
+                    GROUP BY t.id, t.name, t.slug
+                    ORDER BY albums_count DESC, t.name ASC
+                    LIMIT 20
+                SQL);
+                return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+            } catch (\Throwable) {
+                return []; // Tags table might not exist yet
+            }
+        }, self::CACHE_TTL);
+    }
+
+    /**
+     * Invalidate the header tag menu (tags created/renamed/deleted).
+     */
+    public static function invalidateTagsCache(): void
+    {
+        self::$headerTagsCache = null;
+        QueryCache::getInstance()->set(self::HEADER_TAGS_GENERATION_KEY, bin2hex(random_bytes(8)), 86400 * 30);
+    }
+
+    /**
      * Invalidate all navigation caches.
      * Call this when categories are created/updated/deleted.
      */
@@ -115,5 +171,6 @@ class NavigationService
         $cache->forget('nav_categories');
         $cache->forget('nav_parent_categories_nsfw');
         $cache->forget('nav_parent_categories_clean');
+        self::invalidateTagsCache();
     }
 }

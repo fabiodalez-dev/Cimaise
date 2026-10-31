@@ -142,6 +142,17 @@ class Database
     }
 
     /**
+     * Stable identity of the configured database (no credentials), for cache
+     * keys that must not survive switching to another database.
+     */
+    public function identity(): string
+    {
+        return $this->isSqlite
+            ? 'sqlite:' . (string) $this->database
+            : 'mysql:' . (string) $this->host . ':' . (string) $this->port . '/' . (string) $this->database;
+    }
+
+    /**
      * Execute a query with optional SQL debug logging
      */
     public function query(string $sql, array $params = []): \PDOStatement

@@ -63,16 +63,31 @@ class PluginManager
     public function setDatabase(Database $db): void
     {
         $this->db = $db;
-        $this->ensurePluginTable();
+
+        // The table ships with the schema; the CREATE TABLE IF NOT EXISTS is
+        // only a safety net for old installs, so run it once a day per install
+        // instead of on every request.
+        $cache = QueryCache::getInstance();
+        $flag = self::tableFlagKey($db);
+        if ($cache->get($flag) !== true) {
+            if ($this->ensurePluginTable()) {
+                $cache->set($flag, true, 86400);
+            }
+        }
+    }
+
+    private static function tableFlagKey(Database $db): string
+    {
+        return 'plugin_status_table_' . md5(dirname(__DIR__, 2) . '|' . $db->identity());
     }
 
     /**
      * Verifica e crea la tabella plugin se non esiste
      */
-    private function ensurePluginTable(): void
+    private function ensurePluginTable(): bool
     {
         if (!$this->db) {
-            return;
+            return false;
         }
 
         try {
@@ -111,8 +126,10 @@ class PluginManager
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
                 $this->db->pdo()->exec($sql);
             }
+            return true;
         } catch (\Throwable $e) {
             Logger::error('PluginManager: Error creating plugin_status table', ['error' => $e->getMessage()], 'plugin');
+            return false;
         }
     }
 
@@ -347,10 +364,12 @@ class PluginManager
 
     /**
      * Estrae metadata da commento header del file plugin
+     *
+     * @return array<string, string>
      */
     private function parsePluginMetadata(string $file): array
     {
-        $content = file_get_contents($file);
+        $content = (string) @file_get_contents($file);
         $metadata = [];
 
         // Cerca header comment block
@@ -476,9 +495,13 @@ class PluginManager
                 ];
             }
         } catch (\Throwable $e) {
-            // Table may not exist yet (fresh install before ensurePluginTable runs);
-            // leave $statusCache as empty array so we don't keep retrying.
+            // Table may not exist yet (fresh install, or a database restored in
+            // place after the daily "table exists" flag was cached): create it
+            // now and forget the flag. $statusCache stays an empty array so we
+            // don't keep retrying within this request.
             Logger::warning('PluginManager: Failed to prime plugin status cache', ['error' => $e->getMessage()], 'plugin');
+            QueryCache::getInstance()->forget(self::tableFlagKey($this->db));
+            $this->ensurePluginTable();
         }
     }
 

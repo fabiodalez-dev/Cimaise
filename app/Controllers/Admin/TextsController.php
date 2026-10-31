@@ -497,6 +497,7 @@ class TextsController extends BaseController
             }
 
             $pdo->commit();
+            \App\Services\TranslationService::invalidatePersistentCache();
         } catch (\Exception $e) {
             $pdo->rollBack();
             throw $e;

@@ -35,7 +35,13 @@
 </IfModule>
 
 # Compression (Brotli and Gzip)
+# CIMAISE_SERVER_COMPRESSION tells PHP (mod_php or PHP-FPM) that Apache
+# compresses the response itself, so CompressionMiddleware does not buffer and
+# re-compress every page. It is only set when the module is really loaded.
 <IfModule mod_brotli.c>
+  <IfModule mod_env.c>
+    SetEnv CIMAISE_SERVER_COMPRESSION 1
+  </IfModule>
   AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/xml text/css text/javascript
   AddOutputFilterByType BROTLI_COMPRESS application/javascript application/x-javascript application/json application/xml
   AddOutputFilterByType BROTLI_COMPRESS application/rss+xml application/atom+xml
@@ -44,6 +50,9 @@
 </IfModule>
 
 <IfModule mod_deflate.c>
+  <IfModule mod_env.c>
+    SetEnv CIMAISE_SERVER_COMPRESSION 1
+  </IfModule>
   AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript
   AddOutputFilterByType DEFLATE application/javascript application/x-javascript application/json application/xml
   AddOutputFilterByType DEFLATE application/rss+xml application/atom+xml
