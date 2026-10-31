@@ -4,7 +4,7 @@
 // images, and contain NO duplicate photos (they share masonry's unique-image path).
 
 import { test, expect } from '@playwright/test';
-import { BASE } from './_helpers.js';
+import { BASE, settle } from './_helpers.js';
 
 const TEMPLATES = [
     { name: 'editorial', marker: '.editorial-masthead' },
@@ -18,7 +18,8 @@ const TEMPLATES = [
 test.describe('Home templates (x6)', () => {
     for (const t of TEMPLATES) {
         test(`HT-${t.name}: renders, loads images, no duplicates, no Twig error`, async ({ page }) => {
-            const resp = await page.goto(`${BASE}/?template=${t.name}`, { waitUntil: 'networkidle' });
+            const resp = await page.goto(`${BASE}/?template=${t.name}`, { waitUntil: 'load' });
+            await settle(page);
             expect(resp?.status()).toBe(200);
 
             // No server-side render error leaked into the page.

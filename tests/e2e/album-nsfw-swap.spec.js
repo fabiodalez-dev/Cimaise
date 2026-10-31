@@ -36,8 +36,13 @@ test.describe.serial('Album NSFW blur swap', () => {
     await page.goto(`${BASE}/admin/login`);
     await page.fill('input[name="email"]', 'admin@test.com');
     await page.fill('input[name="password"]', 'TestPass123!');
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/\/admin/, { timeout: 10000 });
+    // /\/admin/ alone already matches /admin/login: wait for the page after it.
+    // domcontentloaded + 30 s as in adminLogin(): the dashboard's stats and
+    // thumbnails can hold "load" back under a busy parallel run.
+    await Promise.all([
+      page.waitForURL((url) => url.pathname.startsWith('/admin') && !url.pathname.startsWith('/admin/login'), { timeout: 30000, waitUntil: 'domcontentloaded' }),
+      page.click('button[type="submit"]'),
+    ]);
     await page.screenshot({ path: `${SCREENSHOTS}/01-admin-dashboard.png`, fullPage: true });
   });
 
@@ -272,8 +277,14 @@ test.describe.serial('Album NSFW blur swap', () => {
     await nsfwCheckbox.check();
     await page.screenshot({ path: `${SCREENSHOTS}/09-regular-to-nsfw.png`, fullPage: true });
 
-    await page.click('button[type="submit"][form="album-form"]');
-    await page.waitForURL(/\/admin\/albums/, { timeout: 15000 });
+    // Same as the create steps: wait for the albums list itself, not any
+    // /admin/albums URL (the edit page already matches), or the next goto
+    // interrupts the redirect still in flight.
+    await Promise.all([
+      page.waitForURL(/\/admin\/albums\/?(\?.*)?$/, { timeout: 15000, waitUntil: 'load' }),
+      page.click('button[type="submit"][form="album-form"]'),
+    ]);
+    await page.waitForLoadState('load');
   });
 
   test('Swap: NSFW album → Regular', async () => {
@@ -285,8 +296,14 @@ test.describe.serial('Album NSFW blur swap', () => {
     await nsfwCheckbox.uncheck();
     await page.screenshot({ path: `${SCREENSHOTS}/10-nsfw-to-regular.png`, fullPage: true });
 
-    await page.click('button[type="submit"][form="album-form"]');
-    await page.waitForURL(/\/admin\/albums/, { timeout: 15000 });
+    // Same as the create steps: wait for the albums list itself, not any
+    // /admin/albums URL (the edit page already matches), or the next goto
+    // interrupts the redirect still in flight.
+    await Promise.all([
+      page.waitForURL(/\/admin\/albums\/?(\?.*)?$/, { timeout: 15000, waitUntil: 'load' }),
+      page.click('button[type="submit"][form="album-form"]'),
+    ]);
+    await page.waitForLoadState('load');
   });
 
   test('Clear cache after swap', async () => {

@@ -779,6 +779,10 @@
       saveTimer = setTimeout(saveHierarchy, 250);
     }
 
+    // Exposed for the e2e reorder check (CAT-02): SortableJS drags are not
+    // reliably synthesisable headless, so the test calls the save path directly.
+    window.saveHierarchy = saveHierarchy;
+
     async function saveHierarchy() {
       const rootList = document.getElementById('root-list');
       if (!rootList) return;
