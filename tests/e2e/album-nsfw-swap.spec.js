@@ -37,8 +37,10 @@ test.describe.serial('Album NSFW blur swap', () => {
     await page.fill('input[name="email"]', 'admin@test.com');
     await page.fill('input[name="password"]', 'TestPass123!');
     // /\/admin/ alone already matches /admin/login: wait for the page after it.
+    // domcontentloaded + 30 s as in adminLogin(): the dashboard's stats and
+    // thumbnails can hold "load" back under a busy parallel run.
     await Promise.all([
-      page.waitForURL((url) => url.pathname.startsWith('/admin') && !url.pathname.startsWith('/admin/login'), { timeout: 10000, waitUntil: 'load' }),
+      page.waitForURL((url) => url.pathname.startsWith('/admin') && !url.pathname.startsWith('/admin/login'), { timeout: 30000, waitUntil: 'domcontentloaded' }),
       page.click('button[type="submit"]'),
     ]);
     await page.screenshot({ path: `${SCREENSHOTS}/01-admin-dashboard.png`, fullPage: true });

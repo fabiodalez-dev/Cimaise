@@ -19,15 +19,32 @@ const SETTINGS_WRITERS = [
 ];
 const settingsWriters = new RegExp(`/(${SETTINGS_WRITERS.join('|')})\\.spec\\.js$`);
 
-// A teardown project runs in full whatever files the command line names, so
-// the gate is only wired for whole-suite runs; naming spec files runs just
-// those, as before. Decided once in the runner and handed to the workers,
+// The gate orders the suite, but a teardown project runs in full whatever
+// files the command line names. So it is dropped only when the named files
+// cannot collide: spec files only (no directory), and either no settings
+// writer or a single writer on its own. Without the gate every spec lives in
+// the one "chromium" project, as before, so `--project=chromium <file>` keeps
+// working for any file. Decided once in the runner and handed to the workers,
 // which load this config with their own argv.
 if (process.env.CIMAISE_E2E_GATE === undefined) {
-  const namesFiles = process.argv.slice(2).some((arg) => /\.(spec|setup)\.js$|^tests\//.test(arg));
-  process.env.CIMAISE_E2E_GATE = namesFiles ? '0' : '1';
+  const args = process.argv.slice(2).filter((arg) => !arg.startsWith('-'));
+  const specs = args.filter((arg) => /\.spec\.js$/.test(arg));
+  const namesDirectory = args.some((arg) => /^(\.\/)?tests(\/|$)/.test(arg) && !/\.(spec|setup)\.js$/.test(arg));
+  const writers = specs.filter((arg) => settingsWriters.test(`/${arg}`)).length;
+  const isolated = specs.length > 0 && !namesDirectory
+    && (writers === 0 || (writers === 1 && specs.length === 1));
+  process.env.CIMAISE_E2E_GATE = isolated ? '0' : '1';
 }
 const gated = process.env.CIMAISE_E2E_GATE === '1';
+
+const browser = { browserName: /** @type {'chromium'} */ ('chromium') };
+const projects = gated
+  ? [
+      { name: 'parallel-gate', testMatch: /parallel-gate\.setup\.js$/, teardown: 'settings' },
+      { name: 'chromium', use: browser, testIgnore: settingsWriters, dependencies: ['parallel-gate'] },
+      { name: 'settings', use: browser, testMatch: settingsWriters, workers: 1 },
+    ]
+  : [{ name: 'chromium', use: browser }];
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -37,23 +54,5 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
   },
-  projects: [
-    {
-      name: 'parallel-gate',
-      testMatch: /parallel-gate\.setup\.js$/,
-      ...(gated ? { teardown: 'settings' } : {}),
-    },
-    {
-      name: 'chromium',
-      use: { browserName: 'chromium' },
-      testIgnore: settingsWriters,
-      ...(gated ? { dependencies: ['parallel-gate'] } : {}),
-    },
-    {
-      name: 'settings',
-      use: { browserName: 'chromium' },
-      testMatch: settingsWriters,
-      workers: 1,
-    },
-  ],
+  projects,
 });
