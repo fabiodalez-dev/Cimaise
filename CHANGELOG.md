@@ -10,6 +10,28 @@ release notes, so keep one section per released tag.
 
 ## [Unreleased]
 
+## [1.4.29] - 2026-10-31
+A speed release: lighter pages, fewer sessions, and faster answers for first-time visitors, crawlers and every image (#144).
+
+### Changed
+- **Lighter pages.** The layout's script (about 110 KB, inlined in every page) is now a separate file the browser downloads once and keeps until the next release. Locally the home page went from 508 KB to 382 KB of HTML, 18 KB instead of 37.5 KB compressed.
+- **Visitors without cookies no longer get a session.** A session is now kept only when the page needs it (a form, the login, the password or NSFW gates). First visits and crawlers no longer create a session file and a cookie on every page.
+- **Rendered pages are cached for visitors without cookies.** The finished HTML of the home, the galleries and album pages is stored and reused until the content, the settings or the texts change, with a fresh security nonce for every response. Local response times for these visitors went from 53/46 ms to 34/30 ms (home/album).
+- **Images skip most of the application.** `/media` requests go through a minimal pipeline with the same headers, access checks and revalidation: about 24 ms instead of 32 ms locally.
+- **No double compression under Apache.** When `mod_brotli` or `mod_deflate` is loaded, Apache compresses the pages and PHP no longer does it a second time.
+- Routes, translations and header tags are cached; the fallback album cover is found with a single query.
+
+### Fixed
+- Pages no longer send `Link` preload headers for stylesheets and scripts they never use (one of them made the browser download the typography stylesheet twice).
+
+### Development
+- The end-to-end suite passes in a full parallel run: specs that change site-wide settings, and the login-throttling check, run after the others, one at a time; several waits that failed only under load are fixed (#145).
+
+### Upgrade notes
+- No database change. The new cache lives in `storage/cache/html` and is emptied by "Clear cache".
+- The updater keeps your `public/.htaccess`, so on Apache with **PHP-FPM** the new compression hint does not arrive by itself: copy the two `SetEnv CIMAISE_SERVER_COMPRESSION 1` lines from the release's `public/.htaccess`, or add `COMPRESSION_DISABLE=1` to `.env` if Apache (or a proxy in front of it) already compresses. Nothing breaks without it: PHP keeps compressing, as before. The Docker image and `mod_php` setups detect it automatically.
+- Docker: `docker compose pull && docker compose up -d`.
+
 ## [1.4.28] - 2026-10-27
 This release brings in the improvements @MiranoVerhoef built in his fork while moving his portfolio to Cimaise (#142). Thanks, Mirano!
 
