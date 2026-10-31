@@ -36,7 +36,7 @@ test.describe('Media self-heal', () => {
         });
         expect(realJpg, 'home should render at least one /media/ image').toBeTruthy();
 
-        const result = await page.evaluate(async (jpg) => {
+        await page.evaluate((jpg) => {
             // A <picture> whose avif <source> points at a non-existent /media file
             // (404) mimics a corrupt/failed variant; the bare <img> is the real jpg
             // baseline. The self-heal window listener (shared PWA partial) should
@@ -46,6 +46,7 @@ test.describe('Media self-heal', () => {
             s.type = 'image/avif';
             s.srcset = '/media/zzz_selfheal_probe_999999_xxl.avif';
             const img = document.createElement('img');
+            img.id = 'selfheal-probe';
             img.src = jpg;
             img.setAttribute('data-fallback', 'hide');
             // The page binds the data-fallback hide handler only to imgs present at
@@ -58,24 +59,27 @@ test.describe('Media self-heal', () => {
             pic.appendChild(s);
             pic.appendChild(img);
             document.body.appendChild(pic);
-            // Event-driven + short cap: the heal (avif 404 -> error -> strip
-            // sources -> reload jpg) settles in well under a second locally;
-            // a fixed multi-second wait risks crossing the home's own late
-            // re-render and destroying this context.
-            await new Promise((resolve) => {
-                let done = false;
-                const finish = () => { if (!done) { done = true; resolve(); } };
-                img.addEventListener('load', finish);
-                setTimeout(finish, 1200);
-            });
+        }, realJpg);
+
+        // Poll until the heal (avif 404 -> error -> strip sources -> reload jpg)
+        // has settled. It takes well under a second on an idle server, but the
+        // 404 and the reload queue behind the home's own image requests, so a
+        // fixed short cap fails under a loaded parallel run.
+        await page.waitForFunction(() => {
+            const img = /** @type {HTMLImageElement|null} */ (document.getElementById('selfheal-probe'));
+            return !!img && img.dataset.swHealed === '1' && img.complete && img.naturalWidth > 0;
+        }, null, { timeout: 15000 }).catch(() => { /* the assertions below report what is missing */ });
+
+        const result = await page.evaluate(() => {
+            const img = /** @type {HTMLImageElement} */ (document.getElementById('selfheal-probe'));
             return {
                 healed: img.dataset.swHealed || null,
                 display: getComputedStyle(img).display,
-                sourceCount: pic.querySelectorAll('source').length,
+                sourceCount: img.parentElement ? img.parentElement.querySelectorAll('source').length : -1,
                 finalSrc: img.currentSrc || img.src || '',
                 naturalW: img.naturalWidth,
             };
-        }, realJpg);
+        });
 
         expect(result.healed, 'self-heal should fire on the broken media image').toBe('1');
         expect(result.sourceCount, 'the failed <source> variants should be stripped').toBe(0);

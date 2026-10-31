@@ -417,7 +417,7 @@ test.describe.serial('NSFW & Password — complete verification', () => {
     expect(await admin.locator('#nsfw-confirm-form').count()).toBe(0);
     // Album content is visible
     const images = admin.locator('picture img, .gallery-item img, #album-main-content img');
-    expect(await images.count()).toBeGreaterThan(0);
+    await expect(images.first()).toBeAttached({ timeout: 15000 });
     console.log(`Album NSFW: admin sees ${await images.count()} images, no gate`);
   });
 

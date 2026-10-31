@@ -1,4 +1,5 @@
 import { test } from '@playwright/test';
+import { settle } from './_helpers.js';
 
 // Helper: scroll through page to trigger lazy loading, then force-reveal images
 async function loadAllImages(page) {
@@ -75,7 +76,8 @@ for (const tmpl of templates) {
   test(`Screenshot album "Streets of Milan" — ${tmpl.name}`, async ({ page }) => {
     test.setTimeout(45000);
     await page.setViewportSize({ width: 1280, height: 1600 });
-    await page.goto(`http://localhost:8000/album/streets-of-milan?template=${tmpl.id}`, { waitUntil: 'networkidle' });
+    await page.goto(`http://localhost:8000/album/streets-of-milan?template=${tmpl.id}`, { waitUntil: 'load' });
+    await settle(page);
     await page.waitForTimeout(2000);
     await loadAllImages(page);
     await page.screenshot({ path: `test-results/album-milan-${tmpl.id}-${tmpl.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.png`, fullPage: true });

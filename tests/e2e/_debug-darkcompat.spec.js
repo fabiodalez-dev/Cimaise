@@ -1,5 +1,5 @@
 import { test } from '@playwright/test';
-import { BASE } from './_helpers.js';
+import { BASE, settle } from './_helpers.js';
 
 test.use({ viewport: { width: 1280, height: 900 } });
 
@@ -27,6 +27,9 @@ const PROBE = `(() => {
 })()`;
 
 test('dark-mode compatibility scan: all homes + pages', async ({ page }) => {
+  // One navigation per home template and page: the default 60 s is too tight
+  // when the parallel suite keeps the server busy.
+  test.setTimeout(240000);
   // Turn on dark mode (visitor pref). addInitScript runs before any page
   // script on every navigation — immune to the execution-context-destroyed
   // race that a post-goto evaluate() hits when home immediately navigates.
@@ -34,7 +37,8 @@ test('dark-mode compatibility scan: all homes + pages', async ({ page }) => {
 
   console.log('=== HOME TEMPLATES (dark) ===');
   for (const t of HOMES) {
-    await page.goto(`${BASE}/?template=${t}`, { waitUntil: 'networkidle' });
+    await page.goto(`${BASE}/?template=${t}`, { waitUntil: 'load' });
+    await settle(page);
     await page.waitForTimeout(500);
     const isDark = await page.evaluate(() => document.documentElement.classList.contains('dark'));
     const r = await page.evaluate(PROBE);
@@ -45,7 +49,8 @@ test('dark-mode compatibility scan: all homes + pages', async ({ page }) => {
 
   console.log('=== PAGES (dark) ===');
   for (const [name, url] of PAGES) {
-    await page.goto(`${BASE}${url}`, { waitUntil: 'networkidle' });
+    await page.goto(`${BASE}${url}`, { waitUntil: 'load' });
+    await settle(page);
     await page.waitForTimeout(400);
     const isDark = await page.evaluate(() => document.documentElement.classList.contains('dark'));
     const r = await page.evaluate(PROBE);

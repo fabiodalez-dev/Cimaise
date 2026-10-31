@@ -6,6 +6,7 @@
 import { test, expect } from '@playwright/test';
 import {
     BASE,
+    settle,
     ADMIN_ALBUMS_LIST_RE,
     requireServer,
     requireAdmin,
@@ -280,7 +281,7 @@ test.describe.serial('Album public access — password, NSFW, listings', () => {
         const resp = await page.goto(`${BASE}/`);
         expect(resp?.status()).toBe(200);
         // No JS errors during page load
-        await page.waitForLoadState('networkidle');
+        await settle(page);
         expect(errors.filter((m) => !m.includes('favicon'))).toHaveLength(0);
     });
 

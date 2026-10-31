@@ -12,12 +12,13 @@ test.describe('HTTP cache headers', () => {
     });
 
     test('CACHE-01: home page sets Cache-Control with private+max-age (HTML cache)', async ({ page }) => {
-        const resp = await page.request.get(`${BASE}/`, { failOnStatusCode: false });
-        const cc = header(resp, 'Cache-Control');
-        expect(cc).toBeTruthy();
-        // HTML cache emits public,max-age=N OR private (when session-dependent)
-        expect(cc).toMatch(/(public|private)/);
-        expect(cc).toMatch(/max-age=\d+/);
+        // While another spec's content change has the home cache stale, the
+        // stale body is served as no-store and rebuilt after the response, so
+        // poll until the rebuilt page answers.
+        await expect.poll(async () => {
+            const resp = await page.request.get(`${BASE}/`, { failOnStatusCode: false });
+            return header(resp, 'Cache-Control') || '';
+        }, { timeout: 15000 }).toMatch(/(public|private).*max-age=\d+|max-age=\d+.*(public|private)/);
     });
 
     test('CACHE-02: home page emits Vary: Accept-Encoding (compression negotiation)', async ({ page }) => {

@@ -1,4 +1,5 @@
 import { test } from '@playwright/test';
+import { settle } from './_helpers.js';
 
 // Helper: scroll and force-reveal all lazy images
 async function loadAllImages(page) {
@@ -50,7 +51,8 @@ for (const tmpl of homeTemplates) {
   test(`Home template: ${tmpl}`, async ({ page }) => {
     test.setTimeout(45000);
     await page.setViewportSize({ width: 1280, height: 1200 });
-    await page.goto(`http://localhost:8000/?template=${tmpl}`, { waitUntil: 'networkidle' });
+    await page.goto(`http://localhost:8000/?template=${tmpl}`, { waitUntil: 'load' });
+    await settle(page);
     await page.waitForTimeout(2000);
     await loadAllImages(page);
     await page.screenshot({ path: `test-results/home-${tmpl}.png`, fullPage: true });
@@ -74,7 +76,8 @@ for (const tmpl of albumTemplates) {
   test(`Album template: ${tmpl.name}`, async ({ page }) => {
     test.setTimeout(45000);
     await page.setViewportSize({ width: 1280, height: 1600 });
-    await page.goto(`http://localhost:8000/album/streets-of-milan?template=${tmpl.id}`, { waitUntil: 'networkidle' });
+    await page.goto(`http://localhost:8000/album/streets-of-milan?template=${tmpl.id}`, { waitUntil: 'load' });
+    await settle(page);
     await page.waitForTimeout(2000);
     await loadAllImages(page);
     await page.screenshot({ path: `test-results/album-${tmpl.name}.png`, fullPage: true });

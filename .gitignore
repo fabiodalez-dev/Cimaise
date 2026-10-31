@@ -147,6 +147,7 @@ tests/
 !/tests/e2e/album-equipment-visibility.spec.js
 !/tests/e2e/album-edit-cache.spec.js
 !/tests/e2e/image-queue.spec.js
+!/tests/e2e/parallel-gate.setup.js
 
 # Cache
 .cache/

@@ -26,10 +26,22 @@ export async function adminLogin(page) {
     await page.goto(`${BASE}/admin/login`);
     await page.fill('input[name="email"]', ADMIN_EMAIL);
     await page.fill('input[name="password"]', ADMIN_PASSWORD);
+    // The dashboard (stats, thumbnails) can take a while to reach "load" while
+    // the parallel suite keeps the server busy; being on it is what matters.
     await Promise.all([
-        page.waitForURL(ADMIN_DASHBOARD_RE, { timeout: 15000 }),
+        page.waitForURL(ADMIN_DASHBOARD_RE, { timeout: 30000, waitUntil: 'domcontentloaded' }),
         page.click('button[type="submit"]'),
     ]);
+}
+
+/**
+ * Best-effort network idle after a navigation that already reached "load".
+ * Pages with autoplaying slideshows or lazy galleries may never go idle while
+ * the parallel suite keeps the server busy, so waiting for it is capped and
+ * never fails the test on its own.
+ */
+export async function settle(page, ms = 10000) {
+    await page.waitForLoadState('networkidle', { timeout: ms }).catch(() => {});
 }
 
 /** Best-effort admin-login: returns true on success, false if the dashboard
