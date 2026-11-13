@@ -64,8 +64,11 @@ class BlurGenerationJob
             return true;
         }
         try {
-            if (!flock($lock, LOCK_EX | LOCK_NB)) {
-                return false; // a concurrent request is claiming this image
+            $wouldBlock = 0;
+            if (!flock($lock, LOCK_EX | LOCK_NB, $wouldBlock)) {
+                // Contention: another request is claiming this image right now.
+                // Any other lock failure must not suppress the job.
+                return $wouldBlock !== 1;
             }
             $marker = $dir . '/' . $imageId . '.pending';
             $mtime = @filemtime($marker);

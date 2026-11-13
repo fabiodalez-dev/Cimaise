@@ -43,6 +43,25 @@ final class CacheFlagsExportTest extends TestCase
             self::assertFalse($claim->invoke(null, $id), 'second dispatch within the TTL must be skipped');
             touch($marker, time() - 3600);
             self::assertTrue($claim->invoke(null, $id), 'stale claim is replaced');
+
+            // A concurrent claimer holding the per-image lock wins (contention => skip).
+            touch($marker, time() - 3600);
+            $held = fopen($claimFile, 'c+');
+            self::assertNotFalse($held);
+            self::assertTrue(flock($held, LOCK_EX | LOCK_NB));
+            $child = proc_open(
+                [PHP_BINARY, '-r', 'require ' . var_export(dirname(__DIR__, 2) . '/vendor/autoload.php', true) . '; $m = new ReflectionMethod(App\\Support\\BlurGenerationJob::class, "claimPending"); echo $m->invoke(null, ' . $id . ') ? "dispatch" : "skip";'],
+                [1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+                $pipes
+            );
+            self::assertIsResource($child);
+            $childOut = trim((string) stream_get_contents($pipes[1]));
+            fclose($pipes[1]);
+            fclose($pipes[2]);
+            proc_close($child);
+            flock($held, LOCK_UN);
+            fclose($held);
+            self::assertSame('skip', $childOut, 'contention on the claim lock must skip the dispatch');
         } finally {
             @unlink($marker);
             @unlink($claimFile);
