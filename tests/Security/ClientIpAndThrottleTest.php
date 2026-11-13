@@ -31,6 +31,7 @@ final class ClientIpAndThrottleTest extends TestCase
     protected function tearDown(): void
     {
         putenv('TRUSTED_PROXIES');
+        putenv('TRUST_X_REAL_IP');
         putenv('APP_ENV');
         unset($_ENV['TRUSTED_PROXIES'], $_SERVER['TRUSTED_PROXIES']);
         exec('rm -rf ' . escapeshellarg($this->dir));
@@ -71,9 +72,12 @@ final class ClientIpAndThrottleTest extends TestCase
         self::assertSame('198.51.100.5', ClientIp::resolve(['REMOTE_ADDR' => '198.51.100.5', 'HTTP_X_FORWARDED_FOR' => '1.1.1.1']));
     }
 
-    public function testRealIpIsAFallbackOnlyFromATrustedPeer(): void
+    public function testRealIpIsAnOptInFallbackOnlyFromATrustedPeer(): void
     {
         putenv('TRUSTED_PROXIES=172.16.0.0/12');
+        // Default: ignored (a pass-through proxy would let clients spoof it).
+        self::assertSame('172.18.0.2', ClientIp::resolve(['REMOTE_ADDR' => '172.18.0.2', 'HTTP_X_REAL_IP' => '203.0.113.10']));
+        putenv('TRUST_X_REAL_IP=1');
         self::assertSame('203.0.113.10', ClientIp::resolve(['REMOTE_ADDR' => '172.18.0.2', 'HTTP_X_REAL_IP' => '203.0.113.10']));
         self::assertSame('198.51.100.5', ClientIp::resolve(['REMOTE_ADDR' => '198.51.100.5', 'HTTP_X_REAL_IP' => '203.0.113.10']));
         self::assertSame('203.0.113.10', ClientIp::resolve(['REMOTE_ADDR' => '172.18.0.2', 'HTTP_X_FORWARDED_FOR' => '203.0.113.10', 'HTTP_X_REAL_IP' => '192.0.2.1']));

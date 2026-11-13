@@ -81,11 +81,13 @@ final class ClientIp
 
         $forwarded = (string) ($serverParams['HTTP_X_FORWARDED_FOR'] ?? '');
         if ($forwarded === '') {
-            // Proxies that only send X-Real-IP (nginx `proxy_set_header
-            // X-Real-IP $remote_addr`) must OVERWRITE it; it is honoured only
-            // from a trusted peer and only when X-Forwarded-For is absent.
+            // X-Real-IP is opt-in (TRUST_X_REAL_IP=1): a proxy that neither
+            // sends X-Forwarded-For nor OVERWRITES X-Real-IP would pass a
+            // client-chosen value through. Only for proxies configured with
+            // e.g. nginx `proxy_set_header X-Real-IP $remote_addr`.
             $realIp = trim((string) ($serverParams['HTTP_X_REAL_IP'] ?? ''));
-            if ($realIp !== '' && filter_var($realIp, FILTER_VALIDATE_IP) !== false && !self::isTrustedProxy($realIp)) {
+            if (self::env('TRUST_X_REAL_IP') === '1'
+                && $realIp !== '' && filter_var($realIp, FILTER_VALIDATE_IP) !== false && !self::isTrustedProxy($realIp)) {
                 return $realIp;
             }
             return $remote;
