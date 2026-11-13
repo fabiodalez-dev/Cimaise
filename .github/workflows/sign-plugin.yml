@@ -1,8 +1,17 @@
 name: Sign Plugin Archives
 
-# Signs every *.zip asset attached to a release with the vendor Ed25519 key and
-# uploads a detached <asset>.sig next to it. The PHP install path verifies that
-# signature before extracting/running plugin code (review finding H3).
+# Signs the plugin *.zip assets attached to a release with the vendor Ed25519
+# key and uploads a detached <asset>.sig next to it. The PHP install path
+# verifies that signature before extracting/running plugin code (review H3).
+#
+# Signatures are made in the "plugin" domain (PluginSignature::pluginMessage):
+# they never verify as an updater package or migration-patch signature. The
+# app's own package cimaise-v*.zip is EXCLUDED — release.yml signs it in the
+# "package" domain, and re-signing it here (with --clobber) would overwrite
+# that .sig and break every update.
+#
+# Note: anyone who can attach a *.zip to a release gets it plugin-signed by this
+# workflow; keep release-asset write access to maintainers.
 #
 # Requirements:
 #   - repository secret PLUGIN_SIGNING_KEY = base64 Ed25519 secret key
@@ -25,25 +34,37 @@ jobs:
   sign:
     name: Sign release ZIP assets
     runs-on: ubuntu-24.04
-    # Job-level env so `if:` conditions can read the secret (step-level env is not
-    # available when the step's own `if:` is evaluated).
-    env:
-      PLUGIN_SIGNING_KEY: ${{ secrets.PLUGIN_SIGNING_KEY }}
+    # Same environment as release.yml's signing job, so the key can be scoped
+    # to it (Settings → Environments). The secret is only exposed to the single
+    # signing step below — never to the whole job.
+    environment: release-signing
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Setup PHP 8.2 (with sodium)
+      # No Composer install: bin/release-sign.php only needs ext-sodium and
+      # app/Support/PluginSignature.php, so no third-party code runs here.
+      - name: Setup PHP 8.2 (sodium only)
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.2'
-          extensions: sodium, mbstring, json
-          tools: composer
+          extensions: sodium
+          tools: none
+          coverage: none
 
-      - name: Install dependencies
-        run: composer install --no-dev --no-interaction --prefer-dist
+      - name: Check signing key
+        id: key
+        env:
+          PLUGIN_SIGNING_KEY: ${{ secrets.PLUGIN_SIGNING_KEY }}
+        run: |
+          if [ -n "${PLUGIN_SIGNING_KEY:-}" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "No PLUGIN_SIGNING_KEY configured — nothing to sign."
+          fi
 
       - name: Resolve release tag
         id: tag
@@ -59,25 +80,29 @@ jobs:
             printf 'tag=%s\n' "$INPUT_TAG" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Download .zip assets
+      - name: Download plugin .zip assets
+        if: ${{ steps.key.outputs.present == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           mkdir -p _assets
           gh release download "$TAG" --dir _assets --pattern '*.zip' || echo "No .zip assets found"
+          # The app package is signed by release.yml in the "package" domain.
+          rm -f _assets/cimaise-v*.zip
 
-      - name: Sign each archive
-        if: ${{ env.PLUGIN_SIGNING_KEY != '' }}
+      - name: Sign each plugin archive
+        if: ${{ steps.key.outputs.present == 'true' }}
+        env:
+          PLUGIN_SIGNING_KEY: ${{ secrets.PLUGIN_SIGNING_KEY }}
         run: |
           shopt -s nullglob
           for zip in _assets/*.zip; do
-            echo "Signing $zip"
-            php bin/console plugin:sign "$zip" --out "${zip}.sig"
+            php bin/release-sign.php plugin "$zip"
           done
 
       - name: Upload signatures
-        if: ${{ env.PLUGIN_SIGNING_KEY != '' }}
+        if: ${{ steps.key.outputs.present == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.tag.outputs.tag }}

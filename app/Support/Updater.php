@@ -33,6 +33,31 @@ class Updater
      * reported to the user as a missing release.
      */
     private const ERR_GITHUB_UNAVAILABLE = 503;
+
+    /**
+     * First release whose package carries a publisher signature
+     * (`cimaise-vX.Y.Z.zip.sig`, produced by the `sign` job of
+     * .github/workflows/release.yml; see PluginSignature::packageMessage()).
+     *
+     * Staged rollout (docs/updater.md, "Firma del pacchetto"):
+     *  - target >= this version  -> the signature is MANDATORY (fail closed);
+     *  - installed >= this version -> also mandatory, whatever the target: an
+     *    install that already verifies publisher signatures never goes back to
+     *    a digest-only package, so a downgrade to an old, unsigned release
+     *    cannot be used to slip in a re-uploaded asset (ratchet);
+     *  - otherwise (an older install updating to a pre-signature release,
+     *    which only happens in dev/test trees) the legacy digest-only check
+     *    applies, logged as a warning.
+     * The comparison counts pre-releases of this version as signed
+     * (1.4.30-rc.1 >= 1.4.30-dev), since they come from the same workflow.
+     *
+     * MUST equal the first version tagged with the signing workflow in place.
+     */
+    public const PACKAGE_SIGNATURE_REQUIRED_FROM = '1.4.30';
+
+    /** Upper bound for a downloaded .sig asset (a real one is 89 bytes). */
+    private const MAX_SIGNATURE_BYTES = 1024;
+
     private readonly string $rootPath;
     private readonly string $backupPath;
     private readonly string $tempPath;
@@ -1059,6 +1084,18 @@ class Updater
             }
             $this->debugLog('INFO', 'Update archive digest verified (sha256)', []);
 
+            // SECURITY: the digest above comes from the SAME GitHub release as
+            // the archive, so whoever can replace the asset can replace the
+            // digest/sidecar too. The publisher signature is the real trust
+            // anchor: it is made with the project's offline key over
+            // (version, sha256) and checked against the public key shipped with
+            // THIS install, before anything is written or extracted.
+            $this->assertPackageSignature(
+                $version,
+                $actualHash,
+                $this->fetchPackageSignature($release, (string) $packageAsset['name'])
+            );
+
             // Save file
             $bytesWritten = file_put_contents($zipPath, $fileContent);
             if ($bytesWritten === false) {
@@ -1331,6 +1368,123 @@ class Updater
 
         $this->debugLog('WARNING', 'No .sha256 sidecar asset on release', ['sidecar' => $sidecarName]);
         return null;
+    }
+
+    /**
+     * Whether installing $targetVersion requires a valid publisher signature.
+     * See PACKAGE_SIGNATURE_REQUIRED_FROM for the staged-rollout rules.
+     */
+    private function packageSignatureRequired(string $targetVersion): bool
+    {
+        $signedEra = static fn (string $v): bool => version_compare(
+            ltrim(trim($v), 'v'),
+            self::PACKAGE_SIGNATURE_REQUIRED_FROM . '-dev',
+            '>='
+        );
+
+        return $signedEra($targetVersion) || $signedEra($this->getCurrentVersion());
+    }
+
+    /**
+     * Download the "<asset>.sig" publisher signature of a release package.
+     *
+     * Returns null ONLY when the release has no such asset (pre-signature
+     * releases); whether that is acceptable is decided by
+     * assertPackageSignature(). An asset that exists but cannot be fetched, or
+     * is implausibly large, throws — a signature we cannot read is never
+     * treated as "not signed".
+     *
+     * @param array<string, mixed> $release Release payload from the GitHub API
+     * @throws \RuntimeException
+     */
+    private function fetchPackageSignature(array $release, string $packageName): ?string
+    {
+        $sigName = $packageName . '.sig';
+
+        foreach ($release['assets'] ?? [] as $asset) {
+            if (!is_array($asset) || ($asset['name'] ?? '') !== $sigName) {
+                continue;
+            }
+            $url = $asset['browser_download_url'] ?? '';
+            if (!is_string($url) || $url === '') {
+                throw new \RuntimeException('Package signature asset has no download URL. Update aborted.');
+            }
+
+            $result = $this->downloadFile($url);
+            if (!$result['success'] || !is_string($result['content'])) {
+                throw new \RuntimeException('Cannot download the package signature (' . $sigName . '): '
+                    . ($result['error'] ?? 'unknown error') . '. Update aborted.');
+            }
+            if (strlen($result['content']) > self::MAX_SIGNATURE_BYTES) {
+                throw new \RuntimeException('Package signature asset is not a signature (too large). Update aborted.');
+            }
+
+            return trim($result['content']);
+        }
+
+        return null;
+    }
+
+    /**
+     * Enforce the publisher-signature policy for a downloaded package whose
+     * sha256 is $sha256. Throws (update aborted, nothing extracted) unless:
+     *  - a signature is present and verifies against the shipped public key
+     *    for exactly (version, sha256) in the "package" domain; or
+     *  - the target is a pre-signature release on a pre-signature install
+     *    (legacy, digest-only — see PACKAGE_SIGNATURE_REQUIRED_FROM) and no
+     *    signature was published for it.
+     * A signature that IS published is always checked when a public key is
+     * available, even for a legacy target: an invalid one is never ignored.
+     *
+     * @throws \RuntimeException
+     */
+    private function assertPackageSignature(string $version, string $sha256, ?string $signature): void
+    {
+        $required = $this->packageSignatureRequired($version);
+        $keyAvailable = \App\Support\PluginSignature::isEnabled();
+
+        if ($signature === null || $signature === '') {
+            if ($required) {
+                $this->debugLog('ERROR', 'Release package has no publisher signature — refusing to install', [
+                    'version' => $version,
+                    'required_from' => self::PACKAGE_SIGNATURE_REQUIRED_FROM,
+                ]);
+                throw new \RuntimeException(sprintf(
+                    'Update refused: release %s has no publisher signature (.sig). Packages from %s on must be signed by the project key.',
+                    $version,
+                    self::PACKAGE_SIGNATURE_REQUIRED_FROM
+                ));
+            }
+            $this->debugLog('WARNING', 'Pre-signature release: installing on the release digest only (legacy path)', [
+                'version' => $version,
+                'required_from' => self::PACKAGE_SIGNATURE_REQUIRED_FROM,
+            ]);
+            return;
+        }
+
+        if (!$keyAvailable) {
+            if ($required) {
+                throw new \RuntimeException(
+                    'Update refused: no publisher public key is configured (resources/keys/plugin-signing.pub), so the package signature cannot be verified.'
+                );
+            }
+            $this->debugLog('WARNING', 'Package signature present but no public key configured; legacy target, digest only', [
+                'version' => $version,
+            ]);
+            return;
+        }
+
+        if (!\App\Support\PluginSignature::verifyPackage($version, $sha256, $signature)) {
+            $this->debugLog('ERROR', 'Release package signature verification FAILED — refusing to install', [
+                'version' => $version,
+                'sha256' => $sha256,
+            ]);
+            throw new \RuntimeException('Update integrity check failed: invalid publisher signature on the release package.');
+        }
+
+        $this->debugLog('INFO', 'Release package publisher signature verified (Ed25519)', [
+            'version' => $version,
+        ]);
     }
 
     /**
@@ -3189,7 +3343,10 @@ class Updater
             return null;
         }
 
-        if (!\App\Support\PluginSignature::verify($patch['content'], trim($sig['content']))) {
+        // Domain-separated: the signature must have been made for THIS patch
+        // file name on THIS release — a plugin or package signature, or a patch
+        // signed for another release, never verifies here.
+        if (!\App\Support\PluginSignature::verifyPatch($assetName, $version, $patch['content'], trim($sig['content']))) {
             $this->debugLog('ERROR', 'Patch signature verification FAILED — refusing to execute', [
                 'asset' => $assetName,
             ]);

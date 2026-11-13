@@ -4,11 +4,14 @@ Drop a `pre-update-patch.php` and/or `post-install-patch.php` here for a
 release that needs a one-off fix the normal package + migrations can't express
 (an in-place file edit, a stale-file deletion, or an ad-hoc SQL statement).
 
-On `git tag vX.Y.Z`, the release workflow signs each present file with the
-project's Ed25519 key (`PLUGIN_SIGNING_KEY` secret) and attaches it — plus its
-`.sig` — as a release asset. The updater downloads the asset, **verifies the
+On `git tag vX.Y.Z`, the `sign-release` job of the release workflow signs each
+present file with the project's Ed25519 key (`PLUGIN_SIGNING_KEY` secret) and
+attaches it — plus its `.sig` — as a release asset. The signature is bound to
+the file name and to the release version (`patch` domain of
+`App\Support\PluginSignature`), so a patch cannot be replayed on another
+release or in the other slot. The updater downloads the asset, **verifies the
 Ed25519 signature before executing**, and runs nothing if the signature is
-absent or invalid (fail-closed). When no signing key is configured the whole
+absent or invalid (fail-closed). When no public key is configured the whole
 mechanism is disabled.
 
 This directory is **not** shipped inside the `cimaise-*.zip` package (the
