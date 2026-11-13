@@ -168,7 +168,14 @@ class SeoController extends BaseController
             $svc->set('seo.image_copyright_notice', trim((string)($data['image_copyright_notice'] ?? '')));
             $svc->set('seo.image_license_url', trim((string)($data['image_license_url'] ?? '')));
             $svc->set('seo.image_acquire_license_page', trim((string)($data['image_acquire_license_page'] ?? '')));
-            $svc->set('seo.expose_gps', isset($data['expose_gps']) ? 'true' : 'false');
+            $exposeGpsBefore = SettingsService::boolean($svc->get('seo.expose_gps', false));
+            $exposeGpsAfter = isset($data['expose_gps']);
+            $svc->set('seo.expose_gps', $exposeGpsAfter ? 'true' : 'false');
+            if ($exposeGpsBefore !== $exposeGpsAfter) {
+                // Cached album pages hold coordinates masked under the old
+                // policy; masking on read cannot restore precision.
+                (new \App\Services\PageCacheService($svc, $this->db))->clearAll();
+            }
 
             // Performance & Crawling
             $svc->set('seo.preload_critical_images', isset($data['preload_critical_images']) ? 'true' : 'false');

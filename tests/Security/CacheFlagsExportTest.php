@@ -44,11 +44,19 @@ final class CacheFlagsExportTest extends TestCase
             touch($marker, time() - 3600);
             self::assertTrue($claim->invoke(null, $id), 'stale claim is replaced');
 
+            // A failed dispatch releases its claim so retries are not blocked.
+            $release = new \ReflectionMethod(BlurGenerationJob::class, 'releasePending');
+            self::assertFalse($claim->invoke(null, $id));
+            $release->invoke(null, $id);
+            self::assertTrue($claim->invoke(null, $id), 'released claim can be taken again');
+            self::assertFileExists($claimFile, 'the stable lock file is kept');
+
             // A concurrent claimer holding the per-image lock wins (contention => skip).
             touch($marker, time() - 3600);
             $held = fopen($claimFile, 'c+');
             self::assertNotFalse($held);
             self::assertTrue(flock($held, LOCK_EX | LOCK_NB));
+            // nosemgrep: php.lang.security.exec-use.exec-use -- fixed argv (no shell): this PHP binary running a fixture snippet.
             $child = proc_open(
                 [PHP_BINARY, '-r', 'require ' . var_export(dirname(__DIR__, 2) . '/vendor/autoload.php', true) . '; $m = new ReflectionMethod(App\\Support\\BlurGenerationJob::class, "claimPending"); echo $m->invoke(null, ' . $id . ') ? "dispatch" : "skip";'],
                 [1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
@@ -63,7 +71,9 @@ final class CacheFlagsExportTest extends TestCase
             fclose($held);
             self::assertSame('skip', $childOut, 'contention on the claim lock must skip the dispatch');
         } finally {
+            // nosemgrep: php.lang.security.unlink-use.unlink-use -- teardown of this test's own temp lock files.
             @unlink($marker);
+            // nosemgrep: php.lang.security.unlink-use.unlink-use -- teardown of this test's own temp lock files.
             @unlink($claimFile);
         }
     }
@@ -84,6 +94,7 @@ final class CacheFlagsExportTest extends TestCase
             self::assertNull($svc->albumPageKeyForSlug('nsfw'));
             self::assertNull($svc->albumPageKeyForSlug('draft'));
         } finally {
+            // nosemgrep: php.lang.security.unlink-use.unlink-use -- teardown of this test's own temp database.
             @unlink($file);
         }
     }

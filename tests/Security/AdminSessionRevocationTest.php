@@ -30,6 +30,7 @@ final class AdminSessionRevocationTest extends TestCase
     {
         AdminSession::setDatabase(null);
         $_SESSION = [];
+        // nosemgrep: php.lang.security.unlink-use.unlink-use -- teardown of this test's own temp database.
         @unlink($this->dbFile);
     }
 
@@ -109,6 +110,70 @@ final class AdminSessionRevocationTest extends TestCase
     {
         $src = (string) file_get_contents(dirname(__DIR__, 2) . '/app/Controllers/Admin/AuthController.php');
         self::assertStringContainsString("AdminSession::isCurrent()) {\n                return \$response->withHeader('Location', \$this->redirect('/admin'))", $src);
+    }
+
+    public function testPasswordChangeRevokesRememberTokenInTheSameStatement(): void
+    {
+        $src = (string) file_get_contents(dirname(__DIR__, 2) . '/app/Controllers/Admin/AuthController.php');
+        self::assertStringContainsString('UPDATE users SET password_hash = :password_hash, remember_token = NULL, remember_token_expires_at = NULL', $src);
+    }
+
+    public function testLoginIssuesRememberTokenOnlyForTheVerifiedCredential(): void
+    {
+        $src = (string) file_get_contents(dirname(__DIR__, 2) . '/app/Controllers/Admin/AuthController.php');
+        self::assertStringContainsString("WHERE id = :id AND password_hash = :password_hash AND is_active = 1 AND role = 'admin'", $src);
+        self::assertStringContainsString('$this->setRememberToken((int)$user[\'id\'], (string) $user[\'password_hash\']);', $src);
+    }
+
+    /** Run AuthController::setRememberToken() against the temp database. */
+    private function issueRememberToken(string $verifiedHash): bool
+    {
+        $controller = new \App\Controllers\Admin\AuthController(
+            $this->db,
+            \Slim\Views\Twig::create(dirname(__DIR__, 2) . '/app/Views'),
+            new \App\Services\SettingsService($this->db)
+        );
+        $method = new \ReflectionMethod($controller, 'setRememberToken');
+        return (bool) $method->invoke($controller, 2, $verifiedHash);
+    }
+
+    private function storedRememberToken(): ?string
+    {
+        $value = $this->db->pdo()->query('SELECT remember_token FROM users WHERE id = 2')->fetchColumn();
+        return $value === false || $value === null ? null : (string) $value;
+    }
+
+    public function testRememberTokenIsIssuedForTheVerifiedCredential(): void
+    {
+        self::assertTrue($this->issueRememberToken('HASH-A'));
+        self::assertMatchesRegularExpression('/^[a-f0-9]{64}$/', (string) $this->storedRememberToken());
+    }
+
+    /** @return array<string, array{string, string}> */
+    public static function changedCredentials(): array
+    {
+        return [
+            'password changed during login' => ["UPDATE users SET password_hash = 'HASH-B' WHERE id = 2", 'HASH-A'],
+            'account deactivated' => ['UPDATE users SET is_active = 0 WHERE id = 2', 'HASH-A'],
+            'account demoted' => ["UPDATE users SET role = 'user' WHERE id = 2", 'HASH-A'],
+        ];
+    }
+
+    /** @dataProvider changedCredentials */
+    public function testRememberTokenIsNotIssuedWhenCredentialsChanged(string $change, string $verifiedHash): void
+    {
+        $this->db->pdo()->exec("UPDATE users SET remember_token = 'OLD-TOKEN' WHERE id = 2");
+        $this->db->pdo()->exec($change);
+
+        self::assertFalse($this->issueRememberToken($verifiedHash), 'no cookie may be issued');
+        self::assertSame('OLD-TOKEN', $this->storedRememberToken(), 'the stored token must stay untouched');
+    }
+
+    public function testGpsPolicyChangeClearsThePageCache(): void
+    {
+        $src = (string) file_get_contents(dirname(__DIR__, 2) . '/app/Controllers/Admin/SeoController.php');
+        self::assertStringContainsString('if ($exposeGpsBefore !== $exposeGpsAfter) {', $src);
+        self::assertStringContainsString('->clearAll();', $src);
     }
 
     public function testRememberRotationIsACompareAndSet(): void

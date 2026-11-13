@@ -158,7 +158,7 @@ class AuthController extends BaseController
 
         // Handle "Remember Me" functionality
         if ($rememberMe) {
-            $this->setRememberToken((int)$user['id']);
+            $this->setRememberToken((int)$user['id'], (string) $user['password_hash']);
         }
 
         // rotate CSRF after login
@@ -174,10 +174,14 @@ class AuthController extends BaseController
     }
 
     /**
-     * Generate and set remember token for persistent login
+     * Mint a remember-me token, store its SHA-256 hash and set the cookie —
+     * only if the account still has the password hash this login verified and
+     * is still an active admin (compare-and-set): a reset or deactivation that
+     * lands in between wins, and no cookie is sent.
+     *
+     * @return bool true when the token was stored and the cookie set
      */
-    /** Mint a remember-me token, store its SHA-256 hash, and set the cookie. */
-    private function setRememberToken(int $userId): void
+    private function setRememberToken(int $userId, string $verifiedPasswordHash): bool
     {
         try {
             // Generate secure random token (32 bytes = 64 hex chars)
@@ -192,13 +196,19 @@ class AuthController extends BaseController
 
             // Store hashed token in database
             $stmt = $this->db->pdo()->prepare(
-                'UPDATE users SET remember_token = :token, remember_token_expires_at = :expires WHERE id = :id'
+                "UPDATE users SET remember_token = :token, remember_token_expires_at = :expires
+                 WHERE id = :id AND password_hash = :password_hash AND is_active = 1 AND role = 'admin'"
             );
             $stmt->execute([
                 ':token' => $hashedToken,
                 ':expires' => $expiresAt,
-                ':id' => $userId
+                ':id' => $userId,
+                ':password_hash' => $verifiedPasswordHash,
             ]);
+            if ($stmt->rowCount() !== 1) {
+                Logger::info('Remember token not issued: credentials changed during login', ['user_id' => $userId], 'auth');
+                return false;
+            }
 
             // Set cookie with raw token (not hashed)
             setcookie('remember_token', $rawToken, [
@@ -210,12 +220,14 @@ class AuthController extends BaseController
             ]);
 
             Logger::info('Remember token set for user', ['user_id' => $userId], 'auth');
+            return true;
         } catch (\Throwable $e) {
             Logger::error('Failed to set remember token', [
                 'user_id' => $userId,
                 'error' => $e->getMessage()
             ], 'auth');
             // Don't throw - login should still succeed even if remember token fails
+            return false;
         }
     }
 
@@ -406,7 +418,9 @@ class AuthController extends BaseController
             $hashedPassword = password_hash($newPassword, PASSWORD_ARGON2ID);
             $now = $this->db->nowExpression();
             $stmt = $this->db->pdo()->prepare(
-                "UPDATE users SET password_hash = :password_hash, updated_at = {$now} WHERE id = :id"
+                // Revoke remember-me in the SAME statement: a stolen cookie must
+                // not be able to rotate itself onto the new hash in between.
+                "UPDATE users SET password_hash = :password_hash, remember_token = NULL, remember_token_expires_at = NULL, updated_at = {$now} WHERE id = :id"
             );
             $stmt->execute([
                 ':password_hash' => $hashedPassword,
