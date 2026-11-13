@@ -43,12 +43,27 @@ git tag v1.5.0 && git push --tags
        b. verifica contenuti directory pacchetto
        c. zip + sidecar .sha256 (formato shasum "<hex>  <file>")
        d. verify_zip_package: estrazione + verifica profonda dello ZIP FINALE
-  6. creazione GitHub Release con asset:
-       cimaise-vX.Y.Z.zip, cimaise-vX.Y.Z.zip.sha256, RELEASE_NOTES-vX.Y.Z.md
-  7. VERIFICA POST-UPLOAD (regola assoluta, lezione Pinakes):
+  (job build-release: nessun segreto, token read-only)
+        │  artifact "unsigned-release"
+        ▼
+  6. job sign-release (runner pulito, environment `release-signing`):
+       - NIENTE composer/npm: solo ext-sodium + bin/release-sign.php
+       - sha256sum -c sul sidecar
+       - firma Ed25519 del pacchetto → cimaise-vX.Y.Z.zip.sig (dominio "package")
+       - firma delle eventuali patch → <patch>.php.sig (dominio "patch")
+       - la firma appena fatta deve verificare con la chiave pubblica COMMITTATA
+       - PLUGIN_SIGNING_KEY assente ⇒ il job FALLISCE (mai release non firmate)
+        │  artifact "release-signatures"
+        ▼
+  7. job publish-release (unico con contents: write):
+       - verifica firma pacchetto contro resources/keys/plugin-signing.pub
+       - creazione GitHub Release con asset:
+           cimaise-vX.Y.Z.zip, .zip.sha256, .zip.sig, RELEASE_NOTES-vX.Y.Z.md
+  8. VERIFICA POST-UPLOAD (regola assoluta, lezione Pinakes):
        - metadati asset via API: presenza, size, digest sha256
        - ri-download binario via API e confronto sha256 col file locale
        - presenza del sidecar .sha256
+       - presenza del .sig e verifica della firma PUBBLICATA sul binario RI-SCARICATO
        - mismatch ⇒ il workflow FALLISCE rumorosamente
 ```
 
@@ -131,7 +146,7 @@ generate per-installazione, `database/database.sqlite`, tutta la toolchain di bu
    - la release DEVE avere l'asset `cimaise-*.zip`. **Niente fallback allo zipball**:
      lo zipball è il solo albero git, senza `vendor/` né asset compilati — installarlo
      bricka il sito. Se l'asset manca: `RuntimeException` con messaggio chiaro
-   - **verifica integrità obbligatoria** (vedi sotto)
+   - **verifica integrità obbligatoria** (digest) e **firma dell'editore** (vedi sotto)
 5. **Backup applicativo per rollback** (`storage/tmp/cimaise_app_backup_*`):
    `app/`, `public/assets/`, `vendor/`, `database/migrations/`, `database/schema.*.sql`,
    `version.json`, `index.php`, `.htaccess`, `public/index.php`, `bin/console`
@@ -150,6 +165,66 @@ Il pacchetto scaricato deve corrispondere a uno sha256 pubblicato, nell'ordine:
 3. se non esiste NESSUNA delle due fonti ⇒ **l'update viene rifiutato** (mai installare non verificato)
 
 La verifica TLS dei certificati è sempre attiva, senza fallback insecure.
+
+Il digest però arriva **dalla stessa release** dell'archivio: chi può sostituire un asset della release può sostituire anche digest e sidecar. Per questo il digest rileva corruzioni, ma non autentica l'editore. L'autenticazione è la firma (sezione seguente).
+
+### Firma del pacchetto (publisher signature)
+
+Dopo il controllo del digest, e **prima** di scrivere o estrarre qualsiasi cosa, l'updater scarica `cimaise-vX.Y.Z.zip.sig` e verifica una firma Ed25519 fatta con la chiave offline del progetto, contro la chiave pubblica **spedita con l'installazione** (`resources/keys/plugin-signing.pub`, o l'override `PLUGIN_SIGNING_PUBKEY`). Il messaggio firmato è legato a versione e hash del pacchetto:
+
+```text
+"cimaise-signature-v1" \0 "package" \0 <versione senza v> \0 <sha256 hex dello zip>
+```
+
+Così una firma valida per la 1.5.0 non vale per la 1.5.1, e una firma di plugin o di patch (vedi "Separazione dei domini") non vale mai come firma di pacchetto. Firma assente, illeggibile o non valida ⇒ `RuntimeException`, update annullato, niente estratto.
+
+#### Transizione (staged rollout)
+
+Le release già pubblicate (fino alla 1.4.29) non hanno `.sig`. La regola sta in `Updater::PACKAGE_SIGNATURE_REQUIRED_FROM` (oggi `1.4.30`, deve coincidere con la prima versione taggata con il nuovo `release.yml`):
+
+| Installata | Target | Comportamento |
+|---|---|---|
+| qualsiasi | ≥ 1.4.30 (anche `1.4.30-rc.N`) | firma **obbligatoria** |
+| ≥ 1.4.30 | qualsiasi, anche < 1.4.30 | firma **obbligatoria** (ratchet: un'installazione che verifica le firme non torna mai al solo digest, quindi un downgrade verso una vecchia release con asset ri-caricato viene rifiutato) |
+| < 1.4.30 | < 1.4.30 | percorso legacy: solo digest, con WARNING nel log (succede solo in alberi dev/test) |
+
+Se una release pubblica un `.sig`, la firma viene verificata **sempre** quando c'è una chiave pubblica, anche sul percorso legacy: una firma non valida non viene mai ignorata.
+
+Limite intrinseco: il controllo lo esegue il codice **già installato**. Un'installazione 1.4.29 che si aggiorna alla 1.4.30 usa ancora l'updater della 1.4.29 (solo digest); dalla 1.4.30 in poi ogni update successivo è verificato.
+
+#### Separazione dei domini
+
+La stessa chiave firma tre cose diverse; nessuna firma viene mai fatta sui byte grezzi, ma su un messaggio con lo scopo dentro (`App\Support\PluginSignature`):
+
+| Scopo | Campi firmati | Chi firma | Chi verifica |
+|---|---|---|---|
+| `plugin` | sha256 dello zip | `plugin:sign` (default), `sign-plugin.yml` | `PluginsController::upload` |
+| `patch` | nome asset, versione, sha256 | job `sign-release` | `Updater::fetchSignedReleaseAsset` |
+| `package` | versione, sha256 | job `sign-release` | `Updater::downloadUpdate` |
+
+Le primitive raw (`sign`/`verify` su byte arbitrari) sono private: non esiste più un modo di verificare una firma non incorniciata. `sign-plugin.yml` esclude esplicitamente `cimaise-v*.zip` (lo firma `release.yml` nel dominio `package`; ri-firmarlo con `--clobber` sovrascriverebbe il `.sig` e romperebbe gli update).
+
+Comandi:
+
+```bash
+php bin/console plugin:sign plugin.zip
+```
+
+```bash
+php bin/console plugin:sign cimaise-v1.5.0.zip --type package --release 1.5.0
+```
+
+```bash
+php bin/console plugin:sign release-patches/post-install-patch.php --type patch --release 1.5.0
+```
+
+In CI si usa `bin/release-sign.php` (stessi messaggi, zero dipendenze Composer, chiave solo da `PLUGIN_SIGNING_KEY`), non incluso nel pacchetto.
+
+#### Configurazione lato GitHub (a cura del maintainer)
+
+- Creare l'environment **`release-signing`** (Settings → Environments), spostarci il segreto `PLUGIN_SIGNING_KEY`, limitarlo ai tag `v*` e, se si vuole, aggiungere reviewer obbligatori. Finché l'environment non ha regole, il job usa il segreto di repository e chiunque possa pushare un tag `v*` fa firmare quello che ha taggato.
+- Tenere i permessi di scrittura sugli asset delle release ai soli maintainer: `sign-plugin.yml` firma (nel dominio `plugin`) ogni `*.zip` caricato su una release.
+- Opzionale: chiavi distinte per plugin e pacchetti. Con la separazione dei domini non è necessario per la sicurezza crittografica, ma limita l'impatto se una delle due chiavi viene esposta.
 
 ### Path preservati durante l'update
 
@@ -177,6 +252,7 @@ vengono comunque creati su installazioni che ne fossero prive.
 | `UPDATER_GITHUB_TOKEN` | _(vuoto)_ | bearer token opzionale; inviato SOLO alle richieste verso l'host API (i download degli asset/sidecar vanno anonimi: i redirect verso i CDN leakerebbero il token); su 401/403 ritenta automaticamente senza token |
 | `UPDATER_ALLOW_PRERELEASE` | _(off)_ | `1/true/yes/on` abilita il canale RC |
 | `UPDATER_CHANNEL` | `stable` | qualsiasi valore ≠ `stable` abilita il canale RC |
+| `PLUGIN_SIGNING_PUBKEY` | _(vuoto → file `resources/keys/plugin-signing.pub`)_ | chiave pubblica Ed25519 (base64) per firme di plugin, patch e pacchetto; un valore non valido disabilita la verifica, e allora gli update che richiedono la firma vengono rifiutati |
 
 ---
 

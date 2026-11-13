@@ -212,7 +212,7 @@ class PluginsController extends BaseController
             $zipBytes = file_get_contents($tempZip);
             $providedSig = $this->extractProvidedSignature($request);
 
-            if ($zipBytes === false || $providedSig === '' || !PluginSignature::verify($zipBytes, $providedSig)) {
+            if ($zipBytes === false || $providedSig === '' || !PluginSignature::verifyPlugin($zipBytes, $providedSig)) {
                 Logger::warning('Plugin upload rejected: missing/invalid signature', [
                     'filename' => $filename,
                     'has_signature' => $providedSig !== '',
