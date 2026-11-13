@@ -426,8 +426,7 @@ class PageController extends BaseController
     {
         static $flag = null;
         if ($flag === null) {
-            $svc = new \App\Services\SettingsService($this->db);
-            $flag = \App\Services\SettingsService::boolean($svc->get('seo.expose_gps', false));
+            $flag = \App\Support\GpsPrivacy::exposeEnabled($this->db);
         }
         return $flag;
     }
@@ -1206,7 +1205,8 @@ class PageController extends BaseController
             ORDER BY i.sort_order ASC, i.id ASC
         ');
         $stmt->execute([':id' => $album['id']]);
-        $images = $stmt->fetchAll();
+        // Location privacy: rows go to public templates (captions, data-gps-*).
+        $images = \App\Support\GpsPrivacy::maskRows($stmt->fetchAll(), $this->exposeGps());
 
         // PERFORMANCE: Eager load ALL variants in one query instead of N+1 queries
         // Before: 50 images = 50 queries. After: 50 images = 1 query

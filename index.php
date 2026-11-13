@@ -123,8 +123,8 @@ foreach ($blockedPatterns as $pattern) {
 // /media/* requests MUST go through PHP for access control (NSFW/password protection)
 // Do NOT serve these as static files even if they exist
 $forcePhpRoutes = [
-    '/^\/media\//',           // All media requests need session validation
-    '/^\/fonts\/typography\.css$/', // Dynamic typography CSS
+    '/^\/media\//i',           // All media requests need session validation
+    '/^\/fonts\/typography\.css$/i', // Dynamic typography CSS
 ];
 
 $forcePhp = false;
@@ -143,7 +143,15 @@ if (!$forcePhp) {
     $realPath = realpath($publicFile);
     $publicDir = realpath(__DIR__ . '/public');
 
-    if ($realPath !== false && $publicDir !== false && str_starts_with($realPath, $publicDir) && is_file($realPath)) {
+    // Never serve public/media directly, whatever the request spelling
+    // (/assets/../media/x.jpg, /Media/x.jpg): album media access control lives
+    // in MediaController. Compared on the RESOLVED path, case-insensitively.
+    $mediaDir = realpath(__DIR__ . '/public/media');
+    $isMediaFile = $realPath !== false && $mediaDir !== false
+        && str_starts_with(strtolower($realPath), strtolower($mediaDir) . DIRECTORY_SEPARATOR);
+
+    if ($realPath !== false && $publicDir !== false && !$isMediaFile
+        && str_starts_with($realPath, $publicDir . DIRECTORY_SEPARATOR) && is_file($realPath)) {
         $ext = strtolower(pathinfo($realPath, PATHINFO_EXTENSION));
 
         // Only serve known file types

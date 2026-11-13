@@ -622,8 +622,11 @@ class PluginManager
                 require_once $uninstallHook;
             }
 
-            // Remove from database
-            $stmt = $this->db->pdo()->prepare('DELETE FROM plugin_status WHERE slug = ?');
+            // Keep a tombstone instead of deleting the row: loadPlugins()
+            // auto-installs (and activates) any on-disk plugin WITHOUT a row,
+            // so a DELETE here would silently re-enable the plugin on the next
+            // request. installPlugin() reinstalls over the tombstone.
+            $stmt = $this->db->pdo()->prepare('UPDATE plugin_status SET is_installed = 0, is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE slug = ?');
             $stmt->execute([$slug]);
 
             $this->invalidateStatusCache();
@@ -672,6 +675,13 @@ class PluginManager
     {
         if (!$this->db) {
             return ['success' => false, 'message' => 'Database not available'];
+        }
+
+        // Confine the slug to a single plugin directory name — no path traversal
+        // into an arbitrary deactivate.php: reject anything that is not already
+        // a bare directory name.
+        if ($slug !== basename($slug) || !preg_match('/^[a-z0-9][a-z0-9_-]*$/i', $slug)) {
+            return ['success' => false, 'message' => 'Invalid plugin slug'];
         }
 
         try {

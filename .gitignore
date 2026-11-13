@@ -129,6 +129,7 @@ tests/
 !/tests/Support/TempQueryCache.php
 !/tests/Support/DatabaseIdentityTest.php
 !/tests/README.md
+!/tests/Security/
 !/tests/Lifecycle/
 /tests/Lifecycle/*
 !/tests/Lifecycle/FreshInstallTest.php

@@ -3,6 +3,17 @@ declare(strict_types=1);
 
 namespace CustomTemplatesPro\Services;
 
+use Twig\Environment as TwigEnvironment;
+use Twig\Error\SyntaxError as TwigSyntaxError;
+use Twig\Loader\ArrayLoader as TwigArrayLoader;
+use Twig\Node\Expression\ArrowFunctionExpression;
+use Twig\Node\Expression\Binary\HasEveryBinary;
+use Twig\Node\Expression\Binary\HasSomeBinary;
+use Twig\Node\Node as TwigNode;
+use Twig\Source as TwigSource;
+use Twig\TwigFilter;
+use Twig\TwigFunction;
+use Twig\TwigTest;
 use ZipArchive;
 
 class TemplateValidationService
@@ -35,20 +46,11 @@ class TemplateValidationService
 
     // SSTI/RCE vectors in a Twig template rendered by the app's REAL Twig
     // environment (the uploaded template's directory is added to the shared
-    // loader — there is no sandbox). Space-tolerant regexes, because the old
-    // literal-substring blocklist ("include(", "attribute(") never matched the
-    // actual attacks: the deadly ones are the CALLABLE-accepting filters
-    // (`|map('system')`, `|filter('system')`, `|reduce(...)`, `|sort('...')`)
-    // and a handful of functions that reach arbitrary PHP. Legitimate bundled
-    // templates use include/import/from as TAGS (harmless) and never use these
-    // filters, so blocking them causes no regression. Applied to EVERY .twig in
-    // the package, not just the entry template.
+    // loader — there is no sandbox). Fast, space-tolerant regex pre-filter;
+    // the authoritative check is the AST walk in findUnsafeTwigConstruct(),
+    // which a regex cannot be (e.g. `{% apply sort('system') %}` has no pipe).
     private const DANGEROUS_TWIG_PATTERNS = [
-        // Filters that invoke their argument as a PHP callable → RCE
-        // (`{{ x|map('system') }}`). These three are the only core filters that
-        // do so; `sort`/`column`/`include()`/`constant()`/`_self`-import are
-        // used by legitimate bundled templates and are NOT arbitrary-callable
-        // sinks, so they are intentionally allowed.
+        // map/filter/reduce: blocked outright (never used by bundled templates).
         '/\|\s*(map|filter|reduce)\s*\(/i',
         // Functions that reach arbitrary PHP or compile attacker strings:
         //  - attribute(): can invoke arbitrary object methods
@@ -57,6 +59,15 @@ class TemplateValidationService
         //  - template_from_string(): compiles an arbitrary string as a template (SSTI)
         '/\b(attribute|dump|source|template_from_string)\s*\(/i',
     ];
+
+    // Core Twig filters whose first argument is invoked as a PHP callable.
+    // Outside a sandbox Twig accepts ANY callable there (a string such as
+    // 'system' only triggers a deprecation), so the argument must be an
+    // arrow function: its body can only use Twig expressions.
+    private const CALLABLE_TWIG_FILTERS = ['map', 'filter', 'reduce', 'find', 'sort'];
+
+    // Functions that are never acceptable in an uploaded template.
+    private const FORBIDDEN_TWIG_FUNCTIONS = ['attribute', 'dump', 'source', 'template_from_string'];
 
     public array $errors = [];
 
@@ -269,6 +280,13 @@ class TemplateValidationService
                 }
             }
 
+            // Authoritative check on the parsed template (fail closed).
+            $unsafe = $this->findUnsafeTwigConstruct($twigContent);
+            if ($unsafe !== null) {
+                $this->errors[] = 'Costrutto Twig non consentito rilevato (potenziale esecuzione di codice): ' . $unsafe;
+                return false;
+            }
+
             // Verifica bilanciamento tag Twig
             if (!$this->checkTwigBalance($twigContent)) {
                 return false;
@@ -279,6 +297,64 @@ class TemplateValidationService
             $this->errors[] = 'Errore nella validazione della sintassi Twig: ' . $e->getMessage();
             return false;
         }
+    }
+
+    /**
+     * Parse the template with Twig's own lexer/parser and walk the AST for
+     * constructs that invoke an attacker-chosen PHP callable. Unknown
+     * filters/functions/tests (app and plugin extensions) are accepted as
+     * inert placeholders so that only structure is judged; anything Twig
+     * cannot parse is rejected.
+     *
+     * @return string|null description of the first unsafe construct, or null
+     */
+    public function findUnsafeTwigConstruct(string $twigContent): ?string
+    {
+        $env = new TwigEnvironment(new TwigArrayLoader(), ['autoescape' => 'html', 'optimizations' => 0]);
+        $env->registerUndefinedFilterCallback(static fn (string $name): TwigFilter => new TwigFilter($name, static fn (): null => null));
+        $env->registerUndefinedFunctionCallback(static fn (string $name): TwigFunction => new TwigFunction($name, static fn (): null => null));
+        $env->registerUndefinedTestCallback(static fn (string $name): TwigTest => new TwigTest($name, static fn (): bool => false));
+
+        try {
+            $ast = $env->parse($env->tokenize(new TwigSource($twigContent, 'uploaded-template.twig')));
+        } catch (TwigSyntaxError $e) {
+            return 'template non analizzabile (' . $e->getRawMessage() . ')';
+        }
+
+        return $this->walkTwigNode($ast);
+    }
+
+    private function walkTwigNode(TwigNode $node): ?string
+    {
+        if ($node instanceof HasSomeBinary || $node instanceof HasEveryBinary) {
+            if (!$node->getNode('right') instanceof ArrowFunctionExpression) {
+                return "operatore 'has some/has every' con callable non-arrow";
+            }
+        } elseif ($node->hasAttribute('type') && $node->hasAttribute('name')) {
+            $type = (string) $node->getAttribute('type');
+            $name = strtolower((string) $node->getAttribute('name'));
+            if ($type === 'function' && in_array($name, self::FORBIDDEN_TWIG_FUNCTIONS, true)) {
+                return "funzione {$name}()";
+            }
+            if ($type === 'filter' && in_array($name, self::CALLABLE_TWIG_FILTERS, true) && $node->hasNode('arguments')) {
+                foreach ($node->getNode('arguments') as $key => $argument) {
+                    // Only the callable slot (first positional or named "arrow");
+                    // reduce()'s "initial" value is data, not a callable.
+                    if (($key === 0 || $key === '0' || $key === 'arrow') && !$argument instanceof ArrowFunctionExpression) {
+                        return "filtro {$name} con callable non-arrow";
+                    }
+                }
+            }
+        }
+
+        foreach ($node as $child) {
+            $found = $this->walkTwigNode($child);
+            if ($found !== null) {
+                return $found;
+            }
+        }
+
+        return null;
     }
 
     /**

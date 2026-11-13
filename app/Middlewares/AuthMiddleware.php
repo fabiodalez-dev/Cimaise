@@ -92,13 +92,14 @@ class AuthMiddleware implements MiddlewareInterface
         }
 
         if ($needsVerification) {
-            $stmt = $this->db->pdo()->prepare('SELECT id, email, role, is_active, first_name, last_name FROM users WHERE id = :id LIMIT 1');
+            $stmt = $this->db->pdo()->prepare('SELECT id, email, role, is_active, first_name, last_name, password_hash FROM users WHERE id = :id LIMIT 1');
             $stmt->execute([':id' => $_SESSION['admin_id']]);
             $user = $stmt->fetch();
             $stmt->closeCursor();
 
-            if (!$user || !$user['is_active'] || $user['role'] !== 'admin') {
-                // User no longer exists, is inactive, or no longer admin - force logout
+            if (!\App\Support\AdminSession::rowAuthorises($user)) {
+                // User no longer exists, is inactive, no longer admin, or the
+                // password changed since this session was bound - force logout
                 $this->clearRememberToken((int)($_SESSION['admin_id'] ?? 0));
                 session_destroy();
                 $response = new \Slim\Psr7\Response(302);
@@ -166,7 +167,7 @@ class AuthMiddleware implements MiddlewareInterface
         // Note: No LIMIT needed - only active admins with valid remember tokens are fetched
         // For a small CMS this is safe; for large user bases consider indexed lookup
         $stmt = $this->db->pdo()->prepare(
-            'SELECT id, email, role, is_active, first_name, last_name, remember_token, remember_token_expires_at
+            'SELECT id, email, role, is_active, first_name, last_name, password_hash, remember_token, remember_token_expires_at
              FROM users
              WHERE remember_token IS NOT NULL
              AND remember_token_expires_at > :now
@@ -197,6 +198,7 @@ class AuthMiddleware implements MiddlewareInterface
         $_SESSION['admin_email'] = $matchedUser['email'];
         $_SESSION['admin_name'] = trim($matchedUser['first_name'] . ' ' . $matchedUser['last_name']);
         $_SESSION['admin_role'] = $matchedUser['role'];
+        \App\Support\AdminSession::bind((string) $matchedUser['password_hash']);
 
         // Rotate remember token for security (token rotation)
         $this->rotateRememberToken((int)$matchedUser['id']);

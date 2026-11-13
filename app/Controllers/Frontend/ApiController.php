@@ -175,7 +175,8 @@ class ApiController extends BaseController
         $stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
         $stmt->execute();
-        $images = $stmt->fetchAll() ?: [];
+        // Location privacy: itemsHtml emits data-gps-* attributes.
+        $images = \App\Support\GpsPrivacy::maskRows($stmt->fetchAll() ?: [], \App\Support\GpsPrivacy::exposeEnabled($this->db));
 
         // Batch load variants for all images (avoid N+1)
         if (!empty($images)) {
@@ -446,7 +447,12 @@ class ApiController extends BaseController
         $location = [];
         if ($row['gps_lat'] !== null && $row['gps_lng'] !== null
             && $row['gps_lat'] !== '' && $row['gps_lng'] !== '') {
-            $location[] = ['label' => 'GPS', 'value' => round((float)$row['gps_lat'], 6) . ', ' . round((float)$row['gps_lng'], 6), 'icon' => 'fa-map-marker-alt'];
+            $expose = \App\Support\GpsPrivacy::exposeEnabled($this->db);
+            $lat = \App\Support\GpsPrivacy::mask($row['gps_lat'], $expose);
+            $lng = \App\Support\GpsPrivacy::mask($row['gps_lng'], $expose);
+            if ($lat !== null && $lng !== null) {
+                $location[] = ['label' => 'GPS', 'value' => ($expose ? round($lat, 6) : $lat) . ', ' . ($expose ? round($lng, 6) : $lng), 'icon' => 'fa-map-marker-alt'];
+            }
         }
         if ($location !== []) {
             $result['sections'][] = ['title' => 'Location', 'items' => $location];

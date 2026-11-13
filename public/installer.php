@@ -149,6 +149,47 @@ if (file_exists($markerPath) && file_exists($envPath)) {
     }
 }
 
+/**
+ * True when $path is a non-empty SQLite database that already holds an admin
+ * account — or cannot be read (fail closed). Used so a missing .env never turns
+ * an installed site back into an anonymous "fresh install" that wipes it.
+ */
+function installerSqliteHasAdmin(string $path): bool
+{
+    if (!is_file($path) || (int) @filesize($path) === 0) {
+        return false;
+    }
+    try {
+        $probe = new PDO('sqlite:' . $path, null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+        $hasUsers = $probe->query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'users'")->fetchColumn();
+        if ($hasUsers === false) {
+            return false; // a schema-less file is an incomplete install
+        }
+        return (int) $probe->query("SELECT COUNT(*) FROM users WHERE role = 'admin'")->fetchColumn() > 0;
+    } catch (Throwable) {
+        return true;
+    }
+}
+
+if (!$installed && !file_exists($envPath) && installerSqliteHasAdmin($dbPath)) {
+    http_response_code(423);
+    header('Content-Type: text/html; charset=utf-8');
+    echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
+        . '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        . '<meta name="robots" content="noindex"><title>Existing installation found — Cimaise</title>'
+        . '<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;'
+        . 'background:#111;color:#eee;display:flex;align-items:center;justify-content:center;'
+        . 'min-height:100vh;margin:0;text-align:center}main{max-width:34rem;padding:2rem}'
+        . 'h1{font-size:1.5rem;font-weight:600}p{color:#aaa;line-height:1.6}code{color:#ddd}</style></head>'
+        . '<body><main><h1>Existing installation found</h1>'
+        . '<p>This site already has a database with an administrator, but its <code>.env</code> '
+        . 'configuration file is missing, so the installer stays locked.</p>'
+        . '<p>Restore <code>.env</code> (in Docker: the storage volume). To start over on purpose, '
+        . 'delete <code>database/database.sqlite</code> on the server first.</p>'
+        . '</main></body></html>';
+    exit;
+}
+
 if ($dbUnreachable && !$installed) {
     http_response_code(503);
     header('Retry-After: 120');
@@ -164,7 +205,7 @@ if ($dbUnreachable && !$installed) {
         . '<p>This site is already installed, but its database server cannot be reached at the moment, '
         . 'so the installer stays locked.</p>'
         . '<p>Check the database service and the credentials in <code>.env</code>. '
-        . 'To run a fresh installation on purpose, remove <code>.env</code> first.</p>'
+        . 'To run a fresh installation on purpose, remove <code>.env</code> and the database first.</p>'
         . '</main></body></html>';
     exit;
 }
@@ -929,6 +970,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // The sqlite DB filename is the fixed constant 'database.sqlite' (set in
                 // the database step), so build the path from a literal — no user input.
                 $targetDbPath = $rootPath . '/database/database.sqlite';
+                if (installerSqliteHasAdmin($targetDbPath)) {
+                    // Never destroy a populated database from the web installer.
+                    throw new Exception('An existing database with an administrator was found. Remove it on the server to reinstall.');
+                }
                 if (is_file($targetDbPath) && !@unlink($targetDbPath)) { // constant path under /database
                     throw new Exception('Could not remove the existing database file. Check permissions.');
                 }

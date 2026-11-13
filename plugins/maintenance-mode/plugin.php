@@ -192,7 +192,8 @@ class MaintenanceModePlugin
                 session_start();
             }
 
-            if (isset($_SESSION['admin_id']) && $_SESSION['admin_id'] > 0) {
+            if (isset($_SESSION['admin_id']) && $_SESSION['admin_id'] > 0
+                && (!class_exists(\App\Support\AdminSession::class) || \App\Support\AdminSession::isCurrent())) {
                 return false; // Admins can access the site
             }
 

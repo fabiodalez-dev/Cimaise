@@ -161,6 +161,16 @@ docker run --rm -v cimaise_media:/media -v "$PWD:/backup" alpine \
   tar czf /backup/cimaise-media-$(date +%F).tar.gz -C /media .
 ```
 
+Also back up the `storage` volume: it holds `.env` (the app key and DB
+settings), the originals and the protected media. Restore all three volumes
+together. A database restored without its `.env` keeps the installer locked
+(it shows "Existing installation found") until `.env` is restored.
+
+```bash
+docker run --rm -v cimaise_storage:/storage -v "$PWD:/backup" alpine \
+  tar czf /backup/cimaise-storage-$(date +%F).tar.gz -C /storage .
+```
+
 For MySQL, back up with `mysqldump` against the `mysql` service as usual.
 
 ---

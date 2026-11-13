@@ -491,12 +491,21 @@ class GalleriesController extends BaseController
             // Album-text fields + primary category name (inline) + EXISTS on tags
             // and many-to-many categories. EXISTS keeps the row-count linear in
             // matches rather than exploding via JOIN duplication.
-            $searchTerm = '%' . $filters['search'] . '%';
+            // LIKE wildcards in the visitor's term are literal ('!' is a
+            // portable ESCAPE char on SQLite and MySQL). The body of a
+            // password-protected album is only revealed after unlock, so it must
+            // not influence public results (same policy as SearchService):
+            // otherwise match/no-match is an oracle on the locked text.
+            $term = str_replace(['!', '%', '_'], ['!!', '!%', '!_'], (string) $filters['search']);
+            $searchTerm = '%' . $term . '%';
+            $bodyClause = ($isAdmin ?? $this->isAdmin())
+                ? "a.body LIKE ? ESCAPE '!'"
+                : "(a.body LIKE ? ESCAPE '!' AND (a.password_hash IS NULL OR a.password_hash = ''))";
             $conditions[] = "(
-                a.title LIKE ? OR a.excerpt LIKE ? OR a.body LIKE ? OR a.slug LIKE ?
-                OR c.name LIKE ?
-                OR EXISTS (SELECT 1 FROM album_category sac JOIN categories scat ON scat.id = sac.category_id WHERE sac.album_id = a.id AND scat.name LIKE ?)
-                OR EXISTS (SELECT 1 FROM album_tag sat JOIN tags st ON st.id = sat.tag_id WHERE sat.album_id = a.id AND st.name LIKE ?)
+                a.title LIKE ? ESCAPE '!' OR a.excerpt LIKE ? ESCAPE '!' OR {$bodyClause} OR a.slug LIKE ? ESCAPE '!'
+                OR c.name LIKE ? ESCAPE '!'
+                OR EXISTS (SELECT 1 FROM album_category sac JOIN categories scat ON scat.id = sac.category_id WHERE sac.album_id = a.id AND scat.name LIKE ? ESCAPE '!')
+                OR EXISTS (SELECT 1 FROM album_tag sat JOIN tags st ON st.id = sat.tag_id WHERE sat.album_id = a.id AND st.name LIKE ? ESCAPE '!')
             )";
             $params[] = $searchTerm;
             $params[] = $searchTerm;
@@ -602,16 +611,41 @@ class GalleriesController extends BaseController
             }
         }
 
+        $result = $this->queryFilterOptions();
+
+        // Save to cache (use JSON for security - avoids unserialize vulnerabilities)
+        $cacheDir = dirname($cacheFile);
+        if (is_dir($cacheDir) && is_writable($cacheDir)) {
+            $cacheContent = json_encode(['expires' => time() + $cacheTtl, 'data' => $result]);
+            $written = @file_put_contents($cacheFile, $cacheContent, LOCK_EX);
+            if ($written === false) {
+                Logger::warning('GalleriesController: Failed to write filter options cache', [
+                    'cache_file' => $cacheFile
+                ], 'frontend');
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Filter dropdown terms with their PUBLISHED album counts. INNER JOINs on
+     * albums (a.is_published = 1) so terms used only by drafts never appear.
+     *
+     * @return array<string, array<int, array<string, mixed>>>
+     */
+    private function queryFilterOptions(): array
+    {
         $pdo = $this->db->pdo();
 
         // Get categories
         $stmt = $pdo->prepare('
-            SELECT c.*, COUNT(DISTINCT ac.album_id) as albums_count
+            SELECT c.*, COUNT(DISTINCT a.id) as albums_count
             FROM categories c 
-            LEFT JOIN album_category ac ON ac.category_id = c.id
-            LEFT JOIN albums a ON a.id = ac.album_id AND a.is_published = 1
+            JOIN album_category ac ON ac.category_id = c.id
+            JOIN albums a ON a.id = ac.album_id AND a.is_published = 1
             GROUP BY c.id
-            HAVING COUNT(DISTINCT ac.album_id) > 0
+            HAVING COUNT(DISTINCT a.id) > 0
             ORDER BY COALESCE(c.parent_id, 0) ASC, c.sort_order ASC, c.name ASC
         ');
         $stmt->execute();
@@ -619,12 +653,12 @@ class GalleriesController extends BaseController
 
         // Get tags
         $stmt = $pdo->prepare('
-            SELECT t.*, COUNT(DISTINCT at.album_id) as albums_count
+            SELECT t.*, COUNT(DISTINCT a.id) as albums_count
             FROM tags t 
-            LEFT JOIN album_tag at ON at.tag_id = t.id
-            LEFT JOIN albums a ON a.id = at.album_id AND a.is_published = 1
+            JOIN album_tag at ON at.tag_id = t.id
+            JOIN albums a ON a.id = at.album_id AND a.is_published = 1
             GROUP BY t.id
-            HAVING COUNT(DISTINCT at.album_id) > 0
+            HAVING COUNT(DISTINCT a.id) > 0
             ORDER BY albums_count DESC, t.name ASC
         ');
         $stmt->execute();
@@ -632,12 +666,12 @@ class GalleriesController extends BaseController
 
         // Get cameras
         $stmt = $pdo->prepare('
-            SELECT cam.*, COUNT(DISTINCT ac.album_id) as albums_count
+            SELECT cam.*, COUNT(DISTINCT a.id) as albums_count
             FROM cameras cam
-            LEFT JOIN album_camera ac ON ac.camera_id = cam.id
-            LEFT JOIN albums a ON a.id = ac.album_id AND a.is_published = 1
+            JOIN album_camera ac ON ac.camera_id = cam.id
+            JOIN albums a ON a.id = ac.album_id AND a.is_published = 1
             GROUP BY cam.id
-            HAVING COUNT(DISTINCT ac.album_id) > 0
+            HAVING COUNT(DISTINCT a.id) > 0
             ORDER BY albums_count DESC, cam.make ASC, cam.model ASC
         ');
         $stmt->execute();
@@ -645,12 +679,12 @@ class GalleriesController extends BaseController
 
         // Get lenses
         $stmt = $pdo->prepare('
-            SELECT l.*, COUNT(DISTINCT al.album_id) as albums_count
+            SELECT l.*, COUNT(DISTINCT a.id) as albums_count
             FROM lenses l
-            LEFT JOIN album_lens al ON al.lens_id = l.id
-            LEFT JOIN albums a ON a.id = al.album_id AND a.is_published = 1
+            JOIN album_lens al ON al.lens_id = l.id
+            JOIN albums a ON a.id = al.album_id AND a.is_published = 1
             GROUP BY l.id
-            HAVING COUNT(DISTINCT al.album_id) > 0
+            HAVING COUNT(DISTINCT a.id) > 0
             ORDER BY albums_count DESC, l.brand ASC, l.model ASC
         ');
         $stmt->execute();
@@ -658,12 +692,12 @@ class GalleriesController extends BaseController
 
         // Get films
         $stmt = $pdo->prepare('
-            SELECT f.*, COUNT(DISTINCT af.album_id) as albums_count
+            SELECT f.*, COUNT(DISTINCT a.id) as albums_count
             FROM films f
-            LEFT JOIN album_film af ON af.film_id = f.id
-            LEFT JOIN albums a ON a.id = af.album_id AND a.is_published = 1
+            JOIN album_film af ON af.film_id = f.id
+            JOIN albums a ON a.id = af.album_id AND a.is_published = 1
             GROUP BY f.id
-            HAVING COUNT(DISTINCT af.album_id) > 0
+            HAVING COUNT(DISTINCT a.id) > 0
             ORDER BY albums_count DESC, f.brand ASC, f.name ASC
         ');
         $stmt->execute();
@@ -671,12 +705,12 @@ class GalleriesController extends BaseController
 
         // Get developers
         $stmt = $pdo->prepare('
-            SELECT d.*, COUNT(DISTINCT ad.album_id) as albums_count
+            SELECT d.*, COUNT(DISTINCT a.id) as albums_count
             FROM developers d
-            LEFT JOIN album_developer ad ON ad.developer_id = d.id
-            LEFT JOIN albums a ON a.id = ad.album_id AND a.is_published = 1
+            JOIN album_developer ad ON ad.developer_id = d.id
+            JOIN albums a ON a.id = ad.album_id AND a.is_published = 1
             GROUP BY d.id
-            HAVING COUNT(DISTINCT ad.album_id) > 0
+            HAVING COUNT(DISTINCT a.id) > 0
             ORDER BY albums_count DESC, d.name ASC
         ');
         $stmt->execute();
@@ -684,12 +718,12 @@ class GalleriesController extends BaseController
 
         // Get labs
         $stmt = $pdo->prepare('
-            SELECT lab.*, COUNT(DISTINCT al.album_id) as albums_count
+            SELECT lab.*, COUNT(DISTINCT a.id) as albums_count
             FROM labs lab
-            LEFT JOIN album_lab al ON al.lab_id = lab.id
-            LEFT JOIN albums a ON a.id = al.album_id AND a.is_published = 1
+            JOIN album_lab al ON al.lab_id = lab.id
+            JOIN albums a ON a.id = al.album_id AND a.is_published = 1
             GROUP BY lab.id
-            HAVING COUNT(DISTINCT al.album_id) > 0
+            HAVING COUNT(DISTINCT a.id) > 0
             ORDER BY albums_count DESC, lab.name ASC
         ');
         $stmt->execute();
@@ -697,12 +731,12 @@ class GalleriesController extends BaseController
 
         // Get locations
         $stmt = $pdo->prepare('
-            SELECT loc.*, COUNT(DISTINCT al.album_id) as albums_count
+            SELECT loc.*, COUNT(DISTINCT a.id) as albums_count
             FROM locations loc
-            LEFT JOIN album_location al ON al.location_id = loc.id
-            LEFT JOIN albums a ON a.id = al.album_id AND a.is_published = 1
+            JOIN album_location al ON al.location_id = loc.id
+            JOIN albums a ON a.id = al.album_id AND a.is_published = 1
             GROUP BY loc.id
-            HAVING COUNT(DISTINCT al.album_id) > 0
+            HAVING COUNT(DISTINCT a.id) > 0
             ORDER BY albums_count DESC, loc.name ASC
         ');
         $stmt->execute();
@@ -730,18 +764,6 @@ class GalleriesController extends BaseController
             'locations' => $locations,
             'years' => $years
         ];
-
-        // Save to cache (use JSON for security - avoids unserialize vulnerabilities)
-        $cacheDir = dirname($cacheFile);
-        if (is_dir($cacheDir) && is_writable($cacheDir)) {
-            $cacheContent = json_encode(['expires' => time() + $cacheTtl, 'data' => $result]);
-            $written = @file_put_contents($cacheFile, $cacheContent, LOCK_EX);
-            if ($written === false) {
-                Logger::warning('GalleriesController: Failed to write filter options cache', [
-                    'cache_file' => $cacheFile
-                ], 'frontend');
-            }
-        }
 
         return $result;
     }

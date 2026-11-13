@@ -6,7 +6,7 @@
 
   # SECURITY: Route /media/ requests through PHP for access control
   # Protected albums (password/NSFW) require session validation before serving
-  RewriteRule ^media/(.+)$ index.php [QSA,L]
+  RewriteRule ^media/(.+)$ index.php [NC,QSA,L]
 
   # Dynamic typography CSS (must go through PHP)
   RewriteRule ^fonts/typography\.css$ index.php [QSA,L]
