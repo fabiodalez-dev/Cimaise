@@ -30,6 +30,7 @@ final class AdminSessionRevocationTest extends TestCase
     {
         AdminSession::setDatabase(null);
         $_SESSION = [];
+        // nosemgrep: php.lang.security.unlink-use.unlink-use -- teardown of this test's own temp database.
         @unlink($this->dbFile);
     }
 
@@ -109,6 +110,26 @@ final class AdminSessionRevocationTest extends TestCase
     {
         $src = (string) file_get_contents(dirname(__DIR__, 2) . '/app/Controllers/Admin/AuthController.php');
         self::assertStringContainsString("AdminSession::isCurrent()) {\n                return \$response->withHeader('Location', \$this->redirect('/admin'))", $src);
+    }
+
+    public function testPasswordChangeRevokesRememberTokenInTheSameStatement(): void
+    {
+        $src = (string) file_get_contents(dirname(__DIR__, 2) . '/app/Controllers/Admin/AuthController.php');
+        self::assertStringContainsString('UPDATE users SET password_hash = :password_hash, remember_token = NULL, remember_token_expires_at = NULL', $src);
+    }
+
+    public function testLoginIssuesRememberTokenOnlyForTheVerifiedCredential(): void
+    {
+        $src = (string) file_get_contents(dirname(__DIR__, 2) . '/app/Controllers/Admin/AuthController.php');
+        self::assertStringContainsString("WHERE id = :id AND password_hash = :password_hash AND is_active = 1 AND role = 'admin'", $src);
+        self::assertStringContainsString('$this->setRememberToken((int)$user[\'id\'], (string) $user[\'password_hash\']);', $src);
+    }
+
+    public function testGpsPolicyChangeClearsThePageCache(): void
+    {
+        $src = (string) file_get_contents(dirname(__DIR__, 2) . '/app/Controllers/Admin/SeoController.php');
+        self::assertStringContainsString('if ($exposeGpsBefore !== $exposeGpsAfter) {', $src);
+        self::assertStringContainsString('->clearAll();', $src);
     }
 
     public function testRememberRotationIsACompareAndSet(): void

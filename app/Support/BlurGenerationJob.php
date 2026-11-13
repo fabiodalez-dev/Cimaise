@@ -29,9 +29,17 @@ class BlurGenerationJob
         $cmd = 'nohup php ' . escapeshellarg($consolePath)
             . ' images:generate-blur --image=' . escapeshellarg((string)$imageId)
             . ' >> ' . escapeshellarg($logFile) . ' 2>&1 &';
-        exec($cmd, $output, $exitCode);
+        try {
+            // nosemgrep: php.lang.security.exec-use.exec-use -- every interpolated value is escapeshellarg()'d (internal console path, integer image id, fixed log path); a shell is needed only to detach with nohup/&.
+            exec($cmd, $output, $exitCode);
+        } catch (\Throwable $e) {
+            self::releasePending($imageId);
+            throw $e;
+        }
 
         if ($exitCode !== 0) {
+            // A failed dispatch must not block retries/the sync fallback for PENDING_TTL.
+            self::releasePending($imageId);
             Logger::warning('BlurGenerationJob: failed to dispatch blur generation', [
                 'image_id' => $imageId,
                 'exit_code' => $exitCode,
@@ -43,6 +51,13 @@ class BlurGenerationJob
     }
 
     private const PENDING_TTL = 300;
+
+    /** Drop the pending marker (the stable .claim lock file is kept). */
+    private static function releasePending(int $imageId): void
+    {
+        // nosemgrep: php.lang.security.unlink-use.unlink-use -- fixed directory + integer id, no user-controlled path segment.
+        @unlink(dirname(__DIR__, 2) . '/storage/tmp/blur-locks/' . $imageId . '.pending');
+    }
 
     /**
      * Claim the right to dispatch for $imageId: false only when a job for this

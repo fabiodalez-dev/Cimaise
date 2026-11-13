@@ -31,13 +31,13 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup PHP 8.2 (sodium only)
-        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
-        with:
-          php-version: '8.2'
-          extensions: sodium
-          tools: none
-          coverage: none
+      # Runner image PHP only: no remote installer (setup-php) may run in a
+      # job that receives the signing key.
+      - name: Check preinstalled PHP (sodium)
+        run: |
+          php -v
+          php -r 'exit(PHP_VERSION_ID >= 80200 && extension_loaded("sodium") ? 0 : 1);' \
+            || { echo "::error::The runner image must provide PHP >= 8.2 with ext-sodium"; exit 1; }
 
       - name: Check key
         env:
