@@ -174,15 +174,14 @@ class AuthController extends BaseController
     }
 
     /**
-     * Generate and set remember token for persistent login
+     * Mint a remember-me token, store its SHA-256 hash and set the cookie —
+     * only if the account still has the password hash this login verified and
+     * is still an active admin (compare-and-set): a reset or deactivation that
+     * lands in between wins, and no cookie is sent.
+     *
+     * @return bool true when the token was stored and the cookie set
      */
-    /** Mint a remember-me token, store its SHA-256 hash, and set the cookie. */
-    /**
-     * Issue a remember-me token only if the account still has the password
-     * hash this login verified and is still an active admin (compare-and-set):
-     * a reset or deactivation that lands in between wins, and no cookie is sent.
-     */
-    private function setRememberToken(int $userId, string $verifiedPasswordHash): void
+    private function setRememberToken(int $userId, string $verifiedPasswordHash): bool
     {
         try {
             // Generate secure random token (32 bytes = 64 hex chars)
@@ -208,7 +207,7 @@ class AuthController extends BaseController
             ]);
             if ($stmt->rowCount() !== 1) {
                 Logger::info('Remember token not issued: credentials changed during login', ['user_id' => $userId], 'auth');
-                return;
+                return false;
             }
 
             // Set cookie with raw token (not hashed)
@@ -221,12 +220,14 @@ class AuthController extends BaseController
             ]);
 
             Logger::info('Remember token set for user', ['user_id' => $userId], 'auth');
+            return true;
         } catch (\Throwable $e) {
             Logger::error('Failed to set remember token', [
                 'user_id' => $userId,
                 'error' => $e->getMessage()
             ], 'auth');
             // Don't throw - login should still succeed even if remember token fails
+            return false;
         }
     }
 
