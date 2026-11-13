@@ -40,7 +40,7 @@
 
     # Never expose user media through the /public alias. /media/* must pass
     # through MediaController, which enforces publication/password/NSFW access.
-    RewriteRule ^public/media/ - [F,L]
+    RewriteRule ^public/media/ - [NC,F,L]
 
     # If request is for public/ directory, serve directly (for direct access)
     RewriteCond %{REQUEST_URI} ^/public/

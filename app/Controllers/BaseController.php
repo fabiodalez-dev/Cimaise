@@ -93,7 +93,11 @@ abstract class BaseController
         // "View as visitor": an admin can temporarily browse the frontend as a guest
         // (NSFW gates, no edit links, no admin treatment) without logging out. The admin
         // session (admin_id) is preserved so /admin and the exit toggle still work.
-        return !empty($_SESSION['admin_id']) && empty($_SESSION['view_as_guest']);
+        // The session flag alone is not authority: re-check the account is
+        // still an active admin with an unchanged password (AdminSession),
+        // because frontend and /media routes never run AuthMiddleware.
+        return !empty($_SESSION['admin_id']) && empty($_SESSION['view_as_guest'])
+            && \App\Support\AdminSession::isCurrent();
     }
 
     /**

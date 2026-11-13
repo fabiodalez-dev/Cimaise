@@ -197,7 +197,11 @@ class CacheMiddleware implements MiddlewareInterface
      */
     private function canUseHtmlCache(Request $request): bool
     {
+        // No query string: the shared cache key is path-only, so any render
+        // that depends on the query (or on front-controller flags derived from
+        // it) must never be stored or served from it.
         return $request->getMethod() === 'GET'
+            && $request->getUri()->getQuery() === ''
             && $request->getCookieParams() === []
             && LazySession::isActive()
             && !$this->isSessionDependent();

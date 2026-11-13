@@ -30,9 +30,20 @@ class AuthController extends BaseController
     /** Render the admin login form with a fresh CSRF token and any flash messages. */
     public function showLogin(Request $request, Response $response): Response
     {
-        // Redirect to dashboard if already logged in
+        // Redirect to dashboard only for a session that is still a valid admin
+        // session; a stale one (deactivated, password changed, or not yet bound
+        // to a credential fingerprint) is cleared so the form can be shown.
         if (isset($_SESSION['admin_id'])) {
-            return $response->withHeader('Location', $this->redirect('/admin'))->withStatus(302);
+            if (\App\Support\AdminSession::isCurrent()) {
+                return $response->withHeader('Location', $this->redirect('/admin'))->withStatus(302);
+            }
+            unset(
+                $_SESSION['admin_id'],
+                $_SESSION['admin_email'],
+                $_SESSION['admin_name'],
+                $_SESSION['admin_role'],
+                $_SESSION[\App\Support\AdminSession::FINGERPRINT_KEY]
+            );
         }
 
         // Ensure CSRF token exists for fresh sessions
@@ -138,6 +149,7 @@ class AuthController extends BaseController
         $_SESSION['admin_email'] = $user['email'];
         $_SESSION['admin_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
         $_SESSION['admin_role'] = $user['role'];
+        \App\Support\AdminSession::bind((string) $user['password_hash']);
 
         // Let plugins observe a successful login (e.g. analytics-pro).
         \App\Support\Hooks::doAction('user_login_success', (int)$user['id'], [
@@ -259,7 +271,10 @@ class AuthController extends BaseController
             setcookie(session_name(), '', ['expires' => time() - 42000, 'path' => $params['path'], 'domain' => $params['domain'], 'secure' => $params['secure'], 'httponly' => $params['httponly']]);
         }
         session_destroy();
-        return $response->withHeader('Location', $this->redirect('/admin/login'))->withStatus(302);
+        // Drop browser/service-worker caches that may hold pages rendered for
+        // this admin (protected albums viewed with admin bypass).
+        return $response->withHeader('Clear-Site-Data', '"cache"')
+            ->withHeader('Location', $this->redirect('/admin/login'))->withStatus(302);
     }
 
     /** Update the current admin's profile fields after CSRF validation. */
@@ -398,6 +413,9 @@ class AuthController extends BaseController
                 ':id' => $_SESSION['admin_id']
             ]);
 
+            // Keep THIS session; every other session of the account no longer
+            // matches the new credential fingerprint and is logged out.
+            \App\Support\AdminSession::bind($hashedPassword);
             AuthMiddleware::invalidateVerification();
             // Revoke any persistent remember-me token so a previously stolen cookie
             // cannot survive a password change.

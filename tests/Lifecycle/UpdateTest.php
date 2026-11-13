@@ -25,6 +25,8 @@ final class UpdateTest extends TestCase
     private $github = null;
     private string $githubUrl = '';
     private string $targetVersion;
+    /** @var array{public: string, secret: string} Throwaway publisher key for the fake release. */
+    private array $signingKey;
 
     protected function setUp(): void
     {
@@ -75,6 +77,14 @@ final class UpdateTest extends TestCase
         $this->githubUrl = 'http://127.0.0.1:' . $port;
 
         $zipFile = $this->releaseDir . '/' . $name . '.zip';
+        // Publisher signature, exactly as release.yml's sign job produces it;
+        // the sandbox trusts this throwaway key via PLUGIN_SIGNING_PUBKEY.
+        $this->signingKey = \App\Support\PluginSignature::generateKeypair();
+        file_put_contents($zipFile . '.sig', \App\Support\PluginSignature::signPackage(
+            $this->targetVersion,
+            (string) hash_file('sha256', $zipFile),
+            $this->signingKey['secret']
+        ) . "\n");
         file_put_contents($this->releaseDir . '/release.json', json_encode([
             'tag_name' => 'v' . $this->targetVersion,
             'name' => 'Cimaise v' . $this->targetVersion,
@@ -88,6 +98,10 @@ final class UpdateTest extends TestCase
                 'size' => filesize($zipFile),
                 'digest' => 'sha256:' . hash_file('sha256', $zipFile),
                 'browser_download_url' => $this->githubUrl . '/download/' . $name . '.zip',
+            ], [
+                'name' => $name . '.zip.sig',
+                'size' => filesize($zipFile . '.sig'),
+                'browser_download_url' => $this->githubUrl . '/download/' . $name . '.zip.sig',
             ]],
         ], JSON_THROW_ON_ERROR));
         // Just enough of the GitHub REST API for the updater.
@@ -95,7 +109,7 @@ final class UpdateTest extends TestCase
 <?php
 $path = (string) parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $release = (string) file_get_contents(__DIR__ . '/release.json');
-if (preg_match('#^/download/(cimaise-v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?\.zip)$#', $path, $m) && is_file(__DIR__ . '/' . $m[1])) {
+if (preg_match('#^/download/(cimaise-v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?\.zip(?:\.sig)?)$#', $path, $m) && is_file(__DIR__ . '/' . $m[1])) {
     header('Content-Type: application/zip');
     readfile(__DIR__ . '/' . $m[1]);
 } elseif (preg_match('#^/repos/[^/]+/[^/]+/releases/(latest|tags/v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?)$#', $path)) {
@@ -181,7 +195,7 @@ $result = ($check['available'] ?? false)
     ? $updater->performUpdate((string) getenv('TARGET_VERSION'))
     : ['success' => false, 'error' => 'no update offered'];
 echo "\nRESULT:" . json_encode(['from' => $check['current'] ?? null, 'offered' => $check['latest'] ?? null, 'success' => $result['success'] ?? false, 'error' => $result['error'] ?? null]);
-PHP, ['UPDATER_API_BASE' => $this->githubUrl, 'UPDATER_REPO' => 'test/cimaise', 'TARGET_VERSION' => $this->targetVersion]);
+PHP, ['UPDATER_API_BASE' => $this->githubUrl, 'UPDATER_REPO' => 'test/cimaise', 'TARGET_VERSION' => $this->targetVersion, 'PLUGIN_SIGNING_PUBKEY' => $this->signingKey['public']]);
         self::assertSame(0, $exit, $output);
         self::assertSame(1, preg_match('/RESULT:(\{.*\})\s*$/', $output, $match), $output);
         $result = json_decode($match[1], true);

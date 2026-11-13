@@ -293,8 +293,16 @@ async function networkFirstStrategy(request, cacheName, maxItems = 20) {
       return networkResponse;
     }
 
-    // 2. Cache successful responses (200 OK only)
-    if (networkResponse && networkResponse.status === 200) {
+    // 2. Cache successful responses (200 OK only), but never per-visitor HTML:
+    // unlocked password/NSFW albums and pages rendered for an admin are sent
+    // as `private` (or `no-store`). Keeping them would replay them offline to
+    // whoever uses this browser next, after the unlock/session has ended.
+    // A private response also evicts any older shared copy of the same URL.
+    const pageCacheControl = networkResponse ? (networkResponse.headers.get('Cache-Control') || '') : '';
+    if (networkResponse && /private|no-store/i.test(pageCacheControl)) {
+      const cache = await caches.open(cacheName);
+      await cache.delete(request);
+    } else if (networkResponse && networkResponse.status === 200) {
       const cache = await caches.open(cacheName);
       const responseToCache = networkResponse.clone();
 
@@ -323,7 +331,14 @@ async function networkFirstStrategy(request, cacheName, maxItems = 20) {
 
     log('[SW] Network unavailable, trying cache:', request.url);
     const cache = await caches.open(cacheName);
-    const cachedResponse = await cache.match(request);
+    let cachedResponse = await cache.match(request);
+
+    // An entry written by an older worker may be a private page (unlocked
+    // album, admin view): never replay it offline, evict it instead.
+    if (cachedResponse && /private|no-store/i.test(cachedResponse.headers.get('Cache-Control') || '')) {
+      await cache.delete(request);
+      cachedResponse = undefined;
+    }
 
     if (cachedResponse) {
       return cachedResponse;

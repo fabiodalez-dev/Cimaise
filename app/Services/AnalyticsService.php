@@ -801,9 +801,12 @@ class AnalyticsService
 
             // Generate CSV
             $output = fopen('php://temp', 'r+');
-            fputcsv($output, $headers, ',', '"', '\\');
+            fputcsv($output, $headers, ',', '"', '');
             foreach ($data as $row) {
-                fputcsv($output, $row, ',', '"', '\\');
+                // Rows hold anonymous beacon values: never export live formulas.
+                // escape '' makes fputcsv double every quote (RFC 4180), so a
+                // value cannot close its field early and start an unneutralised cell.
+                fputcsv($output, \App\Support\CsvSafe::row($row), ',', '"', '');
             }
             rewind($output);
             $csv = stream_get_contents($output);

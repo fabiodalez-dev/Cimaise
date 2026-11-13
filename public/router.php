@@ -5,7 +5,7 @@ $uri = urldecode(parse_url((string) $_SERVER['REQUEST_URI'], PHP_URL_PATH));
 $file = __DIR__ . $uri;
 
 // SECURITY: Route /media/* through PHP for access control (NSFW/password protection)
-if (str_starts_with($uri, '/media/')) {
+if (str_starts_with(strtolower($uri), '/media/')) {
     require __DIR__ . '/index.php';
     return;
 }
@@ -22,7 +22,10 @@ if ($uri === '/fonts/typography.css') {
 // .env) outside public/. realpath() resolves ../ and symlinks before comparison.
 $docRoot = realpath(__DIR__);
 $real = realpath($file);
-if ($uri !== '/' && $real !== false && $docRoot !== false
+$mediaRoot = realpath(__DIR__ . '/media');
+$isMedia = $real !== false && $mediaRoot !== false
+    && str_starts_with(strtolower($real), strtolower($mediaRoot) . DIRECTORY_SEPARATOR);
+if ($uri !== '/' && $real !== false && $docRoot !== false && !$isMedia
     && str_starts_with($real, $docRoot . DIRECTORY_SEPARATOR)
     && is_file($real)) {
     return false; // serve the requested resource as-is

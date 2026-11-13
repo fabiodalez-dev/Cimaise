@@ -41,62 +41,10 @@ class RateLimitMiddleware implements MiddlewareInterface
         }
     }
 
-    /**
-     * Get client IP address, accounting for reverse proxies.
-     * Only trusts X-Forwarded-For if TRUSTED_PROXIES env is configured.
-     */
+    /** Resolve the client IP (shared TRUSTED_PROXIES policy, see ClientIp). */
     private function getClientIp(Request $request): string
     {
-        $serverParams = $request->getServerParams();
-        $remoteAddr = $serverParams['REMOTE_ADDR'] ?? 'unknown';
-
-        // Only trust X-Forwarded-For if request comes from a trusted proxy
-        $trustedProxies = getenv('TRUSTED_PROXIES') ?: '';
-        if ($trustedProxies !== '' && $remoteAddr !== 'unknown') {
-            $trustedList = array_map(trim(...), explode(',', $trustedProxies));
-
-            // Validate each proxy IP (except wildcard)
-            $trustedList = array_filter($trustedList, fn ($ip) => $ip === '*' || filter_var($ip, FILTER_VALIDATE_IP) !== false);
-
-            if ($trustedList === []) {
-                error_log('WARNING: No valid IPs in TRUSTED_PROXIES configuration');
-                return $remoteAddr;
-            }
-
-            // Wildcard only allowed in development mode
-            $isWildcard = \in_array('*', $trustedList, true);
-            $allowWildcard = getenv('APP_ENV') === 'development';
-
-            if ($isWildcard && !$allowWildcard) {
-                error_log('SECURITY WARNING: Wildcard in TRUSTED_PROXIES not allowed in production');
-                return $remoteAddr;
-            }
-
-            // Check if remote address is in trusted proxies list
-            if (\in_array($remoteAddr, $trustedList, true) || ($isWildcard && $allowWildcard)) {
-                // Check X-Forwarded-For header
-                $forwardedFor = $request->getHeaderLine('X-Forwarded-For');
-                if ($forwardedFor !== '') {
-                    // X-Forwarded-For can contain multiple IPs: client, proxy1, proxy2
-                    // The leftmost IP is the original client
-                    $ips = array_map(trim(...), explode(',', $forwardedFor));
-                    $clientIp = $ips[0] ?? '';
-
-                    // Validate IP format to prevent spoofing
-                    if (filter_var($clientIp, FILTER_VALIDATE_IP)) {
-                        return $clientIp;
-                    }
-                }
-
-                // Fallback: check X-Real-IP (used by nginx)
-                $realIp = $request->getHeaderLine('X-Real-IP');
-                if ($realIp !== '' && filter_var($realIp, FILTER_VALIDATE_IP)) {
-                    return $realIp;
-                }
-            }
-        }
-
-        return $remoteAddr;
+        return \App\Support\ClientIp::resolve($request->getServerParams());
     }
 
     /**
@@ -113,9 +61,11 @@ class RateLimitMiddleware implements MiddlewareInterface
         $route = $pattern ?? $path;
 
         // Album unlock keeps a per-album bucket: failures on one album must
-        // not lock a visitor out of another one. The real path carries the slug.
+        // not lock a visitor out of another one. Keyed on the DECODED,
+        // lowercased path: Slim routes /album/pw%61lbum/unlock to the same album,
+        // so the raw spelling must not mint a fresh bucket.
         if (preg_match('#/album/[^/]+/unlock$#', $route)) {
-            return 'album_unlock:' . $path;
+            return 'album_unlock:' . mb_strtolower(rawurldecode($path));
         }
         if (preg_match('#(^|/)(admin/)?login$#', $route)) {
             return 'login';

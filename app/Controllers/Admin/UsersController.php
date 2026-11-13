@@ -267,6 +267,7 @@ class UsersController extends BaseController
                 UPDATE users
                 SET email = :email, first_name = :first_name, last_name = :last_name,
                     password_hash = :password_hash, role = :role, is_active = :is_active,
+                    remember_token = NULL, remember_token_expires_at = NULL,
                     updated_at = {$now}
                 WHERE id = :id
             ");
@@ -298,6 +299,14 @@ class UsersController extends BaseController
 
         try {
             $stmt->execute($params);
+            if (!$isActive || $role !== 'admin') {
+                // Demotion/deactivation: revoke persistent remember-me tokens too.
+                $this->db->pdo()->prepare('UPDATE users SET remember_token = NULL, remember_token_expires_at = NULL WHERE id = :id')->execute([':id' => $id]);
+            }
+            if (isset($passwordHash) && $id === (int) ($_SESSION['admin_id'] ?? 0)) {
+                // Editing your own password here keeps this session only.
+                \App\Support\AdminSession::bind($passwordHash);
+            }
             AuthMiddleware::invalidateVerification();
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.user_updated')];
             return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
@@ -401,9 +410,11 @@ class UsersController extends BaseController
 
         // Toggle status
         $now = $this->db->nowExpression();
-        $stmt = $this->db->pdo()->prepare("UPDATE users SET is_active = :status, updated_at = {$now} WHERE id = :id");
+        // Deactivation also revokes the persistent remember-me token, so a
+        // later reactivation does not revive previously issued cookies.
+        $stmt = $this->db->pdo()->prepare("UPDATE users SET is_active = :status, remember_token = CASE WHEN :status2 = 0 THEN NULL ELSE remember_token END, remember_token_expires_at = CASE WHEN :status3 = 0 THEN NULL ELSE remember_token_expires_at END, updated_at = {$now} WHERE id = :id");
         try {
-            $stmt->execute([':status' => $newStatus, ':id' => $id]);
+            $stmt->execute([':status' => $newStatus, ':status2' => $newStatus, ':status3' => $newStatus, ':id' => $id]);
             AuthMiddleware::invalidateVerification();
             $statusKey = $newStatus ? 'admin.flash.user_activated' : 'admin.flash.user_deactivated';
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans($statusKey)];

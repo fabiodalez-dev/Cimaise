@@ -213,8 +213,24 @@ class PageCacheService
      */
     public function albumPageKeyForSlug(string $slug): ?string
     {
-        $albumId = $this->albumIdForSlug($slug);
-        return $albumId !== null ? self::albumPageKey($albumId) : null;
+        // Used by CacheMiddleware to build the validator that lets a request
+        // skip the controller (HtmlPageCache hit / early 304). Only albums that
+        // may be served with NO access check qualify, read at serve time: a
+        // late page_cache write must never revive a protected/unpublished page.
+        if ($slug === '' || !$this->db instanceof \App\Support\Database) {
+            return null;
+        }
+        try {
+            $stmt = $this->db->query(
+                "SELECT id FROM albums WHERE slug = ? AND is_published = 1 AND (is_nsfw = 0 OR is_nsfw IS NULL) AND (password_hash IS NULL OR password_hash = '') LIMIT 1",
+                [$slug]
+            );
+            $row = $stmt->fetch();
+            $stmt->closeCursor();
+            return $row ? self::albumPageKey((int) $row['id']) : null;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function albumIdForSlug(string $slug): ?int

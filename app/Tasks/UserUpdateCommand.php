@@ -78,7 +78,9 @@ class UserUpdateCommand extends Command
             }
             if ($pass1 !== '') {
                 $hash = password_hash($pass1, PASSWORD_ARGON2ID);
-                $upd = $pdo->prepare('UPDATE users SET password_hash=:h WHERE id=:id');
+                // A reset also revokes remember-me tokens; existing sessions no longer
+                // match the credential fingerprint (AdminSession).
+                $upd = $pdo->prepare('UPDATE users SET password_hash=:h, remember_token=NULL, remember_token_expires_at=NULL WHERE id=:id');
                 $upd->execute([':h' => $hash, ':id' => (int)$user['id']]);
             }
             $pdo->commit();

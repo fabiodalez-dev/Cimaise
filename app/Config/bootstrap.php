@@ -73,6 +73,9 @@ if ($connection === 'sqlite') {
     );
 }
 
+// Frontend/media admin checks re-verify the session against the users table.
+\App\Support\AdminSession::setDatabase($db);
+
 // Initialize Plugin Manager and load plugins
 $pluginManager = PluginManager::getInstance();
 $pluginManager->setDatabase($db);

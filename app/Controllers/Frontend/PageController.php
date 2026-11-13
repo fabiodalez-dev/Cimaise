@@ -426,8 +426,7 @@ class PageController extends BaseController
     {
         static $flag = null;
         if ($flag === null) {
-            $svc = new \App\Services\SettingsService($this->db);
-            $flag = \App\Services\SettingsService::boolean($svc->get('seo.expose_gps', false));
+            $flag = \App\Support\GpsPrivacy::exposeEnabled($this->db);
         }
         return $flag;
     }
@@ -1037,6 +1036,10 @@ class PageController extends BaseController
             $cached = $cacheService->get($cacheKey);
 
             if ($cached !== null && isset($cached['template_file'], $cached['data']) && is_array($cached['data'])) {
+                // Pages cached while seo.expose_gps was on follow the CURRENT policy.
+                if (isset($cached['data']['images']) && is_array($cached['data']['images'])) {
+                    $cached['data']['images'] = \App\Support\GpsPrivacy::maskRows($cached['data']['images'], $this->exposeGps());
+                }
                 // Fresh cache hit - render with cached data + session-specific vars
                 return $this->view->render($response, $cached['template_file'], array_merge(
                     $cached['data'],
@@ -1055,6 +1058,9 @@ class PageController extends BaseController
             $staleCached = $cacheService->get($cacheKey, allowStale: true);
             if ($staleCached !== null && isset($staleCached['template_file'], $staleCached['data']) && is_array($staleCached['data'])
                 && !$this->claimPageRegeneration($cacheKey)) {
+                if (isset($staleCached['data']['images']) && is_array($staleCached['data']['images'])) {
+                    $staleCached['data']['images'] = \App\Support\GpsPrivacy::maskRows($staleCached['data']['images'], $this->exposeGps());
+                }
                 $response = $response->withHeader('Cache-Control', 'no-store');
                 return $this->view->render($response, $staleCached['template_file'], array_merge(
                     $staleCached['data'],
@@ -1206,7 +1212,8 @@ class PageController extends BaseController
             ORDER BY i.sort_order ASC, i.id ASC
         ');
         $stmt->execute([':id' => $album['id']]);
-        $images = $stmt->fetchAll();
+        // Location privacy: rows go to public templates (captions, data-gps-*).
+        $images = \App\Support\GpsPrivacy::maskRows($stmt->fetchAll(), $this->exposeGps());
 
         // PERFORMANCE: Eager load ALL variants in one query instead of N+1 queries
         // Before: 50 images = 50 queries. After: 50 images = 1 query

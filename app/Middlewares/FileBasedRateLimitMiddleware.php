@@ -55,7 +55,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
     public function process(Request $request, Handler $handler): Response
     {
         $ip = $this->getClientIp($request);
-        $path = $request->getUri()->getPath();
+        $path = $this->canonicalPath($request);
         $method = $request->getMethod();
 
         // Create unique key for this IP + endpoint
@@ -98,45 +98,30 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         return $response->withoutHeader(self::AUTH_RESULT_HEADER);
     }
 
-    /** Resolve the client IP, trusting forwarded headers only behind TRUSTED_PROXIES. */
+    /** Resolve the client IP (shared TRUSTED_PROXIES policy, see ClientIp). */
     private function getClientIp(Request $request): string
     {
-        $serverParams = $request->getServerParams();
-        $remoteAddr = $serverParams['REMOTE_ADDR'] ?? 'unknown';
+        return \App\Support\ClientIp::resolve($request->getServerParams());
+    }
 
-        // H1: Only trust forwarded headers when TRUSTED_PROXIES is configured
-        $trustedProxies = getenv('TRUSTED_PROXIES') ?: '';
-        if ($trustedProxies !== '' && $remoteAddr !== 'unknown') {
-            $trustedList = array_map(trim(...), explode(',', $trustedProxies));
-            $trustedList = array_filter($trustedList, fn ($ip) => $ip === '*' || filter_var($ip, FILTER_VALIDATE_IP) !== false);
-
-            $isWildcard = in_array('*', $trustedList, true);
-            $allowWildcard = getenv('APP_ENV') === 'development';
-
-            if ($isWildcard && !$allowWildcard) {
-                return $remoteAddr;
-            }
-
-            if (in_array($remoteAddr, $trustedList, true) || ($isWildcard && $allowWildcard)) {
-                // Check forwarded headers in priority order
-                $forwardedHeaders = [
-                    'HTTP_CF_CONNECTING_IP',
-                    'HTTP_X_FORWARDED_FOR',
-                    'HTTP_X_REAL_IP',
-                ];
-
-                foreach ($forwardedHeaders as $header) {
-                    if (!empty($serverParams[$header])) {
-                        $ip = trim(explode(',', (string) $serverParams[$header])[0]);
-                        if (filter_var($ip, FILTER_VALIDATE_IP)) {
-                            return $ip;
-                        }
-                    }
-                }
-            }
+    /**
+     * Canonical endpoint for keying and outcome classification: the matched
+     * route pattern when available, otherwise the percent-DECODED path. The
+     * raw path has many spellings (/admin/l%6Fgin) that Slim routes to the
+     * same handler, so it must never be the bucket identity.
+     */
+    private function canonicalPath(Request $request): string
+    {
+        $route = $request->getAttribute(\Slim\Routing\RouteContext::ROUTE);
+        if ($route instanceof \Slim\Interfaces\RouteInterface) {
+            return $route->getPattern();
         }
+        return rawurldecode($request->getUri()->getPath());
+    }
 
-        return $remoteAddr;
+    private function isLoginEndpoint(Request $request): bool
+    {
+        return $this->keyPrefix === 'login' || str_contains($this->canonicalPath($request), '/login');
     }
 
     /**
@@ -250,7 +235,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
      */
     private function isFailedAttempt(Request $request, Response $response): bool
     {
-        if (str_contains($request->getUri()->getPath(), '/login')) {
+        if ($this->isLoginEndpoint($request)) {
             return $response->getHeaderLine(self::AUTH_RESULT_HEADER) === 'failed';
         }
 
@@ -267,7 +252,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
     {
         // For login endpoints, only an explicit success signal clears the counter.
         // (Previously any 2xx — including the rendered error page — wrongly cleared it.)
-        if (str_contains($request->getUri()->getPath(), '/login')) {
+        if ($this->isLoginEndpoint($request)) {
             return $response->getHeaderLine(self::AUTH_RESULT_HEADER) === 'success';
         }
 

@@ -47,9 +47,9 @@ final class TrustedProxyMiddleware implements MiddlewareInterface
 
         $uri = $request->getUri();
 
-        $proto = $this->firstForwardedValue($request, 'X-Forwarded-Proto');
-        $host = $this->firstForwardedValue($request, 'X-Forwarded-Host');
-        $portHeader = $this->firstForwardedValue($request, 'X-Forwarded-Port');
+        $proto = $this->nearestForwardedValue($request, 'X-Forwarded-Proto');
+        $host = $this->nearestForwardedValue($request, 'X-Forwarded-Host');
+        $portHeader = $this->nearestForwardedValue($request, 'X-Forwarded-Port');
 
         $scheme = $uri->getScheme();
         if ($proto !== '') {
@@ -120,46 +120,28 @@ final class TrustedProxyMiddleware implements MiddlewareInterface
     }
 
     /**
-     * Whether the immediate peer is listed in TRUSTED_PROXIES. Wildcard ('*')
-     * is only honoured in development, mirroring the rate limiters.
+     * Whether the immediate peer is a trusted proxy (exact IP or CIDR; '*'
+     * only in development) — shared policy, see ClientIp.
      */
     private function remoteIsTrustedProxy(ServerRequestInterface $request): bool
     {
-        $serverParams = $request->getServerParams();
-        $remoteAddr = $serverParams['REMOTE_ADDR'] ?? '';
-        if ($remoteAddr === '') {
-            return false;
-        }
-
-        $trustedProxies = getenv('TRUSTED_PROXIES') ?: '';
-        if ($trustedProxies === '') {
-            return false;
-        }
-
-        $trustedList = array_map(trim(...), explode(',', $trustedProxies));
-        $trustedList = array_filter(
-            $trustedList,
-            fn ($ip) => $ip === '*' || filter_var($ip, FILTER_VALIDATE_IP) !== false
-        );
-
-        $isWildcard = in_array('*', $trustedList, true);
-        $allowWildcard = getenv('APP_ENV') === 'development';
-
-        if ($isWildcard) {
-            return $allowWildcard;
-        }
-
-        return in_array($remoteAddr, $trustedList, true);
+        $remoteAddr = (string) ($request->getServerParams()['REMOTE_ADDR'] ?? '');
+        return $remoteAddr !== '' && \App\Support\ClientIp::isTrustedProxy($remoteAddr);
     }
 
-    /** First comma-separated value of a forwarded header, trimmed. */
-    private function firstForwardedValue(ServerRequestInterface $request, string $header): string
+    /**
+     * Value set by the nearest (trusted) proxy: the LAST comma-separated value.
+     * Proxies append to an existing header, so the first value is whatever the
+     * client sent.
+     */
+    private function nearestForwardedValue(ServerRequestInterface $request, string $header): string
     {
         $line = $request->getHeaderLine($header);
         if ($line === '') {
             return '';
         }
-        return trim(explode(',', $line)[0]);
+        $values = explode(',', $line);
+        return trim((string) end($values));
     }
 
     /** Reject header hosts that are not a bare hostname / IP (defense-in-depth). */

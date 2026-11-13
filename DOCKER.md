@@ -161,6 +161,16 @@ docker run --rm -v cimaise_media:/media -v "$PWD:/backup" alpine \
   tar czf /backup/cimaise-media-$(date +%F).tar.gz -C /media .
 ```
 
+Also back up the `storage` volume: it holds `.env` (the app key and DB
+settings), the originals and the protected media. Restore all three volumes
+together. A database restored without its `.env` keeps the installer locked
+(it shows "Existing installation found") until `.env` is restored.
+
+```bash
+docker run --rm -v cimaise_storage:/storage -v "$PWD:/backup" alpine \
+  tar czf /backup/cimaise-storage-$(date +%F).tar.gz -C /storage .
+```
+
 For MySQL, back up with `mysqldump` against the `mysql` service as usual.
 
 ---
@@ -174,7 +184,8 @@ The image runs in production mode by default. Useful variables:
 | `APP_ENV`         | `production` | App environment.                                               |
 | `APP_DEBUG`       | `false`      | Keep `false` in production (debug output corrupts media bytes).|
 | `APP_TIMEZONE`    | `UTC`        | Default timezone.                                              |
-| `TRUSTED_PROXIES` | *(empty)*    | Comma-separated proxy CIDRs to honour `X-Forwarded-*` headers. |
+| `TRUSTED_PROXIES` | *(empty)*    | Comma-separated proxy IPs or CIDRs to honour `X-Forwarded-*` headers. The client IP is the rightmost `X-Forwarded-For` hop that is not a trusted proxy; `X-Real-IP` is ignored unless `TRUST_X_REAL_IP=1`. |
+| `TRUST_X_REAL_IP` | *(empty)*    | Set to `1` only if your trusted proxy sends no `X-Forwarded-For` and **overwrites** `X-Real-IP` (nginx `proxy_set_header X-Real-IP $remote_addr`); then it is used as the client IP. |
 | `CIMAISE_IMAGE_WORKER` | `1`     | Set to `0` to not start the image worker (see below), e.g. when another container processes the queue. |
 | `CIMAISE_NOINDEX` | *(empty)*    | Set to `1` on a demo/staging copy: forces `X-Robots-Tag: noindex, nofollow` on **every** response (pages, feeds, sitemap) so the staging site never gets indexed. Leave empty in production. |
 

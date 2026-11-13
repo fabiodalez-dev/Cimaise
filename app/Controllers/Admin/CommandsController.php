@@ -90,41 +90,29 @@ class CommandsController extends BaseController
         // CLI. So probe explicit locations instead of trusting bare "php".
         $phpBinary = $this->resolvePhpBinary();
 
-        // Build command (M11: escape paths to prevent injection)
-        $cmd = escapeshellarg($phpBinary) . " " . escapeshellarg($consolePath) . " " . escapeshellarg($command);
-
-        // Add arguments safely
-        foreach ($args as $key => $value) {
-            if (is_string($key) && !empty($key)) {
-                // Validate key is a valid option name (alphanumeric and hyphens only)
-                if (!preg_match('/^[a-zA-Z0-9-]+$/', $key)) {
-                    throw new \InvalidArgumentException("Invalid argument key: $key");
-                }
-                if ($value === true) {
-                    // Boolean flag
-                    $cmd .= " --" . $key;
-                } elseif (!empty($value)) {
-                    // Key=value option
-                    $cmd .= " --" . $key . "=" . escapeshellarg((string)$value);
-                }
-            } elseif (!empty($value)) {
-                $cmd .= " " . escapeshellarg((string)$value);
-            }
-        }
-
-        // Add timeout and error handling
-        $cmd .= " 2>&1";
+        $argv = self::buildArgv($phpBinary, $consolePath, $command, $args);
 
         $startTime = microtime(true);
 
-        // Execute command
-        $exitCode = 0;
-        $output = [];
-
-        // $cmd is built only from an allow-listed command name (see $allowedCommands),
-        // a resolved PHP binary path and console path, all passed through
-        // escapeshellarg(); option keys are validated against /^[a-zA-Z0-9-]+$/.
-        exec($cmd, $output, $exitCode); // nosemgrep
+        // No shell: proc_open() with an argv array, so request data can never
+        // add shell syntax (newlines, ;, &&, redirections) to the command.
+        // stderr goes to a temp file (not a second pipe) so a chatty command
+        // can never deadlock on a full pipe buffer.
+        $stderrFile = tempnam(sys_get_temp_dir(), 'cimaise_cmd_');
+        if ($stderrFile === false) {
+            throw new \RuntimeException('Unable to create a temporary file for command output');
+        }
+        $process = proc_open($argv, [1 => ['pipe', 'w'], 2 => ['file', $stderrFile, 'w']], $pipes);
+        if (!is_resource($process)) {
+            @unlink($stderrFile);
+            throw new \RuntimeException('Unable to start console process');
+        }
+        $rawOutput = (string) stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
+        $exitCode = proc_close($process);
+        $rawOutput .= (string) @file_get_contents($stderrFile);
+        @unlink($stderrFile);
+        $output = $rawOutput === '' ? [] : explode("\n", rtrim($rawOutput, "\n"));
 
         $duration = round(microtime(true) - $startTime, 2);
 
@@ -135,6 +123,45 @@ class CommandsController extends BaseController
             'duration' => $duration,
             'command' => $command
         ];
+    }
+
+    /**
+     * Build the argv for bin/console. Option keys must match a strict
+     * \A..\z pattern (a plain `$` would accept a trailing newline); values
+     * must be scalars; positional values follow `--` so they can never be
+     * parsed as options.
+     *
+     * @param array<int|string, mixed> $args
+     * @return list<string>
+     */
+    public static function buildArgv(string $phpBinary, string $consolePath, string $command, array $args): array
+    {
+        $argv = [$phpBinary, $consolePath, $command];
+        $positionals = [];
+        foreach ($args as $key => $value) {
+            if (is_string($key) && $key !== '') {
+                if (!preg_match('/\A[a-zA-Z0-9][a-zA-Z0-9-]*\z/', $key)) {
+                    throw new \InvalidArgumentException('Invalid argument key');
+                }
+                if ($value === true) {
+                    $argv[] = '--' . $key;
+                } elseif (is_scalar($value) && (string) $value !== '' && $value !== false) {
+                    $argv[] = '--' . $key . '=' . (string) $value;
+                } elseif ($value !== null && $value !== false && $value !== '' && !is_scalar($value)) {
+                    throw new \InvalidArgumentException('Invalid argument value');
+                }
+            } elseif (is_scalar($value) && $value !== false && (string) $value !== '') {
+                $positionals[] = (string) $value;
+            } elseif ($value !== null && $value !== false && $value !== '' && !is_scalar($value)) {
+                throw new \InvalidArgumentException('Invalid argument value');
+            }
+        }
+        if ($positionals !== []) {
+            $argv[] = '--';
+            array_push($argv, ...$positionals);
+        }
+
+        return $argv;
     }
 
     /**

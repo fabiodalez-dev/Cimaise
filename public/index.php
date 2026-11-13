@@ -91,9 +91,10 @@ use App\Support\Logger;
 
 // Check if installer is being accessed
 $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
-$isInstallerRoute = str_contains((string) $requestUri, '/install') || str_contains((string) $requestUri, 'installer.php');
-$isAdminRoute = str_contains((string) $requestUri, '/admin');
-$isLoginRoute = str_contains((string) $requestUri, '/login');
+// Classify on the decoded path only (never the query string) — see RequestRoute.
+$routePath = \App\Support\RequestRoute::relativePath((string) $requestUri, (string) ($_SERVER['SCRIPT_NAME'] ?? '/index.php'));
+$isInstallerRoute = \App\Support\RequestRoute::isInstaller($routePath);
+$isAdminRoute = \App\Support\RequestRoute::isAdmin($routePath);
 
 // Media requests (/media/*) are hot-path image serving. They are gated below to
 // skip the session file lock (H2) and the DB-backed Twig global enrichment (H1)
@@ -613,7 +614,7 @@ if (!$isInstallerRoute && !$isMediaRequest && $container['db'] !== null) {
 $twig->getEnvironment()->addExtension(new \App\Extensions\DateTwigExtension());
 
 // Expose admin status for frontend header
-$twig->getEnvironment()->addGlobal('is_admin', isset($_SESSION['admin_id']) && $_SESSION['admin_id'] > 0);
+$twig->getEnvironment()->addGlobal('is_admin', isset($_SESSION['admin_id']) && $_SESSION['admin_id'] > 0 && \App\Support\AdminSession::isCurrent());
 
 // Routes (pass container and app)
 $routes = require __DIR__ . '/../app/Config/routes.php';
