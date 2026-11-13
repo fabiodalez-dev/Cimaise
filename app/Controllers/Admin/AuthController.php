@@ -30,9 +30,20 @@ class AuthController extends BaseController
     /** Render the admin login form with a fresh CSRF token and any flash messages. */
     public function showLogin(Request $request, Response $response): Response
     {
-        // Redirect to dashboard if already logged in
+        // Redirect to dashboard only for a session that is still a valid admin
+        // session; a stale one (deactivated, password changed, or not yet bound
+        // to a credential fingerprint) is cleared so the form can be shown.
         if (isset($_SESSION['admin_id'])) {
-            return $response->withHeader('Location', $this->redirect('/admin'))->withStatus(302);
+            if (\App\Support\AdminSession::isCurrent()) {
+                return $response->withHeader('Location', $this->redirect('/admin'))->withStatus(302);
+            }
+            unset(
+                $_SESSION['admin_id'],
+                $_SESSION['admin_email'],
+                $_SESSION['admin_name'],
+                $_SESSION['admin_role'],
+                $_SESSION[\App\Support\AdminSession::FINGERPRINT_KEY]
+            );
         }
 
         // Ensure CSRF token exists for fresh sessions

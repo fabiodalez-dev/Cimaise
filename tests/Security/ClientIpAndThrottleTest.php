@@ -71,6 +71,14 @@ final class ClientIpAndThrottleTest extends TestCase
         self::assertSame('198.51.100.5', ClientIp::resolve(['REMOTE_ADDR' => '198.51.100.5', 'HTTP_X_FORWARDED_FOR' => '1.1.1.1']));
     }
 
+    public function testRealIpIsAFallbackOnlyFromATrustedPeer(): void
+    {
+        putenv('TRUSTED_PROXIES=172.16.0.0/12');
+        self::assertSame('203.0.113.10', ClientIp::resolve(['REMOTE_ADDR' => '172.18.0.2', 'HTTP_X_REAL_IP' => '203.0.113.10']));
+        self::assertSame('198.51.100.5', ClientIp::resolve(['REMOTE_ADDR' => '198.51.100.5', 'HTTP_X_REAL_IP' => '203.0.113.10']));
+        self::assertSame('203.0.113.10', ClientIp::resolve(['REMOTE_ADDR' => '172.18.0.2', 'HTTP_X_FORWARDED_FOR' => '203.0.113.10', 'HTTP_X_REAL_IP' => '192.0.2.1']));
+    }
+
     public function testLoginBucketIsSharedAcrossPathSpellings(): void
     {
         $mw = new FileBasedRateLimitMiddleware($this->dir, 5, 600, 'login');

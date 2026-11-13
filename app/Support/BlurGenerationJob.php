@@ -45,28 +45,41 @@ class BlurGenerationJob
     private const PENDING_TTL = 300;
 
     /**
-     * Atomically claim the right to dispatch for $imageId. Returns false when a
-     * job was already dispatched within PENDING_TTL seconds.
+     * Claim the right to dispatch for $imageId: false only when a job for this
+     * image was dispatched within PENDING_TTL seconds (or another request is
+     * claiming it right now). Read-check-update runs under a lock on a stable
+     * per-image lock file that is never deleted, so two requests can never
+     * both replace a stale claim. Any filesystem problem returns true: the
+     * caller then dispatches without deduplication (previous behaviour)
+     * instead of silently skipping the blur.
      */
     private static function claimPending(int $imageId): bool
     {
         $dir = dirname(__DIR__, 2) . '/storage/tmp/blur-locks';
         if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
-            return true; // cannot dedupe: fall back to the previous behaviour
+            return true;
         }
-        $marker = $dir . '/' . $imageId . '.pending';
-        $mtime = @filemtime($marker);
-        if ($mtime !== false && (time() - $mtime) < self::PENDING_TTL) {
-            return false;
+        $lock = @fopen($dir . '/' . $imageId . '.claim', 'c+');
+        if ($lock === false) {
+            return true;
         }
-        if ($mtime !== false) {
-            @unlink($marker); // stale claim
+        try {
+            if (!flock($lock, LOCK_EX | LOCK_NB)) {
+                return false; // a concurrent request is claiming this image
+            }
+            $marker = $dir . '/' . $imageId . '.pending';
+            $mtime = @filemtime($marker);
+            if ($mtime !== false && (time() - $mtime) < self::PENDING_TTL) {
+                return false;
+            }
+            if (!@touch($marker)) {
+                return true; // cannot record the claim: dispatch anyway
+            }
+            clearstatcache(true, $marker);
+            return true;
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
         }
-        $fh = @fopen($marker, 'x');
-        if ($fh === false) {
-            return false; // a concurrent request won the claim
-        }
-        fclose($fh);
-        return true;
     }
 }

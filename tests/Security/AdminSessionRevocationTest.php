@@ -83,8 +83,39 @@ final class AdminSessionRevocationTest extends TestCase
         $users = (string) file_get_contents(dirname(__DIR__, 2) . '/app/Controllers/Admin/UsersController.php');
         self::assertStringContainsString('remember_token = NULL, remember_token_expires_at = NULL,', $users);
         self::assertStringContainsString('remember_token = CASE WHEN :status2 = 0 THEN NULL', $users);
-        $cli = (string) file_get_contents(dirname(__DIR__, 2) . '/app/Tasks/UserUpdateCommand.php');
-        self::assertStringContainsString('remember_token=NULL', $cli);
+    }
+
+    public function testCliPasswordResetRevokesOnlyThatUsersRememberToken(): void
+    {
+        $pdo = $this->db->pdo();
+        $pdo->exec("UPDATE users SET remember_token = 'tok-a', remember_token_expires_at = '2099-01-01 00:00:00' WHERE id = 2");
+        $pdo->exec("INSERT INTO users (id, email, password_hash, role, is_active, remember_token, remember_token_expires_at) VALUES (3, 'other@x.test', 'HASH-O', 'admin', 1, 'tok-b', '2099-01-01 00:00:00')");
+
+        $app = new \Symfony\Component\Console\Application();
+        $app->add(new \App\Tasks\UserUpdateCommand($this->db));
+        $tester = new \Symfony\Component\Console\Tester\CommandTester($app->find('user:update'));
+        $tester->setInputs(['', 'NewPass-123456', 'NewPass-123456']); // keep email, new password twice
+        $tester->execute(['email' => 'co@x.test'], ['interactive' => true]);
+
+        $row = $pdo->query('SELECT password_hash, remember_token, remember_token_expires_at FROM users WHERE id = 2')->fetch();
+        self::assertTrue(password_verify('NewPass-123456', (string) $row['password_hash']));
+        self::assertNull($row['remember_token']);
+        self::assertNull($row['remember_token_expires_at']);
+        $other = $pdo->query('SELECT remember_token FROM users WHERE id = 3')->fetchColumn();
+        self::assertSame('tok-b', $other);
+    }
+
+    public function testStaleSessionSeesTheLoginFormInsteadOfARedirect(): void
+    {
+        $src = (string) file_get_contents(dirname(__DIR__, 2) . '/app/Controllers/Admin/AuthController.php');
+        self::assertStringContainsString("AdminSession::isCurrent()) {\n                return \$response->withHeader('Location', \$this->redirect('/admin'))", $src);
+    }
+
+    public function testRememberRotationIsACompareAndSet(): void
+    {
+        $src = (string) file_get_contents(dirname(__DIR__, 2) . '/app/Middlewares/AuthMiddleware.php');
+        self::assertStringContainsString('AND remember_token = :previous AND password_hash = :password_hash', $src);
+        self::assertStringContainsString('if ($stmt->rowCount() !== 1)', $src);
     }
 }
 

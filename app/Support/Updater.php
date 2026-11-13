@@ -1376,11 +1376,15 @@ class Updater
      */
     private function packageSignatureRequired(string $targetVersion): bool
     {
-        $signedEra = static fn (string $v): bool => version_compare(
-            ltrim(trim($v), 'v'),
-            self::PACKAGE_SIGNATURE_REQUIRED_FROM . '-dev',
-            '>='
-        );
+        // Compare the numeric core only: version_compare() orders unknown
+        // pre-release labels (e.g. "-test.1") BELOW "-dev", which would let a
+        // 1.4.30-test.1 target skip the signature. Unparseable => required.
+        $signedEra = static function (string $v): bool {
+            if (preg_match('/^v?(\d+)\.(\d+)\.(\d+)/', trim($v), $m) !== 1) {
+                return true;
+            }
+            return version_compare($m[1] . '.' . $m[2] . '.' . $m[3], self::PACKAGE_SIGNATURE_REQUIRED_FROM, '>=');
+        };
 
         return $signedEra($targetVersion) || $signedEra($this->getCurrentVersion());
     }

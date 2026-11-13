@@ -9,6 +9,7 @@ use Twig\Loader\ArrayLoader as TwigArrayLoader;
 use Twig\Node\Expression\ArrowFunctionExpression;
 use Twig\Node\Expression\Binary\HasEveryBinary;
 use Twig\Node\Expression\Binary\HasSomeBinary;
+use Twig\Node\ModuleNode as TwigModuleNode;
 use Twig\Node\Node as TwigNode;
 use Twig\Source as TwigSource;
 use Twig\TwigFilter;
@@ -338,10 +339,35 @@ class TemplateValidationService
             }
             if ($type === 'filter' && in_array($name, self::CALLABLE_TWIG_FILTERS, true) && $node->hasNode('arguments')) {
                 foreach ($node->getNode('arguments') as $key => $argument) {
-                    // Only the callable slot (first positional or named "arrow");
-                    // reduce()'s "initial" value is data, not a callable.
-                    if (($key === 0 || $key === '0' || $key === 'arrow') && !$argument instanceof ArrowFunctionExpression) {
+                    // Twig binds named arguments after normalising them
+                    // (case-insensitive, underscores ignored), so `a_r_r_o_w=`
+                    // or `ARROW=` reach the callable slot too. Every argument
+                    // must therefore be an arrow function, except reduce()'s
+                    // "initial" value (2nd positional or named), which is data.
+                    $slot = (is_int($key) || ctype_digit((string) $key))
+                        ? (int) $key
+                        : strtolower(str_replace('_', '', (string) $key));
+                    $isDataSlot = $name === 'reduce' && ($slot === 1 || $slot === 'initial');
+                    if (!$isDataSlot && !$argument instanceof ArrowFunctionExpression) {
                         return "filtro {$name} con callable non-arrow";
+                    }
+                }
+            }
+        }
+
+        // {% embed %} bodies live in the module's "embedded_templates"
+        // attribute, not among its child nodes, but are compiled and rendered.
+        if ($node instanceof TwigModuleNode && $node->hasAttribute('embedded_templates')) {
+            $embeddedTemplates = $node->getAttribute('embedded_templates');
+            // Twig >= 3.21 stores a Nodes container; older versions an array.
+            $embeddedList = $embeddedTemplates instanceof TwigNode
+                ? iterator_to_array($embeddedTemplates, false)
+                : (is_array($embeddedTemplates) ? $embeddedTemplates : []);
+            foreach ($embeddedList as $embedded) {
+                if ($embedded instanceof TwigNode) {
+                    $found = $this->walkTwigNode($embedded);
+                    if ($found !== null) {
+                        return $found;
                     }
                 }
             }

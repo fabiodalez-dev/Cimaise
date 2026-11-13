@@ -192,6 +192,18 @@ class AuthMiddleware implements MiddlewareInterface
             return;
         }
 
+        // Rotate FIRST, conditionally: if a concurrent password reset or
+        // deactivation already revoked this token (or changed the password),
+        // the UPDATE matches no row and no session is created.
+        if (!$this->rotateRememberToken(
+            (int) $matchedUser['id'],
+            (string) $matchedUser['remember_token'],
+            (string) $matchedUser['password_hash']
+        )) {
+            $this->clearRememberCookie();
+            return;
+        }
+
         // Valid token - create session
         session_regenerate_id(true);
         $_SESSION['admin_id'] = (int)$matchedUser['id'];
@@ -200,9 +212,6 @@ class AuthMiddleware implements MiddlewareInterface
         $_SESSION['admin_role'] = $matchedUser['role'];
         \App\Support\AdminSession::bind((string) $matchedUser['password_hash']);
 
-        // Rotate remember token for security (token rotation)
-        $this->rotateRememberToken((int)$matchedUser['id']);
-
         // Generate new CSRF token
         $_SESSION['csrf'] = bin2hex(random_bytes(32));
     }
@@ -210,7 +219,12 @@ class AuthMiddleware implements MiddlewareInterface
     /**
      * Rotate remember token (generate new token after successful use)
      */
-    private function rotateRememberToken(int $userId): void
+    /**
+     * Replace the remember-me token only if the stored token and password hash
+     * are still the ones this request read (compare-and-set). Returns false
+     * when they changed meanwhile, i.e. the token was revoked.
+     */
+    private function rotateRememberToken(int $userId, string $previousTokenHash, string $passwordHash): bool
     {
         // Generate new token
         $rawToken = bin2hex(random_bytes(32));
@@ -219,13 +233,19 @@ class AuthMiddleware implements MiddlewareInterface
 
         // Update database
         $stmt = $this->db->pdo()->prepare(
-            'UPDATE users SET remember_token = :token, remember_token_expires_at = :expires WHERE id = :id'
+            'UPDATE users SET remember_token = :token, remember_token_expires_at = :expires
+             WHERE id = :id AND remember_token = :previous AND password_hash = :password_hash AND is_active = 1'
         );
         $stmt->execute([
             ':token' => $hashedToken,
             ':expires' => $expiresAt,
-            ':id' => $userId
+            ':id' => $userId,
+            ':previous' => $previousTokenHash,
+            ':password_hash' => $passwordHash,
         ]);
+        if ($stmt->rowCount() !== 1) {
+            return false;
+        }
 
         // Set new cookie
         setcookie('remember_token', $rawToken, [
@@ -235,6 +255,8 @@ class AuthMiddleware implements MiddlewareInterface
             'httponly' => true,
             'samesite' => 'Lax'
         ]);
+
+        return true;
     }
 
     /**

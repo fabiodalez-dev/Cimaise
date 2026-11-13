@@ -331,7 +331,14 @@ async function networkFirstStrategy(request, cacheName, maxItems = 20) {
 
     log('[SW] Network unavailable, trying cache:', request.url);
     const cache = await caches.open(cacheName);
-    const cachedResponse = await cache.match(request);
+    let cachedResponse = await cache.match(request);
+
+    // An entry written by an older worker may be a private page (unlocked
+    // album, admin view): never replay it offline, evict it instead.
+    if (cachedResponse && /private|no-store/i.test(cachedResponse.headers.get('Cache-Control') || '')) {
+      await cache.delete(request);
+      cachedResponse = undefined;
+    }
 
     if (cachedResponse) {
       return cachedResponse;

@@ -33,6 +33,12 @@ final class TemplateTwigCallableTest extends TestCase
             'template_from_string' => ["{{ include(template_from_string('x')) }}"],
             'spaced filter call' => ["{{ ['id'] | find ( 'passthru' ) }}"],
             'unparseable' => ["{% bogus_tag %}"],
+            'underscored named arrow' => ["{{ ['id']|find(a_r_r_o_w='system') }}"],
+            'uppercase named arrow' => ["{{ ['id']|find(ARROW='system') }}"],
+            'unknown named argument' => ["{{ ['id']|sort(whatever='system') }}"],
+            'reduce callable in named slot' => ["{{ ['id']|reduce(initial=0, arrow='system') }}"],
+            'embedded template body' => ["{% embed 'base.twig' %}{% block body %}{{ ['id']|find('system') }}{% endblock %}{% endembed %}"],
+            'nested embed' => ["{% embed 'a.twig' %}{% block b %}{% embed 'c.twig' %}{% block d %}{{ ['id']|sort('system') }}{% endblock %}{% endembed %}{% endblock %}{% endembed %}"],
         ];
     }
 
@@ -51,6 +57,7 @@ final class TemplateTwigCallableTest extends TestCase
             'sort with arrow' => ["{{ images|sort((a, b) => a.id <=> b.id)|length }}"],
             'find with arrow' => ["{{ images|find(i => i.id == 3).id ?? '' }}"],
             'has some arrow' => ["{% if images has some i => i.is_cover %}x{% endif %}"],
+            'safe embed' => ["{% embed 'base.twig' %}{% block body %}{{ images|sort((a, b) => a.id <=> b.id)|length }}{% endblock %}{% endembed %}"],
             'app filters and functions' => ["{{ trans('x')|safe_html }}{{ hook('y')|raw }}{{ image|url_variant('lg') }}"],
         ];
     }

@@ -23,13 +23,20 @@ final class CacheFlagsExportTest extends TestCase
         self::assertSame('plain', CsvSafe::cell('plain'));
         self::assertSame(42, CsvSafe::cell(42));
         $src = (string) file_get_contents(dirname(__DIR__, 2) . '/app/Services/AnalyticsService.php');
-        self::assertStringContainsString('CsvSafe::row($row)', $src);
+        self::assertStringContainsString('CsvSafe::row($row), \',\', \'"\', \'\')', $src);
+        // RFC 4180 quoting: a backslash before a quote must not let the value
+        // close its field and start a new (formula) cell.
+        $out = fopen('php://temp', 'r+');
+        fputcsv($out, CsvSafe::row(['safe\\",=1+1,tail']), ',', '"', '');
+        rewind($out);
+        self::assertSame(['safe\\",=1+1,tail'], str_getcsv(rtrim((string) stream_get_contents($out)), ',', '"', ''));
     }
 
     public function testBlurDispatchIsDedupedPerImage(): void
     {
         $id = 900000000 + random_int(1, 99999);
         $marker = dirname(__DIR__, 2) . '/storage/tmp/blur-locks/' . $id . '.pending';
+        $claimFile = dirname(__DIR__, 2) . '/storage/tmp/blur-locks/' . $id . '.claim';
         $claim = new \ReflectionMethod(BlurGenerationJob::class, 'claimPending');
         try {
             self::assertTrue($claim->invoke(null, $id));
@@ -38,6 +45,7 @@ final class CacheFlagsExportTest extends TestCase
             self::assertTrue($claim->invoke(null, $id), 'stale claim is replaced');
         } finally {
             @unlink($marker);
+            @unlink($claimFile);
         }
     }
 

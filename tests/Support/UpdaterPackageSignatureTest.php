@@ -338,6 +338,13 @@ PHP);
         $this->assertTrue($required->invoke($this->updater, self::signedVersion() . '-rc.1'));
         $this->assertTrue($required->invoke($this->updater, 'v' . self::signedVersion()));
         $this->assertFalse($required->invoke($this->updater, '1.0.0'));
+        // Unknown pre-release labels sort BELOW "-dev" in version_compare();
+        // they must still count as the signed era.
+        $this->assertTrue($required->invoke($this->updater, self::signedVersion() . '-test.1'));
+        $this->assertTrue($required->invoke($this->updater, self::signedVersion() . '-alpha'));
+        $this->assertTrue($required->invoke($this->updater, 'not-a-version'));
+        $this->installedVersion(self::signedVersion() . '-test.1');
+        $this->assertTrue($required->invoke($this->updater, '1.0.0'), 'installed prerelease keeps the ratchet');
     }
 
     private static function rrmdir(string $dir): void

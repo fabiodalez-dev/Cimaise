@@ -81,6 +81,13 @@ final class ClientIp
 
         $forwarded = (string) ($serverParams['HTTP_X_FORWARDED_FOR'] ?? '');
         if ($forwarded === '') {
+            // Proxies that only send X-Real-IP (nginx `proxy_set_header
+            // X-Real-IP $remote_addr`) must OVERWRITE it; it is honoured only
+            // from a trusted peer and only when X-Forwarded-For is absent.
+            $realIp = trim((string) ($serverParams['HTTP_X_REAL_IP'] ?? ''));
+            if ($realIp !== '' && filter_var($realIp, FILTER_VALIDATE_IP) !== false && !self::isTrustedProxy($realIp)) {
+                return $realIp;
+            }
             return $remote;
         }
         $hops = array_map(trim(...), explode(',', $forwarded));
