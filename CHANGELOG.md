@@ -10,6 +10,29 @@ release notes, so keep one section per released tag.
 
 ## [Unreleased]
 
+## [1.4.30] - 2026-11-13
+A security release: every finding of a full audit of 1.4.29 is fixed, and from now on the built-in updater only installs packages signed with the project's key (#146).
+
+### Security
+- **Template packages could run server code** (Custom Templates Pro). Uploaded templates are now parsed, and `find`, `sort`, `map`, `filter`, `reduce`, `has some` and `has every` are accepted only with an arrow function, so a package can no longer call PHP functions such as `system()`.
+- **Signed updates.** The updater verifies an Ed25519 signature on `cimaise-vX.Y.Z.zip` before it extracts anything; the signature covers the version and the archive's sha256. A missing or invalid signature stops the update. Signatures for plugins, migration patches and update packages are kept apart, so one can never be used as another. The release pipeline signs on an isolated runner without third-party code.
+- **Shell injection in Admin → Commands.** Console commands now run without a shell, with a strict check on option names.
+- **Password-protected albums:** the galleries search no longer matches their text for visitors who have not unlocked them, and the HTML cache can no longer serve them.
+- **Login and album-unlock throttles** can no longer be bypassed with encoded paths. `TRUSTED_PROXIES` accepts CIDR ranges, and the client IP is taken from the rightmost untrusted `X-Forwarded-For` hop.
+- **Admin sessions are revoked** when an account is deactivated, demoted or changes password, including remember-me tokens; a password change made during a login can no longer be overtaken by that login's remember-me cookie.
+- **GPS coordinates** follow the "expose GPS" setting on album pages and in the image APIs; changing the setting clears the page cache.
+- **Installer:** with `.env` missing, an existing SQLite site is never reinstalled or wiped.
+- **Media files** are never served directly by the PHP routers, whatever the case or dot segments of the path.
+- **Smaller fixes:** uninstalled plugins stay uninstalled; draft-only categories and tags no longer appear in the galleries filters; the analytics CSV export neutralises spreadsheet formulas; blur generation starts at most one background job per image every five minutes; query strings can no longer change routing; the service worker no longer caches private pages, and logout clears the site data.
+
+### Upgrade notes
+- No database change.
+- **Every admin has to log in again once** after the update: sessions are now bound to the account's password.
+- **Signed plugin ZIPs must be signed again** with `php bin/console plugin:sign plugin.zip`: the signing key changed and the old signature format is no longer accepted.
+- The update from 1.4.29 to 1.4.30 still runs the 1.4.29 updater (checksum only). Signature checks apply to every update after this one.
+- If you run several instances behind a proxy, check `TRUSTED_PROXIES`: CIDR ranges now work, and `CF-Connecting-IP` is no longer trusted on its own.
+- Docker: `docker compose pull && docker compose up -d`. Back up the `storage` volume too (see `DOCKER.md`).
+
 ## [1.4.29] - 2026-10-31
 A speed release: lighter pages, fewer sessions, and faster answers for first-time visitors, crawlers and every image (#144).
 
