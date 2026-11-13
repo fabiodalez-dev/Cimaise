@@ -115,8 +115,23 @@ try {
             fwrite(STDOUT, 'Package signature OK: ' . basename($zip) . ' (' . $version . ', sha256 ' . $sha . ')' . PHP_EOL);
             break;
 
+        case 'check-key':
+            // Does PLUGIN_SIGNING_KEY match the committed public key? Signs a
+            // throwaway package message (version 0.0.0, sha256 of a fixed
+            // string) and verifies it. Prints nothing secret.
+            if (!PluginSignature::isEnabled()) {
+                release_sign_fail('no public key configured (resources/keys/plugin-signing.pub)');
+            }
+            $sha = hash('sha256', 'cimaise signing key check');
+            $sig = PluginSignature::signPackage('0.0.0', $sha, release_sign_key());
+            if (!PluginSignature::verifyPackage('0.0.0', $sha, $sig)) {
+                release_sign_fail('PLUGIN_SIGNING_KEY does NOT match resources/keys/plugin-signing.pub');
+            }
+            fwrite(STDOUT, 'PLUGIN_SIGNING_KEY matches resources/keys/plugin-signing.pub' . PHP_EOL);
+            break;
+
         default:
-            release_sign_fail('unknown mode "' . $mode . '" (package | patch | plugin | verify-package)');
+            release_sign_fail('unknown mode "' . $mode . '" (package | patch | plugin | verify-package | check-key)');
     }
 } catch (\Throwable $e) {
     release_sign_fail($e->getMessage());

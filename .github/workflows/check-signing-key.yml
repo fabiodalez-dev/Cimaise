@@ -1,0 +1,45 @@
+name: Check Signing Key
+
+# Verifies that the PLUGIN_SIGNING_KEY secret of the `release-signing`
+# environment matches resources/keys/plugin-signing.pub, WITHOUT building or
+# publishing anything. Run it after rotating either side:
+#
+#   git tag v-signing-check && git push origin v-signing-check
+#   (then delete the tag: git push origin :refs/tags/v-signing-check)
+#
+# The tag name matches the environment's `v*` deployment rule but NOT the
+# `v*.*.*` trigger of release.yml / docker-publish.yml, so no release and no
+# Docker image are produced.
+
+on:
+  push:
+    tags:
+      - 'v-signing-check*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Signing key matches the committed public key
+    runs-on: ubuntu-24.04
+    environment: release-signing
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP 8.2 (sodium only)
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.2'
+          extensions: sodium
+          tools: none
+          coverage: none
+
+      - name: Check key
+        env:
+          PLUGIN_SIGNING_KEY: ${{ secrets.PLUGIN_SIGNING_KEY }}
+        run: php bin/release-sign.php check-key
