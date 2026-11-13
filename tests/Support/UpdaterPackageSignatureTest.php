@@ -343,6 +343,11 @@ PHP);
         $this->assertTrue($required->invoke($this->updater, self::signedVersion() . '-test.1'));
         $this->assertTrue($required->invoke($this->updater, self::signedVersion() . '-alpha'));
         $this->assertTrue($required->invoke($this->updater, 'not-a-version'));
+        $this->assertTrue($required->invoke($this->updater, '1.4.29junk'), 'invalid suffix on the target');
+        $this->assertTrue($required->invoke($this->updater, '1.0.0+build'), 'build metadata is not accepted');
+        $this->installedVersion('1.4.29junk');
+        $this->assertTrue($required->invoke($this->updater, '1.0.0'), 'invalid suffix on the installed version');
+        $this->installedVersion('0.9.0');
         $this->installedVersion(self::signedVersion() . '-test.1');
         $this->assertTrue($required->invoke($this->updater, '1.0.0'), 'installed prerelease keeps the ratchet');
     }

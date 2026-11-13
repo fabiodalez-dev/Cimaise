@@ -1380,7 +1380,9 @@ class Updater
         // pre-release labels (e.g. "-test.1") BELOW "-dev", which would let a
         // 1.4.30-test.1 target skip the signature. Unparseable => required.
         $signedEra = static function (string $v): bool {
-            if (preg_match('/^v?(\d+)\.(\d+)\.(\d+)/', trim($v), $m) !== 1) {
+            // Full validation (same grammar as PluginSignature::normalizeVersion):
+            // anything else, e.g. "1.4.29junk", is treated as signed-era.
+            if (preg_match('/^v?(\d+)\.(\d+)\.(\d+)(?:-[0-9A-Za-z.-]+)?\z/', trim($v), $m) !== 1) {
                 return true;
             }
             return version_compare($m[1] . '.' . $m[2] . '.' . $m[3], self::PACKAGE_SIGNATURE_REQUIRED_FROM, '>=');
