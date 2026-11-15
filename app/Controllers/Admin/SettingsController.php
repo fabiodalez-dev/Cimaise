@@ -738,8 +738,14 @@ class SettingsController extends BaseController
             }
         }
 
-        // Save file
+        // Save file, then drop EXIF/GPS/XMP (it is served directly from /public)
+        // and enforce the pixel cap before favicon generation decodes it.
         $file->moveTo($absolutePath);
+        if (!\App\Support\ImageMetadataStripper::stripInPlace($absolutePath)) {
+            @unlink($absolutePath);
+            $response->getBody()->write(json_encode(['error' => 'Invalid image file or resolution too high.']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
 
         // Save setting
         $svc = new SettingsService($this->db);

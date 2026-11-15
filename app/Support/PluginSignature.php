@@ -32,10 +32,12 @@ namespace App\Support;
  * public; the raw primitives are private so no caller can verify a signature
  * over unframed bytes.
  *
- * Backward compatibility: when no public key is configured the feature is
- * "disabled" (isEnabled() === false). Callers decide what that means: plugin
- * upload keeps the advisory static scan, patches are skipped, and the updater
- * refuses any release that requires a package signature.
+ * When no usable public key is configured the feature is "disabled"
+ * (isEnabled() === false). Callers fail closed: plugin upload is refused
+ * unless no key is configured at all AND PLUGIN_ALLOW_UNSIGNED=1 (a key that
+ * is present but unreadable never counts as "no key", see isMisconfigured()),
+ * patches are skipped, and the updater refuses any release that requires a
+ * package signature.
  */
 final class PluginSignature
 {
@@ -56,6 +58,37 @@ final class PluginSignature
     public static function isEnabled(): bool
     {
         return self::publicKey() !== null;
+    }
+
+    /**
+     * True when a key IS configured (env override or a non-empty key file) but
+     * cannot be decoded. Callers must fail closed: a broken key must never
+     * silently turn signature checks off.
+     */
+    public static function isMisconfigured(): bool
+    {
+        if (self::publicKey() !== null) {
+            return false;
+        }
+        $env = getenv('PLUGIN_SIGNING_PUBKEY');
+        if (is_string($env) && trim($env) !== '') {
+            return true;
+        }
+        $path = self::publicKeyPath();
+        return is_file($path) && trim((string) @file_get_contents($path)) !== '';
+    }
+
+    /**
+     * Unsigned plugin uploads are accepted only when no key is configured AND
+     * the operator opted in explicitly (PLUGIN_ALLOW_UNSIGNED=1).
+     */
+    public static function unsignedPluginsAllowed(): bool
+    {
+        if (self::isEnabled() || self::isMisconfigured()) {
+            return false;
+        }
+        $flag = $_ENV['PLUGIN_ALLOW_UNSIGNED'] ?? $_SERVER['PLUGIN_ALLOW_UNSIGNED'] ?? getenv('PLUGIN_ALLOW_UNSIGNED');
+        return is_string($flag) && trim($flag) === '1';
     }
 
     /**

@@ -321,8 +321,9 @@ class PagesController extends BaseController
                         @rename($tmp, $dest);
                     }
 
-                    // Re-validate after move for additional security
-                    if ($this->validateImageUpload($dest)) {
+                    // Re-validate after move, then strip EXIF/GPS: the original
+                    // stays publicly reachable next to the web version.
+                    if ($this->validateImageUpload($dest) && \App\Support\ImageMetadataStripper::stripInPlace($dest)) {
                         // also create a resized web version (max 1600px width)
                         $webPath = $mediaDir . '/' . $hash . '_w1600.jpg';
                         ImagesService::generateJpegPreview($dest, $webPath, 1600);

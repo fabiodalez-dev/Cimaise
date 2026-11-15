@@ -218,9 +218,11 @@ class AnalyticsService
         // (3) Seed from SESSION_SECRET if present — but persist it to the DB
         // so subsequent requests (which may or may not have SESSION_SECRET set)
         // all converge on the same canonical value via path (2).
-        $sessionSecret = $_ENV['SESSION_SECRET'] ?? $_SERVER['SESSION_SECRET'] ?? null;
-        if (is_string($sessionSecret) && $sessionSecret !== '') {
-            $persisted = $this->persistIpSalt($sessionSecret);
+        // The placeholder secret is public, so it is never used as a salt; and
+        // the raw secret is never written to the DB, only a derived value.
+        $sessionSecret = \App\Support\AppSecret::session();
+        if ($sessionSecret !== null) {
+            $persisted = $this->persistIpSalt(hash_hmac('sha256', 'analytics-ip-salt', $sessionSecret));
             $this->ipSalt = $persisted;
             $this->settings['ip_salt'] = $persisted;
             return $this->ipSalt;

@@ -293,7 +293,7 @@ class CacheController extends BaseController
         }
 
         // Run LQIP generation in background
-        $logFile = sys_get_temp_dir() . '/lqip_generation.log';
+        $logFile = $this->lqipLogFile();
         $cmd = 'nohup php ' . escapeshellarg($consolePath)
             . ' images:generate-lqip'
             . ' > ' . escapeshellarg($logFile) . ' 2>&1 &';
@@ -305,6 +305,20 @@ class CacheController extends BaseController
         ];
 
         return $response->withHeader('Location', $this->redirect('/admin/cache'))->withStatus(302);
+    }
+
+    /**
+     * Log of the background LQIP run, kept in the app's own storage/logs:
+     * the shared system temp dir is world-writable (pre-created symlink or
+     * file owned by another account on shared hosting) and world-readable.
+     */
+    private function lqipLogFile(): string
+    {
+        $dir = dirname(__DIR__, 3) . '/storage/logs';
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+        return $dir . '/lqip_generation.log';
     }
 
     /**
@@ -326,7 +340,7 @@ class CacheController extends BaseController
         }
 
         // Run LQIP generation with --force in background
-        $logFile = sys_get_temp_dir() . '/lqip_generation.log';
+        $logFile = $this->lqipLogFile();
         $cmd = 'nohup php ' . escapeshellarg($consolePath)
             . ' images:generate-lqip --force'
             . ' > ' . escapeshellarg($logFile) . ' 2>&1 &';
