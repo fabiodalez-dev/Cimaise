@@ -301,7 +301,9 @@ class CacheController extends BaseController
             ];
             return $response->withHeader('Location', $this->redirect('/admin/cache'))->withStatus(302);
         }
-        $cmd = 'nohup php ' . escapeshellarg($consolePath)
+        // umask 077: the log may hold album titles and exception text; keep it
+        // owner-only even if the shell has to recreate it.
+        $cmd = 'umask 077; nohup php ' . escapeshellarg($consolePath)
             . ' images:generate-lqip'
             . ' > ' . escapeshellarg($logFile) . ' 2>&1 &';
         exec($cmd);
@@ -322,7 +324,7 @@ class CacheController extends BaseController
     private function lqipLogFile(): ?string
     {
         $dir = dirname(__DIR__, 3) . '/storage/logs';
-        if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
+        if (!is_dir($dir) && !@mkdir($dir, 0700, true) && !is_dir($dir)) {
             return null;
         }
         $file = $dir . '/lqip_generation.log';
@@ -331,6 +333,12 @@ class CacheController extends BaseController
         if (is_file($file) ? !is_writable($file) : !is_writable($dir)) {
             return null;
         }
+        // Owner-only, also for a log left world-readable by an older version
+        // (truncation by the redirection keeps the mode).
+        if (!is_file($file) && @touch($file) === false) {
+            return null;
+        }
+        @chmod($file, 0600);
         return $file;
     }
 
@@ -361,7 +369,9 @@ class CacheController extends BaseController
             ];
             return $response->withHeader('Location', $this->redirect('/admin/cache'))->withStatus(302);
         }
-        $cmd = 'nohup php ' . escapeshellarg($consolePath)
+        // umask 077: the log may hold album titles and exception text; keep it
+        // owner-only even if the shell has to recreate it.
+        $cmd = 'umask 077; nohup php ' . escapeshellarg($consolePath)
             . ' images:generate-lqip --force'
             . ' > ' . escapeshellarg($logFile) . ' 2>&1 &';
         exec($cmd);

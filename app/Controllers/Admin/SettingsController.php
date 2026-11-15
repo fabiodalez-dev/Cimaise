@@ -741,13 +741,24 @@ class SettingsController extends BaseController
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
-        // Remove old favicon source files. The names come from a fixed
+        if (!@rename($tmpPath, $absolutePath)) {
+            @unlink($tmpPath);
+            $response->getBody()->write(json_encode(['error' => 'Failed to store the uploaded file.']));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Save setting
+        $svc = new SettingsService($this->db);
+        $svc->set('site.favicon_source', $relativePath);
+
+        // Only now that the new source is in place and the setting points at
+        // it, remove the other-format sources. The names come from a fixed
         // whitelist, but we still resolve the real path and require it to stay
         // inside /public before deleting (defence in depth against traversal).
         $publicReal = realpath($publicPath);
         foreach (['png', 'jpg', 'webp'] as $oldExt) {
             if ($oldExt === $ext) {
-                continue; // replaced atomically by the rename below
+                continue; // this is the file the rename above just replaced
             }
             $oldFile = realpath($publicPath . '/favicon-source.' . $oldExt);
             if ($oldFile === false || $publicReal === false) {
@@ -759,16 +770,6 @@ class SettingsController extends BaseController
                 @unlink($oldFile); // nosemgrep
             }
         }
-
-        if (!@rename($tmpPath, $absolutePath)) {
-            @unlink($tmpPath);
-            $response->getBody()->write(json_encode(['error' => 'Failed to store the uploaded file.']));
-            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
-        }
-
-        // Save setting
-        $svc = new SettingsService($this->db);
-        $svc->set('site.favicon_source', $relativePath);
 
         $response->getBody()->write(json_encode([
             'ok' => true,
