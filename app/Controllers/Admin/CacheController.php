@@ -334,11 +334,24 @@ class CacheController extends BaseController
             return null;
         }
         // Owner-only, also for a log left world-readable by an older version
-        // (truncation by the redirection keeps the mode).
-        if (!is_file($file) && @touch($file) === false) {
+        // (truncation by the redirection keeps the mode). A log this process
+        // cannot chmod (owned by another account) is replaced; if even that
+        // fails, the run is refused rather than logging into a readable file.
+        if (is_file($file) && !@chmod($file, 0600)) {
+            @unlink($file);
+        }
+        if (!is_file($file)) {
+            $old = umask(0077);
+            $created = @touch($file);
+            umask($old);
+            if (!$created || !@chmod($file, 0600)) {
+                return null;
+            }
+        }
+        clearstatcache(true, $file);
+        if ((@fileperms($file) & 0077) !== 0) {
             return null;
         }
-        @chmod($file, 0600);
         return $file;
     }
 
