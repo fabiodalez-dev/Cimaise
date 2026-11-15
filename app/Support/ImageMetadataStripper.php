@@ -96,16 +96,12 @@ final class ImageMetadataStripper
         if ($mime === 'image/jpeg' && function_exists('exif_read_data')) {
             // GD ignores the orientation tag; apply it before the tag is dropped.
             $exif = @exif_read_data($path);
-            $rotated = match ((int) ($exif['Orientation'] ?? 1)) {
-                3 => imagerotate($img, 180, 0),
-                6 => imagerotate($img, -90, 0),
-                8 => imagerotate($img, 90, 0),
-                default => $img,
-            };
-            if ($rotated !== false && $rotated !== $img) {
+            $oriented = self::applyOrientation($img, (int) ($exif['Orientation'] ?? 1));
+            if ($oriented === false) {
                 imagedestroy($img);
-                $img = $rotated;
+                return false;
             }
+            $img = $oriented;
         }
         if ($mime !== 'image/jpeg') {
             imagealphablending($img, false);
@@ -120,6 +116,36 @@ final class ImageMetadataStripper
         $blob = (string) ob_get_clean();
         imagedestroy($img);
         return $ok && $blob !== '' && self::atomicWrite($path, $blob);
+    }
+
+    /**
+     * Apply an EXIF Orientation value (1-8) to the pixels, including the
+     * mirrored ones (2, 4, 5, 7). Rotations are clockwise as the tag defines
+     * them; imagerotate() turns counter-clockwise, hence the negative angles.
+     *
+     * @return \GdImage|false the oriented image (the input may be destroyed)
+     */
+    public static function applyOrientation(\GdImage $img, int $orientation): \GdImage|false
+    {
+        $flip = in_array($orientation, [2, 4, 5, 7], true);
+        $angle = match ($orientation) {
+            3, 4 => 180,
+            5, 6 => -90,
+            7, 8 => 90,
+            default => 0,
+        };
+        if ($angle !== 0) {
+            $rotated = imagerotate($img, $angle, 0);
+            if ($rotated === false) {
+                return false;
+            }
+            imagedestroy($img);
+            $img = $rotated;
+        }
+        if ($flip && !imageflip($img, IMG_FLIP_HORIZONTAL)) {
+            return false;
+        }
+        return $img;
     }
 
     private static function atomicWrite(string $path, string $blob): bool

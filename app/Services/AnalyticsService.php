@@ -207,7 +207,7 @@ class AnalyticsService
             $stmt = $this->db->prepare('SELECT setting_value FROM analytics_settings WHERE setting_key = ?');
             $stmt->execute(['ip_salt']);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($row !== false && isset($row['setting_value']) && $row['setting_value'] !== '') {
+            if ($row !== false && self::isUsableSalt($row['setting_value'] ?? null)) {
                 $this->ipSalt = (string)$row['setting_value'];
                 return $this->ipSalt;
             }
@@ -255,6 +255,16 @@ class AnalyticsService
         return $this->ipSalt;
     }
 
+    /** A stored salt is usable unless empty or the public SESSION_SECRET placeholder. */
+    private static function isUsableSalt(mixed $value): bool
+    {
+        if (!is_string($value)) {
+            return false;
+        }
+        $value = trim($value);
+        return $value !== '' && $value !== \App\Support\AppSecret::PLACEHOLDER;
+    }
+
     /**
      * Best-effort persistence of the IP salt to analytics_settings.
      *
@@ -284,8 +294,10 @@ class AnalyticsService
             // by the UPDATE. Both SQLite and MySQL implement TRIM with the
             // SQL-standard signature so this is portable.
             try {
-                $update = $this->db->prepare('UPDATE analytics_settings SET setting_value = ? WHERE setting_key = ? AND (setting_value IS NULL OR TRIM(setting_value) = \'\')');
-                $update->execute([$salt, 'ip_salt']);
+                // A row still holding the public SESSION_SECRET placeholder (saved
+                // by versions that did not reject it) is healed like an empty one.
+                $update = $this->db->prepare('UPDATE analytics_settings SET setting_value = ? WHERE setting_key = ? AND (setting_value IS NULL OR TRIM(setting_value) = \'\' OR TRIM(setting_value) = ?)');
+                $update->execute([$salt, 'ip_salt', \App\Support\AppSecret::PLACEHOLDER]);
 
                 // F012-followup: when the INSERT in the try block lost the race
                 // to another worker, that worker's transaction may still be
@@ -299,7 +311,7 @@ class AnalyticsService
                 for ($attempt = 0; $attempt < 3; $attempt++) {
                     $read->execute(['ip_salt']);
                     $row = $read->fetch(PDO::FETCH_ASSOC);
-                    if ($row !== false && isset($row['setting_value']) && trim((string)$row['setting_value']) !== '') {
+                    if ($row !== false && self::isUsableSalt($row['setting_value'] ?? null)) {
                         // Another process already wrote a salt — defer to it so all
                         // workers converge. The caller will hash THIS request's IPs
                         // with the DB-canonical value (not the in-flight $salt),

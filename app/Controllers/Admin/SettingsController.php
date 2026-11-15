@@ -722,11 +722,33 @@ class SettingsController extends BaseController
         $relativePath = '/' . $filename;
         $absolutePath = $publicPath . $relativePath;
 
+        // Validate on a temporary file in the same directory first: strip
+        // EXIF/GPS/XMP (the file is served directly from /public) and enforce
+        // the pixel cap. The previous source is removed only once the new one
+        // is known good, so a rejected upload never leaves the setting
+        // pointing at a deleted file.
+        $tmpPath = $publicPath . '/.favicon-source-upload-' . bin2hex(random_bytes(8)) . '.' . $ext;
+        try {
+            $file->moveTo($tmpPath);
+        } catch (\Throwable) {
+            @unlink($tmpPath);
+            $response->getBody()->write(json_encode(['error' => 'Failed to store the uploaded file.']));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+        if (!\App\Support\ImageMetadataStripper::stripInPlace($tmpPath)) {
+            @unlink($tmpPath);
+            $response->getBody()->write(json_encode(['error' => 'Invalid image file or resolution too high.']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
         // Remove old favicon source files. The names come from a fixed
         // whitelist, but we still resolve the real path and require it to stay
         // inside /public before deleting (defence in depth against traversal).
         $publicReal = realpath($publicPath);
         foreach (['png', 'jpg', 'webp'] as $oldExt) {
+            if ($oldExt === $ext) {
+                continue; // replaced atomically by the rename below
+            }
             $oldFile = realpath($publicPath . '/favicon-source.' . $oldExt);
             if ($oldFile === false || $publicReal === false) {
                 continue;
@@ -738,13 +760,10 @@ class SettingsController extends BaseController
             }
         }
 
-        // Save file, then drop EXIF/GPS/XMP (it is served directly from /public)
-        // and enforce the pixel cap before favicon generation decodes it.
-        $file->moveTo($absolutePath);
-        if (!\App\Support\ImageMetadataStripper::stripInPlace($absolutePath)) {
-            @unlink($absolutePath);
-            $response->getBody()->write(json_encode(['error' => 'Invalid image file or resolution too high.']));
-            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        if (!@rename($tmpPath, $absolutePath)) {
+            @unlink($tmpPath);
+            $response->getBody()->write(json_encode(['error' => 'Failed to store the uploaded file.']));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
         }
 
         // Save setting

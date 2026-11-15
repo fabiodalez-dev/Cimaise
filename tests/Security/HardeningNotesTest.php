@@ -68,6 +68,62 @@ final class HardeningNotesTest extends TestCase
         self::assertFalse(PluginSignature::unsignedPluginsAllowed());
     }
 
+    public function testSigningKeyFromDotenvOnlyIsHonoured(): void
+    {
+        // Dotenv's immutable loader fills $_ENV/$_SERVER but not getenv().
+        $pair = PluginSignature::generateKeypair();
+        $_ENV['PLUGIN_SIGNING_PUBKEY'] = $pair['public'];
+        $_ENV['PLUGIN_ALLOW_UNSIGNED'] = '1';
+        self::assertTrue(PluginSignature::isEnabled());
+        self::assertFalse(PluginSignature::unsignedPluginsAllowed());
+
+        $_ENV['PLUGIN_SIGNING_PUBKEY'] = 'broken';
+        self::assertTrue(PluginSignature::isMisconfigured());
+        self::assertFalse(PluginSignature::unsignedPluginsAllowed());
+    }
+
+    public function testUnreadableKeyFileIsMisconfigured(): void
+    {
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            self::markTestSkipped('root can read a mode-000 file');
+        }
+        $path = PluginSignature::publicKeyPath();
+        self::assertFileExists($path);
+        $mode = fileperms($path) & 0777;
+        putenv('PLUGIN_ALLOW_UNSIGNED=1');
+        chmod($path, 0000);
+        try {
+            clearstatcache();
+            self::assertFalse(PluginSignature::isEnabled());
+            self::assertTrue(PluginSignature::isMisconfigured());
+            self::assertFalse(PluginSignature::unsignedPluginsAllowed());
+        } finally {
+            chmod($path, $mode);
+            clearstatcache();
+        }
+        self::assertTrue(PluginSignature::isEnabled());
+    }
+
+    // ---- analytics salt ------------------------------------------------------
+
+    public function testStoredPlaceholderSaltIsReplaced(): void
+    {
+        $pdo = new \PDO('sqlite::memory:');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo->exec('CREATE TABLE analytics_settings (id INTEGER PRIMARY KEY AUTOINCREMENT, setting_key TEXT NOT NULL UNIQUE, setting_value TEXT, description TEXT, updated_at TEXT DEFAULT CURRENT_TIMESTAMP)');
+        $pdo->prepare('INSERT INTO analytics_settings (setting_key, setting_value) VALUES (?, ?)')
+            ->execute(['ip_salt', AppSecret::PLACEHOLDER]);
+        putenv('SESSION_SECRET=' . AppSecret::PLACEHOLDER);
+
+        $service = new \App\Services\AnalyticsService($pdo);
+        $salt = (new \ReflectionMethod($service, 'getIpSalt'))->invoke($service);
+
+        self::assertNotSame(AppSecret::PLACEHOLDER, $salt);
+        self::assertGreaterThanOrEqual(32, strlen((string) $salt));
+        $stored = $pdo->query("SELECT setting_value FROM analytics_settings WHERE setting_key = 'ip_salt'")->fetchColumn();
+        self::assertSame($salt, $stored, 'the placeholder row is healed in the DB');
+    }
+
     // ---- updater: https only, confined backup names --------------------------
 
     public function testUpdaterApiBaseRejectsPlainHttpExceptLoopback(): void
@@ -243,6 +299,52 @@ final class HardeningNotesTest extends TestCase
         $path = $this->dir . '/x.jpg';
         file_put_contents($path, '<?php echo 1;');
         self::assertFalse(ImageMetadataStripper::stripInPlace($path));
+    }
+
+    /**
+     * Every EXIF orientation, mirrored ones included, must move each source
+     * pixel to where the tag says it is displayed. Source is a 3x2 image with
+     * a distinct colour per pixel, so any wrong flip or turn shows up.
+     */
+    public function testAllEightExifOrientationsAreApplied(): void
+    {
+        $w = 3;
+        $h = 2;
+        // Where source pixel (x, y) must land after applying orientation N.
+        $map = [
+            1 => fn (int $x, int $y): array => [$x, $y],
+            2 => fn (int $x, int $y): array => [$w - 1 - $x, $y],
+            3 => fn (int $x, int $y): array => [$w - 1 - $x, $h - 1 - $y],
+            4 => fn (int $x, int $y): array => [$x, $h - 1 - $y],
+            5 => fn (int $x, int $y): array => [$y, $x],
+            6 => fn (int $x, int $y): array => [$h - 1 - $y, $x],
+            7 => fn (int $x, int $y): array => [$h - 1 - $y, $w - 1 - $x],
+            8 => fn (int $x, int $y): array => [$y, $w - 1 - $x],
+        ];
+        foreach ($map as $orientation => $target) {
+            $img = imagecreatetruecolor($w, $h);
+            self::assertNotFalse($img);
+            for ($y = 0; $y < $h; $y++) {
+                for ($x = 0; $x < $w; $x++) {
+                    imagesetpixel($img, $x, $y, ($x * 40 + 10) << 16 | ($y * 90 + 20) << 8);
+                }
+            }
+            $out = ImageMetadataStripper::applyOrientation($img, $orientation);
+            self::assertNotFalse($out);
+            $swap = $orientation >= 5;
+            self::assertSame($swap ? $h : $w, imagesx($out), "width, orientation $orientation");
+            for ($y = 0; $y < $h; $y++) {
+                for ($x = 0; $x < $w; $x++) {
+                    [$tx, $ty] = $target($x, $y);
+                    self::assertSame(
+                        ($x * 40 + 10) << 16 | ($y * 90 + 20) << 8,
+                        imagecolorat($out, $tx, $ty),
+                        "orientation $orientation, source ($x,$y)"
+                    );
+                }
+            }
+            imagedestroy($out);
+        }
     }
 
     /** A small GD JPEG with an APP1 Exif segment carrying $marker. */

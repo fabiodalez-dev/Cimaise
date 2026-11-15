@@ -70,12 +70,31 @@ final class PluginSignature
         if (self::publicKey() !== null) {
             return false;
         }
-        $env = getenv('PLUGIN_SIGNING_PUBKEY');
-        if (is_string($env) && trim($env) !== '') {
+        if (self::env('PLUGIN_SIGNING_PUBKEY') !== '') {
             return true;
         }
         $path = self::publicKeyPath();
-        return is_file($path) && trim((string) @file_get_contents($path)) !== '';
+        if (!is_file($path)) {
+            return false;
+        }
+        // A key file PHP cannot read is a broken configuration, not "no key".
+        $contents = @file_get_contents($path);
+        return $contents === false || trim($contents) !== '';
+    }
+
+    /**
+     * Environment value from $_ENV, $_SERVER or getenv(), trimmed. Dotenv's
+     * immutable loader fills $_ENV/$_SERVER only, so getenv() alone would miss
+     * a key set in .env.
+     */
+    private static function env(string $name): string
+    {
+        foreach ([$_ENV[$name] ?? null, $_SERVER[$name] ?? null, getenv($name)] as $value) {
+            if (is_string($value) && trim($value) !== '') {
+                return trim($value);
+            }
+        }
+        return '';
     }
 
     /**
@@ -87,8 +106,7 @@ final class PluginSignature
         if (self::isEnabled() || self::isMisconfigured()) {
             return false;
         }
-        $flag = $_ENV['PLUGIN_ALLOW_UNSIGNED'] ?? $_SERVER['PLUGIN_ALLOW_UNSIGNED'] ?? getenv('PLUGIN_ALLOW_UNSIGNED');
-        return is_string($flag) && trim($flag) === '1';
+        return self::env('PLUGIN_ALLOW_UNSIGNED') === '1';
     }
 
     /**
@@ -97,8 +115,8 @@ final class PluginSignature
      */
     public static function publicKey(): ?string
     {
-        $b64 = getenv('PLUGIN_SIGNING_PUBKEY') ?: null;
-        if ($b64 === null) {
+        $b64 = self::env('PLUGIN_SIGNING_PUBKEY');
+        if ($b64 === '') {
             $path = self::publicKeyPath();
             if (!is_file($path)) {
                 return null;

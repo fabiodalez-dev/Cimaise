@@ -294,6 +294,13 @@ class CacheController extends BaseController
 
         // Run LQIP generation in background
         $logFile = $this->lqipLogFile();
+        if ($logFile === null) {
+            $_SESSION['flash'][] = [
+                'type' => 'error',
+                'message' => 'Cannot write the LQIP log in storage/logs: check the directory permissions.',
+            ];
+            return $response->withHeader('Location', $this->redirect('/admin/cache'))->withStatus(302);
+        }
         $cmd = 'nohup php ' . escapeshellarg($consolePath)
             . ' images:generate-lqip'
             . ' > ' . escapeshellarg($logFile) . ' 2>&1 &';
@@ -312,13 +319,19 @@ class CacheController extends BaseController
      * the shared system temp dir is world-writable (pre-created symlink or
      * file owned by another account on shared hosting) and world-readable.
      */
-    private function lqipLogFile(): string
+    private function lqipLogFile(): ?string
     {
         $dir = dirname(__DIR__, 3) . '/storage/logs';
-        if (!is_dir($dir)) {
-            @mkdir($dir, 0755, true);
+        if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
+            return null;
         }
-        return $dir . '/lqip_generation.log';
+        $file = $dir . '/lqip_generation.log';
+        // The shell redirection would fail silently before the command starts,
+        // so check up front that the log can be created / truncated.
+        if (is_file($file) ? !is_writable($file) : !is_writable($dir)) {
+            return null;
+        }
+        return $file;
     }
 
     /**
@@ -341,6 +354,13 @@ class CacheController extends BaseController
 
         // Run LQIP generation with --force in background
         $logFile = $this->lqipLogFile();
+        if ($logFile === null) {
+            $_SESSION['flash'][] = [
+                'type' => 'error',
+                'message' => 'Cannot write the LQIP log in storage/logs: check the directory permissions.',
+            ];
+            return $response->withHeader('Location', $this->redirect('/admin/cache'))->withStatus(302);
+        }
         $cmd = 'nohup php ' . escapeshellarg($consolePath)
             . ' images:generate-lqip --force'
             . ' > ' . escapeshellarg($logFile) . ' 2>&1 &';
