@@ -3,6 +3,8 @@
 {% block styles %}
 {% include 'frontend/_lcp_preload.twig' %}
 <link rel="stylesheet" href="{{ base_path }}/assets/css/home-modern.css">
+<link rel="stylesheet" href="{{ base_path }}/assets/css/header-search.css?v={{ app_version }}">
+<script nonce="{{ csp_nonce() }}" defer src="{{ base_path }}/assets/js/header-search.js?v={{ app_version }}"></script>
 <style nonce="{{ csp_nonce() }}">
   /* Fix mega menu duplicate text - second span should be hidden until hover */
   .mega-menu_text[aria-hidden="true"] {
@@ -111,7 +113,7 @@
 <div class="modern-mobile-only" data-modern-mobile-header>
     <header class="border-b border-gray-200 sticky top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md z-50 transition-all duration-300" id="main-header">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center py-5">
+            <div class="flex justify-between items-center py-5 site-search-row">
                 <!-- Left: Logo and Desktop Navigation -->
                 <div class="flex items-center gap-8">
                     <h1 class="text-xl font-semibold">
@@ -341,7 +343,7 @@
 
 <!-- Global Header -->
 <div class="global-head modern-desktop-only">
-    <div class="global-head_layout">
+    <div class="global-head_layout site-search-row">
         <a href="{{ base_path }}/" class="head-logo_holder">
             {% if logo_type == 'image' and site_logo %}
                 {% include 'frontend/_site_logo.twig' with { logo_class: 'head-logo_img' } %}
@@ -367,14 +369,14 @@
                 <svg class="{{ _dark_default ? '' : 'hidden' }}" data-theme-icon="light" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
             </button>
             {% endif %}
-        </div>
-    </div>
-</div>
-
 <!-- Menu Button -->
 <button type="button" class="menu-btn modern-desktop-only">
     <span class="menu-btn_text">{{ trans('home_modern.menu')|default('Menu') }}</span>
 </button>
+        </div>
+    </div>
+</div>
+
 
 <!-- Main Content -->
 <div class="page-content">
@@ -599,31 +601,7 @@
 document.addEventListener('DOMContentLoaded', function() {
   const menuToggle = document.getElementById('mobile-menu-toggle');
   const menu = document.getElementById('mobile-menu');
-  const mobileSearchToggle = document.getElementById('mobile-search-toggle');
-  const headerSearchPanel = document.getElementById('header-search-panel');
-  const headerSearchToggle = document.getElementById('header-search-toggle');
-  const headerSearchInput = document.getElementById('header-search');
-  const searchToggles = [headerSearchToggle, mobileSearchToggle].filter(Boolean);
-
-  const closeSearchPanel = () => {
-    if (!headerSearchPanel) return;
-    headerSearchPanel.classList.add('hidden');
-    searchToggles.forEach(toggle => toggle.setAttribute('aria-expanded', 'false'));
-  };
-
-  const openSearchPanel = () => {
-    if (!headerSearchPanel) return;
-    if (menu) {
-      menu.style.maxHeight = '0px';
-      menu.style.opacity = '0';
-      menu.classList.add('hidden');
-    }
-    headerSearchPanel.classList.remove('hidden');
-    searchToggles.forEach(toggle => toggle.setAttribute('aria-expanded', 'true'));
-    setTimeout(() => {
-      headerSearchInput?.focus();
-    }, 50);
-  };
+  const closeSearchPanel = () => window.CimaiseHeaderSearch?.close();
 
   if (menuToggle && menu) {
     menuToggle.addEventListener('click', function() {
@@ -725,9 +703,9 @@ document.addEventListener('DOMContentLoaded', function() {
       clearBtn.classList.toggle('hidden', input.value.trim().length === 0);
     };
 
+    // Only a page-owned gallery filter should intercept full search.
     const syncToFilters = () => {
-      const filterInput = document.getElementById('layout-filter-search')
-        || document.getElementById('filter-search');
+      const filterInput = document.getElementById('filter-search');
       if (!filterInput) return false;
       filterInput.value = input.value;
       if (typeof window.applyFiltersDebounced === 'function') {
@@ -879,8 +857,7 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
 
-    const filterInput = document.getElementById('layout-filter-search')
-      || document.getElementById('filter-search');
+    const filterInput = document.getElementById('filter-search');
     if (filterInput && filterInput.value) {
       input.value = filterInput.value;
     }
@@ -893,31 +870,6 @@ document.addEventListener('DOMContentLoaded', function() {
     clearId: 'header-search-clear',
     suggestionId: 'header-search-suggestions'
   });
-
-  searchToggles.forEach((toggle) => {
-    toggle.addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      const isHidden = headerSearchPanel?.classList.contains('hidden') ?? true;
-      if (isHidden) {
-        openSearchPanel();
-      } else {
-        closeSearchPanel();
-      }
-    });
-  });
-
-  if (headerSearchPanel) {
-    document.addEventListener('click', (ev) => {
-      if (!headerSearchPanel.contains(ev.target) && !searchToggles.some(t => t.contains(ev.target))) {
-        closeSearchPanel();
-      }
-    });
-    document.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Escape') {
-        closeSearchPanel();
-      }
-    });
-  }
 });
 </script>
 <script nonce="{{ csp_nonce() }}">

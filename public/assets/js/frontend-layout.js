@@ -17,9 +17,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // 1. Menu Toggle
     const menuToggle = document.getElementById('mobile-menu-toggle');
     const menu = document.getElementById('mobile-menu');
-    const headerSearchPanel = document.getElementById('header-search-panel');
-    const headerSearchToggle = document.getElementById('header-search-toggle');
-    const mobileSearchToggle = document.getElementById('mobile-search-toggle');
     if (menuToggle && menu) {
         // Pending close-animation timeout; cleared on every toggle so a
         // rapid re-open can't let a stale timer re-hide the open menu
@@ -29,15 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (closeMenuTimer) { clearTimeout(closeMenuTimer); closeMenuTimer = null; }
             const isOpening = menu.classList.contains('hidden');
             if (isOpening) {
-                if (headerSearchPanel) {
-                    headerSearchPanel.classList.add('hidden');
-                }
-                if (headerSearchToggle) {
-                    headerSearchToggle.setAttribute('aria-expanded', 'false');
-                }
-                if (mobileSearchToggle) {
-                    mobileSearchToggle.setAttribute('aria-expanded', 'false');
-                }
+                window.CimaiseHeaderSearch?.close();
                 menu.classList.remove('hidden');
                 menuToggle.setAttribute('aria-expanded', 'true');
                 document.documentElement.classList.add('mobile-menu-open');
@@ -349,8 +338,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
 
         const syncToFilters = () => {
-            const filterInput = document.getElementById('layout-filter-search')
-                || document.getElementById('filter-search');
+            const filterInput = document.getElementById('filter-search');
             if (!filterInput) return false;
             filterInput.value = input.value;
             if (typeof window.applyFiltersDebounced === 'function') {
@@ -502,8 +490,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        const filterInput = document.getElementById('layout-filter-search')
-            || document.getElementById('filter-search');
+        const filterInput = document.getElementById('filter-search');
         if (filterInput && filterInput.value) {
             input.value = filterInput.value;
         }
@@ -517,42 +504,6 @@ document.addEventListener('DOMContentLoaded', function() {
         suggestionId: 'header-search-suggestions'
     });
 
-    const headerToggle = document.getElementById('header-search-toggle');
-    const headerPanel = document.getElementById('header-search-panel');
-    const headerInput = document.getElementById('header-search');
-    const mobileToggle = document.getElementById('mobile-search-toggle');
-    const searchToggles = [headerToggle, mobileToggle].filter(Boolean);
-    if (headerPanel && searchToggles.length) {
-        const closeHeaderPanel = () => {
-            headerPanel.classList.add('hidden');
-            searchToggles.forEach((toggle) => toggle.setAttribute('aria-expanded', 'false'));
-        };
-        searchToggles.forEach((toggle) => {
-            toggle.addEventListener('click', (ev) => {
-                ev.stopPropagation();
-                const isHidden = headerPanel.classList.contains('hidden');
-                if (isHidden) {
-                    headerPanel.classList.remove('hidden');
-                    searchToggles.forEach((t) => t.setAttribute('aria-expanded', 'true'));
-                    setTimeout(() => {
-                        headerInput?.focus();
-                    }, 50);
-                } else {
-                    closeHeaderPanel();
-                }
-            });
-        });
-        document.addEventListener('click', (ev) => {
-            if (!headerPanel.contains(ev.target) && !searchToggles.some((toggle) => toggle.contains(ev.target))) {
-                closeHeaderPanel();
-            }
-        });
-        document.addEventListener('keydown', (ev) => {
-            if (ev.key === 'Escape') {
-                closeHeaderPanel();
-            }
-        });
-    }
 })();
 
 // Enhanced smooth animations with GSAP
