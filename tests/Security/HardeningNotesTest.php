@@ -183,17 +183,25 @@ final class HardeningNotesTest extends TestCase
 
     public function testPerformUpdateRefusesADowngradeBeforeTouchingAnything(): void
     {
-        $root = dirname(__DIR__, 2);
-        $current = (string) (json_decode((string) file_get_contents($root . '/version.json'), true)['version'] ?? '');
-        self::assertMatchesRegularExpression('/^\d+\.\d+\.\d+/', $current);
+        // Isolated root with a known version, so the checkout's storage/ is
+        // never touched and a stray maintenance file there cannot matter.
+        file_put_contents($this->dir . '/version.json', json_encode(['version' => '1.4.30']));
+        $ref = new \ReflectionClass(Updater::class);
+        $updater = $ref->newInstanceWithoutConstructor();
+        $ref->getProperty('db')->setValue($updater, new \App\Support\Database(database: $this->dir . '/db.sqlite', isSqlite: true));
+        $ref->getProperty('rootPath')->setValue($updater, $this->dir);
+        $ref->getProperty('backupPath')->setValue($updater, $this->dir . '/storage/backups');
+        $ref->getProperty('tempPath')->setValue($updater, $this->dir . '/storage/tmp');
 
-        $updater = new Updater(new \App\Support\Database(database: $this->dir . '/db.sqlite', isSqlite: true));
-        $result = $updater->performUpdate('0.0.1');
+        $result = $updater->performUpdate('1.4.29');
 
         self::assertFalse($result['success']);
         self::assertStringContainsString('downgrade', (string) $result['error']);
         self::assertNull($result['backup_path']);
-        self::assertFileDoesNotExist($root . '/storage/.maintenance');
+        // Refused before the lock, maintenance mode and backup: nothing created.
+        self::assertFileDoesNotExist($this->dir . '/storage/cache/update.lock');
+        self::assertFileDoesNotExist($this->dir . '/storage/.maintenance');
+        self::assertDirectoryDoesNotExist($this->dir . '/storage/backups');
     }
 
     public function testDatabaseBackupsAreOwnerOnlyAndPruned(): void
@@ -435,7 +443,13 @@ final class HardeningNotesTest extends TestCase
     {
         $root = dirname(__DIR__, 2);
         $check = static function (string $path) use ($root): bool {
-            exec('git -C ' . escapeshellarg($root) . ' check-ignore -q ' . escapeshellarg($path), $o, $code);
+            exec('git -C ' . escapeshellarg($root) . ' check-ignore -q ' . escapeshellarg($path) . ' 2>/dev/null', $o, $code);
+            // 0 = ignored, 1 = not ignored; anything else (128 dubious
+            // ownership in containers, 127 git missing) says nothing about
+            // .gitignore, so the test is skipped instead of failing.
+            if ($code !== 0 && $code !== 1) {
+                self::markTestSkipped('git check-ignore unavailable (exit ' . $code . ')');
+            }
             return $code === 0;
         };
         if (!is_dir($root . '/.git') && !is_file($root . '/.git')) {
