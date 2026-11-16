@@ -117,12 +117,14 @@
       background-color: #1c322d;
       border-color: #16271f;
     }
+    /* Only the bar's own controls turn light: the user dropdown panel stays
+       white, so its items (Logout included) keep their dark/red text. */
     #admin-header h1, #admin-header .fa-camera,
-    #admin-header button, #admin-header a[target="_blank"],
+    #admin-header button:not(.dropdown-item), #admin-header a[target="_blank"],
     html.dark #admin-header h1, html.dark #admin-header .fa-camera {
       color: #f8f3ee;
     }
-    #admin-header button:hover, #admin-header a[target="_blank"]:hover {
+    #admin-header button:not(.dropdown-item):hover, #admin-header a[target="_blank"]:hover {
       color: #fff;
       background-color: rgba(248, 243, 238, 0.1);
     }
