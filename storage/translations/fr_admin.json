@@ -2692,6 +2692,9 @@
     "admin.pages.about.menu_label": "Nom de la page dans la navigation",
     "admin.pages.about.menu_label_hint": "Par exemple Contact. Laissez vide pour utiliser le libellé traduit « À propos » ; le titre de la page et le permalien restent indépendants.",
     "admin.settings.logo_dark": "Logo du mode sombre (facultatif)",
-    "admin.settings.logo_dark_hint": "Affiché à la place du logo standard en mode sombre. Laissez vide pour utiliser le même logo dans les deux thèmes. Les favicons utilisent toujours le logo standard."
+    "admin.settings.logo_dark_hint": "Affiché à la place du logo standard en mode sombre. Laissez vide pour utiliser le même logo dans les deux thèmes. Les favicons utilisent toujours le logo standard.",
+    "admin.updates.docker_title": "Mettre à jour via Docker",
+    "admin.updates.docker_description": "Cette installation utilise Docker. Les mises à jour directes sont désactivées. Téléchargez l’image Cimaise souhaitée et recréez le conteneur en conservant vos volumes persistants. Sélectionnez d’abord le tag souhaité dans votre configuration de déploiement.",
+    "admin.updates.docker_compose": "Si vous utilisez Docker Compose, exécutez ces commandes depuis votre répertoire de déploiement :"
   }
 }

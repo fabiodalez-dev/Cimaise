@@ -2692,6 +2692,9 @@
     "admin.sidebar.commands_sub": "CLI operations",
     "admin.sidebar.diagnostics_sub": "System status",
     "admin.sidebar.cache_sub": "Performance and cleanup",
-    "admin.sidebar.updates_sub": "Check versions"
+    "admin.sidebar.updates_sub": "Check versions",
+    "admin.updates.docker_title": "Update through Docker",
+    "admin.updates.docker_description": "This installation runs in Docker. Direct application updates are disabled. Pull the desired Cimaise image and recreate the container, preserving your persistent volumes. Select the desired image tag in your deployment configuration first.",
+    "admin.updates.docker_compose": "If you use Docker Compose, run these commands from your deployment directory:"
   }
 }

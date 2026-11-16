@@ -54,6 +54,8 @@ RUN composer dump-autoload --no-dev --optimize --classmap-authoritative
 # bookworm snapshot shipped with known CVEs.
 FROM php:8.5-apache-trixie AS runtime
 
+ENV CIMAISE_DOCKER=1
+
 LABEL org.opencontainers.image.title="Cimaise" \
       org.opencontainers.image.description="Minimalist photography portfolio CMS (PHP 8.5, Slim 4, Twig) — SQLite or MySQL." \
       org.opencontainers.image.source="https://github.com/fabiodalez-dev/cimaise" \

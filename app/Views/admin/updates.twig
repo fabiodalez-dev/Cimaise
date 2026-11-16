@@ -13,6 +13,16 @@
   </div>
 
   <div class="space-y-8 pb-48">
+    {% if dockerDeployment %}
+    <div class="card p-6" id="docker-update-instructions" role="status">
+      <h2 class="text-lg font-medium mb-3"><i class="fab fa-docker mr-2" aria-hidden="true"></i>{{ trans('admin.updates.docker_title') }}</h2>
+      <p class="text-sm text-gray-700">{{ trans('admin.updates.docker_description') }}</p>
+      <p class="text-sm text-gray-600 mt-3">{{ trans('admin.updates.docker_compose') }}</p>
+      <pre class="mt-3 overflow-x-auto rounded bg-gray-100 p-4 text-sm"><code>docker compose pull
+docker compose up -d</code></pre>
+    </div>
+    {% endif %}
+
     <!-- Update Status Card -->
     <div class="card">
       <div class="p-6">
@@ -32,7 +42,7 @@
             </div>
           </div>
         {% elseif updateInfo.available %}
-          {% if not updateInfo.package_asset %}
+          {% if not updateInfo.package_asset and not dockerDeployment %}
             {# Release published WITHOUT the installable package asset: the
                release workflow failed. Installing is impossible — warn instead
                of offering a doomed update. #}
@@ -66,10 +76,12 @@
                   {% endif %}
                 </div>
               </div>
+              {% if not dockerDeployment %}
               <button type="button" id="update-btn" class="btn-primary w-full sm:w-auto inline-flex items-center justify-center whitespace-nowrap shrink-0" data-action="start-update" data-version="{{ updateInfo.latest|e('html_attr') }}">
                 <i class="fas fa-download mr-2"></i>
                 {{ trans('admin.updates.update_now') }}
               </button>
+              {% endif %}
             </div>
           </div>
           {% endif %}
@@ -100,6 +112,7 @@
       </div>
     </div>
 
+    {% if not dockerDeployment %}
     <!-- System Requirements -->
     <div class="card">
       <div class="p-6">
@@ -154,6 +167,7 @@
       </div>
     </div>
 
+    {% endif %}
     <!-- Changelog -->
     {% if changelog|length > 0 %}
     <div class="card">
@@ -397,12 +411,12 @@
         <i class="fas fa-database mr-2" id="footer-backup-icon"></i>
         {{ trans('admin.updates.create_backup') }}
       </button>
-      {% if updateInfo.available and not updateInfo.package_asset %}
+      {% if not dockerDeployment and updateInfo.available and not updateInfo.package_asset %}
       <button type="button" class="btn-primary inline-flex items-center justify-center text-sm sm:text-base whitespace-nowrap opacity-50 cursor-not-allowed" disabled title="{{ trans('admin.updates.release_without_package', {}, 'Release without installable package')|e('html_attr') }}">
         <i class="fas fa-exclamation-triangle mr-2"></i>
         {{ trans('admin.updates.release_without_package', {}, 'Release without installable package') }}
       </button>
-      {% elseif updateInfo.available %}
+      {% elseif not dockerDeployment and updateInfo.available %}
       <button type="button" class="btn-primary inline-flex items-center justify-center text-sm sm:text-base whitespace-nowrap" data-action="start-update" data-version="{{ updateInfo.latest|e('html_attr') }}">
         <i class="fas fa-download mr-2"></i>
         {{ trans('admin.updates.update_now') }}

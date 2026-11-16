@@ -103,8 +103,11 @@ class Updater
         'node_modules',
     ];
 
-    public function __construct(private readonly Database $db)
+    private readonly bool $dockerDeployment;
+
+    public function __construct(private readonly Database $db, ?bool $dockerDeployment = null)
     {
+        $this->dockerDeployment = $dockerDeployment ?? DockerEnvironment::detected();
         $this->rootPath = dirname(__DIR__, 2);
         $this->backupPath = $this->rootPath . '/storage/backups';
         // Use storage/tmp instead of sys_get_temp_dir() for shared hosting compatibility
@@ -1824,6 +1827,9 @@ class Updater
      */
     public function installUpdate(string $sourcePath, string $targetVersion, ?string $dbBackupPath = null): array
     {
+        if ($this->dockerDeployment) {
+            return ['success' => false, 'error' => DockerEnvironment::UPDATE_MESSAGE];
+        }
         $appBackupPath = null;
         $logId = null;
 
@@ -3148,6 +3154,9 @@ class Updater
      */
     public function performUpdate(string $targetVersion): array
     {
+        if ($this->dockerDeployment) {
+            return ['success' => false, 'error' => DockerEnvironment::UPDATE_MESSAGE, 'backup_path' => null];
+        }
         $lockFile = $this->rootPath . '/storage/cache/update.lock';
         $lockHandle = null;
 
