@@ -308,8 +308,13 @@ class TextsController extends BaseController
             return $response->withHeader('Location', $this->redirect('/admin/texts?scope=' . $scope))->withStatus(302);
         }
 
-        // Sanitize language code to prevent path traversal
-        $langCode = preg_replace('/[^a-z0-9_-]/i', '', $langCode);
+        // Sanitize language code to prevent path traversal; a code that is
+        // empty once sanitised would address the dotfile ".json".
+        $langCode = self::sanitizeLanguageCode($langCode);
+        if ($langCode === null) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.language_file_not_found')];
+            return $response->withHeader('Location', $this->redirect('/admin/texts?scope=' . $scope))->withStatus(302);
+        }
 
         // Build file path based on scope
         // Frontend: {lang}.json, Admin: {lang}_admin.json
@@ -376,9 +381,12 @@ class TextsController extends BaseController
         // Optionally save to storage/translations
         $saveFile = !empty($data['save_file']);
         if ($saveFile && isset($jsonData['_meta']['code'])) {
-            $langCode = preg_replace('/[^a-z0-9_-]/i', '', (string) $jsonData['_meta']['code']);
-            $destPath = dirname(__DIR__, 3) . '/storage/translations/' . $langCode . '.json';
-            copy($tempPath, $destPath);
+            // Never save under an empty name (".json") or over an admin file.
+            $langCode = self::sanitizeLanguageCode((string) $jsonData['_meta']['code']);
+            if ($langCode !== null && !str_ends_with(strtolower($langCode), '_admin')) {
+                $destPath = dirname(__DIR__, 3) . '/storage/translations/' . $langCode . '.json';
+                copy($tempPath, $destPath);
+            }
         }
 
         unlink($tempPath);
@@ -504,6 +512,19 @@ class TextsController extends BaseController
         }
 
         return ['added' => $added, 'updated' => $updated];
+    }
+
+    /**
+     * Language code reduced to [A-Za-z0-9_-], or null when nothing usable
+     * remains (empty, or longer than any real locale tag).
+     */
+    public static function sanitizeLanguageCode(string $code): ?string
+    {
+        $clean = preg_replace('/[^a-z0-9_-]/i', '', $code) ?? '';
+        if ($clean === '' || strlen($clean) > 32 || !preg_match('/^[a-z0-9]/i', $clean)) {
+            return null;
+        }
+        return $clean;
     }
 
     /**

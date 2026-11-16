@@ -420,7 +420,10 @@ class Updater
     private function apiBase(): string
     {
         $base = $this->envValue('UPDATER_API_BASE');
-        if ($base === '' || !preg_match('#^https?://#i', $base)) {
+        // HTTPS only: the base receives the bearer token and serves release
+        // metadata. Plain http is allowed for loopback test servers only.
+        $isLoopbackHttp = (bool) preg_match('#^http://(127\.0\.0\.1|localhost|\[::1\])(:\d+)?(/|$)#i', $base);
+        if ($base === '' || (!preg_match('#^https://#i', $base) && !$isLoopbackHttp)) {
             $base = self::DEFAULT_API_BASE;
         }
         return rtrim($base, '/');
@@ -1592,9 +1595,22 @@ class Updater
      * Delete a backup
      * @return array{success: bool, error: string|null}
      */
+    /**
+     * Backup directory names are created as update_<Y-m-d_His>. Accept only a
+     * single plain path segment (no dots, no separators) so a name can never
+     * resolve to the backups directory itself or escape it.
+     */
+    public static function isValidBackupName(string $name): bool
+    {
+        return preg_match('/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}\z/', $name) === 1;
+    }
+
+    /** @return array{success: bool, error: string|null} */
     public function deleteBackup(string $backupName): array
     {
-        if (preg_match('/[\/\\\\]|\.\./', $backupName)) {
+        // Only names the updater creates (no dots, no separators): '.' would
+        // otherwise resolve to the backups directory itself.
+        if (!self::isValidBackupName($backupName)) {
             return ['success' => false, 'error' => 'Invalid backup name'];
         }
 
@@ -1608,7 +1624,7 @@ class Updater
         $realBackupDir = realpath($this->backupPath);
 
         if ($realBackupPath === false || $realBackupDir === false ||
-            !str_starts_with($realBackupPath, $realBackupDir)) {
+            !str_starts_with($realBackupPath, $realBackupDir . DIRECTORY_SEPARATOR)) {
             return ['success' => false, 'error' => 'Invalid backup path'];
         }
 
@@ -1626,7 +1642,9 @@ class Updater
      */
     public function getBackupDownloadPath(string $backupName): array
     {
-        if (preg_match('/[\/\\\\]|\.\./', $backupName)) {
+        // Only names the updater creates (no dots, no separators): '.' would
+        // otherwise resolve to the backups directory itself.
+        if (!self::isValidBackupName($backupName)) {
             return ['success' => false, 'path' => null, 'filename' => null, 'error' => 'Invalid backup name'];
         }
 
@@ -1641,7 +1659,7 @@ class Updater
         $realBackupDir = realpath($this->backupPath);
 
         if ($realDbFile === false || $realBackupDir === false ||
-            !str_starts_with($realDbFile, $realBackupDir)) {
+            !str_starts_with($realDbFile, $realBackupDir . DIRECTORY_SEPARATOR)) {
             return ['success' => false, 'path' => null, 'filename' => null, 'error' => 'Invalid backup path'];
         }
 
