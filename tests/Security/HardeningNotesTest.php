@@ -148,6 +148,202 @@ final class HardeningNotesTest extends TestCase
         return rtrim((string) $method->invoke($updater), '/');
     }
 
+    public function testUpdaterRefusesDowngrades(): void
+    {
+        self::assertTrue(Updater::isDowngrade('1.4.29', '1.4.30'));
+        self::assertTrue(Updater::isDowngrade('v1.3.0', '1.4.30'));
+        self::assertTrue(Updater::isDowngrade('1.4.30-rc.1', '1.4.30'));
+        self::assertTrue(Updater::isDowngrade('1.4.29junk', '1.4.30'), 'unparseable target fails closed');
+        self::assertTrue(Updater::isDowngrade('', '1.4.30'));
+
+        self::assertFalse(Updater::isDowngrade('1.4.31', '1.4.30'));
+        self::assertFalse(Updater::isDowngrade('v1.5.0', '1.4.30'));
+        self::assertFalse(Updater::isDowngrade('1.4.30', '1.4.30'), 'a same-version reinstall is not a downgrade');
+        self::assertFalse(Updater::isDowngrade('1.4.30', '1.4.30-dev'));
+        self::assertFalse(Updater::isDowngrade('1.4.31', 'garbage'), 'a broken version.json must not block the repair');
+    }
+
+    public function testPerformUpdateRefusesADowngradeBeforeTouchingAnything(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $current = (string) (json_decode((string) file_get_contents($root . '/version.json'), true)['version'] ?? '');
+        self::assertMatchesRegularExpression('/^\d+\.\d+\.\d+/', $current);
+
+        $updater = new Updater(new \App\Support\Database(database: $this->dir . '/db.sqlite', isSqlite: true));
+        $result = $updater->performUpdate('0.0.1');
+
+        self::assertFalse($result['success']);
+        self::assertStringContainsString('downgrade', (string) $result['error']);
+        self::assertNull($result['backup_path']);
+        self::assertFileDoesNotExist($root . '/storage/.maintenance');
+    }
+
+    public function testDatabaseBackupsAreOwnerOnlyAndPruned(): void
+    {
+        // Constructor-less so the readonly paths can point at the temp dir.
+        // Deletions are confined to rootPath, so it is the temp dir too, with
+        // the checkout's version.json (createBackup records it).
+        copy(dirname(__DIR__, 2) . '/version.json', $this->dir . '/version.json');
+        $ref = new \ReflectionClass(Updater::class);
+        $updater = $ref->newInstanceWithoutConstructor();
+        $backups = $this->dir . '/backups';
+        $ref->getProperty('db')->setValue($updater, new \App\Support\Database(database: $this->dir . '/db.sqlite', isSqlite: true));
+        $ref->getProperty('rootPath')->setValue($updater, $this->dir);
+        $ref->getProperty('backupPath')->setValue($updater, $backups);
+
+        // Seven older dumps, oldest first.
+        for ($i = 1; $i <= 7; $i++) {
+            $old = $backups . '/update_2020-01-0' . $i . '_000000';
+            mkdir($old, 0755, true);
+            file_put_contents($old . '/database.sql', '-- old');
+            touch($old, 1577836800 + $i * 86400);
+        }
+
+        $result = $updater->createBackup();
+        self::assertTrue($result['success'], (string) $result['error']);
+        $dump = $result['path'] . '/database.sql';
+
+        self::assertSame(0700, fileperms($backups) & 0777);
+        self::assertSame(0700, fileperms((string) $result['path']) & 0777);
+        self::assertSame(0600, fileperms($dump) & 0777);
+
+        $left = array_map('basename', glob($backups . '/update_*', GLOB_ONLYDIR) ?: []);
+        self::assertCount(Updater::BACKUPS_TO_KEEP, $left);
+        self::assertContains(basename((string) $result['path']), $left, 'the dump just written is never pruned');
+        self::assertNotContains('update_2020-01-01_000000', $left, 'the oldest dumps go first');
+        self::assertContains('update_2020-01-07_000000', $left);
+    }
+
+    public function testPostUpdatePermissionPassKeepsDumpsOwnerOnly(): void
+    {
+        $ref = new \ReflectionClass(Updater::class);
+        $updater = $ref->newInstanceWithoutConstructor();
+        $ref->getProperty('rootPath')->setValue($updater, $this->dir);
+
+        $dumpDir = $this->dir . '/storage/backups/update_2026-11-15_000000';
+        mkdir($dumpDir, 0700, true);
+        file_put_contents($dumpDir . '/database.sql', '-- dump');
+        chmod($dumpDir . '/database.sql', 0600);
+        mkdir($this->dir . '/storage/cache', 0700, true);
+        file_put_contents($this->dir . '/storage/cache/x', 'x');
+        chmod($this->dir . '/storage/cache/x', 0600);
+
+        $ref->getMethod('fixPermissions')->invoke($updater);
+
+        self::assertSame(0700, fileperms($this->dir . '/storage/backups') & 0777);
+        self::assertSame(0700, fileperms($dumpDir) & 0777);
+        self::assertSame(0600, fileperms($dumpDir . '/database.sql') & 0777);
+        self::assertSame(0644, fileperms($this->dir . '/storage/cache/x') & 0777, 'everything else still gets the normal pass');
+    }
+
+    public function testPruneNeverRemovesTheProtectedBackupEvenIfItLooksOld(): void
+    {
+        $ref = new \ReflectionClass(Updater::class);
+        $updater = $ref->newInstanceWithoutConstructor();
+        $backups = $this->dir . '/backups';
+        $ref->getProperty('backupPath')->setValue($updater, $backups);
+        $ref->getProperty('rootPath')->setValue($updater, $this->dir);
+
+        for ($i = 1; $i <= 4; $i++) {
+            mkdir($backups . '/update_2020-01-0' . $i . '_000000', 0700, true);
+            touch($backups . '/update_2020-01-0' . $i . '_000000', 1577836800 + $i * 86400);
+        }
+        $protect = $backups . '/update_2020-01-01_000000';
+
+        self::assertSame(2, $updater->pruneBackups(2, $protect));
+        self::assertDirectoryExists($protect);
+        self::assertDirectoryExists($backups . '/update_2020-01-04_000000');
+        self::assertDirectoryDoesNotExist($backups . '/update_2020-01-02_000000');
+    }
+
+    // ---- fix-permissions.php: no token in the URL ------------------------------
+
+    public function testFixPermissionsNeverReadsTheTokenFromTheQueryString(): void
+    {
+        $src = (string) file_get_contents(dirname(__DIR__, 2) . '/fix-permissions.php');
+        self::assertDoesNotMatchRegularExpression('/\$authToken\s*=(?!=)[^;]*\$_GET/', $src);
+        self::assertStringContainsString("\$_POST['token']", $src);
+        self::assertStringContainsString('<form method="post"', $src);
+    }
+
+    /**
+     * Served by php -S from a throwaway copy: __DIR__ is the temp dir, so even
+     * an accepted token could only chmod the copy, never the checkout.
+     */
+    public function testFixPermissionsRejectsAQueryTokenOverHttp(): void
+    {
+        $site = $this->dir . '/fixperm';
+        mkdir($site . '/storage/tmp', 0700, true);
+        copy(dirname(__DIR__, 2) . '/fix-permissions.php', $site . '/fix-permissions.php');
+        $token = bin2hex(random_bytes(12));
+        file_put_contents($site . '/storage/tmp/permissions_fix_token.txt', $token);
+
+        $port = 20000 + random_int(0, 20000);
+        $proc = proc_open(
+            [PHP_BINARY, '-S', '127.0.0.1:' . $port, '-t', $site],
+            [0 => ['pipe', 'r'], 1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']],
+            $pipes
+        );
+        self::assertIsResource($proc);
+        try {
+            $base = 'http://127.0.0.1:' . $port . '/fix-permissions.php';
+            $deadline = microtime(true) + 5;
+            while (@fsockopen('127.0.0.1', $port) === false && microtime(true) < $deadline) {
+                usleep(50000);
+            }
+
+            [$status, $body] = $this->http($base . '?token=' . $token);
+            self::assertSame(400, $status, 'a correct token in the URL is refused');
+            self::assertStringContainsString('<form method="post"', $body);
+            self::assertStringNotContainsString('Permission Repair Complete', $body, 'nothing was fixed');
+
+            [$status, $body] = $this->http($base);
+            self::assertSame(200, $status);
+            self::assertStringContainsString('name="token"', $body);
+
+            [$status] = $this->http($base, 'token=wrong');
+            self::assertSame(401, $status);
+        } finally {
+            proc_terminate($proc);
+            proc_close($proc);
+        }
+    }
+
+    /** @return array{0: int, 1: string} */
+    private function http(string $url, ?string $post = null): array
+    {
+        $opts = ['http' => ['ignore_errors' => true, 'timeout' => 5, 'method' => $post === null ? 'GET' : 'POST']];
+        if ($post !== null) {
+            $opts['http']['header'] = "Content-Type: application/x-www-form-urlencoded\r\n";
+            $opts['http']['content'] = $post;
+        }
+        $body = (string) @file_get_contents($url, false, stream_context_create($opts));
+        $status = 0;
+        foreach ($http_response_header as $line) {
+            if (preg_match('#^HTTP/\S+\s+(\d{3})#', $line, $m) === 1) {
+                $status = (int) $m[1];
+            }
+        }
+        return [$status, $body];
+    }
+
+    public function testGitignoreCoversEnvVariantsAndSqliteSideFiles(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $check = static function (string $path) use ($root): bool {
+            exec('git -C ' . escapeshellarg($root) . ' check-ignore -q ' . escapeshellarg($path), $o, $code);
+            return $code === 0;
+        };
+        if (!is_dir($root . '/.git') && !is_file($root . '/.git')) {
+            self::markTestSkipped('not a git checkout');
+        }
+        foreach (['.env', '.env.production', '.env.old', 'database/database.sqlite-wal', 'database/database.sqlite-shm', 'database/database.sqlite-journal', 'storage/backups/x/database.sql', 'resources/keys/plugin-signing.key'] as $secret) {
+            self::assertTrue($check($secret), $secret . ' must be ignored');
+        }
+        self::assertFalse($check('.env.example'), '.env.example ships');
+        self::assertFalse($check('resources/keys/plugin-signing.pub'), 'the public key ships');
+    }
+
     public function testBackupNamesAreASinglePlainSegment(): void
     {
         self::assertTrue(Updater::isValidBackupName('update_2026-11-15_101500'));

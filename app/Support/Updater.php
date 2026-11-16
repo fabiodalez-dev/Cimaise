@@ -55,6 +55,31 @@ class Updater
      */
     public const PACKAGE_SIGNATURE_REQUIRED_FROM = '1.4.30';
 
+    /** How many update_* database dumps createBackup() leaves in storage/backups. */
+    public const BACKUPS_TO_KEEP = 5;
+
+    /**
+     * Whether installing $target over $current would go backwards. A signed
+     * older release is still a valid package, so the signature alone does not
+     * stop a rollback onto code with already-fixed vulnerabilities (or onto a
+     * schema older than the database). Re-installing the same version is not
+     * a downgrade. An unparseable target counts as a downgrade (fail closed);
+     * an unparseable local version.json cannot be ordered against anything,
+     * so it does not block the update that would repair it.
+     */
+    public static function isDowngrade(string $target, string $current): bool
+    {
+        $grammar = '/^v?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)\z/';
+        if (preg_match($grammar, trim($target), $t) !== 1) {
+            return true;
+        }
+        if (preg_match($grammar, trim($current), $c) !== 1) {
+            return false;
+        }
+
+        return version_compare($t[1], $c[1], '<');
+    }
+
     /** Upper bound for a downloaded .sig asset (a real one is 89 bytes). */
     private const MAX_SIGNATURE_BYTES = 1024;
 
@@ -1510,23 +1535,41 @@ class Updater
             $timestamp = date('Y-m-d_His');
             $backupDir = $this->backupPath . '/update_' . $timestamp;
 
-            if (!mkdir($backupDir, 0755, true) && !is_dir($backupDir)) {
+            // A dump holds every password hash and secret in the database:
+            // owner-only, never readable by other local users. .htaccess is
+            // not the only thing standing between it and the web.
+            if (!is_dir($this->backupPath) && !mkdir($this->backupPath, 0700, true) && !is_dir($this->backupPath)) {
                 throw new Exception('Cannot create backup directory');
             }
+            @chmod($this->backupPath, 0700);
+            if (!mkdir($backupDir, 0700, true) && !is_dir($backupDir)) {
+                throw new Exception('Cannot create backup directory');
+            }
+            @chmod($backupDir, 0700);
 
             // Log the backup start
             $logId = $this->logUpdateStart($this->getCurrentVersion(), 'backup', $backupDir);
 
-            // Backup database
+            // Backup database. The file is created 0600 before anything is
+            // written, so the dump is never world-readable even for a moment
+            // (fopen 'w' keeps the mode of an existing file).
             $this->debugLog('INFO', 'Starting database backup');
-            $dbBackupResult = $this->backupDatabase($backupDir . '/database.sql');
+            $dumpFile = $backupDir . '/database.sql';
+            if (@touch($dumpFile)) {
+                @chmod($dumpFile, 0600);
+            }
+            $dbBackupResult = $this->backupDatabase($dumpFile);
 
             if (!$dbBackupResult['success']) {
                 throw new Exception($dbBackupResult['error']);
             }
+            @chmod($dumpFile, 0600);
 
             // Mark backup as complete
             $this->logUpdateComplete($logId, true);
+
+            // Keep only the most recent dumps: they used to pile up forever.
+            $this->pruneBackups(self::BACKUPS_TO_KEEP, $backupDir);
 
             $this->debugLog('INFO', 'Backup completed successfully', [
                 'path' => $backupDir
@@ -1634,6 +1677,46 @@ class Updater
         } catch (Exception $e) {
             return ['success' => false, 'error' => $e->getMessage()];
         }
+    }
+
+    /**
+     * Delete all but the $keep most recent update_* backups. $protect (the
+     * backup just written, used for a rollback of the running update) is
+     * never removed, whatever its mtime says.
+     *
+     * @return int number of backups deleted
+     */
+    public function pruneBackups(int $keep, ?string $protect = null): int
+    {
+        $keep = max(1, $keep);
+        $protectReal = $protect !== null ? realpath($protect) : false;
+        $backups = $this->getBackupList();
+        $isProtected = static fn (array $b): bool => $protectReal !== false && realpath($b['path']) === $protectReal;
+
+        // $keep is the total left on disk, the protected backup included.
+        $slots = $keep;
+        foreach ($backups as $backup) {
+            if ($isProtected($backup)) {
+                $slots--;
+                break;
+            }
+        }
+
+        $deleted = 0;
+        foreach ($backups as $backup) {
+            if ($isProtected($backup)) {
+                continue;
+            }
+            if ($slots > 0) {
+                $slots--;
+                continue;
+            }
+            if ($this->deleteBackup($backup['name'])['success']) {
+                $deleted++;
+            }
+        }
+
+        return $deleted;
     }
 
     /**
@@ -2965,10 +3048,15 @@ class Updater
             'public/media',
         ];
 
+        // Database dumps stay owner-only (see createBackup()); the generic
+        // 0755/0644 pass over storage/ must not widen them again.
+        $privateDir = $this->rootPath . '/storage/backups';
+        $isPrivate = static fn (string $path): bool => $path === $privateDir || str_starts_with($path, $privateDir . '/');
+
         foreach ($writableDirs as $dir) {
             $fullPath = $this->rootPath . '/' . $dir;
             if (is_dir($fullPath)) {
-                chmod($fullPath, 0755);
+                chmod($fullPath, $isPrivate($fullPath) ? 0700 : 0755);
 
                 $iterator = new \RecursiveIteratorIterator(
                     new \RecursiveDirectoryIterator($fullPath, \RecursiveDirectoryIterator::SKIP_DOTS),
@@ -2976,10 +3064,11 @@ class Updater
                 );
 
                 foreach ($iterator as $item) {
+                    $private = $isPrivate($item->getPathname());
                     if ($item->isDir()) {
-                        @chmod($item->getPathname(), 0755);
+                        @chmod($item->getPathname(), $private ? 0700 : 0755);
                     } else {
-                        @chmod($item->getPathname(), 0644);
+                        @chmod($item->getPathname(), $private ? 0600 : 0644);
                     }
                 }
             }
@@ -3176,6 +3265,18 @@ class Updater
             'target_version' => $targetVersion,
             'php_version' => PHP_VERSION
         ]);
+
+        if (self::isDowngrade($targetVersion, $this->getCurrentVersion())) {
+            $this->debugLog('ERROR', 'Refusing a downgrade', [
+                'current_version' => $this->getCurrentVersion(),
+                'target_version' => $targetVersion,
+            ]);
+            return [
+                'success' => false,
+                'error' => sprintf('Refusing to install %s over %s: downgrades are not allowed', $targetVersion, $this->getCurrentVersion()),
+                'backup_path' => null
+            ];
+        }
 
         $maintenanceFile = $this->rootPath . '/storage/.maintenance';
         register_shutdown_function(function () use ($maintenanceFile, $lockFile) {
