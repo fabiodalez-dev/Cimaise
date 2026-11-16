@@ -128,6 +128,13 @@
       color: #fff;
       background-color: rgba(248, 243, 238, 0.1);
     }
+    /* The avatar initials/icon in the bar follow the light button text. */
+    #admin-header .dropdown > button .user-avatar { color: inherit; }
+    /* Dark theme: the user dropdown panel was still white while the dark
+       theme turned its item titles light, leaving them unreadable. */
+    html.dark #admin-header .dropdown-content { background-color: var(--color-bg-secondary); border-color: var(--color-border); }
+    html.dark #admin-header .dropdown-item { color: var(--color-text-primary); border-color: var(--color-border); }
+    html.dark #admin-header .dropdown-item:hover { background-color: var(--color-bg-tertiary); }
     #admin-header .dropdown > button .text-gray-500,
     #admin-header [title][class*="text-gray-400"] { color: #c3d4ca; }
     html.dark #page-content .text-gray-900 { color: var(--color-text-primary); }
