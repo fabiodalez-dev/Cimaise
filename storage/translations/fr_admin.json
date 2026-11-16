@@ -2692,6 +2692,9 @@
     "admin.pages.about.menu_label": "Nom de la page dans la navigation",
     "admin.pages.about.menu_label_hint": "Par exemple Contact. Laissez vide pour utiliser le libellé traduit « À propos » ; le titre de la page et le permalien restent indépendants.",
     "admin.settings.logo_dark": "Logo du mode sombre (facultatif)",
-    "admin.settings.logo_dark_hint": "Affiché à la place du logo standard en mode sombre. Laissez vide pour utiliser le même logo dans les deux thèmes. Les favicons utilisent toujours le logo standard."
+    "admin.settings.logo_dark_hint": "Affiché à la place du logo standard en mode sombre. Laissez vide pour utiliser le même logo dans les deux thèmes. Les favicons utilisent toujours le logo standard.",
+    "admin.settings.replace_existing_variants": "Régénérer les variantes existantes",
+    "admin.settings.replace_existing_variants_hint": "Enregistrez les paramètres d’image avant de les appliquer aux photos existantes.",
+    "admin.settings.confirm_replace_variants": "Régénérer les variantes existantes avec les réglages enregistrés ? Une grande photothèque peut prendre du temps."
   }
 }

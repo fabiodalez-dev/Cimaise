@@ -2706,6 +2706,9 @@
     "admin.sidebar.commands_sub": "Operazioni CLI",
     "admin.sidebar.diagnostics_sub": "Stato del sistema",
     "admin.sidebar.cache_sub": "Prestazioni e pulizia",
-    "admin.sidebar.updates_sub": "Verifica versioni"
+    "admin.sidebar.updates_sub": "Verifica versioni",
+    "admin.settings.replace_existing_variants": "Rigenera le varianti esistenti",
+    "admin.settings.replace_existing_variants_hint": "Salva le impostazioni delle immagini prima di applicarle alle foto esistenti.",
+    "admin.settings.confirm_replace_variants": "Rigenerare le varianti esistenti con le impostazioni salvate? Le raccolte grandi possono richiedere tempo."
   }
 }

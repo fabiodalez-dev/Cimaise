@@ -374,8 +374,12 @@ class SettingsController extends BaseController
                 throw new \RuntimeException('Unable to create log directory');
             }
             $logPath = $logDir . '/image_generation.log';
-            $cmd = 'nohup ' . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($consoleReal)
-                . ' images:generate --missing > ' . escapeshellarg($logPath) . ' 2>&1 &';
+            $replaceExisting = ((array) $request->getParsedBody())['replace_existing'] ?? '';
+            $phpCli = PHP_BINDIR . '/php';
+            $phpCli = is_executable($phpCli) ? $phpCli : 'php';
+            $cmd = 'nohup ' . escapeshellarg($phpCli) . ' ' . escapeshellarg($consoleReal)
+                . ($replaceExisting === '1' ? ' images:generate' : ' images:generate --missing')
+                . ' > ' . escapeshellarg($logPath) . ' 2>&1 &';
             // nosemgrep: reviewed — every command part is escaped (escapeshellarg)
             // and the only variable is the app's own bin/console path, validated
             // with realpath() to live under the app root. No user input reaches
