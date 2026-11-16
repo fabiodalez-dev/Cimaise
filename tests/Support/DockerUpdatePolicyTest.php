@@ -78,6 +78,10 @@ final class DockerUpdatePolicyTest extends TestCase
         self::assertStringNotContainsString('data-action="start-update"', $docker);
         self::assertStringNotContainsString('Unraid', $docker);
         self::assertStringContainsString('data-action="create-backup"', $docker);
+        // A newer release exists: the footer must not claim the site is up to date.
+        self::assertDoesNotMatchRegularExpression('/admin\\.updates\\.up_to_date(?!_)/', $docker);
+        $current = $twig->render('admin/updates.twig', ['updateInfo' => ['available' => false] + $context['updateInfo']] + $context + ['dockerDeployment' => true]);
+        self::assertMatchesRegularExpression('/admin\\.updates\\.up_to_date(?!_)/', $current);
         $normal = $twig->render('admin/updates.twig', $context + ['dockerDeployment' => false]);
         self::assertStringContainsString('data-action="start-update"', $normal);
         self::assertStringNotContainsString('id="docker-update-instructions"', $normal);

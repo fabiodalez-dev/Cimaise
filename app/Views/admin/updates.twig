@@ -421,7 +421,9 @@ docker compose up -d</code></pre>
         <i class="fas fa-download mr-2"></i>
         {{ trans('admin.updates.update_now') }}
       </button>
-      {% else %}
+      {% elseif not updateInfo.available %}
+      {# In Docker with a newer release there is no in-app button at all: the
+         instructions card above says how to pull the new image. #}
       <button type="button" class="btn-primary inline-flex items-center justify-center text-sm sm:text-base whitespace-nowrap opacity-50 cursor-not-allowed" disabled>
         <i class="fas fa-check mr-2"></i>
         {{ trans('admin.updates.up_to_date') }}
