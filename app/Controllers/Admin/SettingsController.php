@@ -177,6 +177,14 @@ class SettingsController extends BaseController
         // Logo type (text or image)
         $logoType = in_array($data['logo_type'] ?? 'text', ['text', 'image'], true) ? $data['logo_type'] : 'text';
         $changes['site.logo_type'] = $logoType;
+        if (isset($data['logo_max_width'])) {
+            $changes['site.logo_max_width'] = max(0, min(960, (int) $data['logo_max_width']));
+            $logoVariants = new \App\Services\SiteLogoVariants();
+            foreach (['site.logo', 'site.logo_dark'] as $key) {
+                $path = array_key_exists($key, $changes) ? $changes[$key] : $svc->get($key);
+                $changes[$key . '_variants'] = $logoVariants->generate(is_string($path) ? $path : null);
+            }
+        }
 
         // Favicon source (for text logo mode) - only save if provided, don't clear on empty
         if (isset($data['favicon_source']) && $data['favicon_source'] !== '') {

@@ -2706,6 +2706,8 @@
     "admin.sidebar.commands_sub": "Operazioni CLI",
     "admin.sidebar.diagnostics_sub": "Stato del sistema",
     "admin.sidebar.cache_sub": "Prestazioni e pulizia",
-    "admin.sidebar.updates_sub": "Verifica versioni"
+    "admin.sidebar.updates_sub": "Verifica versioni",
+    "admin.settings.logo_max_width": "Larghezza massima del logo (px)",
+    "admin.settings.logo_max_width_hint": "Usa 0 per il valore del modello. Il salvataggio crea anche file più piccoli per i loghi chiaro e scuro."
   }
 }

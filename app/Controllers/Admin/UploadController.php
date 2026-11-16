@@ -233,7 +233,11 @@ class UploadController extends BaseController
             // Save setting
             $settings = new \App\Services\SettingsService($this->db);
             $darkLogo = ($request->getQueryParams()['theme'] ?? '') === 'dark';
-            $settings->set($darkLogo ? 'site.logo_dark' : 'site.logo', $relUrl);
+            $logoKey = $darkLogo ? 'site.logo_dark' : 'site.logo';
+            $settings->setMany([
+                $logoKey => $relUrl,
+                $logoKey . '_variants' => (new \App\Services\SiteLogoVariants())->generate($relUrl),
+            ]);
 
             // Automatically generate favicons from the uploaded logo
             $faviconResult = ['generated' => [], 'success' => false];

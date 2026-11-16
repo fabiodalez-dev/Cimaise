@@ -1,5 +1,27 @@
-{# Keep uploaded image colors intact; choose the logo matching the active theme. #}
-<img src="{% if site_logo starts with '/' %}{{ base_path }}{% endif %}{{ site_logo }}" alt="{{ site_title|default('Portfolio')|e('html_attr') }}" class="{{ logo_class|e('html_attr') }}{% if site_logo_dark %} cimaise-logo-light{% endif %}">
+{% macro logo(path, variants, logo_class, site_title, base_path, limit, responsive_size) %}
+  {% set has_sources = variants.path|default('') == path and variants.sources|default([])|length > 1 %}
+  {% set srcset = [] %}
+  {% if has_sources %}
+    {% for width, url in variants.sources %}
+      {% set srcset = srcset|merge([base_path ~ url ~ ' ' ~ width ~ 'w']) %}
+    {% endfor %}
+    {% if not responsive_size %}
+      {% set natural_display_width = (48 * variants.width / variants.height)|round %}
+      {% set responsive_size = (limit > 0 ? min(limit, natural_display_width) : natural_display_width) ~ 'px' %}
+    {% endif %}
+  {% endif %}
+  <img src="{% if path starts with '/' %}{{ base_path }}{% endif %}{{ path }}"
+       {% if has_sources %}srcset="{{ srcset|join(', ') }}" sizes="{{ responsive_size }}"{% endif %}
+       alt="{{ site_title|default('Portfolio')|e('html_attr') }}" class="{{ logo_class|e('html_attr') }}"
+       {% if limit > 0 %}style="max-width: min(100%, {{ limit }}px); object-fit: contain;"{% endif %}>
+{% endmacro %}
+{% import _self as SiteLogo %}
+{% set limit = site_logo_max_width|default(0) %}
+{% set responsive_size = logo_responsive_size|default('') %}
+{% if responsive_size and limit > 0 %}
+  {% set responsive_size = 'min(' ~ responsive_size ~ ', ' ~ limit ~ 'px)' %}
+{% endif %}
+{{ SiteLogo.logo(site_logo, site_logo_variants|default(null), logo_class ~ (site_logo_dark ? ' cimaise-logo-light' : ''), site_title, base_path, limit, responsive_size) }}
 {% if site_logo_dark %}
-<img src="{% if site_logo_dark starts with '/' %}{{ base_path }}{% endif %}{{ site_logo_dark }}" alt="{{ site_title|default('Portfolio')|e('html_attr') }}" class="{{ logo_class|e('html_attr') }} cimaise-logo-dark">
+  {{ SiteLogo.logo(site_logo_dark, site_logo_dark_variants|default(null), logo_class ~ ' cimaise-logo-dark', site_title, base_path, limit, responsive_size) }}
 {% endif %}
