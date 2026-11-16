@@ -321,7 +321,10 @@ class Updater
     }
 
     /**
-     * Get current installed version
+     * Get current installed version (read from version.json on every call,
+     * so it changes when another process installs an update).
+     *
+     * @phpstan-impure
      */
     public function getCurrentVersion(): string
     {
@@ -1528,6 +1531,7 @@ class Updater
     public function createBackup(): array
     {
         $logId = null;
+        $backupDir = null;
 
         $this->debugLog('INFO', '=== STARTING BACKUP ===');
 
@@ -1542,7 +1546,7 @@ class Updater
                 throw new Exception('Cannot create backup directory');
             }
             @chmod($this->backupPath, 0700);
-            if (!mkdir($backupDir, 0700, true) && !is_dir($backupDir)) {
+            if (!@mkdir($backupDir, 0700, true) && !is_dir($backupDir)) {
                 throw new Exception('Cannot create backup directory');
             }
             @chmod($backupDir, 0700);
@@ -1588,6 +1592,12 @@ class Updater
 
             if ($logId !== null) {
                 $this->logUpdateComplete($logId, false, $e->getMessage());
+            }
+
+            // A failed attempt must not linger as an update_* directory: it
+            // would look like a backup and take a retention slot.
+            if ($backupDir !== null && is_dir($backupDir)) {
+                $this->deleteBackup(basename($backupDir));
             }
 
             return [
@@ -1690,8 +1700,13 @@ class Updater
     {
         $keep = max(1, $keep);
         $protectReal = $protect !== null ? realpath($protect) : false;
-        $backups = $this->getBackupList();
         $isProtected = static fn (array $b): bool => $protectReal !== false && realpath($b['path']) === $protectReal;
+        // Only completed backups (with a dump) count and are rotated; an
+        // incomplete directory must never push a good restore point out.
+        $backups = array_values(array_filter(
+            $this->getBackupList(),
+            static fn (array $b): bool => $isProtected($b) || is_file($b['path'] . '/database.sql')
+        ));
 
         // $keep is the total left on disk, the protected backup included.
         $slots = $keep;
@@ -1780,9 +1795,37 @@ class Updater
     /**
      * Backup SQLite database
      */
+    /**
+     * Write to a dump and fail loudly: fwrite() reports a full disk or quota
+     * with false or a short count, not an exception, and a truncated dump must
+     * never be recorded as a good restore point.
+     *
+     * @param resource $handle
+     */
+    private function dumpWrite($handle, string $data): void
+    {
+        $written = fwrite($handle, $data);
+        if ($written === false || $written !== strlen($data)) {
+            throw new Exception('Database backup write failed (disk full or quota exceeded?)');
+        }
+    }
+
+    /**
+     * @param resource $handle
+     * @param-out null $handle
+     */
+    private function dumpClose(&$handle): void
+    {
+        $ok = fflush($handle) && fclose($handle);
+        $handle = null;
+        if (!$ok) {
+            throw new Exception('Database backup could not be flushed to disk');
+        }
+    }
+
     private function backupSqliteDatabase(string $filepath): array
     {
-        $handle = fopen($filepath, 'w');
+        $handle = @fopen($filepath, 'w'); // failure is reported by the exception below
         if ($handle === false) {
             throw new Exception('Cannot open backup file for writing');
         }
@@ -1790,9 +1833,9 @@ class Updater
         try {
             $pdo = $this->db->pdo();
 
-            fwrite($handle, "-- Cimaise SQLite Database Backup\n");
-            fwrite($handle, "-- Generated: " . date('Y-m-d H:i:s') . "\n");
-            fwrite($handle, "-- Version: " . $this->getCurrentVersion() . "\n\n");
+            $this->dumpWrite($handle, "-- Cimaise SQLite Database Backup\n");
+            $this->dumpWrite($handle, "-- Generated: " . date('Y-m-d H:i:s') . "\n");
+            $this->dumpWrite($handle, "-- Version: " . $this->getCurrentVersion() . "\n\n");
 
             // Get all tables
             $tables = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")->fetchAll(PDO::FETCH_COLUMN);
@@ -1808,8 +1851,8 @@ class Updater
                 $stmt = $pdo->prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name=?");
                 $stmt->execute([$table]);
                 $createStmt = $stmt->fetchColumn();
-                fwrite($handle, "DROP TABLE IF EXISTS `{$table}`;\n");
-                fwrite($handle, $createStmt . ";\n\n");
+                $this->dumpWrite($handle, "DROP TABLE IF EXISTS `{$table}`;\n");
+                $this->dumpWrite($handle, $createStmt . ";\n\n");
 
                 // Let SQLite serialize its own storage types, including binary
                 // values. quote() keeps text readable; only text holding a NUL
@@ -1822,12 +1865,12 @@ class Updater
                     $quotedColumns);
                 $rows = $pdo->query('SELECT ' . implode(', ', $expressions) . " FROM `{$table}`");
                 while ($values = $rows->fetch(PDO::FETCH_NUM)) {
-                    fwrite($handle, "INSERT INTO `{$table}` (" . implode(', ', $quotedColumns) . ") VALUES (" . implode(', ', $values) . ");\n");
+                    $this->dumpWrite($handle, "INSERT INTO `{$table}` (" . implode(', ', $quotedColumns) . ") VALUES (" . implode(', ', $values) . ");\n");
                 }
-                fwrite($handle, "\n");
+                $this->dumpWrite($handle, "\n");
             }
 
-            fclose($handle);
+            $this->dumpClose($handle);
 
             $this->debugLog('INFO', 'SQLite backup completed', [
                 'filepath' => $filepath,
@@ -1852,7 +1895,7 @@ class Updater
      */
     private function backupMysqlDatabase(string $filepath): array
     {
-        $handle = fopen($filepath, 'w');
+        $handle = @fopen($filepath, 'w'); // failure is reported by the exception below
         if ($handle === false) {
             throw new Exception('Cannot open backup file for writing');
         }
@@ -1860,10 +1903,10 @@ class Updater
         try {
             $pdo = $this->db->pdo();
 
-            fwrite($handle, "-- Cimaise MySQL Database Backup\n");
-            fwrite($handle, "-- Generated: " . date('Y-m-d H:i:s') . "\n");
-            fwrite($handle, "-- Version: " . $this->getCurrentVersion() . "\n\n");
-            fwrite($handle, "SET FOREIGN_KEY_CHECKS=0;\n\n");
+            $this->dumpWrite($handle, "-- Cimaise MySQL Database Backup\n");
+            $this->dumpWrite($handle, "-- Generated: " . date('Y-m-d H:i:s') . "\n");
+            $this->dumpWrite($handle, "-- Version: " . $this->getCurrentVersion() . "\n\n");
+            $this->dumpWrite($handle, "SET FOREIGN_KEY_CHECKS=0;\n\n");
 
             // Get all tables
             $tables = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
@@ -1877,8 +1920,8 @@ class Updater
 
                 // Get CREATE TABLE statement (table name validated above)
                 $createStmt = $pdo->query("SHOW CREATE TABLE `{$table}`")->fetch();
-                fwrite($handle, "DROP TABLE IF EXISTS `{$table}`;\n");
-                fwrite($handle, $createStmt['Create Table'] . ";\n\n");
+                $this->dumpWrite($handle, "DROP TABLE IF EXISTS `{$table}`;\n");
+                $this->dumpWrite($handle, $createStmt['Create Table'] . ";\n\n");
 
                 // Get data (table name validated above)
                 $stmt = $pdo->query("SELECT * FROM `{$table}`");
@@ -1890,13 +1933,13 @@ class Updater
                         return $pdo->quote((string)$val);
                     }, $row);
 
-                    fwrite($handle, "INSERT INTO `{$table}` VALUES (" . implode(', ', $values) . ");\n");
+                    $this->dumpWrite($handle, "INSERT INTO `{$table}` VALUES (" . implode(', ', $values) . ");\n");
                 }
-                fwrite($handle, "\n");
+                $this->dumpWrite($handle, "\n");
             }
 
-            fwrite($handle, "SET FOREIGN_KEY_CHECKS=1;\n");
-            fclose($handle);
+            $this->dumpWrite($handle, "SET FOREIGN_KEY_CHECKS=1;\n");
+            $this->dumpClose($handle);
 
             $this->debugLog('INFO', 'MySQL backup completed', [
                 'filepath' => $filepath,
@@ -3325,6 +3368,20 @@ class Updater
             return [
                 'success' => false,
                 'error' => 'Another update is already in progress. Please try again later.',
+                'backup_path' => null
+            ];
+        }
+
+        // Check again under the lock: another update may have installed a
+        // newer version between the early check and acquiring the lock, and
+        // getCurrentVersion() reads version.json from disk.
+        $installedNow = $this->getCurrentVersion();
+        if (self::isDowngrade($targetVersion, $installedNow)) {
+            flock($lockHandle, LOCK_UN);
+            fclose($lockHandle);
+            return [
+                'success' => false,
+                'error' => sprintf('Refusing to install %s over %s: downgrades are not allowed', $targetVersion, $installedNow),
                 'backup_path' => null
             ];
         }

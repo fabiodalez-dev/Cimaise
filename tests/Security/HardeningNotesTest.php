@@ -264,6 +264,7 @@ final class HardeningNotesTest extends TestCase
 
         for ($i = 1; $i <= 4; $i++) {
             mkdir($backups . '/update_2020-01-0' . $i . '_000000', 0700, true);
+            file_put_contents($backups . '/update_2020-01-0' . $i . '_000000/database.sql', '-- dump');
             touch($backups . '/update_2020-01-0' . $i . '_000000', 1577836800 + $i * 86400);
         }
         $protect = $backups . '/update_2020-01-01_000000';
@@ -288,6 +289,78 @@ final class HardeningNotesTest extends TestCase
      * Served by php -S from a throwaway copy: __DIR__ is the temp dir, so even
      * an accepted token could only chmod the copy, never the checkout.
      */
+    public function testIncompleteBackupDirectoriesNeverTakeARetentionSlot(): void
+    {
+        $ref = new \ReflectionClass(Updater::class);
+        $updater = $ref->newInstanceWithoutConstructor();
+        $backups = $this->dir . '/backups';
+        $ref->getProperty('backupPath')->setValue($updater, $backups);
+        $ref->getProperty('rootPath')->setValue($updater, $this->dir);
+
+        // Five good dumps (oldest first), then four newer failed attempts.
+        for ($i = 1; $i <= 5; $i++) {
+            $d = $backups . '/update_2020-01-0' . $i . '_000000';
+            mkdir($d, 0700, true);
+            file_put_contents($d . '/database.sql', '-- dump');
+            touch($d, 1577836800 + $i * 86400);
+        }
+        for ($i = 1; $i <= 4; $i++) {
+            $d = $backups . '/update_2021-01-0' . $i . '_000000';
+            mkdir($d, 0700, true);
+            touch($d, 1609459200 + $i * 86400);
+        }
+        $new = $backups . '/update_2022-01-01_000000';
+        mkdir($new, 0700, true);
+        file_put_contents($new . '/database.sql', '-- dump');
+
+        self::assertSame(1, $updater->pruneBackups(5, $new), 'only the oldest good dump goes');
+        self::assertDirectoryDoesNotExist($backups . '/update_2020-01-01_000000');
+        for ($i = 2; $i <= 5; $i++) {
+            self::assertDirectoryExists($backups . '/update_2020-01-0' . $i . '_000000');
+        }
+        self::assertDirectoryExists($new);
+    }
+
+    public function testFailedBackupLeavesNoDirectoryBehind(): void
+    {
+        copy(dirname(__DIR__, 2) . '/version.json', $this->dir . '/version.json');
+        $ref = new \ReflectionClass(Updater::class);
+        $updater = $ref->newInstanceWithoutConstructor();
+        $backups = $this->dir . '/backups';
+        $ref->getProperty('db')->setValue($updater, new \App\Support\Database(database: $this->dir . '/db.sqlite', isSqlite: true));
+        $ref->getProperty('rootPath')->setValue($updater, $this->dir);
+        $ref->getProperty('backupPath')->setValue($updater, $backups);
+
+        // Make the dump fail: for the next few seconds' backup names,
+        // database.sql already exists as a directory, so it cannot be opened.
+        $now = time();
+        for ($t = $now; $t <= $now + 3; $t++) {
+            mkdir($backups . '/update_' . date('Y-m-d_His', $t) . '/database.sql', 0700, true);
+        }
+        $before = count(glob($backups . '/update_*') ?: []);
+
+        $result = $updater->createBackup();
+
+        self::assertFalse($result['success']);
+        self::assertCount($before - 1, glob($backups . '/update_*') ?: [], 'the failed attempt directory is removed');
+    }
+
+    public function testShortDumpWriteIsAnError(): void
+    {
+        $ref = new \ReflectionClass(Updater::class);
+        $updater = $ref->newInstanceWithoutConstructor();
+        $file = $this->dir . '/ro.sql';
+        file_put_contents($file, '');
+        $handle = fopen($file, 'r'); // writes fail on a read-only handle
+        self::assertIsResource($handle);
+        try {
+            $this->expectException(\Exception::class);
+            @$ref->getMethod('dumpWrite')->invoke($updater, $handle, 'INSERT ...');
+        } finally {
+            fclose($handle);
+        }
+    }
+
     public function testFixPermissionsRejectsAQueryTokenOverHttp(): void
     {
         $site = $this->dir . '/fixperm';
@@ -321,6 +394,19 @@ final class HardeningNotesTest extends TestCase
 
             [$status] = $this->http($base, 'token=wrong');
             self::assertSame(401, $status);
+
+            // A real run must leave database dumps owner-only.
+            $dumpDir = $site . '/storage/backups/update_2026-11-16_000000';
+            mkdir($dumpDir, 0700, true);
+            chmod($site . '/storage/backups', 0700);
+            file_put_contents($dumpDir . '/database.sql', '-- dump');
+            chmod($dumpDir . '/database.sql', 0600);
+            [$status, $body] = $this->http($base, 'token=' . $token);
+            self::assertSame(200, $status, substr($body, 0, 300));
+            clearstatcache();
+            self::assertSame(0700, fileperms($site . '/storage/backups') & 0777);
+            self::assertSame(0700, fileperms($dumpDir) & 0777);
+            self::assertSame(0600, fileperms($dumpDir . '/database.sql') & 0777);
         } finally {
             proc_terminate($proc);
             proc_close($proc);

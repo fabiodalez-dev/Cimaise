@@ -144,6 +144,13 @@ function fixPermissions(string $path, string $root, array &$results, array $writ
         ? substr($path, strlen($root) + 1)
         : basename($path);
 
+    // Database dumps stay owner-only (0700/0600, set by the updater): this
+    // pass would otherwise widen them to 0755/0644 and expose password
+    // hashes and secrets to other local users.
+    if ($relativePath === 'storage/backups' || strpos($relativePath, 'storage/backups/') === 0) {
+        return;
+    }
+
     if (is_dir($path)) {
         if ($depth > $maxDepth) {
             $results['errors'][] = "Max depth exceeded for: $relativePath";
