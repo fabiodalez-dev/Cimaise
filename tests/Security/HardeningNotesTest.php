@@ -192,6 +192,7 @@ final class HardeningNotesTest extends TestCase
         $ref->getProperty('rootPath')->setValue($updater, $this->dir);
         $ref->getProperty('backupPath')->setValue($updater, $this->dir . '/storage/backups');
         $ref->getProperty('tempPath')->setValue($updater, $this->dir . '/storage/tmp');
+        $ref->getProperty('dockerDeployment')->setValue($updater, false);
 
         $result = $updater->performUpdate('1.4.29');
 
