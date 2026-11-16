@@ -23,6 +23,11 @@
     tabs = document.getElementById('admin-section-tabs');
     if (!primary || !source || !heading || !tabs) return;
     basePath = normalize(primary.dataset.basePath || '') === '/' ? '' : normalize(primary.dataset.basePath);
+    // Compatibility for bookmarks to the former section inside Settings.
+    if (location.pathname === `${basePath}/admin/settings` && location.hash === '#site-branding') {
+      location.replace(`${basePath}/admin/branding`);
+      return;
+    }
     groups = Array.from(primary.querySelectorAll('[data-nav-group]')).map(link => ({
       id: link.dataset.navGroup,
       label: link.textContent.trim(),

@@ -68,6 +68,44 @@ class SettingsController extends BaseController
         ]);
     }
 
+    public function showBranding(Request $request, Response $response): Response
+    {
+        return $this->view->render($response, 'admin/branding.twig', [
+            'settings' => (new SettingsService($this->db))->all(),
+            'csrf' => $_SESSION['csrf'] ?? '',
+        ]);
+    }
+
+    public function saveBranding(Request $request, Response $response): Response
+    {
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
+            return $response->withHeader('Location', $this->redirect('/admin/branding'))->withStatus(302);
+        }
+        $svc = new SettingsService($this->db);
+        $svc->setMany($this->brandingChanges((array) $request->getParsedBody()));
+        $this->clearPageCache($svc);
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.settings_saved')];
+        return $response->withHeader('Location', $this->redirect('/admin/branding') . '?saved=1')->withStatus(302);
+    }
+
+    /** @param array<string, mixed> $data
+     *  @return array<string, mixed>
+     */
+    private function brandingChanges(array $data): array
+    {
+        $changes = [];
+        foreach (['site_logo' => 'site.logo', 'site_logo_dark' => 'site.logo_dark', 'favicon_source' => 'site.favicon_source'] as $field => $key) {
+            if (array_key_exists($field, $data)) {
+                $changes[$key] = trim((string) $data[$field]) ?: null;
+            }
+        }
+        if (array_key_exists('logo_type', $data)) {
+            $changes['site.logo_type'] = in_array($data['logo_type'], ['text', 'image'], true) ? $data['logo_type'] : 'text';
+        }
+        return $changes;
+    }
+
     public function save(Request $request, Response $response): Response
     {
         // CSRF validation
@@ -134,7 +172,6 @@ class SettingsController extends BaseController
         // Site settings
         $siteSettings = [
             'title' => trim((string)($data['site_title'] ?? '')),
-            'logo' => ($data['site_logo'] ?? '') !== '' ? (string)$data['site_logo'] : null,
             'description' => trim((string)($data['site_description'] ?? '')),
             'copyright' => trim((string)($data['site_copyright'] ?? '')),
             'email' => trim((string)($data['site_email'] ?? ''))
@@ -169,19 +206,9 @@ class SettingsController extends BaseController
 
         $changes['gallery.default_template_id'] = $defaultTemplateId;
         $changes['site.title'] = $siteSettings['title'];
-        $changes['site.logo'] = $siteSettings['logo'];
-        if (array_key_exists('site_logo_dark', $data)) {
-            $changes['site.logo_dark'] = trim((string)$data['site_logo_dark']) ?: null;
-        }
-
-        // Logo type (text or image)
-        $logoType = in_array($data['logo_type'] ?? 'text', ['text', 'image'], true) ? $data['logo_type'] : 'text';
-        $changes['site.logo_type'] = $logoType;
-
-        // Favicon source (for text logo mode) - only save if provided, don't clear on empty
-        if (isset($data['favicon_source']) && $data['favicon_source'] !== '') {
-            $changes['site.favicon_source'] = (string)$data['favicon_source'];
-        }
+        // Old settings forms may still submit branding fields. Missing fields
+        // must never reset the values now owned by the Appearance page.
+        $changes = array_replace($changes, $this->brandingChanges($data));
 
         $changes['site.description'] = $siteSettings['description'];
         $changes['site.copyright'] = $siteSettings['copyright'];
@@ -596,7 +623,7 @@ class SettingsController extends BaseController
         // CSRF validation
         if (!$this->validateCsrf($request)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
-            return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/branding'))->withStatus(302);
         }
 
         try {
@@ -606,7 +633,7 @@ class SettingsController extends BaseController
 
             if ($logoPath === '') {
                 $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.logo_required_for_favicon')];
-                return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+                return $response->withHeader('Location', $this->redirect('/admin/branding'))->withStatus(302);
             }
 
             // Convert relative path to absolute path
@@ -619,7 +646,7 @@ class SettingsController extends BaseController
                     'absoluteLogoPath' => $absoluteLogoPath,
                 ], 'favicon');
                 $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.logo_not_found')];
-                return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+                return $response->withHeader('Location', $this->redirect('/admin/branding'))->withStatus(302);
             }
 
             // Validate file is readable
@@ -629,14 +656,14 @@ class SettingsController extends BaseController
                     'absoluteLogoPath' => $absoluteLogoPath,
                 ], 'favicon');
                 $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.logo_not_readable')];
-                return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+                return $response->withHeader('Location', $this->redirect('/admin/branding'))->withStatus(302);
             }
 
             // Validate MIME type
             $mimeType = mime_content_type($absoluteLogoPath);
             if (!$mimeType || !str_starts_with($mimeType, 'image/')) {
                 $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.logo_must_be_image')];
-                return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+                return $response->withHeader('Location', $this->redirect('/admin/branding'))->withStatus(302);
             }
 
             // Generate favicons
@@ -669,7 +696,7 @@ class SettingsController extends BaseController
             ];
         }
 
-        return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/branding'))->withStatus(302);
     }
 
     /**
@@ -760,7 +787,7 @@ class SettingsController extends BaseController
         // CSRF validation
         if (!$this->validateCsrf($request)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
-            return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/branding'))->withStatus(302);
         }
 
         try {
@@ -770,7 +797,7 @@ class SettingsController extends BaseController
 
             if ($sourcePath === '') {
                 $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.favicon_source_required')];
-                return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+                return $response->withHeader('Location', $this->redirect('/admin/branding'))->withStatus(302);
             }
 
             // Convert relative path to absolute path
@@ -779,20 +806,20 @@ class SettingsController extends BaseController
 
             if (!file_exists($absoluteSourcePath)) {
                 $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.favicon_source_not_found')];
-                return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+                return $response->withHeader('Location', $this->redirect('/admin/branding'))->withStatus(302);
             }
 
             // Validate file is readable
             if (!is_readable($absoluteSourcePath)) {
                 $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.favicon_source_not_readable')];
-                return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+                return $response->withHeader('Location', $this->redirect('/admin/branding'))->withStatus(302);
             }
 
             // Validate MIME type
             $mimeType = mime_content_type($absoluteSourcePath);
             if (!$mimeType || !str_starts_with($mimeType, 'image/')) {
                 $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.favicon_source_must_be_image')];
-                return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+                return $response->withHeader('Location', $this->redirect('/admin/branding'))->withStatus(302);
             }
 
             // Generate favicons
@@ -825,7 +852,7 @@ class SettingsController extends BaseController
             ];
         }
 
-        return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/branding'))->withStatus(302);
     }
 
     /**
