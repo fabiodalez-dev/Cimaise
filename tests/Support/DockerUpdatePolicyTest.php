@@ -21,6 +21,23 @@ final class DockerUpdatePolicyTest extends TestCase
         self::assertSame($before, file_get_contents(dirname(__DIR__, 2) . '/version.json'));
     }
 
+    public function testOnlyTheImageMarkerCountsAsDocker(): void
+    {
+        $previousEnv = getenv('CIMAISE_DOCKER');
+        try {
+            // A ZIP install inside a generic container has /.dockerenv but no
+            // marker: it must keep the in-app updater.
+            putenv('CIMAISE_DOCKER');
+            self::assertFalse(DockerEnvironment::detected());
+            putenv('CIMAISE_DOCKER=0');
+            self::assertFalse(DockerEnvironment::detected());
+            putenv('CIMAISE_DOCKER=1');
+            self::assertTrue(DockerEnvironment::detected());
+        } finally {
+            putenv($previousEnv === false ? 'CIMAISE_DOCKER' : 'CIMAISE_DOCKER=' . $previousEnv);
+        }
+    }
+
     public function testDirectApiRequestCannotBypassDockerPolicy(): void
     {
         $previousEnv = getenv('CIMAISE_DOCKER');
