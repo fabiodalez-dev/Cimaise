@@ -130,6 +130,12 @@
     }
     /* The avatar initials/icon in the bar follow the light button text. */
     #admin-header .dropdown > button .user-avatar { color: inherit; }
+    /* Header logo: capped so the hamburger and the logo fit at 320px; a light
+       logo without a dark variant sits on a white plate in both themes (a
+       dedicated class, since html.dark .bg-white is repainted dark). */
+    #admin-header .admin-logo { max-width: 40vw; object-fit: contain; }
+    @media (min-width: 640px) { #admin-header .admin-logo { max-width: 14rem; } }
+    #admin-header .admin-logo-plate { background-color: #fff; border-radius: 0.25rem; padding: 0 0.25rem; }
     /* Dark theme: the user dropdown panel was still white while the dark
        theme turned its item titles light, leaving them unreadable. */
     html.dark #admin-header .dropdown-content { background-color: var(--color-bg-secondary); border-color: var(--color-border); }
@@ -431,9 +437,9 @@
             <i class="fas fa-bars"></i>
           </button>
           
-          {% if logo_type == 'image' and site_logo %}
+          {% if logo_type == 'image' and (site_logo or site_logo_dark) %}
             {% set admin_logo = site_logo_dark|default(site_logo, true) %}
-            <img src="{% if admin_logo starts with '/' %}{{ base_path }}{% endif %}{{ admin_logo }}" alt="{{ site_title|default('Cimaise')|e }}" class="h-7 w-auto mr-3 shrink-0{% if not site_logo_dark %} bg-white rounded px-1{% endif %}">
+            <img src="{% if admin_logo starts with '/' %}{{ base_path }}{% endif %}{{ admin_logo }}" alt="{{ site_title|default('Cimaise')|e }}" class="admin-logo h-7 w-auto mr-3 shrink-0{% if not site_logo_dark %} admin-logo-plate{% endif %}">
           {% else %}
             <i class="fas fa-camera text-2xl text-black mr-3 shrink-0"></i>
             <h1 class="font-serif text-xl sm:text-2xl font-medium text-black tracking-tight truncate min-w-0">{{ site_title|default('Cimaise') }}</h1>
