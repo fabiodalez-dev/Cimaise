@@ -1,5 +1,8 @@
 <style nonce="{{ csp_nonce() }}">
 @view-transition { navigation: auto; }
+/* Overriding `animation` drops the browser's own plus-lighter blend, so it is
+   restored here: without it the two snapshots dim each other mid-fade. */
+::view-transition-old(root), ::view-transition-new(root) { mix-blend-mode: plus-lighter; }
 ::view-transition-old(root) { animation: 140ms ease-out both cimaise-page-out; }
 ::view-transition-new(root) { animation: 220ms ease-out both cimaise-page-in; }
 @keyframes cimaise-page-out { to { opacity: 0; } }
