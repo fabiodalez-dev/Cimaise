@@ -2692,6 +2692,8 @@
     "admin.pages.about.menu_label": "Nom de la page dans la navigation",
     "admin.pages.about.menu_label_hint": "Par exemple Contact. Laissez vide pour utiliser le libellé traduit « À propos » ; le titre de la page et le permalien restent indépendants.",
     "admin.settings.logo_dark": "Logo du mode sombre (facultatif)",
-    "admin.settings.logo_dark_hint": "Affiché à la place du logo standard en mode sombre. Laissez vide pour utiliser le même logo dans les deux thèmes. Les favicons utilisent toujours le logo standard."
+    "admin.settings.logo_dark_hint": "Affiché à la place du logo standard en mode sombre. Laissez vide pour utiliser le même logo dans les deux thèmes. Les favicons utilisent toujours le logo standard.",
+    "admin.albums.hide_from_home": "Masquer de la page d’accueil",
+    "admin.albums.hide_from_home_help": "Les albums protégés par mot de passe sont toujours masqués de la page d’accueil."
   }
 }

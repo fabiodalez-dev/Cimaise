@@ -252,8 +252,14 @@ class PageCacheService
     /**
      * Invalidate home-related caches.
      */
-    public function invalidateHome(): int
+    public function invalidateHome(bool $allowStale = true): int
     {
+        if (!$allowStale && $this->backend === 'database' && $this->db !== null) {
+            $cacheKey = $this->getCacheKey('home');
+            $this->deleteTags($cacheKey);
+            return $this->db->execute('DELETE FROM page_cache WHERE cache_key = ?', [$cacheKey]);
+        }
+
         return $this->invalidate('home');
     }
 

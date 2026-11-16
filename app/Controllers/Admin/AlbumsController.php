@@ -12,6 +12,7 @@ use App\Services\CacheWarmService;
 use App\Services\CustomFieldService;
 use App\Services\PageCacheService;
 use App\Services\SettingsService;
+use App\Services\HomeAlbumVisibility;
 use App\Services\SitemapService;
 use App\Support\Hooks;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -54,7 +55,7 @@ class AlbumsController extends BaseController
      * @param int|null $albumId Album ID for tag-based invalidation
      * @param string[]|null $invalidationTags Tags captured before a destructive mutation
      */
-    private function invalidatePageCaches(?string $albumSlug = null, ?int $albumId = null, ?array $invalidationTags = null): void
+    private function invalidatePageCaches(?string $albumSlug = null, ?int $albumId = null, ?array $invalidationTags = null, bool $allowStaleHome = true): void
     {
         // Publication, protection and tag changes alter the header tag menu.
         \App\Services\NavigationService::invalidateTagsCache();
@@ -75,7 +76,7 @@ class AlbumsController extends BaseController
             }
 
             // Warmed entries may predate tag registration; cover every listing key.
-            $this->pageCacheService->invalidateHome();
+            $this->pageCacheService->invalidateHome($allowStaleHome);
             $this->pageCacheService->invalidateGalleries();
             if ($albumId !== null) {
                 $this->pageCacheService->invalidate(PageCacheService::albumPageKey($albumId));
@@ -508,6 +509,7 @@ class AlbumsController extends BaseController
                 }
             }
 
+            (new HomeAlbumVisibility($this->db))->save($albumId, isset($d['hide_from_home']));
             $pdo->commit();
 
             // Invalidate page caches
@@ -559,6 +561,7 @@ class AlbumsController extends BaseController
         }
         // Add password flag for template (checks password_hash existence)
         $item['password'] = !empty($item['password_hash']);
+        $item['hide_from_home'] = (new HomeAlbumVisibility($this->db))->isHidden($id);
         $item['template_id'] = $this->formatTemplateSelection(
             $item['template_id'] ?? null,
             $item['custom_template_id'] ?? null
@@ -1061,6 +1064,9 @@ class AlbumsController extends BaseController
                 // ignore if column not present
             }
 
+            if (isset($d['home_visibility_present'])) {
+                (new HomeAlbumVisibility($this->db))->save($id, isset($d['hide_from_home']));
+            }
             $pdo->commit();
 
             // Handle blur variant generation when protection status changes (NSFW or password)
@@ -1092,7 +1098,7 @@ class AlbumsController extends BaseController
             }
 
             // Invalidate page caches (pass old slug if renamed to prevent orphaned cache)
-            $this->invalidatePageCaches($slug, $id);
+            $this->invalidatePageCaches($slug, $id, allowStaleHome: !isset($d['home_visibility_present']) && $newHasPassword === $oldHasPassword);
 
             // Publish state / slug / content may have changed — refresh the sitemap.
             $this->regenerateSitemap();
@@ -1154,6 +1160,7 @@ class AlbumsController extends BaseController
             // Keep category tags before CASCADE, but rebuild only after deletion.
             $cacheTags = $this->albumInvalidationTags($id);
             $this->db->execute('DELETE FROM albums WHERE id=:id', [':id' => $id]);
+            (new HomeAlbumVisibility($this->db))->save($id, false);
             $this->invalidatePageCaches($albumSlug, $id, $cacheTags);
 
             // Album gone — refresh the sitemap so its URLs disappear.
