@@ -1,0 +1,11 @@
+<style nonce="{{ csp_nonce() }}">
+@view-transition { navigation: auto; }
+::view-transition-old(root) { animation: 140ms ease-out both cimaise-page-out; }
+::view-transition-new(root) { animation: 220ms ease-out both cimaise-page-in; }
+@keyframes cimaise-page-out { to { opacity: 0; } }
+@keyframes cimaise-page-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+}
+</style>
