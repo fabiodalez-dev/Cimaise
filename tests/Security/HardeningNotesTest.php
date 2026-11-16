@@ -124,6 +124,24 @@ final class HardeningNotesTest extends TestCase
         self::assertSame($salt, $stored, 'the placeholder row is healed in the DB');
     }
 
+    public function testPaddedPlaceholderSaltIsHealedAndStableAcrossInstances(): void
+    {
+        $pdo = new \PDO('sqlite::memory:');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo->exec('CREATE TABLE analytics_settings (id INTEGER PRIMARY KEY AUTOINCREMENT, setting_key TEXT NOT NULL UNIQUE, setting_value TEXT, description TEXT, updated_at TEXT DEFAULT CURRENT_TIMESTAMP)');
+        $pdo->prepare('INSERT INTO analytics_settings (setting_key, setting_value) VALUES (?, ?)')
+            ->execute(['ip_salt', "\t" . AppSecret::PLACEHOLDER . "\n"]);
+
+        $salt = static function () use ($pdo): string {
+            $service = new \App\Services\AnalyticsService($pdo);
+            return (string) (new \ReflectionMethod($service, 'getIpSalt'))->invoke($service);
+        };
+        $first = $salt();
+        self::assertNotSame(AppSecret::PLACEHOLDER, trim($first));
+        self::assertSame($first, $salt(), 'a second instance reuses the healed salt');
+        self::assertSame($first, $pdo->query("SELECT setting_value FROM analytics_settings WHERE setting_key = 'ip_salt'")->fetchColumn());
+    }
+
     // ---- updater: https only, confined backup names --------------------------
 
     public function testUpdaterApiBaseRejectsPlainHttpExceptLoopback(): void

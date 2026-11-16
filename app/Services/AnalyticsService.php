@@ -286,18 +286,27 @@ class AnalyticsService
             $insert->execute(['ip_salt', $salt, 'Per-install salt for IP pseudonymization (auto-generated)']);
             return $salt;
         } catch (\PDOException $e) {
-            // Likely a unique-key race or a missing table. Try UPDATE, then re-read
-            // so two concurrent processes converge on the same salt.
-            //
-            // F012-related: TRIM() in the WHERE so a row whose setting_value is
-            // pure whitespace (e.g. a botched manual seed) still gets healed
-            // by the UPDATE. Both SQLite and MySQL implement TRIM with the
-            // SQL-standard signature so this is portable.
+            // Likely a unique-key race, an existing unusable row or a missing
+            // table. Heal an unusable row, then re-read so two concurrent
+            // processes converge on the same salt.
             try {
-                // A row still holding the public SESSION_SECRET placeholder (saved
-                // by versions that did not reject it) is healed like an empty one.
-                $update = $this->db->prepare('UPDATE analytics_settings SET setting_value = ? WHERE setting_key = ? AND (setting_value IS NULL OR TRIM(setting_value) = \'\' OR TRIM(setting_value) = ?)');
-                $update->execute([$salt, 'ip_salt', \App\Support\AppSecret::PLACEHOLDER]);
+                // A row whose value isUsableSalt() rejects (empty, or the public
+                // SESSION_SECRET placeholder, possibly padded with tabs/newlines
+                // that SQL TRIM() would keep) is healed. The UPDATE matches the
+                // exact value just read, so a salt another worker wrote in the
+                // meantime is never overwritten.
+                $current = $this->db->prepare('SELECT setting_value FROM analytics_settings WHERE setting_key = ?');
+                $current->execute(['ip_salt']);
+                $existing = $current->fetchColumn();
+                if ($existing !== false && !self::isUsableSalt($existing)) {
+                    if ($existing === null) {
+                        $update = $this->db->prepare('UPDATE analytics_settings SET setting_value = ? WHERE setting_key = ? AND setting_value IS NULL');
+                        $update->execute([$salt, 'ip_salt']);
+                    } else {
+                        $update = $this->db->prepare('UPDATE analytics_settings SET setting_value = ? WHERE setting_key = ? AND setting_value = ?');
+                        $update->execute([$salt, 'ip_salt', (string) $existing]);
+                    }
+                }
 
                 // F012-followup: when the INSERT in the try block lost the race
                 // to another worker, that worker's transaction may still be
