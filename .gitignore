@@ -4,6 +4,10 @@
 .env.*.local
 .env.backup
 *.backup
+# Any other .env variant (.env.production, .env.old, ...) holds secrets too;
+# only the documented example ships.
+.env.*
+!.env.example
 
 # Test artifacts
 test-results/
@@ -190,6 +194,10 @@ storage/.maintenance
 # Local database files (only database.sqlite, NOT template.sqlite)
 database/database.sqlite
 database/cimaise.sqlite
+# SQLite side files (WAL, shared memory, rollback journal) carry live data
+database/*.sqlite-wal
+database/*.sqlite-shm
+database/*.sqlite-journal
 
 # Local documentation files (not tracked)
 AGENTS.md

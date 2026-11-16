@@ -15,7 +15,6 @@ if (php_sapi_name() === 'cli') {
 
 // Token-based auth (works before .env exists)
 $expectedToken = '';
-$fallbackToken = '';
 
 // Preferred: .env (if present)
 $envPath = __DIR__ . '/.env';
@@ -48,11 +47,6 @@ if ($expectedToken === '') {
     }
 }
 
-// Final fallback: hardcoded token (set manually, then remove)
-if ($expectedToken === '' && $fallbackToken !== '') {
-    $expectedToken = $fallbackToken;
-}
-
 if ($expectedToken === '') {
     http_response_code(403);
     die('Permissions token is not configured');
@@ -64,8 +58,26 @@ if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
         $authToken = trim($matches[1]);
     }
 }
-if ($authToken === '' && isset($_GET['token'])) {
-    $authToken = trim((string)$_GET['token']);
+// The token is never read from the query string: a URL ends up in access
+// logs, browser history and Referer headers. A browser sends it through the
+// POST form below instead.
+if ($authToken === '' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['token'])) {
+    $authToken = trim((string)$_POST['token']);
+}
+
+if ($authToken === '') {
+    if (isset($_GET['token'])) {
+        http_response_code(400);
+    }
+    header('Content-Type: text/html; charset=utf-8');
+    header('Cache-Control: no-store');
+    header('Referrer-Policy: no-referrer');
+    echo '<!doctype html><html><head><meta charset="utf-8"><title>Fix permissions</title></head><body>'
+        . (isset($_GET['token']) ? '<p>The token is no longer accepted in the URL. Enter it below.</p>' : '')
+        . '<form method="post" action="fix-permissions.php" autocomplete="off">'
+        . '<label>Token <input type="password" name="token" required></label> '
+        . '<button type="submit">Fix permissions</button></form></body></html>';
+    exit;
 }
 
 if (!hash_equals($expectedToken, $authToken)) {
@@ -118,8 +130,12 @@ $writableFiles = [
 
 /**
  * Recursively fix permissions
+ *
+ * @param array{directories: int, files: int, writable: int, errors: list<string>} $results
+ * @param list<string> $writableDirs
+ * @param list<string> $writableFiles
  */
-function fixPermissions($path, $root, &$results, $writableDirs, $writableFiles, $depth = 0, $maxDepth = 10) {
+function fixPermissions(string $path, string $root, array &$results, array $writableDirs, array $writableFiles, int $depth = 0, int $maxDepth = 10): void {
     if (!file_exists($path)) {
         return;
     }
@@ -127,6 +143,13 @@ function fixPermissions($path, $root, &$results, $writableDirs, $writableFiles, 
     $relativePath = (strpos($path, $root . '/') === 0)
         ? substr($path, strlen($root) + 1)
         : basename($path);
+
+    // Database dumps stay owner-only (0700/0600, set by the updater): this
+    // pass would otherwise widen them to 0755/0644 and expose password
+    // hashes and secrets to other local users.
+    if ($relativePath === 'storage/backups' || strpos($relativePath, 'storage/backups/') === 0) {
+        return;
+    }
 
     if (is_dir($path)) {
         if ($depth > $maxDepth) {
