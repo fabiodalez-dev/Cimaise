@@ -189,7 +189,9 @@ PHP);
         $this->publishRelease();
         [$exit, $output] = $this->site->php(<<<'PHP'
 $container = require __DIR__ . '/app/Config/bootstrap.php';
-$updater = new App\Support\Updater($container['db']);
+// This isolated file installation exercises the non-container ZIP updater,
+// even when the test suite itself runs inside the Docker test image.
+$updater = new App\Support\Updater($container['db'], dockerDeployment: false);
 $check = $updater->checkForUpdates();
 $result = ($check['available'] ?? false)
     ? $updater->performUpdate((string) getenv('TARGET_VERSION'))

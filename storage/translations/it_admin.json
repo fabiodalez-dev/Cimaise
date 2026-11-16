@@ -2706,6 +2706,9 @@
     "admin.sidebar.commands_sub": "Operazioni CLI",
     "admin.sidebar.diagnostics_sub": "Stato del sistema",
     "admin.sidebar.cache_sub": "Prestazioni e pulizia",
-    "admin.sidebar.updates_sub": "Verifica versioni"
+    "admin.sidebar.updates_sub": "Verifica versioni",
+    "admin.updates.docker_title": "Aggiorna tramite Docker",
+    "admin.updates.docker_description": "Questa installazione usa Docker. Gli aggiornamenti diretti sono disabilitati. Scarica l’immagine Cimaise desiderata e ricrea il container mantenendo i volumi persistenti. Seleziona prima il tag desiderato nella configurazione di distribuzione.",
+    "admin.updates.docker_compose": "Se usi Docker Compose, esegui questi comandi dalla directory di distribuzione:"
   }
 }
