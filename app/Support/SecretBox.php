@@ -86,14 +86,9 @@ final class SecretBox
      */
     private static function rawKey(): ?string
     {
-        $secret = $_ENV['SESSION_SECRET'] ?? $_SERVER['SESSION_SECRET'] ?? getenv('SESSION_SECRET');
-        if (!is_string($secret)) {
-            return null;
-        }
-        $secret = trim($secret);
-        // Reject empty / the shipped placeholder — deriving a key from a known
-        // public value would be no protection at all.
-        if ($secret === '' || $secret === 'your-session-secret-key-here') {
+        // Empty / the shipped placeholder count as "no secret" (see AppSecret).
+        $secret = AppSecret::session();
+        if ($secret === null) {
             return null;
         }
         if (!function_exists('sodium_crypto_generichash')) {

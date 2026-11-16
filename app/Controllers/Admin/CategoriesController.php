@@ -187,8 +187,8 @@ class CategoriesController extends BaseController
                     try {
                         $uploadedFile->moveTo($fullPath);
 
-                        // Re-validate after move for additional security
-                        if ($this->validateImageUpload($fullPath)) {
+                        // Re-validate after move, then strip EXIF/GPS (served as-is)
+                        if ($this->validateImageUpload($fullPath) && \App\Support\ImageMetadataStripper::stripInPlace($fullPath)) {
                             $imagePath = $uploadPath;
                         } else {
                             @unlink($fullPath);
@@ -298,8 +298,8 @@ class CategoriesController extends BaseController
                     try {
                         $uploadedFile->moveTo($fullPath);
 
-                        // Re-validate after move for additional security
-                        if ($this->validateImageUpload($fullPath)) {
+                        // Re-validate after move, then strip EXIF/GPS (served as-is)
+                        if ($this->validateImageUpload($fullPath) && \App\Support\ImageMetadataStripper::stripInPlace($fullPath)) {
                             // Delete old image if exists
                             $publicDir = dirname(__DIR__, 3) . '/public';
                             if ($imagePath && file_exists($publicDir . $imagePath)) {
