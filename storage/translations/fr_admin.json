@@ -2698,6 +2698,8 @@
     "admin.settings.logo_dark_hint": "Affiché à la place du logo standard en mode sombre. Laissez vide pour utiliser le même logo dans les deux thèmes. Les favicons utilisent toujours le logo standard.",
     "admin.settings.logo_max_width": "Largeur maximale du logo (px)",
     "admin.settings.logo_max_width_hint": "Utilisez 0 pour la largeur du modèle. L’enregistrement crée aussi des fichiers plus petits pour les logos clair et sombre.",
+    "admin.albums.hide_from_home": "Masquer de la page d’accueil",
+    "admin.albums.hide_from_home_help": "Les albums protégés par mot de passe sont toujours masqués de la page d’accueil.",
     "admin.updates.docker_title": "Mettre à jour via Docker",
     "admin.updates.docker_description": "Cette installation utilise Docker. Les mises à jour directes sont désactivées. Téléchargez l’image Cimaise souhaitée et recréez le conteneur en conservant vos volumes persistants. Sélectionnez d’abord le tag souhaité dans votre configuration de déploiement.",
     "admin.updates.docker_compose": "Si vous utilisez Docker Compose, exécutez ces commandes depuis votre répertoire de déploiement :"

@@ -2698,6 +2698,8 @@
     "admin.sidebar.updates_sub": "Check versions",
     "admin.settings.logo_max_width": "Maximum logo width (px)",
     "admin.settings.logo_max_width_hint": "Use 0 for the template default. Saving also creates smaller files for the light and dark logos.",
+    "admin.albums.hide_from_home": "Hide from homepage",
+    "admin.albums.hide_from_home_help": "Password-protected albums are always hidden from the homepage.",
     "admin.updates.docker_title": "Update through Docker",
     "admin.updates.docker_description": "This installation runs in Docker. Direct application updates are disabled. Pull the desired Cimaise image and recreate the container, preserving your persistent volumes. Select the desired image tag in your deployment configuration first.",
     "admin.updates.docker_compose": "If you use Docker Compose, run these commands from your deployment directory:"
