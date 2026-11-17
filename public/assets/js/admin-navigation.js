@@ -15,6 +15,15 @@
     return pathname === route || (route !== `${basePath}/admin` && pathname.startsWith(`${route}/`));
   };
 
+  // Compatibility for bookmarks to the former logo section inside Settings,
+  // both on load and when only the fragment changes on an open Settings page.
+  function redirectLegacyBranding() {
+    if (location.hash !== '#site-branding' || normalize(location.pathname) !== `${basePath}/admin/settings`) return false;
+    location.replace(`${basePath}/admin/branding`);
+    return true;
+  }
+  window.addEventListener('hashchange', redirectLegacyBranding);
+
   function init() {
     if (groups.length) return;
     const primary = document.getElementById('admin-primary-navigation');
@@ -23,11 +32,7 @@
     tabs = document.getElementById('admin-section-tabs');
     if (!primary || !source || !heading || !tabs) return;
     basePath = normalize(primary.dataset.basePath || '') === '/' ? '' : normalize(primary.dataset.basePath);
-    // Compatibility for bookmarks to the former section inside Settings.
-    if (location.pathname === `${basePath}/admin/settings` && location.hash === '#site-branding') {
-      location.replace(`${basePath}/admin/branding`);
-      return;
-    }
+    if (redirectLegacyBranding()) return;
     groups = Array.from(primary.querySelectorAll('[data-nav-group]')).map(link => ({
       id: link.dataset.navGroup,
       label: link.textContent.trim(),

@@ -15,9 +15,13 @@ final class BrandingSettingsTest extends TestCase
     private mixed $cache;
     private array $session;
     private string $scriptName;
+    /** @var callable */
+    private $restoreQueryCache;
 
     protected function setUp(): void
     {
+        require_once dirname(__DIR__) . '/Support/TempQueryCache.php';
+        $this->restoreQueryCache = \TempQueryCache::install();
         $this->cache = (new ReflectionProperty(SettingsService::class, 'cache'))->getValue();
         $this->session = $_SESSION ?? [];
         $this->scriptName = $_SERVER['SCRIPT_NAME'];
@@ -40,6 +44,7 @@ final class BrandingSettingsTest extends TestCase
         (new ReflectionProperty(SettingsService::class, 'cache'))->setValue(null, $this->cache);
         $_SESSION = $this->session;
         $_SERVER['SCRIPT_NAME'] = $this->scriptName;
+        ($this->restoreQueryCache)();
     }
 
     private function controller(): SettingsController
