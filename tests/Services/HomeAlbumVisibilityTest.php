@@ -29,6 +29,9 @@ final class HomeAlbumVisibilityTest extends TestCase
         self::assertTrue($visibility->isHidden(92));
         self::assertSame([91], $db->query('SELECT a.id FROM albums a WHERE a.is_published = 1' .
             $visibility->eligibleSql())->fetchAll(PDO::FETCH_COLUMN));
+        // The admin's album list keeps protected albums, never hidden ones.
+        self::assertSame([91, 93], array_map('intval', $db->query('SELECT a.id FROM albums a WHERE a.is_published = 1' .
+            $visibility->eligibleSql(includeProtected: true) . ' ORDER BY a.id')->fetchAll(PDO::FETCH_COLUMN)));
 
         $images = new HomeImageService($db);
         foreach ([$images->getInitialImages(), $images->getAllImages(), $images->getMoreImages(), $images->getMoreMasonryImages([])] as $feed) {
