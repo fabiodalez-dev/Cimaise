@@ -29,6 +29,11 @@
 
           <!-- Image Logo Section (shown when logo_type=image) -->
           <div id="logo-image-section" class="{{ settings['site.logo_type'] == 'image' ? '' : 'hidden' }}">
+            <div class="mb-4">
+              <label for="logo-max-width" class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.logo_max_width') }}</label>
+              <input id="logo-max-width" class="form-input w-32" type="number" name="logo_max_width" min="0" max="960" step="1" value="{{ settings['site.logo_max_width']|default(0) }}">
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.settings.logo_max_width_hint') }}</p>
+            </div>
             <input type="hidden" id="site_logo" name="site_logo" value="{{ settings['site.logo'] ?? '' }}">
             <div class="flex flex-col md:flex-row items-start gap-6">
               <div class="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg bg-white flex items-center justify-center overflow-hidden flex-shrink-0">

@@ -2702,6 +2702,8 @@
     "admin.settings.replace_existing_variants": "Régénérer les variantes existantes",
     "admin.settings.replace_existing_variants_hint": "Enregistrez les paramètres d’image avant de les appliquer aux photos existantes.",
     "admin.settings.confirm_replace_variants": "Régénérer les variantes existantes avec les réglages enregistrés ? Une grande photothèque peut prendre du temps.",
+    "admin.settings.logo_max_width": "Largeur maximale du logo (px)",
+    "admin.settings.logo_max_width_hint": "Utilisez 0 pour la largeur du modèle. L’enregistrement crée aussi des fichiers plus petits pour les logos clair et sombre.",
     "admin.albums.hide_from_home": "Masquer de la page d’accueil",
     "admin.albums.hide_from_home_help": "Les albums protégés par mot de passe sont toujours masqués de la page d’accueil.",
     "admin.updates.docker_title": "Mettre à jour via Docker",

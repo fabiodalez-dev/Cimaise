@@ -2702,6 +2702,8 @@
     "admin.settings.replace_existing_variants": "Rebuild existing image variants",
     "admin.settings.replace_existing_variants_hint": "Save your image settings first, then generate to apply them to existing photos.",
     "admin.settings.confirm_replace_variants": "Rebuild existing image variants using the saved settings? Large libraries can take a while.",
+    "admin.settings.logo_max_width": "Maximum logo width (px)",
+    "admin.settings.logo_max_width_hint": "Use 0 for the template default. Saving also creates smaller files for the light and dark logos.",
     "admin.albums.hide_from_home": "Hide from homepage",
     "admin.albums.hide_from_home_help": "Password-protected albums are always hidden from the homepage.",
     "admin.updates.docker_title": "Update through Docker",
