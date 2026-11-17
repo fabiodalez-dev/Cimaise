@@ -787,6 +787,11 @@
         <p class="text-sm text-gray-600 mb-4">{{ trans('admin.settings.generate_variants_desc') }}</p>
 
         <div id="generate-images" class="border-t border-gray-200 pt-4">
+          <label class="flex items-center gap-2 mb-3">
+            <input id="replace-existing-variants" type="checkbox">
+            <span class="text-sm">{{ trans('admin.settings.replace_existing_variants') }}</span>
+          </label>
+          <p class="text-xs text-gray-500 mb-3">{{ trans('admin.settings.replace_existing_variants_hint') }}</p>
           <button id="generate-btn" type="button" class="btn-secondary" data-endpoint="{{ base_path }}/admin/settings/generate-images">
             <i id="generate-icon" class="fas fa-images mr-2"></i>
             <span id="generate-text">{{ trans('admin.settings.generate_variants') }}</span>
@@ -882,7 +887,10 @@
     btn._bound = true;
     btn.addEventListener('click', function() {
 
-      const confirmMessage = '{{ trans('admin.settings.confirm_generate')|e('js') }}';
+      const replaceExisting = document.getElementById('replace-existing-variants')?.checked;
+      const confirmMessage = replaceExisting
+        ? '{{ trans('admin.settings.confirm_replace_variants')|e('js') }}'
+        : '{{ trans('admin.settings.confirm_generate')|e('js') }}';
       if (!confirm(confirmMessage)) {
         return;
       }
@@ -904,6 +912,7 @@
       const endpoint = btn.getAttribute('data-endpoint') || '{{ base_path }}/admin/settings/generate-images';
       const formData = new FormData();
       formData.append('csrf', csrf);
+      if (replaceExisting) formData.append('replace_existing', '1');
 
       fetch(endpoint, {
         method: 'POST',

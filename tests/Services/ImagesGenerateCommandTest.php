@@ -59,4 +59,73 @@ final class ImagesGenerateCommandTest extends TestCase
     {
         self::assertStringContainsString('unless --missing', (new ImagesGenerateCommand($this->db))->getDescription());
     }
+
+    /** Starts a child process that holds the library lock until it is terminated. */
+    private function holdLibraryLock(): array
+    {
+        $ready = sys_get_temp_dir() . '/cimaise-gen-lock-' . bin2hex(random_bytes(4));
+        $lockPath = ImagesGenerateCommand::lockPath();
+        if (!is_dir(dirname($lockPath))) {
+            mkdir(dirname($lockPath), 0775, true);
+        }
+        $script = '$h = fopen($argv[1], "c"); flock($h, LOCK_EX); touch($argv[2]); sleep(30);';
+        $process = proc_open([PHP_BINARY, '-r', $script, $lockPath, $ready], [], $pipes);
+        self::assertIsResource($process);
+        $deadline = microtime(true) + 5;
+        while (!is_file($ready) && microtime(true) < $deadline) {
+            usleep(20000);
+        }
+        self::assertFileExists($ready, 'the lock holder did not start');
+        return [$process, $ready];
+    }
+
+    private function release(array $holder): void
+    {
+        [$process, $ready] = $holder;
+        proc_terminate($process);
+        proc_close($process);
+        @unlink($ready);
+    }
+
+    public function testASecondRunIsRefusedWithoutTouchingTheRunningLog(): void
+    {
+        $log = dirname(__DIR__, 2) . '/storage/logs/image_generation_test_' . bin2hex(random_bytes(4)) . '.log';
+        file_put_contents($log, "first run output\n");
+        $holder = $this->holdLibraryLock();
+        try {
+            self::assertTrue(ImagesGenerateCommand::isRunning());
+            $display = $this->generate(['--reset-log' => $log]);
+            self::assertStringContainsString('still in progress', $display);
+            self::assertStringNotContainsString('FORCE MODE', $display);
+            self::assertSame("first run output\n", file_get_contents($log), 'the refused run must not empty the running log');
+        } finally {
+            $this->release($holder);
+            @unlink($log);
+        }
+        self::assertFalse(ImagesGenerateCommand::isRunning());
+    }
+
+    public function testTheRunHoldingTheLockStartsWithAnEmptyLog(): void
+    {
+        $log = dirname(__DIR__, 2) . '/storage/logs/image_generation_test_' . bin2hex(random_bytes(4)) . '.log';
+        file_put_contents($log, "previous run output\n");
+        try {
+            self::assertStringContainsString('FORCE MODE', $this->generate(['--reset-log' => $log]));
+            self::assertSame('', file_get_contents($log));
+        } finally {
+            @unlink($log);
+        }
+    }
+
+    public function testResetLogIgnoresPathsOutsideTheLogsDirectory(): void
+    {
+        $outside = tempnam(sys_get_temp_dir(), 'cimaise-outside');
+        file_put_contents($outside, 'keep me');
+        try {
+            $this->generate(['--reset-log' => $outside]);
+            self::assertSame('keep me', file_get_contents($outside));
+        } finally {
+            @unlink($outside);
+        }
+    }
 }

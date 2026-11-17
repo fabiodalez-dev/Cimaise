@@ -412,8 +412,32 @@ class SettingsController extends BaseController
                 throw new \RuntimeException('Unable to create log directory');
             }
             $logPath = $logDir . '/image_generation.log';
-            $cmd = 'nohup ' . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($consoleReal)
-                . ' images:generate --missing > ' . escapeshellarg($logPath) . ' 2>&1 &';
+            // A run is already going: tell the admin instead of starting a
+            // child that would only bail out. Checked before the log is
+            // touched, so the running job's log stays intact.
+            if (\App\Tasks\ImagesGenerateCommand::isRunning()) {
+                if ($this->isAjaxRequest($request)) {
+                    $payload = json_encode([
+                        'success' => false,
+                        'error' => trans('admin.flash.image_generation_running'),
+                    ]);
+                    $response->getBody()->write($payload !== false ? $payload : '{"success":false}');
+                    // 200 so the settings page shows this message rather than a bare HTTP error.
+                    return $response->withHeader('Content-Type', 'application/json');
+                }
+                $_SESSION['flash'][] = ['type' => 'warning', 'message' => trans('admin.flash.image_generation_running')];
+                return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+            }
+            // Append, never truncate here: if a second run slips past the
+            // check above, its refusal note is appended to the running job's
+            // log. The child empties the log itself once it holds the lock.
+            $replaceExisting = ((array) $request->getParsedBody())['replace_existing'] ?? '';
+            $phpCli = PHP_BINDIR . '/php';
+            $phpCli = is_executable($phpCli) ? $phpCli : 'php';
+            $cmd = 'nohup ' . escapeshellarg($phpCli) . ' ' . escapeshellarg($consoleReal)
+                . ($replaceExisting === '1' ? ' images:generate' : ' images:generate --missing')
+                . ' --reset-log=' . escapeshellarg($logPath)
+                . ' >> ' . escapeshellarg($logPath) . ' 2>&1 &';
             // nosemgrep: reviewed — every command part is escaped (escapeshellarg)
             // and the only variable is the app's own bin/console path, validated
             // with realpath() to live under the app root. No user input reaches
