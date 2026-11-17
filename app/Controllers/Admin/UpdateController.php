@@ -6,6 +6,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Support\Database;
+use App\Support\DockerEnvironment;
 use App\Support\Updater;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -49,6 +50,7 @@ class UpdateController extends BaseController
 
         return $this->view->render($response, 'admin/updates.twig', [
             'updateInfo' => $updateInfo,
+            'dockerDeployment' => DockerEnvironment::detected(),
             'requirements' => $requirements,
             'history' => $history,
             'backups' => $backups,
@@ -97,6 +99,14 @@ class UpdateController extends BaseController
 
         if (empty($csrfToken) || !hash_equals($_SESSION['csrf'] ?? '', $csrfToken)) {
             return $this->jsonResponse($response, ['error' => 'Invalid CSRF token'], 403);
+        }
+
+        if (DockerEnvironment::detected()) {
+            return $this->jsonResponse($response, [
+                'success' => false,
+                'code' => 'docker_update_required',
+                'error' => DockerEnvironment::UPDATE_MESSAGE,
+            ], 409);
         }
 
         $targetVersion = $data['version'] ?? '';

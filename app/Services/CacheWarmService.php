@@ -189,7 +189,7 @@ class CacheWarmService
         // the warm path). Filtering in SQL (not post-fetch) keeps the LIMIT page
         // full of eligible albums, stops the count leaking hidden albums, and
         // preserves data_hash parity with a request-built cache entry.
-        $accessSql = " AND (a.password_hash IS NULL OR a.password_hash = '') AND a.is_nsfw = 0";
+        $accessSql = (new HomeAlbumVisibility($this->db))->eligibleSql() . ' AND a.is_nsfw = 0';
 
         $countStmt = $pdo->prepare('SELECT COUNT(*) FROM albums a WHERE a.is_published = 1' . $accessSql);
         $countStmt->execute();

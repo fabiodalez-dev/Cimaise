@@ -4,6 +4,10 @@
 .env.*.local
 .env.backup
 *.backup
+# Any other .env variant (.env.production, .env.old, ...) holds secrets too;
+# only the documented example ships.
+.env.*
+!.env.example
 
 # Test artifacts
 test-results/
@@ -56,6 +60,16 @@ storage/translations/*
 !storage/translations/fr.json
 !storage/translations/fr_admin.json
 
+# Updater backups (full code + DB copies) and lock files
+storage/backups/
+storage/locks/
+
+# Signing keys: only the public key ships; a secret key must never be committed
+resources/keys/*
+!resources/keys/plugin-signing.pub
+!resources/keys/README.md
+*.sec
+
 # Logs
 *.log
 storage/logs/*
@@ -85,6 +99,8 @@ tests/
 !/tests/Services/
 /tests/Services/*
 !/tests/Services/ProtectedMediaStorageTest.php
+!/tests/Services/HomeAlbumVisibilityTest.php
+!/tests/Services/HomeInvalidationLockTest.php
 !/tests/Services/BaseUrlServiceTest.php
 !/tests/Services/SettingsServiceBooleanTest.php
 !/tests/Services/SettingsPostWriteCacheTest.php
@@ -145,6 +161,7 @@ tests/
 !/tests/Controllers/SeoControllerSeededBooleansTest.php
 !/tests/Controllers/DiagnosticsDirectoriesTest.php
 !/tests/Controllers/AlbumShowEquipmentTest.php
+!/tests/Controllers/BrandingSettingsTest.php
 !/tests/Views/
 /tests/Views/*
 !/tests/Views/FrontendSettingGatesTest.php
@@ -180,6 +197,10 @@ storage/.maintenance
 # Local database files (only database.sqlite, NOT template.sqlite)
 database/database.sqlite
 database/cimaise.sqlite
+# SQLite side files (WAL, shared memory, rollback journal) carry live data
+database/*.sqlite-wal
+database/*.sqlite-shm
+database/*.sqlite-journal
 
 # Local documentation files (not tracked)
 AGENTS.md

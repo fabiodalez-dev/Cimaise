@@ -32,10 +32,12 @@ namespace App\Support;
  * public; the raw primitives are private so no caller can verify a signature
  * over unframed bytes.
  *
- * Backward compatibility: when no public key is configured the feature is
- * "disabled" (isEnabled() === false). Callers decide what that means: plugin
- * upload keeps the advisory static scan, patches are skipped, and the updater
- * refuses any release that requires a package signature.
+ * When no usable public key is configured the feature is "disabled"
+ * (isEnabled() === false). Callers fail closed: plugin upload is refused
+ * unless no key is configured at all AND PLUGIN_ALLOW_UNSIGNED=1 (a key that
+ * is present but unreadable never counts as "no key", see isMisconfigured()),
+ * patches are skipped, and the updater refuses any release that requires a
+ * package signature.
  */
 final class PluginSignature
 {
@@ -59,13 +61,62 @@ final class PluginSignature
     }
 
     /**
+     * True when a key IS configured (env override or a non-empty key file) but
+     * cannot be decoded. Callers must fail closed: a broken key must never
+     * silently turn signature checks off.
+     */
+    public static function isMisconfigured(): bool
+    {
+        if (self::publicKey() !== null) {
+            return false;
+        }
+        if (self::env('PLUGIN_SIGNING_PUBKEY') !== '') {
+            return true;
+        }
+        $path = self::publicKeyPath();
+        if (!is_file($path)) {
+            return false;
+        }
+        // A key file PHP cannot read is a broken configuration, not "no key".
+        $contents = @file_get_contents($path);
+        return $contents === false || trim($contents) !== '';
+    }
+
+    /**
+     * Environment value from $_ENV, $_SERVER or getenv(), trimmed. Dotenv's
+     * immutable loader fills $_ENV/$_SERVER only, so getenv() alone would miss
+     * a key set in .env.
+     */
+    private static function env(string $name): string
+    {
+        foreach ([$_ENV[$name] ?? null, $_SERVER[$name] ?? null, getenv($name)] as $value) {
+            if (is_string($value) && trim($value) !== '') {
+                return trim($value);
+            }
+        }
+        return '';
+    }
+
+    /**
+     * Unsigned plugin uploads are accepted only when no key is configured AND
+     * the operator opted in explicitly (PLUGIN_ALLOW_UNSIGNED=1).
+     */
+    public static function unsignedPluginsAllowed(): bool
+    {
+        if (self::isEnabled() || self::isMisconfigured()) {
+            return false;
+        }
+        return self::env('PLUGIN_ALLOW_UNSIGNED') === '1';
+    }
+
+    /**
      * Raw 32-byte public key, or null when unconfigured/invalid.
      * Reads from the env override PLUGIN_SIGNING_PUBKEY first (base64), then the file.
      */
     public static function publicKey(): ?string
     {
-        $b64 = getenv('PLUGIN_SIGNING_PUBKEY') ?: null;
-        if ($b64 === null) {
+        $b64 = self::env('PLUGIN_SIGNING_PUBKEY');
+        if ($b64 === '') {
             $path = self::publicKeyPath();
             if (!is_file($path)) {
                 return null;

@@ -91,6 +91,7 @@ class SeedDemoAlbumsCommand extends Command
                 $pdo->query('SELECT original_path FROM images')->fetchAll(PDO::FETCH_COLUMN) ?: []
             );
             $deleted = $pdo->exec('DELETE FROM albums'); // cascade: images, variants, album_tag/category, collection_images
+            $pdo->exec("DELETE FROM settings WHERE `key` LIKE 'album.home_hidden.%'"); // per-album homepage flags
             $this->removeMediaFiles($root, $mediaFiles);
             $output->writeln(sprintf('  removed %d albums and %d media files', (int) $deleted, count($mediaFiles)));
         }

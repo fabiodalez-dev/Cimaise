@@ -241,6 +241,7 @@
     {{ template_custom_css|raw }}
     {% endif %}
 
+    {% include 'frontend/_page_transitions.twig' %}
     {% block styles %}{% endblock %}
 </head>
 <body class="min-h-full bg-white text-black font-sans antialiased{% if admin_logged_in|default(false) %} has-admin-bar{% endif %}">

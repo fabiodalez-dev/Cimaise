@@ -2028,7 +2028,7 @@
     "admin.settings.logo_dark": "Dark mode logo (optional)",
     "admin.settings.logo_dark_hint": "Shown instead of the standard logo in dark mode. Leave empty to use the same logo in both themes. Favicons continue to use the standard logo.",
     "admin.settings.logo_removed_info": "Logo removed (save to apply)",
-    "admin.settings.logo_text_hint": "Configure the title in the Site Title field below.",
+    "admin.settings.logo_text_hint": "Change the site title in Settings.",
     "admin.settings.logo_text_info": "The site title will be displayed as the header logo using the selected typography.",
     "admin.settings.logo_type_image": "Image logo",
     "admin.settings.logo_type_text": "Text title",
@@ -2124,6 +2124,7 @@
     "admin.settings.site_description": "Site Description",
     "admin.settings.site_description_default": "Professional Photography Portfolio",
     "admin.settings.site_language": "Site Language",
+    "admin.settings.branding_description": "Choose your light and dark logos, logo type and favicons.",
     "admin.settings.site_logo": "Site Logo",
     "admin.settings.site_title": "Site Title",
     "admin.settings.slideshow": "Slideshow",
@@ -2686,12 +2687,19 @@
     "admin.sidebar.settings_sub": "Site configuration",
     "admin.sidebar.social_sub": "Profiles and sharing",
     "admin.sidebar.typography_sub": "Fonts and styles",
+    "admin.sidebar.branding": "Site Logo",
+    "admin.sidebar.branding_sub": "Logo and favicons",
     "admin.sidebar.seo_sub": "Indexing",
     "admin.sidebar.privacy_sub": "Consent and cookies",
     "admin.sidebar.filter_settings_sub": "Filter options",
     "admin.sidebar.commands_sub": "CLI operations",
     "admin.sidebar.diagnostics_sub": "System status",
     "admin.sidebar.cache_sub": "Performance and cleanup",
-    "admin.sidebar.updates_sub": "Check versions"
+    "admin.sidebar.updates_sub": "Check versions",
+    "admin.albums.hide_from_home": "Hide from homepage",
+    "admin.albums.hide_from_home_help": "Password-protected albums are always hidden from the homepage.",
+    "admin.updates.docker_title": "Update through Docker",
+    "admin.updates.docker_description": "This installation runs in Docker. Direct application updates are disabled. Pull the desired Cimaise image and recreate the container, preserving your persistent volumes. Select the desired image tag in your deployment configuration first.",
+    "admin.updates.docker_compose": "If you use Docker Compose, run these commands from your deployment directory:"
   }
 }
