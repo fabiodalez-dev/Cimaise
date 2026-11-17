@@ -10,6 +10,44 @@ release notes, so keep one section per released tag.
 
 ## [Unreleased]
 
+## [1.4.31] - 2026-11-17
+Closes the hardening notes left open after the 1.4.30 audit (#148, #149), makes Docker installs update through the image (#152), and brings a batch of contributions from @MiranoVerhoef: a green admin header, a soft fade between public pages, a dedicated Site Logo page, responsive logos, albums hidden from the homepage, a compact header search and a one-click rebuild of existing image variants (#150–#157).
+
+### Security
+- **Plugin signatures fail closed.** A configured signing key that cannot be read no longer switches the check off. Unsigned plugin uploads are accepted only when no key is configured and `PLUGIN_ALLOW_UNSIGNED=1` is set. `PLUGIN_SIGNING_PUBKEY` is also read from `.env`.
+- **Updater.** Downgrades are refused, also when another update finished while this one waited for the lock. `UPDATER_API_BASE` must use https (http only for loopback test servers). Backup names in delete and download must be a single plain path segment.
+- **Restore points you can trust.** Database dumps are owner-only (`storage/backups` 0700, dumps 0600), a short or failed write fails the backup instead of recording a truncated dump, failed attempts are cleaned up, and only the five newest complete backups are kept.
+- **Throttles that count.** Public GETs such as `/media/protected`, `/galleries`, `/galleries/filter`, the home gallery API, album images, EXIF and the typography CSS now count every request, with limits sized for normal browsing.
+- **X-Forwarded-Proto** is trusted only from `TRUSTED_PROXIES` peers, and the Docker vhost no longer turns it into `HTTPS=on` for any client.
+- **Redirects** go through one helper that strips control characters and backslashes, which blocks `/\evil.example`-style open redirects.
+- **Placeholder secret.** The `.env.example` value of `SESSION_SECRET` counts as no secret for the NSFW consent HMAC, SecretBox and the analytics IP salt; a stored salt that is unusable is healed once, and the salt is derived from the secret instead of storing the secret itself.
+- **Side uploads** (logo, favicon source, category and about images) are re-encoded without EXIF, GPS, XMP or IPTC, keep their colour profile, and images over 40 MP are rejected before decoding. Two concurrent favicon uploads can no longer delete each other's file.
+- **`fix-permissions.php`** no longer accepts the token in the URL (it ends up in logs and history): open the page and enter it in the form, or send `Authorization: Bearer`. It also leaves `storage/backups` owner-only.
+- **Smaller fixes:** `display_errors = Off` in the shipped `php.ini`; the background LQIP log lives in `storage/logs`, owner-only; translation codes that would overwrite an admin file are rejected; an unused plugin route registration without auth was removed; `.gitignore` covers `.env.*` variants, SQLite side files, updater backups and signing keys.
+
+### Added
+- **Site Logo page.** Logo, dark-mode logo, favicons and the logo width now live on their own page under Appearance (`/admin/branding`); old `/admin/settings#site-branding` bookmarks lead there (#157, thanks @MiranoVerhoef).
+- **Responsive site logos.** Uploaded logos get resized WebP variants and a `srcset`, so a 1200 px logo is served at the size the header actually shows; a logo too large to decode within the PHP memory limit keeps working, just without variants (#156, thanks @MiranoVerhoef).
+- **Hide an album from the homepage.** A per-album switch keeps an album out of the home grids while it stays in the galleries, its category and at its own link (#154, thanks @MiranoVerhoef).
+- **Rebuild existing image variants.** Settings → Image processing can regenerate every variant with the saved settings, not just the missing ones. Only one library-wide run can go at a time: a second request is refused with a message, and the running job's log is left intact (#155, thanks @MiranoVerhoef).
+
+### Changed
+- **Docker installs update through the image.** In the official image, Admin → Updates explains how to pull the new tag and recreate the container, and the in-app updater is disabled (also over the API). ZIP installs, including ZIPs running in other containers, keep the in-app updater; the page footer no longer says "Up to date" when a newer image exists (#152, thanks @MiranoVerhoef).
+- **Admin header** uses the same dark green as the sidebar, in both themes, with the dark-mode logo when one is set; the user menu is now readable in the dark theme, a dark-only logo is shown, and the logo fits next to the menu button on narrow phones (#151, thanks @MiranoVerhoef).
+- **Header search stays in the header.** The search icon opens an inline field in the header row instead of a full-width panel, in both themes; the toggle is announced as "Close" while the field is open (#153, thanks @MiranoVerhoef).
+- **Public pages fade into each other** in browsers with cross-document View Transitions; reduced-motion users get no fade (#150, thanks @MiranoVerhoef).
+
+### Fixed
+- An admin change could be undone by a home rebuild that was already running, which stored the old home page after the cache was cleared. Clearing the home now waits for that rebuild.
+- Admins see password-protected albums on the home again; visitors still don't.
+- The image-generation messages in Settings showed raw translation keys.
+
+### Upgrade notes
+- No database change.
+- **Docker behind a TLS proxy:** set `TRUSTED_PROXIES` (see `docker-compose.yml`), otherwise the app no longer sees the connection as https.
+- **Docker:** update with `docker compose pull && docker compose up -d`; the Updates page no longer offers the in-app update there.
+- **`fix-permissions.php`:** a bookmarked `?token=` URL now shows the form instead of running.
+
 ## [1.4.30] - 2026-11-13
 A security release: every finding of a full audit of 1.4.29 is fixed, and from now on the built-in updater only installs packages signed with the project's key (#146).
 

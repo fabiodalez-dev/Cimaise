@@ -455,6 +455,7 @@
           </button>
 
           <!-- Frontend Link -->
+          {# nosemgrep: generic.html-templates.security.var-in-href.var-in-href -- base_path is dirname(SCRIPT_NAME): empty or an absolute path, never a URL scheme #}
           <a href="{{ base_path }}/" target="_blank" class="min-h-[44px] px-2 rounded-md text-gray-600 hover:text-black transition-colors flex items-center space-x-2" title="{{ trans('admin.header.view_frontend') }}">
             <i class="fas fa-external-link-alt"></i>
             <span class="hidden md:inline text-sm">{{ trans('admin.header.frontend') }}</span>

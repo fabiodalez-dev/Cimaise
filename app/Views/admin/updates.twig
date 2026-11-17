@@ -238,6 +238,7 @@ docker compose up -d</code></pre>
                     <td class="px-4 py-3 text-sm text-gray-500">{{ backup.date }}</td>
                     <td class="px-4 py-3 text-sm text-gray-500">{{ (backup.size / 1024)|round(2) }} KB</td>
                     <td class="px-4 py-3 text-sm text-right">
+                      {# nosemgrep: generic.html-templates.security.var-in-href.var-in-href -- base_path is dirname(SCRIPT_NAME): empty or an absolute path, never a URL scheme #}
                       <a href="{{ base_path }}/admin/updates/backup/download?backup={{ backup.name|url_encode }}"
                          class="text-accent-600 hover:text-accent-800 mr-3">
                         <i class="fas fa-download"></i>
