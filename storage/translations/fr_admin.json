@@ -1965,7 +1965,7 @@
     "admin.settings.logo_formats": "PNG, JPG, WebP",
     "admin.settings.logo_hint": "Taille recommandée : 200x60 pixels. Le PNG transparent fonctionne mieux.",
     "admin.settings.logo_removed_info": "Logo supprimé (enregistrer pour appliquer)",
-    "admin.settings.logo_text_hint": "Configurez le titre dans le champ Titre du site ci-dessous.",
+    "admin.settings.logo_text_hint": "Modifiez le titre du site dans les Paramètres.",
     "admin.settings.logo_text_info": "Le titre du site sera affiché en logo d'en-tête en utilisant la typographie sélectionnée.",
     "admin.settings.logo_type_image": "Logo image",
     "admin.settings.logo_type_text": "Titre du texte",
@@ -2061,6 +2061,7 @@
     "admin.settings.site_description": "Description du site",
     "admin.settings.site_description_default": "Portfolio de photographie professionnelle",
     "admin.settings.site_language": "Langue du site",
+    "admin.settings.branding_description": "Choisissez vos logos clair et sombre, le type de logo et les favicons.",
     "admin.settings.site_logo": "Logo du site",
     "admin.settings.site_title": "Titre du site",
     "admin.settings.slideshow": "Diaporama",
@@ -2165,6 +2166,8 @@
     "admin.sidebar.texts_sub": "Libellés et traductions",
     "admin.sidebar.typography": "Typographie",
     "admin.sidebar.typography_sub": "Polices et styles",
+    "admin.sidebar.branding": "Logo du site",
+    "admin.sidebar.branding_sub": "Logo et favicons",
     "admin.sidebar.updates": "Mises à jour",
     "admin.sidebar.updates_sub": "Vérifier les versions",
     "admin.sidebar.analytics_pro_sub": "Statistiques avancées",
@@ -2694,6 +2697,9 @@
     "admin.settings.logo_dark": "Logo du mode sombre (facultatif)",
     "admin.settings.logo_dark_hint": "Affiché à la place du logo standard en mode sombre. Laissez vide pour utiliser le même logo dans les deux thèmes. Les favicons utilisent toujours le logo standard.",
     "admin.settings.logo_max_width": "Largeur maximale du logo (px)",
-    "admin.settings.logo_max_width_hint": "Utilisez 0 pour la largeur du modèle. L’enregistrement crée aussi des fichiers plus petits pour les logos clair et sombre."
+    "admin.settings.logo_max_width_hint": "Utilisez 0 pour la largeur du modèle. L’enregistrement crée aussi des fichiers plus petits pour les logos clair et sombre.",
+    "admin.updates.docker_title": "Mettre à jour via Docker",
+    "admin.updates.docker_description": "Cette installation utilise Docker. Les mises à jour directes sont désactivées. Téléchargez l’image Cimaise souhaitée et recréez le conteneur en conservant vos volumes persistants. Sélectionnez d’abord le tag souhaité dans votre configuration de déploiement.",
+    "admin.updates.docker_compose": "Si vous utilisez Docker Compose, exécutez ces commandes depuis votre répertoire de déploiement :"
   }
 }

@@ -113,21 +113,41 @@
     html.dark .sidebar-link i { background-color: #2a2f37; color: #c2c7d0; }
     html.dark .nav-sub { color: #9aa1ad; }
     html.dark .sidebar-link.active i { background-color: #171a1f; }
-    /* Dark-mode topbar (F014) + dashboard legibility (F012/F013). The admin
-       theme toggle sets html.dark; these keep the topbar and page content
-       readable instead of black-on-dark / white-on-white. */
-    html.dark #admin-header { background-color: var(--color-bg-secondary); border-color: var(--color-border); }
-    html.dark #admin-header h1,
-    html.dark #admin-header .fa-camera { color: var(--color-text-primary); }
-    html.dark #admin-header .text-gray-600,
-    html.dark #admin-header .text-gray-700 { color: var(--color-text-secondary); }
-    html.dark #admin-header .hover\:text-black:hover { color: var(--color-text-primary); }
+    #admin-header, #sidebar {
+      background-color: #1c322d;
+      border-color: #16271f;
+    }
+    /* Only the bar's own controls turn light: the user dropdown panel stays
+       white, so its items (Logout included) keep their dark/red text. */
+    #admin-header h1, #admin-header .fa-camera,
+    #admin-header button:not(.dropdown-item), #admin-header a[target="_blank"],
+    html.dark #admin-header h1, html.dark #admin-header .fa-camera {
+      color: #f8f3ee;
+    }
+    #admin-header button:not(.dropdown-item):hover, #admin-header a[target="_blank"]:hover {
+      color: #fff;
+      background-color: rgba(248, 243, 238, 0.1);
+    }
+    /* The avatar initials/icon in the bar follow the light button text. */
+    #admin-header .dropdown > button .user-avatar { color: inherit; }
+    /* Header logo: capped so the hamburger and the logo fit at 320px; a light
+       logo without a dark variant sits on a white plate in both themes (a
+       dedicated class, since html.dark .bg-white is repainted dark). */
+    #admin-header .admin-logo { max-width: 40vw; object-fit: contain; }
+    @media (min-width: 640px) { #admin-header .admin-logo { max-width: 14rem; } }
+    #admin-header .admin-logo-plate { background-color: #fff; border-radius: 0.25rem; padding: 0 0.25rem; }
+    /* Dark theme: the user dropdown panel was still white while the dark
+       theme turned its item titles light, leaving them unreadable. */
+    html.dark #admin-header .dropdown-content { background-color: var(--color-bg-secondary); border-color: var(--color-border); }
+    html.dark #admin-header .dropdown-item { color: var(--color-text-primary); border-color: var(--color-border); }
+    html.dark #admin-header .dropdown-item:hover { background-color: var(--color-bg-tertiary); }
+    #admin-header .dropdown > button .text-gray-500,
+    #admin-header [title][class*="text-gray-400"] { color: #c3d4ca; }
     html.dark #page-content .text-gray-900 { color: var(--color-text-primary); }
     html.dark #page-content .text-gray-700 { color: var(--color-text-secondary); }
     html.dark #page-content .hover\:bg-gray-50:hover { background-color: var(--color-bg-tertiary); }
 
     /* ── Editorial dark-green sidebar (#sidebar IDs win in light + dark) ── */
-    #sidebar { background-color: #1c322d; border-color: #16271f; }
     #sidebar .text-gray-400 { color: rgba(248, 243, 238, 0.42); }
     #sidebar #sidebar-close { color: rgba(248, 243, 238, 0.6); }
     #sidebar #sidebar-close:hover { color: #f8f3ee; background-color: rgba(248, 243, 238, 0.08); }
@@ -408,7 +428,7 @@
   {# Hook: admin_body_start - For banners at the very top of the admin panel #}
   {{ hook('admin_body_start', {'base_path': base_path}) }}
   <!-- Header -->
-  <nav id="admin-header" class="bg-white border-b border-gray-200 fixed w-full z-30 top-0">
+  <nav id="admin-header" class="border-b fixed w-full z-30 top-0">
     <div class="px-4 sm:px-6 py-3 sm:py-4">
       <div class="flex items-center justify-between gap-3">
         <div class="flex items-center min-w-0 flex-1">
@@ -417,8 +437,9 @@
             <i class="fas fa-bars"></i>
           </button>
           
-          {% if logo_type == 'image' and site_logo %}
-            <img src="{{ base_path ~ site_logo }}" alt="{{ site_title|default('Cimaise')|e }}" class="h-7 w-auto mr-3 shrink-0">
+          {% if logo_type == 'image' and (site_logo or site_logo_dark) %}
+            {% set admin_logo = site_logo_dark|default(site_logo, true) %}
+            <img src="{% if admin_logo starts with '/' %}{{ base_path }}{% endif %}{{ admin_logo }}" alt="{{ site_title|default('Cimaise')|e }}" class="admin-logo h-7 w-auto mr-3 shrink-0{% if not site_logo_dark %} admin-logo-plate{% endif %}">
           {% else %}
             <i class="fas fa-camera text-2xl text-black mr-3 shrink-0"></i>
             <h1 class="font-serif text-xl sm:text-2xl font-medium text-black tracking-tight truncate min-w-0">{{ site_title|default('Cimaise') }}</h1>
@@ -565,7 +586,7 @@
     <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden hidden"></div>
     
     <!-- Sidebar -->
-    <div id="sidebar" class="fixed top-0 left-0 lg:sticky lg:top-16 w-64 bg-white border-r border-gray-200 h-screen lg:h-[calc(100vh-4rem)] overflow-y-auto overscroll-contain transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out z-50 lg:z-auto">
+    <div id="sidebar" class="fixed top-0 left-0 lg:sticky lg:top-16 w-64 border-r h-screen lg:h-[calc(100vh-4rem)] overflow-y-auto overscroll-contain transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out z-50 lg:z-auto">
       <div class="p-6">
         <!-- Close Button (Mobile/Tablet) -->
         <div class="lg:hidden flex justify-end mb-4">
@@ -674,8 +695,8 @@
             <a href="{{ base_path }}/admin/typography" class="sidebar-link" data-spa-link>
               <i class="fas fa-font"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.typography') }}</span><span class="nav-sub">{{ trans('admin.sidebar.typography_sub') }}</span></span>
             </a>
-            <a href="{{ base_path }}/admin/settings#site-branding" class="sidebar-link" data-spa-link>
-              <i class="fas fa-image"></i><span class="nav-title">{{ trans('admin.settings.site_logo') }}</span>
+            <a href="{{ base_path }}/admin/branding" class="sidebar-link" data-spa-link>
+              <i class="fas fa-image"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.branding') }}</span><span class="nav-sub">{{ trans('admin.sidebar.branding_sub') }}</span></span>
             </a>
             <a href="{{ base_path }}/admin/seo" class="sidebar-link" data-spa-link>
               <i class="fas fa-search"></i><span class="nav-text"><span class="nav-title">{{ trans('admin.sidebar.seo') }}</span><span class="nav-sub">{{ trans('admin.sidebar.seo_sub') }}</span></span>

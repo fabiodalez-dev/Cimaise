@@ -88,7 +88,7 @@ return function (App $app, array $container) {
             ->withHeader('Content-Type', 'text/css')
             ->withHeader('Cache-Control', 'public, max-age=3600')
             ->withHeader('ETag', $etag);
-    })->add(new RateLimitMiddleware(100, 60)); // 100 requests per minute
+    })->add(new RateLimitMiddleware(300, 60, true)); // plain throttle: no auth outcome to observe here
 
     // Media routes live in their own file so public/index.php can serve
     // /media/* through a minimal app (see media_routes.php).
@@ -132,7 +132,7 @@ return function (App $app, array $container) {
     $app->get('/api/home/gallery', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
         return $controller->homeGalleryApi($request, $response);
-    })->add(new RateLimitMiddleware(30, 60));
+    })->add(new RateLimitMiddleware(60, 60, true)); // every request counts (outcome-based mode would record nothing)
 
     $app->get('/category/{slug}', function (Request $request, Response $response, array $args) use ($container) {
         $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
@@ -196,13 +196,13 @@ return function (App $app, array $container) {
     $app->get('/galleries', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Frontend\GalleriesController($container['db'], Twig::fromRequest($request));
         return $controller->index($request, $response);
-    });
+    })->add(new RateLimitMiddleware(120, 60, true)); // query-driven listing: plain throttle
 
     // Galleries filter API
     $app->get('/galleries/filter', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Frontend\GalleriesController($container['db'], Twig::fromRequest($request));
         return $controller->filter($request, $response);
-    })->add(new RateLimitMiddleware(30, 60)); // 30 requests per minute for search
+    })->add(new RateLimitMiddleware(60, 60, true)); // 60 filter queries per minute, every request counts
 
     // Full-text search results page (albums + photos)
     $app->get('/search', function (Request $request, Response $response) use ($container) {
@@ -340,12 +340,8 @@ return function (App $app, array $container) {
     $guestReturn = function (Request $request, Response $response): Response {
         $params = $request->getQueryParams();
         $return = is_string($params['return'] ?? null) ? $params['return'] : '/';
-        $return = str_replace(["\r", "\n", "\0"], '', $return);
-        if (preg_match('#^[a-z][a-z0-9+.\-]*://#i', $return)) {
-            $return = '/';
-        }
-        $return = '/' . ltrim($return, '/'); // same-origin path, never protocol-relative
-        return $response->withHeader('Location', $return)->withStatus(302); // nosemgrep: $return sanitised to a same-origin path above
+        $return = \App\Support\SafeRedirect::path($return); // same-origin path, never protocol-relative
+        return $response->withHeader('Location', $return)->withStatus(302); // nosemgrep: $return sanitised to a same-origin path by SafeRedirect
     };
     // POST + CSRF (global CsrfMiddleware) — these mutate server-side session state,
     // so a state-changing GET would be CSRF-able. The return target stays in the query.
@@ -487,6 +483,23 @@ return function (App $app, array $container) {
     $app->post('/admin/settings', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Admin\SettingsController($container['db'], Twig::fromRequest($request));
         return $controller->save($request, $response);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        $resp = new \Slim\Psr7\Response(503);
+        $resp->getBody()->write('Service Unavailable');
+        return $resp;
+    });
+
+    $app->get('/admin/branding', function (Request $request, Response $response) use ($container) {
+        $controller = new \App\Controllers\Admin\SettingsController($container['db'], Twig::fromRequest($request));
+        return $controller->showBranding($request, $response);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        $resp = new \Slim\Psr7\Response(503);
+        $resp->getBody()->write('Service Unavailable');
+        return $resp;
+    });
+    $app->post('/admin/branding', function (Request $request, Response $response) use ($container) {
+        $controller = new \App\Controllers\Admin\SettingsController($container['db'], Twig::fromRequest($request));
+        return $controller->saveBranding($request, $response);
     })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
         $resp = new \Slim\Psr7\Response(503);
         $resp->getBody()->write('Service Unavailable');
@@ -753,7 +766,7 @@ return function (App $app, array $container) {
     $app->post('/admin/typography/preview', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Admin\TypographyController($container['db'], Twig::fromRequest($request));
         return $controller->preview($request, $response);
-    })->add(new RateLimitMiddleware(30, 60)) // 30 preview requests per minute
+    })->add(new RateLimitMiddleware(60, 60, true)) // 60 preview requests per minute, every request counts
         ->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
             $resp = new \Slim\Psr7\Response(503);
             $resp->getBody()->write('Service Unavailable');
@@ -2183,12 +2196,12 @@ return function (App $app, array $container) {
     $app->get('/api/album/{id}/images', function (Request $request, Response $response, array $args) use ($container) {
         $controller = new \App\Controllers\Frontend\ApiController($container['db'], Twig::fromRequest($request));
         return $controller->albumImages($request, $response, $args);
-    })->add(new RateLimitMiddleware(200, 60)); // 200 requests per minute
+    })->add(new RateLimitMiddleware(200, 60, true)); // 200 requests per minute, every request counts
 
     $app->get('/api/image/{id}/exif', function (Request $request, Response $response, array $args) use ($container) {
         $controller = new \App\Controllers\Frontend\ApiController($container['db'], Twig::fromRequest($request));
         return $controller->imageExif($request, $response, $args);
-    })->add(new RateLimitMiddleware(60, 60)); // 60 requests per minute
+    })->add(new RateLimitMiddleware(120, 60, true)); // lightbox navigation: 120 per minute, every request counts
 
     // Media Library
     $app->get('/admin/media', function (Request $request, Response $response) use ($container) {
