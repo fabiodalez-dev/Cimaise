@@ -610,22 +610,10 @@ class PageController extends BaseController
         // Pagination parameters (from settings)
         $perPage = (int) $svc->get('pagination.limit', 12);
 
-        // Home access scoping (mirrors HomeImageService). The home is a curated
-        // showcase, not a discovery listing: for non-admins password-protected
-        // albums are NEVER previewed (no blurred placeholder), and NSFW albums
-        // appear only once global consent is given. Doing this in SQL (not a
-        // post-fetch array_filter) means the LIMIT returns a full page of
-        // *eligible* albums — no under-fill when the most recent albums happen to
-        // be protected — and the count never leaks the number of hidden albums.
-        // Admins see everything; the album/category listing pages keep the
-        // lock + blur affordance (the right unlock/consent discovery UX there).
         $includeNsfw = $isAdmin || $nsfwConsent;
-        $accessSql = '';
-        if (!$isAdmin) {
-            $accessSql .= " AND (a.password_hash IS NULL OR a.password_hash = '')";
-            if (!$includeNsfw) {
-                $accessSql .= ' AND a.is_nsfw = 0';
-            }
+        $accessSql = (new \App\Services\HomeAlbumVisibility($this->db))->eligibleSql();
+        if (!$includeNsfw) {
+            $accessSql .= ' AND a.is_nsfw = 0';
         }
 
         // Total count of eligible published albums.

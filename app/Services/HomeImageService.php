@@ -114,6 +114,7 @@ class HomeImageService
     {
         $limit = max(1, min($limit, self::MAX_FETCH_LIMIT));
         $pdo = $this->db->pdo();
+        $homeVisibilitySql = (new HomeAlbumVisibility($this->db))->eligibleSql();
         $albumLimitSql = $this->classicAlbumLimitSql();
 
         // Fetch images from published albums with LIMIT to prevent memory issues
@@ -129,7 +130,7 @@ class HomeImageService
             LEFT JOIN categories c ON c.id = ac.category_id
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
-              AND (a.password_hash IS NULL OR a.password_hash = '')
+              {$homeVisibilitySql}
             {$albumLimitSql}
             GROUP BY i.id
             ORDER BY a.id, i.sort_order
@@ -149,7 +150,7 @@ class HomeImageService
             JOIN albums a ON a.id = i.album_id
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
-              AND (a.password_hash IS NULL OR a.password_hash = '')
+              {$homeVisibilitySql}
               {$albumLimitSql}
         ");
         $countStmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
@@ -255,6 +256,7 @@ class HomeImageService
         // honoured up to MAX_GRID_LIMIT (the admin-side 5000 clamp).
         $limit = $limit > 0 ? min($limit, self::MAX_GRID_LIMIT) : self::DEFAULT_GRID_LIMIT;
         $pdo = $this->db->pdo();
+        $homeVisibilitySql = (new HomeAlbumVisibility($this->db))->eligibleSql();
 
         // Base query for reuse
         $baseQuery = "
@@ -267,7 +269,7 @@ class HomeImageService
             LEFT JOIN categories c ON c.id = ac.category_id
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
-              AND (a.password_hash IS NULL OR a.password_hash = '')
+              {$homeVisibilitySql}
         ";
 
         // Query 1: Fetch initial batch
@@ -303,7 +305,7 @@ class HomeImageService
             JOIN albums a ON a.id = i.album_id
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
-              AND (a.password_hash IS NULL OR a.password_hash = '')
+              {$homeVisibilitySql}
         ");
         $countStmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
         $countStmt->execute();
@@ -400,6 +402,7 @@ class HomeImageService
     ): array {
         $limit = max(1, min($limit, self::MAX_FETCH_LIMIT));
         $pdo = $this->db->pdo();
+        $homeVisibilitySql = (new HomeAlbumVisibility($this->db))->eligibleSql();
 
         // Build exclude clause
         $excludeClause = '';
@@ -420,7 +423,7 @@ class HomeImageService
             LEFT JOIN categories c ON c.id = ac.category_id
             WHERE a.is_published = 1
               AND (? = 1 OR a.is_nsfw = 0)
-              AND (a.password_hash IS NULL OR a.password_hash = '')
+              {$homeVisibilitySql}
         ";
 
         // 1. Try to fetch new images (respecting exclusions)
@@ -494,6 +497,7 @@ class HomeImageService
     ): array {
         $limit = max(1, min($limit, self::MAX_FETCH_LIMIT));
         $pdo = $this->db->pdo();
+        $homeVisibilitySql = (new HomeAlbumVisibility($this->db))->eligibleSql();
 
         $albumLimitSql = $this->classicAlbumLimitSql();
         $excludeIds = array_values(array_unique(array_filter(array_map(intval(...), $excludeImageIds), static fn ($id) => $id > 0)));
@@ -511,7 +515,7 @@ class HomeImageService
             LEFT JOIN categories c ON c.id = ac.category_id
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
-              AND (a.password_hash IS NULL OR a.password_hash = '')
+              {$homeVisibilitySql}
             {$albumLimitSql}
             {$excludeSql}
             GROUP BY i.id

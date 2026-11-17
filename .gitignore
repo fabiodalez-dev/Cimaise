@@ -99,6 +99,8 @@ tests/
 !/tests/Services/
 /tests/Services/*
 !/tests/Services/ProtectedMediaStorageTest.php
+!/tests/Services/HomeAlbumVisibilityTest.php
+!/tests/Services/HomeInvalidationLockTest.php
 !/tests/Services/BaseUrlServiceTest.php
 !/tests/Services/SettingsServiceBooleanTest.php
 !/tests/Services/SettingsPostWriteCacheTest.php
