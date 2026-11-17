@@ -2695,6 +2695,9 @@
     "admin.sidebar.updates_sub": "Check versions",
     "admin.settings.replace_existing_variants": "Rebuild existing image variants",
     "admin.settings.replace_existing_variants_hint": "Save your image settings first, then generate to apply them to existing photos.",
-    "admin.settings.confirm_replace_variants": "Rebuild existing image variants using the saved settings? Large libraries can take a while."
+    "admin.settings.confirm_replace_variants": "Rebuild existing image variants using the saved settings? Large libraries can take a while.",
+    "admin.updates.docker_title": "Update through Docker",
+    "admin.updates.docker_description": "This installation runs in Docker. Direct application updates are disabled. Pull the desired Cimaise image and recreate the container, preserving your persistent volumes. Select the desired image tag in your deployment configuration first.",
+    "admin.updates.docker_compose": "If you use Docker Compose, run these commands from your deployment directory:"
   }
 }

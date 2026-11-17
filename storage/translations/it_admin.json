@@ -2709,6 +2709,9 @@
     "admin.sidebar.updates_sub": "Verifica versioni",
     "admin.settings.replace_existing_variants": "Rigenera le varianti esistenti",
     "admin.settings.replace_existing_variants_hint": "Salva le impostazioni delle immagini prima di applicarle alle foto esistenti.",
-    "admin.settings.confirm_replace_variants": "Rigenerare le varianti esistenti con le impostazioni salvate? Le raccolte grandi possono richiedere tempo."
+    "admin.settings.confirm_replace_variants": "Rigenerare le varianti esistenti con le impostazioni salvate? Le raccolte grandi possono richiedere tempo.",
+    "admin.updates.docker_title": "Aggiorna tramite Docker",
+    "admin.updates.docker_description": "Questa installazione usa Docker. Gli aggiornamenti diretti sono disabilitati. Scarica l’immagine Cimaise desiderata e ricrea il container mantenendo i volumi persistenti. Seleziona prima il tag desiderato nella configurazione di distribuzione.",
+    "admin.updates.docker_compose": "Se usi Docker Compose, esegui questi comandi dalla directory di distribuzione:"
   }
 }

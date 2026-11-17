@@ -21,14 +21,14 @@ return function (App $app, array $container): void {
             new \App\Services\UploadService($container['db'])
         );
         return $controller->serveProtected($request, $response, $args);
-    })->add(new RateLimitMiddleware(100, 60)); // 100 requests per minute
+    })->add(new RateLimitMiddleware(600, 60, true)); // a protected gallery page loads many variants; every request counts
     $app->get('/media/protected/{id}/original', function (Request $request, Response $response, array $args) use ($container) {
         $controller = new \App\Controllers\Frontend\MediaController(
             $container['db'],
             new \App\Services\UploadService($container['db'])
         );
         return $controller->serveOriginal($request, $response, $args);
-    })->add(new RateLimitMiddleware(100, 60)); // 100 requests per minute
+    })->add(new RateLimitMiddleware(60, 60, true)); // originals are large: 60 per minute, every request counts
 
     // Public media serving with protection validation
     // All /media/* requests go through PHP to check if album is protected

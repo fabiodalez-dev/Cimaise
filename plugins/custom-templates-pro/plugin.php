@@ -13,7 +13,6 @@ declare(strict_types=1);
 use App\Support\Hooks;
 use App\Support\Database;
 use CustomTemplatesPro\Services\TemplateIntegrationService;
-use CustomTemplatesPro\Controllers\CustomTemplatesController;
 use CustomTemplatesPro\Services\PluginTranslationService;
 use CustomTemplatesPro\Extensions\PluginTranslationTwigExtension;
 
@@ -234,35 +233,6 @@ HTML;
         }
 
         return $path;
-    }
-
-    /**
-     * Registra le rotte del plugin
-     * Questa funzione viene chiamata manualmente dal file routes.php
-     */
-    public static function registerRoutes($app, $db, $view): void
-    {
-        $controller = new CustomTemplatesController($db, $view);
-
-        // Dashboard
-        $app->get('/admin/custom-templates', [$controller, 'dashboard']);
-
-        // Lista templates
-        $app->get('/admin/custom-templates/list', [$controller, 'list']);
-
-        // Upload
-        $app->get('/admin/custom-templates/upload', [$controller, 'uploadForm']);
-        $app->post('/admin/custom-templates/upload', [$controller, 'upload']);
-
-        // Toggle/Delete
-        $app->post('/admin/custom-templates/{id}/toggle', [$controller, 'toggle']);
-        $app->post('/admin/custom-templates/{id}/delete', [$controller, 'delete']);
-
-        // Guide
-        $app->get('/admin/custom-templates/guides', [$controller, 'guides']);
-        $app->get('/admin/custom-templates/guides/{type}/download', [$controller, 'downloadGuide']);
-
-        self::log("Custom Templates Pro: Routes registered");
     }
 
     private static function log(string $message): void

@@ -293,8 +293,17 @@ class CacheController extends BaseController
         }
 
         // Run LQIP generation in background
-        $logFile = sys_get_temp_dir() . '/lqip_generation.log';
-        $cmd = 'nohup php ' . escapeshellarg($consolePath)
+        $logFile = $this->lqipLogFile();
+        if ($logFile === null) {
+            $_SESSION['flash'][] = [
+                'type' => 'error',
+                'message' => 'Cannot write the LQIP log in storage/logs: check the directory permissions.',
+            ];
+            return $response->withHeader('Location', $this->redirect('/admin/cache'))->withStatus(302);
+        }
+        // umask 077: the log may hold album titles and exception text; keep it
+        // owner-only even if the shell has to recreate it.
+        $cmd = 'umask 077; nohup php ' . escapeshellarg($consolePath)
             . ' images:generate-lqip'
             . ' > ' . escapeshellarg($logFile) . ' 2>&1 &';
         exec($cmd);
@@ -305,6 +314,45 @@ class CacheController extends BaseController
         ];
 
         return $response->withHeader('Location', $this->redirect('/admin/cache'))->withStatus(302);
+    }
+
+    /**
+     * Log of the background LQIP run, kept in the app's own storage/logs:
+     * the shared system temp dir is world-writable (pre-created symlink or
+     * file owned by another account on shared hosting) and world-readable.
+     */
+    private function lqipLogFile(): ?string
+    {
+        $dir = dirname(__DIR__, 3) . '/storage/logs';
+        if (!is_dir($dir) && !@mkdir($dir, 0700, true) && !is_dir($dir)) {
+            return null;
+        }
+        $file = $dir . '/lqip_generation.log';
+        // The shell redirection would fail silently before the command starts,
+        // so check up front that the log can be created / truncated.
+        if (is_file($file) ? !is_writable($file) : !is_writable($dir)) {
+            return null;
+        }
+        // Owner-only, also for a log left world-readable by an older version
+        // (truncation by the redirection keeps the mode). A log this process
+        // cannot chmod (owned by another account) is replaced; if even that
+        // fails, the run is refused rather than logging into a readable file.
+        if (is_file($file) && !@chmod($file, 0600)) {
+            @unlink($file);
+        }
+        if (!is_file($file)) {
+            $old = umask(0077);
+            $created = @touch($file);
+            umask($old);
+            if (!$created || !@chmod($file, 0600)) {
+                return null;
+            }
+        }
+        clearstatcache(true, $file);
+        if ((@fileperms($file) & 0077) !== 0) {
+            return null;
+        }
+        return $file;
     }
 
     /**
@@ -326,8 +374,17 @@ class CacheController extends BaseController
         }
 
         // Run LQIP generation with --force in background
-        $logFile = sys_get_temp_dir() . '/lqip_generation.log';
-        $cmd = 'nohup php ' . escapeshellarg($consolePath)
+        $logFile = $this->lqipLogFile();
+        if ($logFile === null) {
+            $_SESSION['flash'][] = [
+                'type' => 'error',
+                'message' => 'Cannot write the LQIP log in storage/logs: check the directory permissions.',
+            ];
+            return $response->withHeader('Location', $this->redirect('/admin/cache'))->withStatus(302);
+        }
+        // umask 077: the log may hold album titles and exception text; keep it
+        // owner-only even if the shell has to recreate it.
+        $cmd = 'umask 077; nohup php ' . escapeshellarg($consolePath)
             . ' images:generate-lqip --force'
             . ' > ' . escapeshellarg($logFile) . ' 2>&1 &';
         exec($cmd);
