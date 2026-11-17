@@ -99,6 +99,8 @@ tests/
 !/tests/Services/
 /tests/Services/*
 !/tests/Services/ProtectedMediaStorageTest.php
+!/tests/Services/HomeAlbumVisibilityTest.php
+!/tests/Services/HomeInvalidationLockTest.php
 !/tests/Services/BaseUrlServiceTest.php
 !/tests/Services/SettingsServiceBooleanTest.php
 !/tests/Services/SettingsPostWriteCacheTest.php
@@ -159,6 +161,7 @@ tests/
 !/tests/Controllers/SeoControllerSeededBooleansTest.php
 !/tests/Controllers/DiagnosticsDirectoriesTest.php
 !/tests/Controllers/AlbumShowEquipmentTest.php
+!/tests/Controllers/BrandingSettingsTest.php
 !/tests/Views/
 /tests/Views/*
 !/tests/Views/FrontendSettingGatesTest.php
