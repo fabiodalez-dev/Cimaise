@@ -105,7 +105,7 @@
                 <i class="fas fa-font text-accent-600 mt-0.5"></i>
                 <div>
                   <p class="text-sm text-accent-800">{{ trans('admin.settings.logo_text_info') }}</p>
-                  <p class="text-xs text-accent-600 mt-1">{{ trans('admin.settings.logo_text_hint') }}</p>
+                  <a href="{{ base_path }}/admin/settings#site-title" class="text-xs text-accent-600 mt-1 inline-block underline" data-spa-link>{{ trans('admin.settings.logo_text_hint') }}</a>
                 </div>
               </div>
             </div>
@@ -158,7 +158,6 @@
         </div>
 
 
-    <a href="{{ base_path }}/admin/settings#site-title" class="text-sm underline" data-spa-link>{{ trans('admin.settings.site_title') }}</a>
   </div>
   <button type="submit" class="btn-primary"><i class="fas fa-save mr-2"></i>{{ trans('admin.common.save') }}</button>
 </form>
