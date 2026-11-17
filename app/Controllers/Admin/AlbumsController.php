@@ -1159,8 +1159,19 @@ class AlbumsController extends BaseController
         try {
             // Keep category tags before CASCADE, but rebuild only after deletion.
             $cacheTags = $this->albumInvalidationTags($id);
-            $this->db->execute('DELETE FROM albums WHERE id=:id', [':id' => $id]);
-            (new HomeAlbumVisibility($this->db))->save($id, false);
+            // The album row and its homepage flag go together: a flag left
+            // behind would be an invisible orphan in the settings table.
+            $pdo->beginTransaction();
+            try {
+                $this->db->execute('DELETE FROM albums WHERE id=:id', [':id' => $id]);
+                (new HomeAlbumVisibility($this->db))->save($id, false);
+                $pdo->commit();
+            } catch (\Throwable $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                throw $e;
+            }
             $this->invalidatePageCaches($albumSlug, $id, $cacheTags);
 
             // Album gone — refresh the sitemap so its URLs disappear.
