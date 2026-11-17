@@ -201,6 +201,9 @@
     <!-- Custom styles (Vite-bundled) -->
     <link href="{{ vite_asset('frontend.css') }}" rel="stylesheet">
 
+    <link rel="stylesheet" href="{{ base_path }}/assets/css/header-search.css?v={{ app_version }}">
+    <script nonce="{{ csp_nonce() }}" defer src="{{ base_path }}/assets/js/header-search.js?v={{ app_version }}"></script>
+
     <!-- Custom CSS (Frontend Only) -->
     {% if custom_css|default('') is not empty %}
     <style nonce="{{ csp_nonce() }}">
@@ -254,7 +257,7 @@
     <!-- Header -->
     <header class="border-b border-gray-200 sticky top-0 bg-white/95 backdrop-blur-md z-50" id="main-header">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center py-5">
+            <div class="flex justify-between items-center py-5 site-search-row">
                 <!-- Left: Logo and Desktop Navigation -->
                 <div class="flex items-center gap-8">
                     {# div, not h1: the page content provides the single per-page h1;
@@ -383,11 +386,11 @@
                       {% endfor %}
                       {% endif %}
                       <!-- Desktop Search Toggle -->
-                      <button id="header-search-toggle" class="hidden md:flex items-center justify-center w-11 h-11 rounded-md hover:bg-gray-50 transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="header-search-panel" aria-expanded="false">
+                      <button id="header-search-toggle" class="hidden md:flex items-center justify-center w-11 h-11 rounded-md hover:bg-gray-50 transition-colors duration-200" aria-label="{{ trans('filter.search') }}" data-close-label="{{ trans('general.close') }}" aria-controls="header-search-panel" aria-expanded="false">
                           <i class="fas fa-search text-sm"></i>
                       </button>
                       <!-- Mobile Search Toggle -->
-                      <button id="mobile-search-toggle" class="md:hidden flex items-center justify-center w-11 h-11 rounded-md hover:bg-gray-50 transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="header-search-panel" aria-expanded="false">
+                      <button id="mobile-search-toggle" class="md:hidden flex items-center justify-center w-11 h-11 rounded-md hover:bg-gray-50 transition-colors duration-200" aria-label="{{ trans('filter.search') }}" data-close-label="{{ trans('general.close') }}" aria-controls="header-search-panel" aria-expanded="false">
                           <i class="fas fa-search text-sm"></i>
                       </button>
                       <!-- Dark Mode Toggle (admin can disable it to force the site default theme) -->

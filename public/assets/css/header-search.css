@@ -1,0 +1,61 @@
+/* Search occupies the existing header row instead of adding a second row. */
+.site-search-row { position: relative; min-width: 0; }
+.has-inline-search > .search-brand-navigation { flex: 1; min-width: 0; }
+.has-inline-search > .search-header-actions { flex-shrink: 0; width: auto; }
+.global-head_layout.has-inline-search { align-items: center; gap: 24px; }
+.global-head_layout .head-logo_holder { flex: 0 0 auto; }
+.global-head_layout .global-head_actions { display: flex; align-items: center; gap: 4px; }
+.site-search-row .menu-btn { position: static; flex-shrink: 0; margin-left: 16px; mix-blend-mode: normal; }
+.site-search-row .menu-btn .menu-btn_text,
+html.dark .site-search-row .menu-btn .menu-btn_text { color: var(--modern-black); }
+.site-search-row .modern-search-toggle {
+    position: static; width: 44px; height: 44px; box-shadow: none;
+}
+.site-search-row .inline-header-search,
+html.dark .site-search-row .inline-header-search {
+    position: absolute; inset: auto var(--search-right, 0px) auto auto;
+    width: var(--search-width, 240px); max-width: 100%;
+    top: 50%; transform: translateY(-50%) scaleX(1); transform-origin: right center;
+    display: block !important; padding: 0; border: 0; background: transparent;
+    backdrop-filter: none; -webkit-backdrop-filter: none; z-index: 60;
+    opacity: 1; visibility: visible; pointer-events: auto;
+    transition: opacity 180ms ease, transform 180ms ease, visibility 180ms;
+}
+.site-search-row .inline-header-search.hidden,
+html.dark .site-search-row .inline-header-search.hidden {
+    opacity: 0; visibility: hidden; pointer-events: none;
+    transform: translateY(-50%) scaleX(0.96);
+}
+.inline-header-search > div { width: 100%; max-width: none; margin: 0; padding: 0; }
+.inline-header-search form { position: relative; width: 100%; }
+.inline-header-search .header-search-field,
+.inline-header-search .modern-search-field { min-height: 44px; height: 44px; }
+.inline-header-search #header-search { width: 100%; font-size: 16px; transition-property: color, background-color, border-color, box-shadow; }
+.inline-header-search #header-search:focus,
+.inline-header-search #header-search:focus-visible { outline: none; box-shadow: none; }
+.inline-header-search .header-search-field:focus-within,
+.inline-header-search .modern-search-field:focus-within {
+    border-color: var(--color-accent, #6b7280);
+    box-shadow: 0 0 0 1px var(--color-accent, #6b7280);
+}
+/* The old full-width panel paints a dark backdrop with an id selector in
+   dark mode; the inline field is transparent in both themes. */
+html.dark .site-search-row #header-search-panel.inline-header-search { background: transparent !important; border-color: transparent !important; }
+/* Explicit visibility avoids inherited visibility transitions delaying focus. */
+.inline-header-search:not(.hidden) #header-search { visibility: visible; }
+.inline-header-search #header-search-suggestions {
+    position: absolute; top: 100%; left: 0; right: 0; margin-top: 8px;
+    max-height: min(60vh, 400px); overflow: auto;
+}
+/* Narrow headers keep every control visible and anchor search below its icon. */
+.site-search-row .inline-header-search.search-popover,
+html.dark .site-search-row .inline-header-search.search-popover {
+    top: calc(100% + 8px); transform: scaleX(1); transform-origin: top right;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.12); border-radius: 0.75rem;
+}
+.site-search-row .inline-header-search.search-popover.hidden,
+html.dark .site-search-row .inline-header-search.search-popover.hidden { transform: scaleX(0.96); }
+@media (prefers-reduced-motion: reduce) {
+    .site-search-row .inline-header-search,
+    html.dark .site-search-row .inline-header-search { transition: none; }
+}
