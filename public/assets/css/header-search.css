@@ -38,6 +38,9 @@ html.dark .site-search-row .inline-header-search.hidden {
     border-color: var(--color-accent, #6b7280);
     box-shadow: 0 0 0 1px var(--color-accent, #6b7280);
 }
+/* The old full-width panel paints a dark backdrop with an id selector in
+   dark mode; the inline field is transparent in both themes. */
+html.dark .site-search-row #header-search-panel.inline-header-search { background: transparent !important; border-color: transparent !important; }
 /* Explicit visibility avoids inherited visibility transitions delaying focus. */
 .inline-header-search:not(.hidden) #header-search { visibility: visible; }
 .inline-header-search #header-search-suggestions {

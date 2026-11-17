@@ -17,6 +17,7 @@
       row?.classList.remove('search-open');
       toggles.forEach(toggle => {
         toggle.setAttribute('aria-expanded', 'false');
+        if (toggle.dataset.openLabel) toggle.setAttribute('aria-label', toggle.dataset.openLabel);
         toggle.querySelector('i')?.classList.replace('fa-times', 'fa-search');
       });
       if (restoreFocus) opener?.focus();
@@ -68,6 +69,11 @@
       panel.inert = false;
       toggles.forEach(element => {
         element.setAttribute('aria-expanded', 'true');
+        // The same button now closes the field: say so to screen readers.
+        if (element.dataset.closeLabel) {
+          element.dataset.openLabel ??= element.getAttribute('aria-label') || '';
+          element.setAttribute('aria-label', element.dataset.closeLabel);
+        }
         element.querySelector('i')?.classList.replace('fa-search', 'fa-times');
       });
       input.focus({ preventScroll: true });
@@ -76,6 +82,9 @@
       if (panel.classList.contains('hidden')) open(toggle); else close(true);
     }));
     document.addEventListener('click', event => {
+      // A suggestion removed by its own click handler is detached by now; it
+      // was inside the panel, so it must not count as an outside click.
+      if (!event.target.isConnected) return;
       if (!panel.contains(event.target) && !toggles.some(toggle => toggle.contains(event.target))) close();
     });
     document.addEventListener('keydown', event => {
