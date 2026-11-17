@@ -2166,6 +2166,8 @@
     "admin.sidebar.texts_sub": "Libellés et traductions",
     "admin.sidebar.typography": "Typographie",
     "admin.sidebar.typography_sub": "Polices et styles",
+    "admin.sidebar.branding": "Logo du site",
+    "admin.sidebar.branding_sub": "Logo et favicons",
     "admin.sidebar.updates": "Mises à jour",
     "admin.sidebar.updates_sub": "Vérifier les versions",
     "admin.sidebar.analytics_pro_sub": "Statistiques avancées",

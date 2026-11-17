@@ -2701,6 +2701,8 @@
     "admin.sidebar.settings_sub": "Configurazione sito",
     "admin.sidebar.social_sub": "Profili e condivisione",
     "admin.sidebar.typography_sub": "Font e stili",
+    "admin.sidebar.branding": "Logo del sito",
+    "admin.sidebar.branding_sub": "Logo e favicon",
     "admin.sidebar.seo_sub": "Indicizzazione",
     "admin.sidebar.privacy_sub": "Consensi e cookie",
     "admin.sidebar.filter_settings_sub": "Opzioni di filtro",

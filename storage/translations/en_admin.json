@@ -2687,6 +2687,8 @@
     "admin.sidebar.settings_sub": "Site configuration",
     "admin.sidebar.social_sub": "Profiles and sharing",
     "admin.sidebar.typography_sub": "Fonts and styles",
+    "admin.sidebar.branding": "Site logo",
+    "admin.sidebar.branding_sub": "Logo and favicons",
     "admin.sidebar.seo_sub": "Indexing",
     "admin.sidebar.privacy_sub": "Consent and cookies",
     "admin.sidebar.filter_settings_sub": "Filter options",
