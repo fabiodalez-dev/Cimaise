@@ -13,14 +13,16 @@ final class HomeAlbumVisibility
     }
 
     // All homepage queries use a as the album alias. Gallery queries do not use this scope.
-    public function eligibleSql(): string
+    // $includeProtected keeps password-protected albums (the admin's view of
+    // the album list); albums hidden from the homepage stay out for everyone.
+    public function eligibleSql(bool $includeProtected = false): string
     {
         $key = $this->db->isSqlite()
             ? "'album.home_hidden.' || a.id"
             : "CONCAT('album.home_hidden.', a.id)";
+        $protected = $includeProtected ? '' : " AND (a.password_hash IS NULL OR a.password_hash = '')";
 
-        return " AND (a.password_hash IS NULL OR a.password_hash = '')
-                 AND NOT EXISTS (SELECT 1 FROM settings hv WHERE hv.`key` = {$key})";
+        return $protected . " AND NOT EXISTS (SELECT 1 FROM settings hv WHERE hv.`key` = {$key})";
     }
 
     public function isHidden(int $albumId): bool

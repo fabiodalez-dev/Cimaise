@@ -17,12 +17,12 @@
           <div class="flex gap-4 mb-4">
             <label class="flex items-center gap-2 cursor-pointer">
               <input type="radio" name="logo_type" value="text" class="text-black focus:ring-black"
-                     {{ settings['site.logo_type']|default('text') == 'text' ? 'checked' : '' }}>
+                     {% if settings['site.logo_type']|default('text') == 'text' %}checked{% endif %}>
               <span class="text-sm text-gray-700">{{ trans('admin.settings.logo_type_text') }}</span>
             </label>
             <label class="flex items-center gap-2 cursor-pointer">
               <input type="radio" name="logo_type" value="image" class="text-black focus:ring-black"
-                     {{ settings['site.logo_type'] == 'image' ? 'checked' : '' }}>
+                     {% if settings['site.logo_type'] == 'image' %}checked{% endif %}>
               <span class="text-sm text-gray-700">{{ trans('admin.settings.logo_type_image') }}</span>
             </label>
           </div>
@@ -88,7 +88,7 @@
             <div id="favicon-section" class="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
               <h4 class="text-sm font-medium text-gray-900 mb-2">{{ trans('admin.settings.generate_favicons') }}</h4>
               <p class="text-xs text-gray-600 mb-3">{{ trans('admin.settings.generate_favicons_desc') }}</p>
-              <button type="submit" formaction="{{ base_path }}/admin/settings/generate-favicons" formmethod="post" class="btn-secondary text-sm {{ settings['site.logo'] ? '' : 'opacity-50 cursor-not-allowed' }}" {{ settings['site.logo'] ? '' : 'disabled' }}>
+              <button type="submit" formaction="{{ base_path }}/admin/settings/generate-favicons" formmethod="post" class="btn-secondary text-sm {{ settings['site.logo'] ? '' : 'opacity-50 cursor-not-allowed' }}" {% if not settings['site.logo'] %}disabled{% endif %}>
                 <i class="fas fa-magic mr-2"></i>{{ trans('admin.settings.generate_favicons_button') }}
               </button>
               <p class="text-xs text-gray-500 mt-2"><i class="fas fa-info-circle mr-1"></i>{{ trans('admin.settings.favicons_dont_save_note') }}</p>
@@ -146,7 +146,7 @@
                 <button type="submit" formaction="{{ base_path }}/admin/settings/generate-favicons-from-source" formmethod="post"
                         id="generate-favicons-text-btn"
                         class="btn-secondary text-sm {{ settings['site.favicon_source'] ? '' : 'opacity-50 cursor-not-allowed' }}"
-                        {{ settings['site.favicon_source'] ? '' : 'disabled' }}>
+                        {% if not settings['site.favicon_source'] %}disabled{% endif %}>
                   <i class="fas fa-magic mr-2"></i>{{ trans('admin.settings.generate_favicons_button') }}
                 </button>
                 {% if not settings['site.favicon_source'] %}
