@@ -56,5 +56,6 @@ html.dark .site-search-row .inline-header-search.search-popover {
 .site-search-row .inline-header-search.search-popover.hidden,
 html.dark .site-search-row .inline-header-search.search-popover.hidden { transform: scaleX(0.96); }
 @media (prefers-reduced-motion: reduce) {
-    .site-search-row .inline-header-search { transition: none; }
+    .site-search-row .inline-header-search,
+    html.dark .site-search-row .inline-header-search { transition: none; }
 }
