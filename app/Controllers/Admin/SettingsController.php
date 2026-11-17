@@ -722,28 +722,72 @@ class SettingsController extends BaseController
         $relativePath = '/' . $filename;
         $absolutePath = $publicPath . $relativePath;
 
-        // Remove old favicon source files. The names come from a fixed
-        // whitelist, but we still resolve the real path and require it to stay
-        // inside /public before deleting (defence in depth against traversal).
-        $publicReal = realpath($publicPath);
-        foreach (['png', 'jpg', 'webp'] as $oldExt) {
-            $oldFile = realpath($publicPath . '/favicon-source.' . $oldExt);
-            if ($oldFile === false || $publicReal === false) {
-                continue;
-            }
-            if (str_starts_with($oldFile, $publicReal . DIRECTORY_SEPARATOR) && is_file($oldFile)) {
-                // nosemgrep: path is realpath()-resolved and confined to /public,
-                // built from a fixed extension whitelist; no user input.
-                @unlink($oldFile); // nosemgrep
-            }
+        // Validate on a temporary file in the same directory first: strip
+        // EXIF/GPS/XMP (the file is served directly from /public) and enforce
+        // the pixel cap. The previous source is removed only once the new one
+        // is known good, so a rejected upload never leaves the setting
+        // pointing at a deleted file.
+        $tmpPath = $publicPath . '/.favicon-source-upload-' . bin2hex(random_bytes(8)) . '.' . $ext;
+        try {
+            $file->moveTo($tmpPath);
+        } catch (\Throwable) {
+            @unlink($tmpPath);
+            $response->getBody()->write(json_encode(['error' => 'Failed to store the uploaded file.']));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+        if (!\App\Support\ImageMetadataStripper::stripInPlace($tmpPath)) {
+            @unlink($tmpPath);
+            $response->getBody()->write(json_encode(['error' => 'Invalid image file or resolution too high.']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
-        // Save file
-        $file->moveTo($absolutePath);
+        // Rename, setting update and cleanup run under one global lock: two
+        // concurrent uploads in different formats could otherwise delete the
+        // file the other one just saved and pointed the setting at.
+        $lockDir = dirname(__DIR__, 3) . '/storage/tmp';
+        $lock = @fopen($lockDir . '/favicon-source.lock', 'c');
+        if ($lock === false || !flock($lock, LOCK_EX)) {
+            if ($lock !== false) {
+                fclose($lock);
+            }
+            @unlink($tmpPath);
+            $response->getBody()->write(json_encode(['error' => 'Failed to store the uploaded file.']));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+        try {
+            if (!@rename($tmpPath, $absolutePath)) {
+                @unlink($tmpPath);
+                $response->getBody()->write(json_encode(['error' => 'Failed to store the uploaded file.']));
+                return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+            }
 
-        // Save setting
-        $svc = new SettingsService($this->db);
-        $svc->set('site.favicon_source', $relativePath);
+            // Save setting
+            $svc = new SettingsService($this->db);
+            $svc->set('site.favicon_source', $relativePath);
+
+            // Only now that the new source is in place and the setting points at
+            // it, remove the other-format sources. The names come from a fixed
+            // whitelist, but we still resolve the real path and require it to stay
+            // inside /public before deleting (defence in depth against traversal).
+            $publicReal = realpath($publicPath);
+            foreach (['png', 'jpg', 'webp'] as $oldExt) {
+                if ($oldExt === $ext) {
+                    continue; // this is the file the rename above just replaced
+                }
+                $oldFile = realpath($publicPath . '/favicon-source.' . $oldExt);
+                if ($oldFile === false || $publicReal === false) {
+                    continue;
+                }
+                if (str_starts_with($oldFile, $publicReal . DIRECTORY_SEPARATOR) && is_file($oldFile)) {
+                    // nosemgrep: path is realpath()-resolved and confined to /public,
+                    // built from a fixed extension whitelist; no user input.
+                    @unlink($oldFile); // nosemgrep
+                }
+            }
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
 
         $response->getBody()->write(json_encode([
             'ok' => true,

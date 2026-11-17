@@ -229,6 +229,11 @@ class UploadController extends BaseController
             if (!is_file($destPath)) {
                 throw new \RuntimeException('Logo save verification failed');
             }
+            // Served as-is from /media: drop EXIF/GPS/XMP before it is published.
+            if (!\App\Support\ImageMetadataStripper::stripInPlace($destPath)) {
+                @unlink($destPath);
+                throw new \RuntimeException('Invalid image file');
+            }
             $relUrl = '/media/' . basename($destPath);
             // Save setting
             $settings = new \App\Services\SettingsService($this->db);

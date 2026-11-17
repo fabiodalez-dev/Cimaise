@@ -43,14 +43,9 @@ abstract class BaseController
      */
     protected function redirect(string $path): string
     {
-        $path = str_replace(["\r", "\n", "\0"], '', $path);
-        // Reject absolute URLs (scheme://...) — keep only the path-and-query portion.
-        if (preg_match('#^[a-z][a-z0-9+.\-]*://#i', $path)) {
-            $path = '/';
-        }
-        // Force exactly one leading slash (blocks "//host" protocol-relative redirects).
-        $path = '/' . ltrim($path, '/');
-        return $this->basePath . $path;
+        // Same-origin path only: control chars stripped, backslashes folded,
+        // absolute URLs dropped, one leading slash (see SafeRedirect).
+        return $this->basePath . \App\Support\SafeRedirect::path($path);
     }
 
     /**
@@ -241,8 +236,10 @@ abstract class BaseController
 
     private function buildNsfwConsentCookieValue(): string
     {
-        $secret = (string)($_ENV['SESSION_SECRET'] ?? '');
-        if ($secret === '') {
+        // No consent cookie without a real secret: an HMAC keyed on the public
+        // .env.example placeholder could be forged by anyone.
+        $secret = \App\Support\AppSecret::session();
+        if ($secret === null) {
             return '';
         }
         $timestamp = time();
@@ -253,8 +250,8 @@ abstract class BaseController
 
     private function verifyNsfwConsentCookie(string $value): bool
     {
-        $secret = (string)($_ENV['SESSION_SECRET'] ?? '');
-        if ($secret === '') {
+        $secret = \App\Support\AppSecret::session();
+        if ($secret === null) {
             return false;
         }
         $parts = explode('|', $value);

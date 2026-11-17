@@ -208,6 +208,21 @@ class PluginsController extends BaseController
         // configured, the raw ZIP bytes MUST carry a valid Ed25519 signature
         // before we extract or run any plugin code. This replaces the bypassable
         // regex blocklist as the actual trust boundary; the scan below is advisory.
+        if (!PluginSignature::isEnabled() && !PluginSignature::unsignedPluginsAllowed()) {
+            // Fail closed: a missing or unreadable public key must not turn the
+            // signature check off. Unsigned plugins need PLUGIN_ALLOW_UNSIGNED=1.
+            Logger::warning('Plugin upload rejected: no usable signing key and unsigned uploads not allowed', [
+                'filename' => $filename,
+                'key_misconfigured' => PluginSignature::isMisconfigured(),
+            ], 'security');
+            $this->cleanupTemp($tempDir);
+            $response->getBody()->write(json_encode([
+                'success' => false,
+                'message' => trans('admin.flash.plugin_signature_invalid'),
+            ]));
+            return $response->withStatus(400);
+        }
+
         if (PluginSignature::isEnabled()) {
             $zipBytes = file_get_contents($tempZip);
             $providedSig = $this->extractProvidedSignature($request);
@@ -225,7 +240,7 @@ class PluginsController extends BaseController
                 return $response->withStatus(400);
             }
         } else {
-            Logger::warning('Plugin signature verification disabled (no public key configured); '
+            Logger::warning('Plugin signature verification disabled by PLUGIN_ALLOW_UNSIGNED=1 (no public key configured); '
                 . 'relying on advisory static scan only', ['filename' => $filename], 'security');
         }
 
