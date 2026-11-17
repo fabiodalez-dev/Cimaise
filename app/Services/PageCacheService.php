@@ -254,13 +254,55 @@ class PageCacheService
      */
     public function invalidateHome(bool $allowStale = true): int
     {
-        if (!$allowStale && $this->backend === 'database' && $this->db !== null) {
-            $cacheKey = $this->getCacheKey('home');
-            $this->deleteTags($cacheKey);
-            return $this->db->execute('DELETE FROM page_cache WHERE cache_key = ?', [$cacheKey]);
-        }
+        // A home rebuild that is already running read the albums before this
+        // change; if it stored its page after the invalidation, the old home
+        // (e.g. with an album that was just hidden) would be served until the
+        // TTL. Rebuilds hold home_cache_warm.lock, so wait for a running one
+        // to finish before invalidating; the next rebuild then sees the change.
+        $lock = self::waitForHomeRebuild();
+        try {
+            if (!$allowStale && $this->backend === 'database' && $this->db !== null) {
+                $cacheKey = $this->getCacheKey('home');
+                $this->deleteTags($cacheKey);
+                return $this->db->execute('DELETE FROM page_cache WHERE cache_key = ?', [$cacheKey]);
+            }
 
-        return $this->invalidate('home');
+            return $this->invalidate('home');
+        } finally {
+            if ($lock !== null) {
+                flock($lock, LOCK_UN);
+                fclose($lock);
+            }
+        }
+    }
+
+    /**
+     * Take the home rebuild lock, waiting up to $timeout seconds for a
+     * running rebuild. Returns the held handle, or null when the lock is
+     * unavailable (the invalidation then proceeds without it).
+     *
+     * @return resource|null
+     */
+    private static function waitForHomeRebuild(float $timeout = 10.0)
+    {
+        $dir = dirname(__DIR__, 2) . '/storage/tmp';
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0775, true);
+        }
+        $handle = @fopen($dir . '/home_cache_warm.lock', 'c');
+        if ($handle === false) {
+            return null;
+        }
+        $deadline = microtime(true) + $timeout;
+        while (!flock($handle, LOCK_EX | LOCK_NB)) {
+            if (microtime(true) >= $deadline) {
+                Logger::warning('PageCacheService: home rebuild still running, invalidating without waiting');
+                fclose($handle);
+                return null;
+            }
+            usleep(50000);
+        }
+        return $handle;
     }
 
     /**
