@@ -29,6 +29,25 @@ class ImagesGenerateCommand extends ImagesGenerateVariantsCommand
         if (!$input->getOption('missing')) {
             $input->setOption('force', true);
         }
-        return parent::execute($input, $output);
+        // One library-wide run at a time: a second click on "Generate" (or a
+        // second admin) would redo the same work and truncate the shared log.
+        $lockDir = dirname(__DIR__, 2) . '/storage/image-jobs/locks';
+        if (!is_dir($lockDir)) {
+            @mkdir($lockDir, 0775, true);
+        }
+        $lock = @fopen($lockDir . '/images-generate.lock', 'c');
+        if ($lock !== false && !flock($lock, LOCK_EX | LOCK_NB)) {
+            fclose($lock);
+            $output->writeln('<comment>Another images:generate run is still in progress; not starting a second one.</comment>');
+            return self::SUCCESS;
+        }
+        try {
+            return parent::execute($input, $output);
+        } finally {
+            if ($lock !== false) {
+                flock($lock, LOCK_UN);
+                fclose($lock);
+            }
+        }
     }
 }
