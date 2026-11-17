@@ -103,6 +103,17 @@ class SettingsController extends BaseController
         if (array_key_exists('logo_type', $data)) {
             $changes['site.logo_type'] = in_array($data['logo_type'], ['text', 'image'], true) ? $data['logo_type'] : 'text';
         }
+        if (array_key_exists('logo_max_width', $data)) {
+            $changes['site.logo_max_width'] = max(0, min(960, (int) $data['logo_max_width']));
+            // Responsive copies follow the logos being saved (or the stored
+            // ones when this form did not post them).
+            $svc = new SettingsService($this->db);
+            $logoVariants = new \App\Services\SiteLogoVariants();
+            foreach (['site.logo', 'site.logo_dark'] as $key) {
+                $path = array_key_exists($key, $changes) ? $changes[$key] : $svc->get($key);
+                $changes[$key . '_variants'] = $logoVariants->generate(is_string($path) ? $path : null);
+            }
+        }
         return $changes;
     }
 

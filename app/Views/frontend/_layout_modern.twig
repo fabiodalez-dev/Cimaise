@@ -254,7 +254,7 @@
     <div id="preloader-curtain" class="preloader-curtain preloader-hidden" aria-hidden="true">
         <div class="preloader-content">
             {% if logo_type == 'image' and site_logo %}
-                {% include 'frontend/_site_logo.twig' with { logo_class: 'preloader-logo' } %}
+                {% include 'frontend/_site_logo.twig' with { logo_class: 'preloader-logo', logo_responsive_size: '200px' } %}
             {% else %}
                 <span class="preloader-title">{{ site_title|default('Portfolio') }}</span>
             {% endif %}
