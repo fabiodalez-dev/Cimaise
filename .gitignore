@@ -159,6 +159,7 @@ tests/
 !/tests/Controllers/SeoControllerSeededBooleansTest.php
 !/tests/Controllers/DiagnosticsDirectoriesTest.php
 !/tests/Controllers/AlbumShowEquipmentTest.php
+!/tests/Controllers/BrandingSettingsTest.php
 !/tests/Views/
 /tests/Views/*
 !/tests/Views/FrontendSettingGatesTest.php
