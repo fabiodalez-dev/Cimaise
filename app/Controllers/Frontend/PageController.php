@@ -611,7 +611,12 @@ class PageController extends BaseController
         $perPage = (int) $svc->get('pagination.limit', 12);
 
         $includeNsfw = $isAdmin || $nsfwConsent;
-        $accessSql = (new \App\Services\HomeAlbumVisibility($this->db))->eligibleSql();
+        // Home access scoping (mirrors HomeImageService): for visitors,
+        // password-protected albums are never previewed and NSFW albums appear
+        // only with consent; admins also see protected albums. Albums hidden
+        // from the homepage stay out for everyone. Filtering in SQL keeps the
+        // LIMIT page full and the count free of hidden albums.
+        $accessSql = (new \App\Services\HomeAlbumVisibility($this->db))->eligibleSql($isAdmin);
         if (!$includeNsfw) {
             $accessSql .= ' AND a.is_nsfw = 0';
         }
