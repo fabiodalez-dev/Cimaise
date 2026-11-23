@@ -8,6 +8,13 @@ declare(strict_types=1);
  * server (bootstrap reads .env).
  *
  * Usage: php tests/e2e/fixtures/album-layout.php <album_id> <draft|publish|default|clear>
+ *        php tests/e2e/fixtures/album-layout.php setting <key> <json value>
+ *          (prints {"previous": <decoded value or null>}; used to pin a
+ *          setting the spec depends on and restore it afterwards)
+ *
+ * Run it with `php -d apc.enabled=0` (the spec does): QueryCache then uses the
+ * same file backend as the web server, so settings changes invalidate the
+ * cache the server actually reads.
  *
  * The layout deliberately differs from the default gallery order: the LAST
  * photo opens the page, then a text block, then a 2-column grid with the
@@ -27,6 +34,19 @@ $container = require $root . '/app/Config/bootstrap.php';
 /** @var \App\Support\Database $db */
 $db = $container['db'];
 
+if (($argv[1] ?? '') === 'setting') {
+    $key = (string) ($argv[2] ?? '');
+    if ($key === '' || !isset($argv[3])) {
+        fwrite(STDERR, "usage: album-layout.php setting <key> <json value>\n");
+        exit(2);
+    }
+    $settings = new \App\Services\SettingsService($db);
+    $previous = $settings->get($key);
+    $settings->set($key, json_decode($argv[3], true, 512, JSON_THROW_ON_ERROR));
+    echo json_encode(['previous' => $previous]), "\n";
+    exit(0);
+}
+
 $albumId = (int) ($argv[1] ?? 0);
 $action = (string) ($argv[2] ?? '');
 if ($albumId < 1 || !in_array($action, ['draft', 'publish', 'default', 'clear'], true)) {
@@ -38,14 +58,10 @@ $ids = array_map('intval', $db->query(
     'SELECT id FROM images WHERE album_id = ? ORDER BY sort_order ASC, id ASC',
     [$albumId]
 )->fetchAll(\PDO::FETCH_COLUMN));
-if (count($ids) < 4) {
-    fwrite(STDERR, "album {$albumId} needs at least 4 images\n");
-    exit(3);
-}
-
 $service = new AlbumLayoutService($db);
 $revision = $service->state($albumId)['revision'];
 
+// Teardown must work whatever the setup managed to upload.
 if ($action === 'clear') {
     if ($revision > 0) {
         $service->save($albumId, $revision, null, 'default');
@@ -53,6 +69,11 @@ if ($action === 'clear') {
     $db->execute('DELETE FROM album_layouts WHERE album_id = ?', [$albumId]);
     echo json_encode(['revision' => 0, 'order' => $ids]), "\n";
     exit(0);
+}
+
+if (count($ids) < 4) {
+    fwrite(STDERR, "album {$albumId} needs at least 4 images\n");
+    exit(3);
 }
 
 $last = $ids[count($ids) - 1];

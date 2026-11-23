@@ -14,11 +14,13 @@ import {
 } from './_helpers.js';
 import { uploadImages } from './_upload-helpers.js';
 
+// Same QueryCache backend as the web server (file), see the fixture header.
+const PHP_ARGS = ['-d', 'apc.enabled=0'];
 const FIXTURE = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures', 'album-layout.php');
 
 /** @returns {{revision: number, order: number[]}} */
 function layout(albumId, action) {
-    const out = execFileSync('php', [FIXTURE, String(albumId), action], { encoding: 'utf8' });
+    const out = execFileSync('php', [...PHP_ARGS, FIXTURE, String(albumId), action], { encoding: 'utf8' });
     return JSON.parse(out.trim().split('\n').pop() || '{}');
 }
 
@@ -31,6 +33,12 @@ async function anon(browser, urlPath) {
     } finally {
         await ctx.close();
     }
+}
+
+/** Set a setting through SettingsService; returns the previous value. */
+function setSetting(key, value) {
+    const out = execFileSync('php', [...PHP_ARGS, FIXTURE, 'setting', key, JSON.stringify(value)], { encoding: 'utf8' });
+    return JSON.parse(out.trim().split('\n').pop() || '{}').previous;
 }
 
 const imageIds = (html) => [...html.matchAll(/data-image-id="(\d+)"/g)].map((m) => Number(m[1]));
@@ -49,16 +57,22 @@ test.describe.serial('Visual album layouts on the public page', () => {
     let page;
     const album = { id: 0, slug: '', images: /** @type {number[]} */ ([]) };
     let baseline = '';
+    // LAY-04 checks the ImageGallery JSON-LD, which an install (or another
+    // spec) may have switched off: pin it on for this file, restore after.
+    let schemaBefore;
 
     test.beforeAll(async ({ browser }) => {
         page = await browser.newPage();
         await requireServer(test, page);
         await requireAdmin(test, page);
+        schemaBefore = setSetting('seo.schema_enabled', true);
         const created = await createAlbum(page, `LAY ${Date.now()}`);
         album.id = created.id ?? 0;
         album.slug = created.slug ?? '';
         if (album.id) {
-            album.images = await uploadImages(page, album.id, 5, { labelPrefix: 'lay' });
+            // 8 photos: the remaining grid (2 columns) then holds 5 photos, i.e.
+            // two full rows plus a lone last row.
+            album.images = await uploadImages(page, album.id, 8, { labelPrefix: 'lay' });
             await publishAlbum(page, album.id);
         }
     });
@@ -70,16 +84,17 @@ test.describe.serial('Visual album layouts on the public page', () => {
                 await deleteAlbum(page, album.id);
             }
         } finally {
+            if (schemaBefore !== undefined) setSetting('seo.schema_enabled', schemaBefore);
             await page.close();
         }
     });
 
     test('LAY-01: an album without a layout keeps the default gallery', async ({ browser }) => {
-        test.skip(!album.id || album.images.length < 5, 'album setup failed');
+        test.skip(!album.id || album.images.length < 8, 'album setup failed');
         const r = await anon(browser, `/album/${album.slug}`);
         expect(r.status).toBe(200);
         expect(r.body).not.toContain('album-layout');
-        expect(imageIds(r.body).slice(0, 5)).toEqual(album.images);
+        expect(imageIds(r.body)).toEqual(album.images);
         baseline = galleryMarkup(r.body);
     });
 
@@ -114,13 +129,24 @@ test.describe.serial('Visual album layouts on the public page', () => {
         expect(r.body).toContain('LAYOUT-E2E-TEXT &lt;b&gt;not html&lt;/b&gt;');
         // Configurable remaining grid (2 columns, 12px gap).
         expect(r.body).toMatch(/data-layout-remaining>\s*<div class="album-layout-grid" style="--block-gap: 12px; --block-columns: 2"/);
-        // Structured data follows the displayed order.
+        // Structured data lists the displayed photos, in the displayed order.
         const ld = [...r.body.matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)]
             .map((m) => m[1]).find((s) => s.includes('ImageGallery'));
-        if (ld) {
-            const urls = [...ld.matchAll(/"contentUrl"\s*:\s*"([^"]+)"/g)].map((m) => m[1]);
-            expect(urls.length).toBe(order.length);
-        }
+        expect(ld, 'ImageGallery JSON-LD present').toBeTruthy();
+        const gallery = JSON.parse(String(ld));
+        const ldIds = gallery.image.map((img) => Number(String(img.contentUrl).match(/\/media\/(\d+)_/)?.[1] ?? 0));
+        expect(ldIds).toEqual(order);
+        // Rows are sized by aspect ratio: every cell of a full row grows, only
+        // the lone last row (5 remaining photos in 2 columns) keeps its width.
+        const remaining = r.body.slice(r.body.indexOf('data-layout-remaining'));
+        const rows = remaining.split('class="album-layout-row').slice(1);
+        expect(rows.length).toBe(3);
+        expect(rows.filter((row) => row.startsWith(' album-layout-row--lone')).length).toBe(1);
+        const grows = [...remaining.matchAll(/class="album-layout-cell" style="flex-grow: ([^"]*)"/g)].map((m) => m[1]);
+        expect(grows.length).toBe(5);
+        expect(grows.slice(0, 4).every((g) => Number(g) > 0), `full-row flex-grow: ${grows}`).toBe(true);
+        expect(grows[4]).toBe('0');
+        expect(r.body, 'a cell got no width share').not.toMatch(/sizes="[^"]*, 1vw"/);
         // Once rebuilt, the layout page itself is cacheable again.
         const again = await anon(browser, `/album/${album.slug}`);
         expect(again.body).toContain('data-layout="album_blocks"');

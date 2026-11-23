@@ -1816,6 +1816,15 @@ class PageController extends BaseController
             $cacheableData['og_type'] = $albumSchemaType;
         }
 
+        // A layout published while this page was being built has already
+        // invalidated the cache; storing the spec read earlier would bring the
+        // old layout back until the next invalidation. Skip the write then.
+        if ($canUseCache
+            && (new \App\Services\AlbumLayoutService($this->db))->published((int) $album['id']) !== $albumLayoutSpec
+        ) {
+            $canUseCache = false;
+        }
+
         // Save to cache for future public requests
         if ($canUseCache) {
             $cacheKey = PageCacheService::albumPageKey((int) $album['id'], $templateIdFromUrl);

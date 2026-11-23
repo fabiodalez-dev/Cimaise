@@ -1,5 +1,8 @@
 <div class="album-layout-grid" style="--block-gap: {{ photo_gap }}px; --block-columns: {{ columns }}">
-  {% for row in photos|batch(columns) %}
+  {% for batch_row in photos|batch(columns) %}
+    {# batch() keeps the original keys (2,3 on the second row); reindex so
+       ratios[loop.index0] lines up with the photo being rendered. #}
+    {% set row = batch_row|slice(0) %}
     {% set first_row = loop.first %}
     {% set ratios = row|map(image => max(0.1, min(10, image.width / max(1, image.height)))) %}
     {% set total = 0 %}
@@ -14,7 +17,7 @@
           {% set desktop_size = 'min(' ~ desktop_size ~ ', ' ~ max(1, (photo_max_width * share)|round) ~ 'px)' %}
           {% set mobile_size = 'min(100vw, ' ~ photo_max_width ~ 'px)' %}
         {% endif %}
-        <div class="album-layout-cell" style="flex-grow: {{ ratios[loop.index0] }}">
+        <div class="album-layout-cell" style="flex-grow: {{ lone ? 0 : ratios[loop.index0] }}">
           {% include 'frontend/_gallery_item.twig' with {
             layout: 'masonry', style: {rounded: false, shadow: false, hover_scale: false},
             layout_image_sizes: '(max-width: 639px) ' ~ mobile_size ~ ', ' ~ desktop_size,
