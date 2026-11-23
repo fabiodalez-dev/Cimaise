@@ -439,6 +439,11 @@
                 </div>
               </div>
 
+              {% if has_published_layout|default(false) %}
+              <div class="md:col-span-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2" data-visual-layout-notice role="note">
+                <i class="fas fa-circle-info mr-1" aria-hidden="true"></i>{{ trans('admin.albums.visual_layout_overrides_templates') }}
+              </div>
+              {% endif %}
               <div data-gallery-template-container>
                 <label class="block text-sm font-medium text-black mb-2" data-gallery-template-label>{{ trans('admin.albums.template') }}</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="template_id" data-gallery-template-select>

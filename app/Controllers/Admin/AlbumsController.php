@@ -693,6 +693,7 @@ class AlbumsController extends BaseController
             'templates' => $templates,
             'album_page_templates' => $albumPageTemplates,
             'default_album_page_template' => $defaultAlbumPageTemplate,
+            'has_published_layout' => (new \App\Services\AlbumLayoutService($this->db))->published($id) !== null,
             'cameras' => $cameras,
             'lenses' => $lenses,
             'films' => $films,

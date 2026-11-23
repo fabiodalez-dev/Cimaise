@@ -16,6 +16,7 @@ const SETTINGS_WRITERS = [
   'admin-csrf-resilience',
   'cache-invalidation',
   'security-hardening',
+  'album-layout',
 ];
 const settingsWriters = new RegExp(`/(${SETTINGS_WRITERS.join('|')})\\.spec\\.js$`);
 

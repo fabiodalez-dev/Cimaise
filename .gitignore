@@ -179,6 +179,10 @@ tests/
 !/tests/e2e/album-edit-cache.spec.js
 !/tests/e2e/image-queue.spec.js
 !/tests/e2e/parallel-gate.setup.js
+!/tests/e2e/album-layout.spec.js
+!/tests/e2e/fixtures/
+/tests/e2e/fixtures/*
+!/tests/e2e/fixtures/album-layout.php
 
 # Cache
 .cache/
