@@ -17,7 +17,7 @@
   {% endfor %}
   {% if album_layout.remaining %}
     <section class="album-layout-block" data-layout-remaining>
-      {% include 'frontend/_album_layout_photos.twig' with {photos: album_layout.remaining, columns: 3, photo_gap: 8, photo_width: 100, photo_max_width: 0, lead: lead} %}
+      {% include 'frontend/_album_layout_photos.twig' with {photos: album_layout.remaining, columns: album_layout.remaining_columns, photo_gap: album_layout.remaining_gap, photo_width: 100, photo_max_width: 0, lead: lead} %}
     </section>
   {% endif %}
 </div>

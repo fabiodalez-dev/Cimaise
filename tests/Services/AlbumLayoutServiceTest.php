@@ -202,4 +202,62 @@ final class AlbumLayoutServiceTest extends TestCase
         self::assertNull($state['published_at']);
         self::assertNotNull($state['updated_at']);
     }
+
+    public function testRemainingGridSettingsAreValidatedAndResolved(): void
+    {
+        $defaults = $this->layout();
+        self::assertSame(3, $defaults['remaining_columns']);
+        self::assertSame(8, $defaults['remaining_gap']);
+
+        $custom = $this->layouts->normalize(['blocks' => [], 'remaining_columns' => 4, 'remaining_gap' => 24], null);
+        $resolved = $this->layouts->resolve($custom, [['id' => 11]]);
+        self::assertSame(4, $resolved['remaining_columns']);
+        self::assertSame(24, $resolved['remaining_gap']);
+
+        foreach ([['remaining_columns' => 0], ['remaining_columns' => 9], ['remaining_gap' => -1], ['remaining_gap' => '8']] as $bad) {
+            try {
+                $this->layouts->normalize(['blocks' => []] + $bad, null);
+                self::fail('Invalid remaining grid accepted: ' . json_encode($bad));
+            } catch (InvalidArgumentException) {
+                self::assertTrue(true);
+            }
+        }
+    }
+
+    public function testPublishingInvalidatesThePublicPageButDraftsDoNot(): void
+    {
+        $settings = new \App\Services\SettingsService($this->db);
+        $spy = new class ($settings, $this->db) extends \App\Services\PageCacheService {
+            /** @var list<string> */
+            public array $calls = [];
+            public function invalidateByTag(string $tag): int
+            {
+                $this->calls[] = 'tag:' . $tag;
+                return 0;
+            }
+            public function invalidate(string $type): int
+            {
+                $this->calls[] = 'key:' . $type;
+                return 0;
+            }
+        };
+        $layouts = new AlbumLayoutService($this->db, $spy);
+        $expected = ['tag:' . \App\Services\CacheTags::album(81), 'key:album_81'];
+
+        $layouts->save(81, 0, $this->layout(), 'draft');
+        self::assertSame([], $spy->calls, 'a private draft must not touch the public cache');
+
+        $layouts->save(81, 1, $this->layout(), 'publish');
+        self::assertSame($expected, $spy->calls);
+
+        $spy->calls = [];
+        $layouts->save(81, 2, null, 'default');
+        self::assertSame($expected, $spy->calls);
+    }
+
+    public function testMissingTableMeansNoPublishedLayout(): void
+    {
+        $this->db->pdo()->exec('DROP TABLE album_layouts');
+        self::assertNull($this->layouts->published(81));
+    }
 }

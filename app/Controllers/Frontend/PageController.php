@@ -922,14 +922,22 @@ class PageController extends BaseController
         return $formatted;
     }
 
+    /**
+     * Resolve the cached layout spec against this request's (already
+     * privacy-masked) image rows. Empty when the album has no published layout.
+     *
+     * @param array<string, mixed> $data cacheable album page data
+     * @return array<string, mixed>
+     */
     private function albumLayoutData(array $data): array
     {
-        if (!isset($data['album_layout_spec'])) {
+        if (!isset($data['album_layout_spec']) || !is_array($data['album_layout_spec'])) {
             return [];
         }
+        $images = is_array($data['images'] ?? null) ? array_values($data['images']) : [];
 
         $layout = (new \App\Services\AlbumLayoutService($this->db))->resolve(
-            $data['album_layout_spec'], $data['images']
+            $data['album_layout_spec'], $images
         );
         $displayed = [];
         foreach ($layout['blocks'] as $block) {

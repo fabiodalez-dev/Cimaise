@@ -2602,6 +2602,7 @@
     "admin.users.total_users": "total users",
     "admin.users.update_user": "Update User",
     "admin.albums.page_template_overrides_gallery": "When a custom page template is selected, the gallery template is ignored for this album.",
+    "admin.albums.visual_layout_overrides_templates": "This album has a published visual layout: the gallery template and the album page template are not used on its public page.",
     "admin.templates.custom_template_fallback": "Custom Template",
     "admin.templates.wall_desktop_settings": "Desktop Settings",
     "admin.templates.wall_divider_hint": "Set the vertical divider between items (px).",

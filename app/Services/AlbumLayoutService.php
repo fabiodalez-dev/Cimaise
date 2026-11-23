@@ -29,7 +29,13 @@ use RuntimeException;
  *     gap?: int,
  *     images?: list<int>
  * }
- * @phpstan-type Layout array{version: 1, include_remaining: bool, blocks: list<LayoutBlock>}
+ * @phpstan-type Layout array{
+ *     version: 1,
+ *     include_remaining: bool,
+ *     remaining_columns: int,
+ *     remaining_gap: int,
+ *     blocks: list<LayoutBlock>
+ * }
  * @phpstan-type LayoutState array{
  *     revision: int,
  *     draft: Layout|null,
@@ -56,8 +62,10 @@ final class AlbumLayoutService
     private const BLOCK_TYPES = ['photo', 'grid', 'text'];
     private const ALIGNMENTS = ['left', 'center', 'right'];
 
-    public function __construct(private readonly Database $db)
-    {
+    public function __construct(
+        private readonly Database $db,
+        private ?PageCacheService $pageCache = null
+    ) {
     }
 
     /**
@@ -88,7 +96,13 @@ final class AlbumLayoutService
     /** @return Layout|null */
     public function published(int $albumId): ?array
     {
-        $json = $this->db->query('SELECT published_json FROM album_layouts WHERE album_id = ?', [$albumId])->fetchColumn();
+        try {
+            $json = $this->db->query('SELECT published_json FROM album_layouts WHERE album_id = ?', [$albumId])->fetchColumn();
+        } catch (\PDOException) {
+            // Code deployed before the 1.4.32 migration ran: no table yet means
+            // no layout, never a broken public page.
+            return null;
+        }
         $photosRemoved = false;
 
         return $this->decode($this->stringOrNull($json), null, $photosRemoved);
@@ -113,6 +127,8 @@ final class AlbumLayoutService
         if (!is_bool($includeRemaining)) {
             throw new InvalidArgumentException('Invalid remaining photos setting.');
         }
+        $remainingColumns = $this->integer($layout, 'remaining_columns', 3, 1, 8);
+        $remainingGap = $this->integer($layout, 'remaining_gap', 8, 0, 100);
         $allowed = $allowedImageIds === null ? null : array_fill_keys($allowedImageIds, true);
         $seen = [];
         $result = [];
@@ -174,7 +190,13 @@ final class AlbumLayoutService
             $result[] = $item;
         }
 
-        return ['version' => 1, 'include_remaining' => $includeRemaining, 'blocks' => $result];
+        return [
+            'version' => 1,
+            'include_remaining' => $includeRemaining,
+            'remaining_columns' => $remainingColumns,
+            'remaining_gap' => $remainingGap,
+            'blocks' => $result,
+        ];
     }
 
     /**
@@ -220,6 +242,12 @@ final class AlbumLayoutService
         if ($count !== 1) {
             throw new RuntimeException('This layout changed in another tab. Reload before saving.', 409);
         }
+        if ($action !== 'draft') {
+            // The public page changed: drop its cached copies (every ?template=
+            // variant too, through the album tag) so visitors see it at once.
+            // Drafts are private and never reach the page cache.
+            $this->invalidateAlbumPage($albumId);
+        }
 
         return $revision + 1;
     }
@@ -231,7 +259,12 @@ final class AlbumLayoutService
      *
      * @param Layout $layout
      * @param list<array<string, mixed>> $images rows with at least an `id` key
-     * @return array{blocks: list<array<string, mixed>>, remaining: list<array<string, mixed>>}
+     * @return array{
+     *     blocks: list<array<string, mixed>>,
+     *     remaining: list<array<string, mixed>>,
+     *     remaining_columns: int,
+     *     remaining_gap: int
+     * }
      */
     public function resolve(array $layout, array $images): array
     {
@@ -267,7 +300,12 @@ final class AlbumLayoutService
             }
         }
 
-        return ['blocks' => $blocks, 'remaining' => $remaining];
+        return [
+            'blocks' => $blocks,
+            'remaining' => $remaining,
+            'remaining_columns' => $layout['remaining_columns'],
+            'remaining_gap' => $layout['remaining_gap'],
+        ];
     }
 
     /**
@@ -302,6 +340,18 @@ final class AlbumLayoutService
             throw new InvalidArgumentException("Invalid {$key} value.");
         }
         return $value;
+    }
+
+    private function invalidateAlbumPage(int $albumId): void
+    {
+        try {
+            $this->pageCache ??= new PageCacheService(new SettingsService($this->db), $this->db);
+            $this->pageCache->invalidateByTag(CacheTags::album($albumId));
+            $this->pageCache->invalidate(PageCacheService::albumPageKey($albumId));
+        } catch (\Throwable $e) {
+            // The layout is saved; a stale page only lasts until the cache TTL.
+            \App\Support\Logger::warning('AlbumLayoutService: page cache invalidation failed: ' . $e->getMessage());
+        }
     }
 
     private function stringOrNull(mixed $value): ?string
