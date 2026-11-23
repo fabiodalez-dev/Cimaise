@@ -98,10 +98,19 @@ final class AlbumLayoutService
     {
         try {
             $json = $this->db->query('SELECT published_json FROM album_layouts WHERE album_id = ?', [$albumId])->fetchColumn();
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
             // Code deployed before the 1.4.32 migration ran: no table yet means
-            // no layout, never a broken public page.
-            return null;
+            // no layout, never a broken public page. Any other error (lock,
+            // lost connection) is real: log it and let it surface, so a failed
+            // read is never mistaken for "no layout" and never cached as such.
+            if (self::isMissingTable($e)) {
+                return null;
+            }
+            \App\Support\Logger::warning('AlbumLayoutService: album_layouts read failed', [
+                'album_id' => $albumId,
+                'error' => $e->getMessage(),
+            ], 'database');
+            throw $e;
         }
         $photosRemoved = false;
 
@@ -206,7 +215,8 @@ final class AlbumLayoutService
      *
      * @param array<mixed>|null $layout
      * @throws InvalidArgumentException on an invalid or oversized layout
-     * @throws RuntimeException (code 409) when $revision is stale
+     * @throws RuntimeException (code 409) when $revision is stale, (code 404)
+     *         when a first save targets an album that does not exist
      */
     public function save(int $albumId, int $revision, ?array $layout, string $action): int
     {
@@ -231,6 +241,13 @@ final class AlbumLayoutService
             'default' => ['published_json = NULL, published_at = NULL,', []],
         };
         if ($revision === 0) {
+            // INSERT IGNORE would turn a missing album (FK failure) into a
+            // warning on MySQL and the save into a misleading 409, while SQLite
+            // raises a raw FK error: check the album first on both engines.
+            $exists = $this->db->query('SELECT 1 FROM albums WHERE id = ?', [$albumId])->fetchColumn();
+            if ($exists === false) {
+                throw new RuntimeException('Album not found.', 404);
+            }
             $this->db->execute($this->db->insertIgnoreKeyword() . ' INTO album_layouts (album_id) VALUES (?)', [$albumId]);
         }
         $params[] = $albumId;
@@ -254,8 +271,9 @@ final class AlbumLayoutService
 
     /**
      * Resolve a layout against the album's already-authorized (and already
-     * privacy-masked) images. Deleted photos disappear, and new uploads join
-     * the remaining-photos grid automatically.
+     * privacy-masked) images. Deleted photos disappear; photos not placed in
+     * any block (new uploads included) join the remaining-photos grid when
+     * include_remaining is on, and are not shown otherwise.
      *
      * @param Layout $layout
      * @param list<array<string, mixed>> $images rows with at least an `id` key
@@ -352,6 +370,16 @@ final class AlbumLayoutService
             // The layout is saved; a stale page only lasts until the cache TTL.
             \App\Support\Logger::warning('AlbumLayoutService: page cache invalidation failed: ' . $e->getMessage());
         }
+    }
+
+    private static function isMissingTable(\PDOException $e): bool
+    {
+        $sqlState = (string) ($e->errorInfo[0] ?? $e->getCode());
+        $driverCode = (int) ($e->errorInfo[1] ?? 0);
+
+        return $sqlState === '42S02'                       // MySQL: base table not found
+            || $driverCode === 1146                        // MySQL: ER_NO_SUCH_TABLE
+            || str_contains($e->getMessage(), 'no such table'); // SQLite
     }
 
     private function stringOrNull(mixed $value): ?string

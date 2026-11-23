@@ -7,7 +7,9 @@ declare(strict_types=1);
  * admin save endpoints exist. Runs against the same database as the dev
  * server (bootstrap reads .env).
  *
- * Usage: php tests/e2e/fixtures/album-layout.php <album_id> <draft|publish|default|clear>
+ * Usage: php tests/e2e/fixtures/album-layout.php <album_id> <draft|publish|default|clear|empty|text-only>
+ *          (empty: publish a layout that renders nothing; text-only: publish
+ *          a layout with a single text block and no photos)
  *        php tests/e2e/fixtures/album-layout.php setting <key> <json value>
  *          (prints {"previous": <decoded value or null>}; used to pin a
  *          setting the spec depends on and restore it afterwards)
@@ -49,8 +51,8 @@ if (($argv[1] ?? '') === 'setting') {
 
 $albumId = (int) ($argv[1] ?? 0);
 $action = (string) ($argv[2] ?? '');
-if ($albumId < 1 || !in_array($action, ['draft', 'publish', 'default', 'clear'], true)) {
-    fwrite(STDERR, "usage: album-layout.php <album_id> <draft|publish|default|clear>\n");
+if ($albumId < 1 || !in_array($action, ['draft', 'publish', 'default', 'clear', 'empty', 'text-only'], true)) {
+    fwrite(STDERR, "usage: album-layout.php <album_id> <draft|publish|default|clear|empty|text-only>\n");
     exit(2);
 }
 
@@ -74,6 +76,15 @@ if ($action === 'clear') {
 if (count($ids) < 4) {
     fwrite(STDERR, "album {$albumId} needs at least 4 images\n");
     exit(3);
+}
+
+if ($action === 'empty' || $action === 'text-only') {
+    $blocks = $action === 'text-only'
+        ? [['id' => 'only', 'type' => 'text', 'text' => 'LAYOUT-E2E-TEXT-ONLY']]
+        : [];
+    $newRevision = $service->save($albumId, $revision, ['include_remaining' => false, 'blocks' => $blocks], 'publish');
+    echo json_encode(['revision' => $newRevision, 'order' => []]), "\n";
+    exit(0);
 }
 
 $last = $ids[count($ids) - 1];

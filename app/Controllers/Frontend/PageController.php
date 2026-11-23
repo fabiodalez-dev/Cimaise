@@ -1816,15 +1816,6 @@ class PageController extends BaseController
             $cacheableData['og_type'] = $albumSchemaType;
         }
 
-        // A layout published while this page was being built has already
-        // invalidated the cache; storing the spec read earlier would bring the
-        // old layout back until the next invalidation. Skip the write then.
-        if ($canUseCache
-            && (new \App\Services\AlbumLayoutService($this->db))->published((int) $album['id']) !== $albumLayoutSpec
-        ) {
-            $canUseCache = false;
-        }
-
         // Save to cache for future public requests
         if ($canUseCache) {
             $cacheKey = PageCacheService::albumPageKey((int) $album['id'], $templateIdFromUrl);
@@ -1832,6 +1823,14 @@ class PageController extends BaseController
                 'template_file' => $twigTemplate,
                 'data' => $cacheableData,
             ], CacheTags::albumRelated((int) $album['id'], (int) $album['category_id']));
+            // Write, then verify: a layout published while this page was being
+            // built may have invalidated the key BEFORE this write, which would
+            // bring the old layout back for the whole TTL. Re-read after the
+            // write and drop the entry if it changed; a publish landing after
+            // this read invalidates the entry itself.
+            if ((new \App\Services\AlbumLayoutService($this->db))->published((int) $album['id']) !== $albumLayoutSpec) {
+                $this->getPageCacheService()->invalidate($cacheKey);
+            }
         }
 
         $rendered = $this->view->render($response, $twigTemplate, array_merge($cacheableData, $this->albumLayoutData($cacheableData), [

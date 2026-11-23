@@ -260,4 +260,25 @@ final class AlbumLayoutServiceTest extends TestCase
         $this->db->pdo()->exec('DROP TABLE album_layouts');
         self::assertNull($this->layouts->published(81));
     }
+
+    public function testFirstSaveForAMissingAlbumIsNotFoundNotAConflict(): void
+    {
+        try {
+            $this->layouts->save(999, 0, $this->layout(), 'draft');
+            self::fail('Missing album accepted');
+        } catch (RuntimeException $error) {
+            self::assertSame(404, $error->getCode());
+        }
+        self::assertSame(0, (int) $this->db->query('SELECT COUNT(*) FROM album_layouts')->fetchColumn());
+    }
+
+    public function testOtherReadErrorsAreNotMistakenForNoLayout(): void
+    {
+        // A broken table (here: missing column) is a real error, unlike a
+        // table that does not exist yet before the 1.4.32 migration.
+        $this->db->pdo()->exec('DROP TABLE album_layouts');
+        $this->db->pdo()->exec('CREATE TABLE album_layouts (album_id INTEGER PRIMARY KEY)');
+        $this->expectException(\PDOException::class);
+        $this->layouts->published(81);
+    }
 }

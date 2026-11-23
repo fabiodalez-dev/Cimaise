@@ -191,6 +191,20 @@ test.describe.serial('Visual album layouts on the public page', () => {
         await expect(page.locator('[data-visual-layout-notice]')).toBeVisible();
     });
 
+    test('LAY-07b: a layout that renders nothing shows the empty state, a text-only one does not', async ({ browser }) => {
+        test.skip(!album.id, 'album setup failed');
+        layout(album.id, 'empty');
+        let r = await anon(browser, `/album/${album.slug}`);
+        expect(r.status).toBe(200);
+        expect(r.body).toContain('data-layout="album_blocks"');
+        expect(r.body).toContain('data-album-empty');
+        layout(album.id, 'text-only');
+        r = await anon(browser, `/album/${album.slug}`);
+        expect(r.body).toContain('LAYOUT-E2E-TEXT-ONLY');
+        expect(r.body).not.toContain('data-album-empty');
+        expect(imageIds(r.body)).toEqual([]);
+    });
+
     test('LAY-08: back to default restores the original gallery markup', async ({ browser }) => {
         test.skip(!album.id || !baseline, 'album setup failed');
         layout(album.id, 'default');
