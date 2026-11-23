@@ -1,0 +1,27 @@
+<div class="album-layout-grid" style="--block-gap: {{ photo_gap }}px; --block-columns: {{ columns }}">
+  {% for row in photos|batch(columns) %}
+    {% set first_row = loop.first %}
+    {% set ratios = row|map(image => max(0.1, min(10, image.width / max(1, image.height)))) %}
+    {% set total = 0 %}
+    {% for ratio in ratios %}{% set total = total + ratio %}{% endfor %}
+    {% set lone = row|length == 1 and columns > 1 %}
+    <div class="album-layout-row{{ lone ? ' album-layout-row--lone' : '' }}">
+      {% for image in row %}
+        {% set share = lone ? 1 / columns : ratios[loop.index0] / total %}
+        {% set desktop_size = max(1, (photo_width * share)|round) ~ 'vw' %}
+        {% set mobile_size = '100vw' %}
+        {% if photo_max_width > 0 %}
+          {% set desktop_size = 'min(' ~ desktop_size ~ ', ' ~ max(1, (photo_max_width * share)|round) ~ 'px)' %}
+          {% set mobile_size = 'min(100vw, ' ~ photo_max_width ~ 'px)' %}
+        {% endif %}
+        <div class="album-layout-cell" style="flex-grow: {{ ratios[loop.index0] }}">
+          {% include 'frontend/_gallery_item.twig' with {
+            layout: 'masonry', style: {rounded: false, shadow: false, hover_scale: false},
+            layout_image_sizes: '(max-width: 639px) ' ~ mobile_size ~ ', ' ~ desktop_size,
+            lazy_load_images: not (lead and first_row and loop.first)
+          } %}
+        </div>
+      {% endfor %}
+    </div>
+  {% endfor %}
+</div>

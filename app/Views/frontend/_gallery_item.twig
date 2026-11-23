@@ -96,13 +96,13 @@
       {% set sizes_attr = '(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw' %}
 
       {% if variants_avif %}
-        <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="{{ sizes_attr }}">
+        <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="{{ layout_image_sizes ?? sizes_attr }}">
       {% endif %}
       {% if variants_jxl %}
-        <source type="image/jxl" srcset="{{ variants_jxl|join(', ') }}" sizes="{{ sizes_attr }}">
+        <source type="image/jxl" srcset="{{ variants_jxl|join(', ') }}" sizes="{{ layout_image_sizes ?? sizes_attr }}">
       {% endif %}
       {% if variants_webp %}
-        <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="{{ sizes_attr }}">
+        <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="{{ layout_image_sizes ?? sizes_attr }}">
       {% endif %}
 
       <img src="{{ best_jpg_path }}"

@@ -85,6 +85,15 @@ final class AlbumLayoutService
         ];
     }
 
+    /** @return Layout|null */
+    public function published(int $albumId): ?array
+    {
+        $json = $this->db->query('SELECT published_json FROM album_layouts WHERE album_id = ?', [$albumId])->fetchColumn();
+        $photosRemoved = false;
+
+        return $this->decode($this->stringOrNull($json), null, $photosRemoved);
+    }
+
     /**
      * Validate a layout and return its canonical form. Ids outside
      * $allowedImageIds are dropped (and reported through $photosRemoved);
@@ -236,7 +245,7 @@ final class AlbumLayoutService
             if ($block['type'] !== 'text') {
                 $selected = [];
                 foreach ($block['images'] ?? [] as $id) {
-                    if (isset($index[$id])) {
+                    if (isset($index[$id]) && !isset($used[$id])) {
                         $selected[] = $index[$id];
                         $used[$id] = true;
                     }

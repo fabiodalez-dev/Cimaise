@@ -128,6 +128,21 @@ final class AlbumLayoutServiceTest extends TestCase
         self::assertSame([], $this->layouts->resolve($layout, $images)['remaining']);
     }
 
+    public function testRenderingUsesCallerProvidedRowsInLayoutOrderWithoutDuplicates(): void
+    {
+        $layout = $this->layout();
+        $layout['blocks'][0]['images'] = [12];
+        $images = [
+            ['id' => 14, 'gps_lat' => null],
+            ['id' => 12, 'gps_lat' => 52.09],
+            ['id' => 13, 'gps_lat' => null],
+        ];
+        $resolved = $this->layouts->resolve($layout, $images);
+        self::assertSame([$images[1]], $resolved['blocks'][0]['photos']);
+        self::assertSame([$images[2]], $resolved['blocks'][2]['photos']);
+        self::assertSame([$images[0]], $resolved['remaining']);
+    }
+
     public function testAlbumDeletionRemovesItsLayoutsOnly(): void
     {
         foreach ([81,82] as $id) {

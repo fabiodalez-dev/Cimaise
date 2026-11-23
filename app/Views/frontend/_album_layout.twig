@@ -1,0 +1,23 @@
+<link rel="stylesheet" href="{{ base_path }}/assets/css/album-layout.css?v={{ app_version }}">
+<div id="images-gallery" class="album-layout pswp-gallery" data-layout="album_blocks">
+  {% set lead = true %}
+  {% for block in album_layout.blocks %}
+    <section class="album-layout-block" data-layout-block="{{ block.id }}" data-block-type="{{ block.type }}"
+      style="--block-width: {{ block.width }}%; --block-max: {{ block.max_width > 0 ? block.max_width ~ 'px' : '100%' }}; --block-top: {{ block.top }}px; --block-bottom: {{ block.bottom }}px; --block-left: {{ block.align == 'left' ? '0' : 'auto' }}; --block-right: {{ block.align == 'right' ? '0' : 'auto' }}; --block-columns: {{ block.columns|default(1) }}; --block-gap: {{ block.gap|default(0) }}px;">
+      {% if block.type == 'text' %}
+        <div class="album-layout-text">{{ block.text }}</div>
+      {% else %}
+        {% include 'frontend/_album_layout_photos.twig' with {
+          photos: block.photos, columns: block.type == 'photo' ? 1 : block.columns,
+          photo_gap: block.gap, photo_width: block.width, photo_max_width: block.max_width, lead: lead
+        } %}
+        {% set lead = false %}
+      {% endif %}
+    </section>
+  {% endfor %}
+  {% if album_layout.remaining %}
+    <section class="album-layout-block" data-layout-remaining>
+      {% include 'frontend/_album_layout_photos.twig' with {photos: album_layout.remaining, columns: 3, photo_gap: 8, photo_width: 100, photo_max_width: 0, lead: lead} %}
+    </section>
+  {% endif %}
+</div>

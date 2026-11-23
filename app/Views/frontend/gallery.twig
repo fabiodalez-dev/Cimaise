@@ -193,7 +193,9 @@
   {% set hover_class = style.hover_scale ? 'group-hover:scale-105' : '' %}
 
   {# Custom gallery template (uploaded) #}
-  {% if custom_template_twig %}
+  {% if album_layout is defined %}
+      {% include 'frontend/_album_layout.twig' %}
+  {% elseif custom_template_twig %}
       <div id="images-gallery" class="pswp-gallery" data-layout="custom">
           {% include custom_template_twig %}
       </div>
@@ -681,7 +683,7 @@
       </div>
   {% endif %}
 
-{% if images|length == 0 %}
+{% if images|length == 0 and album_layout is not defined %}
   <div class="text-center py-20">
       <h2 class="text-2xl font-light text-neutral-600 mb-4">{{ trans('album.empty') }}</h2>
       <p class="text-neutral-500">{{ trans('album.empty_message') }}</p>
@@ -689,7 +691,7 @@
   {% endif %}
 
   {# Image structured data (ImageGallery + per-image ImageObject) #}
-  {% include 'frontend/_image_schema.twig' %}
+  {% include 'frontend/_image_schema.twig' with {images: album_layout_images ?? images} %}
 
 </div>
 {% endblock %}
