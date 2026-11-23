@@ -99,7 +99,7 @@ final class AlbumLayoutService
         try {
             $json = $this->db->query('SELECT published_json FROM album_layouts WHERE album_id = ?', [$albumId])->fetchColumn();
         } catch (\PDOException $e) {
-            // Code deployed before the 1.4.32 migration ran: no table yet means
+            // Code deployed before the 1.5.0 migration ran: no table yet means
             // no layout, never a broken public page. Any other error (lock,
             // lost connection) is real: log it and let it surface, so a failed
             // read is never mistaken for "no layout" and never cached as such.

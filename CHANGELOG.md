@@ -10,6 +10,21 @@ release notes, so keep one section per released tag.
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-24
+The first part of optional visual album layouts (#158), contributed by @MiranoVerhoef: albums can now store a layout of photo, photo-grid and text blocks and the public album page renders it (#159, #160). The admin editor to build layouts arrives in a following release; until then nothing changes for existing albums, which keep their gallery template.
+
+### Added
+- **Visual album layouts: storage.** A new `album_layouts` table keeps one private draft and one published layout per album, with a revision counter so two editor tabs cannot overwrite each other, plus `updated_at` and `published_at`. Layouts only reference photos: a deleted photo is dropped from the layout instead of breaking it, and a damaged stored layout is treated as absent (#159, thanks @MiranoVerhoef).
+- **Visual album layouts: public page.** A published layout replaces the gallery with its blocks: full-width or narrower photos, grids whose rows keep each photo's proportions, plain-text blocks, and an optional grid with the photos not placed in any block (columns and spacing configurable). The lightbox and the image structured data follow the layout order, the first photo loads eagerly, and `sizes` follows each block's width (#160, thanks @MiranoVerhoef).
+- The album edit page says when a published layout replaces the gallery and page templates.
+
+### Changed
+- Albums without a layout render exactly as before. Password-protected and NSFW albums keep their gates; GPS coordinates stay masked on cached pages because only the layout definition is cached, never photo rows.
+- Publishing a layout or switching an album back to its gallery refreshes the album's cached pages right away; drafts never reach the public cache.
+
+### Upgrade notes
+- The `migrate_1.5.0_*` migration creates `album_layouts`. The in-app updater applies it during the update, and the Docker image applies it at container start, as for previous migrations. Fresh installs get the table from the schema and the bundled SQLite template.
+
 ## [1.4.31] - 2026-11-17
 Closes the hardening notes left open after the 1.4.30 audit (#148, #149), makes Docker installs update through the image (#152), and brings a batch of contributions from @MiranoVerhoef: a green admin header, a soft fade between public pages, a dedicated Site Logo page, responsive logos, albums hidden from the homepage, a compact header search and a one-click rebuild of existing image variants (#150–#157).
 

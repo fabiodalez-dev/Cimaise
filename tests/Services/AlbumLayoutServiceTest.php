@@ -23,7 +23,7 @@ final class AlbumLayoutServiceTest extends TestCase
     {
         $root = dirname(__DIR__, 2);
         $this->db->pdo()->exec('DROP TABLE album_layouts');
-        $migration = (string) file_get_contents($root . '/database/migrations/migrate_1.4.32_sqlite.sql');
+        $migration = (string) file_get_contents($root . '/database/migrations/migrate_1.5.0_sqlite.sql');
         $this->db->pdo()->exec($migration);
         $this->layouts->save(81, 0, $this->layout(), 'publish');
         $this->db->pdo()->exec($migration);
@@ -275,7 +275,7 @@ final class AlbumLayoutServiceTest extends TestCase
     public function testOtherReadErrorsAreNotMistakenForNoLayout(): void
     {
         // A broken table (here: missing column) is a real error, unlike a
-        // table that does not exist yet before the 1.4.32 migration.
+        // table that does not exist yet before the 1.5.0 migration.
         $this->db->pdo()->exec('DROP TABLE album_layouts');
         $this->db->pdo()->exec('CREATE TABLE album_layouts (album_id INTEGER PRIMARY KEY)');
         $this->expectException(\PDOException::class);

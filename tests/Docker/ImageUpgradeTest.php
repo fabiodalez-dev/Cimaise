@@ -164,11 +164,16 @@ foreach (glob('/usr/share/cimaise/migrations/migrate_*_sqlite.sql') ?: [] as $fi
 $pdo = new PDO('sqlite:/var/www/html/database/database.sqlite');
 $stored = json_decode((string) $pdo->query("SELECT value FROM settings WHERE key = 'docker.schema_version'")->fetchColumn(), true);
 $columns = array_column($pdo->query('PRAGMA table_info(albums)')->fetchAll(PDO::FETCH_ASSOC), 'name');
-echo json_encode(['newest' => $newest, 'stored' => $stored, 'show_equipment' => in_array('show_equipment', $columns, true)]);
+$layoutColumns = array_column($pdo->query('PRAGMA table_info(album_layouts)')->fetchAll(PDO::FETCH_ASSOC), 'name');
+echo json_encode(['newest' => $newest, 'stored' => $stored, 'show_equipment' => in_array('show_equipment', $columns, true), 'album_layouts' => $layoutColumns]);
 PHP);
         $schema = json_decode($this->exec('php /tmp/schema-check.php'), true);
         self::assertSame($schema['newest'], $schema['stored'], 'database schema version after the upgrade');
         self::assertTrue($schema['show_equipment'], 'albums.show_equipment exists after the upgrade');
+        // 1.5.0: visual album layouts (database/migrations/migrate_1.5.0_*).
+        foreach (['album_id', 'draft_json', 'published_json', 'revision', 'updated_at', 'published_at'] as $column) {
+            self::assertContains($column, $schema['album_layouts'], 'album_layouts.' . $column . ' exists after the upgrade');
+        }
         self::assertSame(200, $this->http('/album/suite-album')['status'], 'content created by the older image is still served');
 
         // A real upload, as the admin UI sends it.

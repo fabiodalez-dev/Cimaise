@@ -209,6 +209,11 @@ PHP, ['UPDATER_API_BASE' => $this->githubUrl, 'UPDATER_REPO' => 'test/cimaise', 
         self::assertStringNotContainsString(self::STALE_MARKER, (string) file_get_contents($root . '/app/Views/frontend/_layout.twig'));
         $db = $this->site->database();
         self::assertContains('show_equipment', array_column($db->query('PRAGMA table_info(albums)')->fetchAll(PDO::FETCH_ASSOC), 'name'), 'pending migration applied');
+        self::assertSame(
+            ['album_id', 'draft_json', 'published_json', 'revision', 'updated_at', 'published_at'],
+            array_column($db->query('PRAGMA table_info(album_layouts)')->fetchAll(PDO::FETCH_ASSOC), 'name'),
+            '1.5.0 migration (album_layouts) applied by the updater'
+        );
         self::assertFileDoesNotExist($root . '/storage/.maintenance', 'maintenance mode released');
 
         // The site's own content and configuration are untouched.
