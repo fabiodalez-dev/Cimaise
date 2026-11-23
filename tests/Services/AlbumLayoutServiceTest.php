@@ -137,4 +137,54 @@ final class AlbumLayoutServiceTest extends TestCase
         self::assertNull($this->layouts->state(81)['published']);
         self::assertSame($this->layout(), $this->layouts->state(82)['published']);
     }
+
+    public function testSaveNormalizesTheLayoutItself(): void
+    {
+        // A caller that forgets normalize() must not store a layout that
+        // state() would later discard (missing version) or an invalid one.
+        $raw = ['blocks' => [['id' => 'copy', 'type' => 'text', 'text' => '  Hello  ']]];
+        $this->layouts->save(81, 0, $raw, 'publish');
+        $published = $this->layouts->state(81)['published'];
+        self::assertNotNull($published);
+        self::assertSame(1, $published['version']);
+        self::assertSame('Hello', $published['blocks'][0]['text']);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->layouts->save(81, 1, ['blocks' => [['id' => 'x', 'type' => 'html']]], 'draft');
+    }
+
+    public function testOversizedLayoutIsRejectedBeforeReachingTheDatabase(): void
+    {
+        // 200 valid text blocks of escaped control characters encode to ~24 MB,
+        // more than MySQL MEDIUMTEXT can hold.
+        $text = 'a' . str_repeat("\x01", AlbumLayoutService::MAX_TEXT_CHARS - 2) . 'a';
+        $blocks = [];
+        for ($i = 0; $i < AlbumLayoutService::MAX_BLOCKS; $i++) {
+            $blocks[] = ['id' => "t{$i}", 'type' => 'text', 'text' => $text];
+        }
+        try {
+            $this->layouts->save(81, 0, ['blocks' => $blocks], 'draft');
+            self::fail('Oversized layout accepted');
+        } catch (InvalidArgumentException $error) {
+            self::assertStringContainsString('too large', $error->getMessage());
+        }
+        self::assertSame(0, $this->layouts->state(81)['revision']);
+        self::assertNull($this->layouts->state(81)['draft']);
+    }
+
+    public function testTimestampsTrackEditsAndPublishing(): void
+    {
+        $this->layouts->save(81, 0, $this->layout(), 'draft');
+        $state = $this->layouts->state(81);
+        self::assertNotNull($state['updated_at']);
+        self::assertNull($state['published_at']);
+
+        $this->layouts->save(81, 1, $this->layout(), 'publish');
+        self::assertNotNull($this->layouts->state(81)['published_at']);
+
+        $this->layouts->save(81, 2, null, 'default');
+        $state = $this->layouts->state(81);
+        self::assertNull($state['published_at']);
+        self::assertNotNull($state['updated_at']);
+    }
 }
