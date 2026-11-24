@@ -322,7 +322,9 @@ test('album layout endpoints validate saves and keep unpublished previews privat
 
         const saved = await page.request.post(endpoint, { headers, data });
         expect(saved.status()).toBe(200);
-        expect((await saved.json()).revision).toBe(1);
+        const snapshot = await saved.json();
+        expect(snapshot.revision).toBe(1);
+        expect(snapshot.layout.blocks[0].text).toBe('Private draft text');
         expect((await page.request.post(endpoint, { headers, data })).status()).toBe(409);
 
         const preview = await page.request.get(endpoint + '/preview', {
@@ -352,12 +354,16 @@ test('album layout endpoints validate saves and keep unpublished previews privat
             headers, data: { ...data, action: 'publish', revision: 1 },
         });
         expect(published.status()).toBe(200);
-        expect(await (await visitor.request.get(BASE + '/album/' + slug)).text()).toContain('Private draft text');
+        const publishedPage = await visitor.request.get(BASE + '/album/' + slug);
+        expect(publishedPage.status()).toBe(200);
+        expect(await publishedPage.text()).toContain('Private draft text');
         const reset = await page.request.post(endpoint, {
             headers, data: { action: 'default', revision: 2 },
         });
         expect(reset.status()).toBe(200);
-        expect(await (await visitor.request.get(BASE + '/album/' + slug)).text()).not.toContain('Private draft text');
+        const defaultPage = await visitor.request.get(BASE + '/album/' + slug);
+        expect(defaultPage.status()).toBe(200);
+        expect(await defaultPage.text()).not.toContain('Private draft text');
     } finally {
         await visitor.close();
         await deleteAlbum(page, id);

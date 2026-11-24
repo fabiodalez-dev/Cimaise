@@ -47,8 +47,9 @@ final class AlbumLayoutController extends BaseController
         $imageIds = $action === 'default' ? null : array_map('intval', $this->db
             ->query('SELECT id FROM images WHERE album_id = ?', [$albumId])
             ->fetchAll(\PDO::FETCH_COLUMN));
+        $savedLayout = null;
         try {
-            $revision = $service->save($albumId, $revision, $action === 'default' ? null : $layout, $action, $imageIds);
+            $revision = $service->save($albumId, $revision, $action === 'default' ? null : $layout, $action, $imageIds, $savedLayout);
         } catch (InvalidArgumentException | JsonException) {
             return $this->invalidLayout($response);
         } catch (RuntimeException $error) {
@@ -62,7 +63,7 @@ final class AlbumLayoutController extends BaseController
         return $this->jsonResponse($response, [
             'ok' => true,
             'revision' => $revision,
-            'layout' => $action === 'default' ? null : $service->state($albumId, $imageIds)['draft'],
+            'layout' => $savedLayout,
         ]);
     }
 

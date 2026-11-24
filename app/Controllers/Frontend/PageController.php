@@ -1693,7 +1693,7 @@ class PageController extends BaseController
         if ($layoutPreview) {
             $editorState = $layoutService->state((int) $album['id'], array_map('intval', array_column($images, 'id')));
             $albumLayoutSpec = $editorState['draft'] ?? $editorState['published']
-                ?? ['version' => 1, 'blocks' => [], 'include_remaining' => true];
+                ?? $layoutService->normalize(['blocks' => []], null);
         } else {
             $albumLayoutSpec = $layoutService->published((int) $album['id']);
         }
