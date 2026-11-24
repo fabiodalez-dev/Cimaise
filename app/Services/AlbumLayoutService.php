@@ -214,11 +214,12 @@ final class AlbumLayoutService
      * database. Returns the new revision.
      *
      * @param array<mixed>|null $layout
+     * @param list<int>|null $allowedImageIds ids currently in the album; null skips pruning
      * @throws InvalidArgumentException on an invalid or oversized layout
      * @throws RuntimeException (code 409) when $revision is stale, (code 404)
      *         when a first save targets an album that does not exist
      */
-    public function save(int $albumId, int $revision, ?array $layout, string $action): int
+    public function save(int $albumId, int $revision, ?array $layout, string $action, ?array $allowedImageIds = null): int
     {
         if (!in_array($action, ['draft', 'publish', 'default'], true)) {
             throw new InvalidArgumentException('Unknown save action.');
@@ -228,7 +229,7 @@ final class AlbumLayoutService
             if ($layout === null) {
                 throw new InvalidArgumentException('A layout is required.');
             }
-            $json = json_encode($this->normalize($layout, null), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+            $json = json_encode($this->normalize($layout, $allowedImageIds), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
             if (strlen($json) > self::MAX_JSON_BYTES) {
                 throw new InvalidArgumentException('This layout is too large to save.');
             }

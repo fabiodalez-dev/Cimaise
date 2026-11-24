@@ -10,7 +10,7 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-    BASE, createAlbum, deleteAlbum, publishAlbum, requireServer, requireAdmin, header,
+    BASE, adminCsrf, createAlbum, deleteAlbum, publishAlbum, requireServer, requireAdmin, header,
 } from './_helpers.js';
 import { uploadImages } from './_upload-helpers.js';
 
@@ -293,4 +293,73 @@ test.describe.serial('Visual album layouts behind access gates', () => {
             await ctx.close();
         }
     });
+});
+
+test('album layout endpoints validate saves and keep unpublished previews private', async ({ page, browser }) => {
+    await requireServer(test, page);
+    await requireAdmin(test, page);
+    const { id, slug } = await createAlbum(page, 'Layout endpoint ' + Date.now());
+    expect(id).toBeTruthy();
+    const visitor = await browser.newContext();
+    try {
+        const edit = BASE + '/admin/albums/' + id + '/edit';
+        await page.goto(edit);
+        const form = await page.locator('#album-form').evaluate(element => Object.fromEntries(new FormData(element)));
+        delete form.is_published;
+        const endpoint = BASE + '/admin/albums/' + id + '/layout';
+        const updated = await page.request.post(BASE + '/admin/albums/' + id, { form, maxRedirects: 0 });
+        expect(updated.status()).toBe(302);
+        const csrf = await adminCsrf(page, edit);
+        const headers = { Accept: 'application/json', 'X-CSRF-Token': csrf };
+        const layout = { blocks: [{ id: 'draft-copy', type: 'text', text: 'Private draft text' }] };
+        const data = { action: 'draft', revision: 0, layout };
+
+        const noCsrf = await page.request.post(endpoint, { data });
+        expect(noCsrf.status()).toBe(400);
+        expect((await page.request.post(endpoint, { headers, data: { ...data, layout: null } })).status()).toBe(422);
+        expect((await page.request.post(endpoint.replace('/' + id + '/', '/0/'), { headers, data })).status()).toBe(404);
+        expect((await visitor.request.get(endpoint + '/preview', { maxRedirects: 0 })).status()).toBe(302);
+
+        const saved = await page.request.post(endpoint, { headers, data });
+        expect(saved.status()).toBe(200);
+        expect((await saved.json()).revision).toBe(1);
+        expect((await page.request.post(endpoint, { headers, data })).status()).toBe(409);
+
+        const preview = await page.request.get(endpoint + '/preview', {
+            headers: { 'If-None-Match': '*' },
+        });
+        expect(preview.status()).toBe(200);
+        expect(preview.headers()['cache-control']).toContain('no-store');
+        expect(preview.headers()['content-security-policy']).toContain("frame-ancestors 'self'");
+        expect(await preview.text()).toContain('Private draft text');
+        await page.evaluate(url => {
+            const frame = document.createElement('iframe');
+            frame.id = 'layout-preview-test';
+            frame.src = url;
+            document.body.appendChild(frame);
+        }, endpoint + '/preview');
+        await expect(page.frameLocator('#layout-preview-test').getByText('Private draft text', { exact: true }))
+            .toBeVisible();
+        const unpublished = await visitor.request.get(BASE + '/album/' + slug + '?layout_preview=draft');
+        expect(unpublished.status()).toBe(404);
+
+        expect(await publishAlbum(page, id)).toBe(true);
+        const publicPage = await visitor.request.get(BASE + '/album/' + slug + '?layout_preview=draft');
+        expect(publicPage.status()).toBe(200);
+        expect(await publicPage.text()).not.toContain('Private draft text');
+
+        const published = await page.request.post(endpoint, {
+            headers, data: { ...data, action: 'publish', revision: 1 },
+        });
+        expect(published.status()).toBe(200);
+        expect(await (await visitor.request.get(BASE + '/album/' + slug)).text()).toContain('Private draft text');
+        const reset = await page.request.post(endpoint, {
+            headers, data: { action: 'default', revision: 2 },
+        });
+        expect(reset.status()).toBe(200);
+        expect(await (await visitor.request.get(BASE + '/album/' + slug)).text()).not.toContain('Private draft text');
+    } finally {
+        await visitor.close();
+        await deleteAlbum(page, id);
+    }
 });
