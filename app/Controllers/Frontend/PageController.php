@@ -1550,11 +1550,17 @@ class PageController extends BaseController
             // Use authenticated URLs for unpublished and protected images.
             foreach ($images as &$image) {
                 $adminMedia = '/admin/media/images/' . (int) $image['id'];
-                $image['url'] = $image['fallback_src'] = $image['lightbox_url'] = $adminMedia . '/original';
                 foreach ($image['variants'] as &$variant) {
                     $variant['path'] = $adminMedia . '/variants/' . $variant['variant'] . '.' . $variant['format'];
                 }
                 unset($variant);
+                // Browser-ready variants, never the original: it can be a
+                // 40 MP file or a HEIC that the browser cannot decode.
+                $grid = \App\Services\ImageVariantsService::getBestGridVariant($image['variants']);
+                $lightbox = \App\Services\ImageVariantsService::getBestLightboxVariant($image['variants']);
+                $gridUrl = $grid['path'] ?? ($lightbox['path'] ?? $adminMedia . '/original');
+                $image['url'] = $image['fallback_src'] = $gridUrl;
+                $image['lightbox_url'] = $lightbox['path'] ?? $gridUrl;
             }
             unset($image);
         }

@@ -311,7 +311,13 @@ test('album layout endpoints validate saves and keep unpublished previews privat
         expect(updated.status()).toBe(302);
         const csrf = await adminCsrf(page, edit);
         const headers = { Accept: 'application/json', 'X-CSRF-Token': csrf };
-        const layout = { blocks: [{ id: 'draft-copy', type: 'text', text: 'Private draft text' }] };
+        const [imageId] = await uploadImages(page, id, 1, { labelPrefix: 'layp' });
+        const layout = {
+            blocks: [
+                { id: 'draft-copy', type: 'text', text: 'Private draft text' },
+                { id: 'draft-photo', type: 'photo', images: [imageId] },
+            ],
+        };
         const data = { action: 'draft', revision: 0, layout };
 
         const noCsrf = await page.request.post(endpoint, { data });
@@ -327,13 +333,18 @@ test('album layout endpoints validate saves and keep unpublished previews privat
         expect(snapshot.layout.blocks[0].text).toBe('Private draft text');
         expect((await page.request.post(endpoint, { headers, data })).status()).toBe(409);
 
-        const preview = await page.request.get(endpoint + '/preview', {
-            headers: { 'If-None-Match': '*' },
-        });
+        // No If-None-Match here: Apache answers `If-None-Match: *` with 304
+        // for any existing resource, before PHP sees the request.
+        const preview = await page.request.get(endpoint + '/preview');
         expect(preview.status()).toBe(200);
         expect(preview.headers()['cache-control']).toContain('no-store');
         expect(preview.headers()['content-security-policy']).toContain("frame-ancestors 'self'");
-        expect(await preview.text()).toContain('Private draft text');
+        const previewHtml = await preview.text();
+        expect(previewHtml).toContain('Private draft text');
+        // The unpublished album's photos load through authenticated variant
+        // URLs, never the original file (heavy, possibly undecodable HEIC).
+        expect(previewHtml).toContain('/admin/media/images/' + imageId + '/variants/');
+        expect(previewHtml).not.toContain('/admin/media/images/' + imageId + '/original');
         await page.evaluate(url => {
             const frame = document.createElement('iframe');
             frame.id = 'layout-preview-test';

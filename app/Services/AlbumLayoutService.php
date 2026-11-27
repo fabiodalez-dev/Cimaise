@@ -215,8 +215,10 @@ final class AlbumLayoutService
      *
      * @param array<mixed>|null $layout
      * @param list<int>|null $allowedImageIds ids currently in the album; null skips pruning
+     * @param Layout|null $savedLayout
      * @param-out Layout|null $savedLayout the normalized layout saved by this revision
      * @throws InvalidArgumentException on an invalid or oversized layout
+     * @throws \JsonException when the normalized layout cannot be encoded
      * @throws RuntimeException (code 409) when $revision is stale, (code 404)
      *         when a first save targets an album that does not exist
      */

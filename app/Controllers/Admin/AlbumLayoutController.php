@@ -20,6 +20,9 @@ final class AlbumLayoutController extends BaseController
         parent::__construct();
     }
 
+    /**
+     * @param array<string, string> $args
+     */
     public function save(Request $request, Response $response, array $args): Response
     {
         $response = $response->withHeader('Cache-Control', 'private, no-store');
