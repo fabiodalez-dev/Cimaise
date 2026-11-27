@@ -2616,6 +2616,8 @@
     "admin.users.total_users": "utenti totali",
     "admin.users.update_user": "Aggiorna Utente",
     "admin.albums.page_template_overrides_gallery": "Quando selezioni un template pagina personalizzato, il template galleria viene ignorato per questo album.",
+    "admin.layout.invalid_layout": "Il layout manca, non è valido o è troppo grande.",
+    "admin.layout.stale": "Il layout è stato modificato in un’altra scheda. Ricarica prima di salvare.",
     "admin.albums.visual_layout_overrides_templates": "Questo album ha un layout visuale pubblicato: il template galleria e il template pagina non vengono usati nella sua pagina pubblica.",
     "admin.templates.custom_template_fallback": "Template personalizzato",
     "admin.templates.wall_desktop_settings": "Impostazioni Desktop",

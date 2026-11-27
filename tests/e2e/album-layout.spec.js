@@ -10,7 +10,7 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-    BASE, createAlbum, deleteAlbum, publishAlbum, requireServer, requireAdmin, header,
+    BASE, adminCsrf, createAlbum, deleteAlbum, publishAlbum, requireServer, requireAdmin, header,
 } from './_helpers.js';
 import { uploadImages } from './_upload-helpers.js';
 
@@ -293,4 +293,90 @@ test.describe.serial('Visual album layouts behind access gates', () => {
             await ctx.close();
         }
     });
+});
+
+test('album layout endpoints validate saves and keep unpublished previews private', async ({ page, browser }) => {
+    await requireServer(test, page);
+    await requireAdmin(test, page);
+    const { id, slug } = await createAlbum(page, 'Layout endpoint ' + Date.now());
+    expect(id).toBeTruthy();
+    const visitor = await browser.newContext();
+    try {
+        const edit = BASE + '/admin/albums/' + id + '/edit';
+        await page.goto(edit);
+        const form = await page.locator('#album-form').evaluate(element => Object.fromEntries(new FormData(element)));
+        delete form.is_published;
+        const endpoint = BASE + '/admin/albums/' + id + '/layout';
+        const updated = await page.request.post(BASE + '/admin/albums/' + id, { form, maxRedirects: 0 });
+        expect(updated.status()).toBe(302);
+        const csrf = await adminCsrf(page, edit);
+        const headers = { Accept: 'application/json', 'X-CSRF-Token': csrf };
+        const [imageId] = await uploadImages(page, id, 1, { labelPrefix: 'layp' });
+        const layout = {
+            blocks: [
+                { id: 'draft-copy', type: 'text', text: 'Private draft text' },
+                { id: 'draft-photo', type: 'photo', images: [imageId] },
+            ],
+        };
+        const data = { action: 'draft', revision: 0, layout };
+
+        const noCsrf = await page.request.post(endpoint, { data });
+        expect(noCsrf.status()).toBe(400);
+        expect((await page.request.post(endpoint, { headers, data: { ...data, layout: null } })).status()).toBe(422);
+        expect((await page.request.post(endpoint.replace('/' + id + '/', '/0/'), { headers, data })).status()).toBe(404);
+        expect((await visitor.request.get(endpoint + '/preview', { maxRedirects: 0 })).status()).toBe(302);
+
+        const saved = await page.request.post(endpoint, { headers, data });
+        expect(saved.status()).toBe(200);
+        const snapshot = await saved.json();
+        expect(snapshot.revision).toBe(1);
+        expect(snapshot.layout.blocks[0].text).toBe('Private draft text');
+        expect((await page.request.post(endpoint, { headers, data })).status()).toBe(409);
+
+        // No If-None-Match here: Apache answers `If-None-Match: *` with 304
+        // for any existing resource, before PHP sees the request.
+        const preview = await page.request.get(endpoint + '/preview');
+        expect(preview.status()).toBe(200);
+        expect(preview.headers()['cache-control']).toContain('no-store');
+        expect(preview.headers()['content-security-policy']).toContain("frame-ancestors 'self'");
+        const previewHtml = await preview.text();
+        expect(previewHtml).toContain('Private draft text');
+        // The unpublished album's photos load through authenticated variant
+        // URLs, never the original file (heavy, possibly undecodable HEIC).
+        expect(previewHtml).toContain('/admin/media/images/' + imageId + '/variants/');
+        expect(previewHtml).not.toContain('/admin/media/images/' + imageId + '/original');
+        await page.evaluate(url => {
+            const frame = document.createElement('iframe');
+            frame.id = 'layout-preview-test';
+            frame.src = url;
+            document.body.appendChild(frame);
+        }, endpoint + '/preview');
+        await expect(page.frameLocator('#layout-preview-test').getByText('Private draft text', { exact: true }))
+            .toBeVisible();
+        const unpublished = await visitor.request.get(BASE + '/album/' + slug + '?layout_preview=draft');
+        expect(unpublished.status()).toBe(404);
+
+        expect(await publishAlbum(page, id)).toBe(true);
+        const publicPage = await visitor.request.get(BASE + '/album/' + slug + '?layout_preview=draft');
+        expect(publicPage.status()).toBe(200);
+        expect(await publicPage.text()).not.toContain('Private draft text');
+
+        const published = await page.request.post(endpoint, {
+            headers, data: { ...data, action: 'publish', revision: 1 },
+        });
+        expect(published.status()).toBe(200);
+        const publishedPage = await visitor.request.get(BASE + '/album/' + slug);
+        expect(publishedPage.status()).toBe(200);
+        expect(await publishedPage.text()).toContain('Private draft text');
+        const reset = await page.request.post(endpoint, {
+            headers, data: { action: 'default', revision: 2 },
+        });
+        expect(reset.status()).toBe(200);
+        const defaultPage = await visitor.request.get(BASE + '/album/' + slug);
+        expect(defaultPage.status()).toBe(200);
+        expect(await defaultPage.text()).not.toContain('Private draft text');
+    } finally {
+        await visitor.close();
+        await deleteAlbum(page, id);
+    }
 });

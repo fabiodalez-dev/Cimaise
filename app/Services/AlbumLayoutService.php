@@ -214,21 +214,26 @@ final class AlbumLayoutService
      * database. Returns the new revision.
      *
      * @param array<mixed>|null $layout
+     * @param list<int>|null $allowedImageIds ids currently in the album; null skips pruning
+     * @param Layout|null $savedLayout
+     * @param-out Layout|null $savedLayout the normalized layout saved by this revision
      * @throws InvalidArgumentException on an invalid or oversized layout
+     * @throws \JsonException when the normalized layout cannot be encoded
      * @throws RuntimeException (code 409) when $revision is stale, (code 404)
      *         when a first save targets an album that does not exist
      */
-    public function save(int $albumId, int $revision, ?array $layout, string $action): int
+    public function save(int $albumId, int $revision, ?array $layout, string $action, ?array $allowedImageIds = null, ?array &$savedLayout = null): int
     {
         if (!in_array($action, ['draft', 'publish', 'default'], true)) {
             throw new InvalidArgumentException('Unknown save action.');
         }
-        $json = null;
+        $json = $normalizedLayout = null;
         if ($action !== 'default') {
             if ($layout === null) {
                 throw new InvalidArgumentException('A layout is required.');
             }
-            $json = json_encode($this->normalize($layout, null), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+            $normalizedLayout = $this->normalize($layout, $allowedImageIds);
+            $json = json_encode($normalizedLayout, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
             if (strlen($json) > self::MAX_JSON_BYTES) {
                 throw new InvalidArgumentException('This layout is too large to save.');
             }
@@ -266,6 +271,7 @@ final class AlbumLayoutService
             $this->invalidateAlbumPage($albumId);
         }
 
+        $savedLayout = $normalizedLayout;
         return $revision + 1;
     }
 

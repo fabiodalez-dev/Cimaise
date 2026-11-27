@@ -158,8 +158,9 @@ final class AlbumLayoutServiceTest extends TestCase
         // A caller that forgets normalize() must not store a layout that
         // state() would later discard (missing version) or an invalid one.
         $raw = ['blocks' => [['id' => 'copy', 'type' => 'text', 'text' => '  Hello  ']]];
-        $this->layouts->save(81, 0, $raw, 'publish');
+        self::assertSame(1, $this->layouts->save(81, 0, $raw, 'publish', savedLayout: $savedLayout));
         $published = $this->layouts->state(81)['published'];
+        self::assertSame($published, $savedLayout);
         self::assertNotNull($published);
         self::assertSame(1, $published['version']);
         self::assertSame('Hello', $published['blocks'][0]['text']);

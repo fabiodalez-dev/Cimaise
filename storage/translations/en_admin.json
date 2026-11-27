@@ -2602,6 +2602,8 @@
     "admin.users.total_users": "total users",
     "admin.users.update_user": "Update User",
     "admin.albums.page_template_overrides_gallery": "When a custom page template is selected, the gallery template is ignored for this album.",
+    "admin.layout.invalid_layout": "The layout is missing, invalid or too large.",
+    "admin.layout.stale": "This layout changed in another tab. Reload before saving.",
     "admin.albums.visual_layout_overrides_templates": "This album has a published visual layout: the gallery template and the album page template are not used on its public page.",
     "admin.templates.custom_template_fallback": "Custom Template",
     "admin.templates.wall_desktop_settings": "Desktop Settings",

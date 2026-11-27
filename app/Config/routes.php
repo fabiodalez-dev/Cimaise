@@ -1331,6 +1331,20 @@ return function (App $app, array $container) {
         $resp->getBody()->write('Service Unavailable');
         return $resp;
     });
+    $app->post('/admin/albums/{id:[0-9]+}/layout', function (Request $request, Response $response, array $args) use ($container) {
+        return (new \App\Controllers\Admin\AlbumLayoutController($container['db']))
+            ->save($request, $response, $args);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        return new \Slim\Psr7\Response(503);
+    });
+
+    $app->get('/admin/albums/{id:[0-9]+}/layout/preview', function (Request $request, Response $response, array $args) use ($container) {
+        return (new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request)))
+            ->previewAlbumLayout($request, $response, (int) $args['id']);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        return new \Slim\Psr7\Response(503);
+    });
+
     $app->get('/admin/albums/{id}/edit', function (Request $request, Response $response, array $args) use ($container) {
         $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
         return $controller->edit($request, $response, $args);

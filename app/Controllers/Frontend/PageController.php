@@ -954,21 +954,40 @@ class PageController extends BaseController
 
     public function album(Request $request, Response $response, array $args): Response
     {
-        $slug = $args['slug'] ?? '';
+        return $this->renderAlbum($request, $response, (string) ($args['slug'] ?? ''));
+    }
+
+    public function previewAlbumLayout(Request $request, Response $response, int $albumId): Response
+    {
+        if (!$this->isAdmin()) {
+            return $response->withStatus(403)->withHeader('Cache-Control', 'private, no-store');
+        }
+
+        $preview = $this->renderAlbum($request, $response, '', $albumId)
+            ->withHeader('Cache-Control', 'private, no-store')
+            ->withHeader('X-Robots-Tag', 'noindex, nofollow, noimageindex');
+        return $preview->getStatusCode() === 200
+            ? $preview->withHeader('X-Cimaise-Layout-Preview', '1')
+            : $preview;
+    }
+
+    private function renderAlbum(Request $request, Response $response, string $slug, ?int $previewAlbumId = null): Response
+    {
+        $layoutPreview = $previewAlbumId !== null;
         $params = $request->getQueryParams();
         $templateId = isset($params['template']) ? (int) $params['template'] : null;
         $pdo = $this->db->pdo();
         $templateService = new \App\Services\TemplateService($this->db);
 
+        $albumCondition = $layoutPreview ? 'a.id = :album' : 'a.slug = :album AND a.is_published = 1';
         $stmt = $pdo->prepare('
             SELECT a.*, c.name as category_name, c.slug as category_slug,
                    t.name as template_name, t.slug as template_slug, t.settings as template_settings, t.libs as template_libs
             FROM albums a 
             JOIN categories c ON c.id = a.category_id 
             LEFT JOIN templates t ON t.id = a.template_id
-            WHERE a.slug = :slug AND a.is_published = 1
-        ');
-        $stmt->execute([':slug' => $slug]);
+            WHERE ' . $albumCondition);
+        $stmt->execute([':album' => $previewAlbumId ?? $slug]);
         $album = $stmt->fetch();
 
         if (!$album) {
@@ -979,7 +998,7 @@ class PageController extends BaseController
         }
 
         // Check if user is admin (admins bypass password/NSFW protection)
-        $isAdmin = $this->isAdmin();
+        $isAdmin = $layoutPreview || $this->isAdmin();
         $nsfwConsent = $this->hasNsfwConsent();
 
         // Password protection with session timeout - skip for admins
@@ -1527,6 +1546,25 @@ class PageController extends BaseController
             $image['fallback_src'] = $bestUrl ?: $lightboxUrl;
         }
 
+        if ($layoutPreview) {
+            // Use authenticated URLs for unpublished and protected images.
+            foreach ($images as &$image) {
+                $adminMedia = '/admin/media/images/' . (int) $image['id'];
+                foreach ($image['variants'] as &$variant) {
+                    $variant['path'] = $adminMedia . '/variants/' . $variant['variant'] . '.' . $variant['format'];
+                }
+                unset($variant);
+                // Browser-ready variants, never the original: it can be a
+                // 40 MP file or a HEIC that the browser cannot decode.
+                $grid = \App\Services\ImageVariantsService::getBestGridVariant($image['variants']);
+                $lightbox = \App\Services\ImageVariantsService::getBestLightboxVariant($image['variants']);
+                $gridUrl = $grid['path'] ?? ($lightbox['path'] ?? $adminMedia . '/original');
+                $image['url'] = $image['fallback_src'] = $gridUrl;
+                $image['lightbox_url'] = $lightbox['path'] ?? $gridUrl;
+            }
+            unset($image);
+        }
+
         // Gallery meta mapped from album for consistency with gallery view
         $galleryMeta = [
             'id' => (int) $album['id'],
@@ -1657,7 +1695,14 @@ class PageController extends BaseController
             default => 'frontend/gallery.twig',
         };
 
-        $albumLayoutSpec = (new \App\Services\AlbumLayoutService($this->db))->published((int) $album['id']);
+        $layoutService = new \App\Services\AlbumLayoutService($this->db);
+        if ($layoutPreview) {
+            $editorState = $layoutService->state((int) $album['id'], array_map('intval', array_column($images, 'id')));
+            $albumLayoutSpec = $editorState['draft'] ?? $editorState['published']
+                ?? $layoutService->normalize(['blocks' => []], null);
+        } else {
+            $albumLayoutSpec = $layoutService->published((int) $album['id']);
+        }
         if ($albumLayoutSpec !== null) {
             $twigTemplate = 'frontend/gallery.twig';
             $availableTemplates = [];

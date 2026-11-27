@@ -34,6 +34,9 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
 
         $response = $handler->handle($request);
 
+        $layoutPreview = $response->getHeaderLine('X-Cimaise-Layout-Preview') === '1';
+        $response = $response->withoutHeader('X-Cimaise-Layout-Preview');
+
         // Check if this is an admin route
         $path = $request->getUri()->getPath();
         $isAdminRoute = str_starts_with($path, '/admin') || str_starts_with($path, '/cimaise/admin');
@@ -43,7 +46,7 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
         // but dynamically-created scripts by libraries don't carry the nonce.
         // Admin is behind authentication, so the XSS risk from unsafe-inline is acceptable.
         // Frontend routes: strict nonce-based CSP with external image sources for galleries
-        if ($isAdminRoute) {
+        if ($isAdminRoute && !$layoutPreview) {
             $csp = "upgrade-insecure-requests; default-src 'self'; "
                  . "img-src 'self' data: blob:; "
                  . "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
@@ -77,12 +80,16 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
                  . "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
         }
 
+        if ($layoutPreview) {
+            $csp = str_replace("frame-ancestors 'none'", "frame-ancestors 'self'", $csp);
+        }
+
         // SECURITY: Only add HSTS if connection is HTTPS (avoid breaking HTTP dev environments)
         $isHttps = CookieHelper::isHttps();
 
         $response = $response
             ->withHeader('X-Content-Type-Options', 'nosniff')
-            ->withHeader('X-Frame-Options', 'DENY')
+            ->withHeader('X-Frame-Options', $layoutPreview ? 'SAMEORIGIN' : 'DENY')
             ->withHeader('X-XSS-Protection', '1; mode=block')
             ->withHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
             ->withHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=(), usb=(), accelerometer=(), gyroscope=(), magnetometer=(), midi=(), fullscreen=(self)')
